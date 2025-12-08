@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Resume API Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <h1>Resume Questions API Test</h1>
+    <div id="results"></div>
+
+    <script>
+        const baseURL = window.location.origin;
+        
+        async function testAPI() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>Testing API endpoints...</p>';
+            
+            try {
+                // Test 1: Get Questions
+                console.log('Testing GET /api/resume-questions');
+                const questionsResponse = await axios.get(`${baseURL}/api/resume-questions`);
+                results.innerHTML += `<p>✅ GET Questions: ${questionsResponse.status} - Found ${questionsResponse.data.length} questions</p>`;
+                
+                // Test 2: Get Categories
+                console.log('Testing GET /api/resume-questions/categories');
+                const categoriesResponse = await axios.get(`${baseURL}/api/resume-questions/categories`);
+                results.innerHTML += `<p>✅ GET Categories: ${categoriesResponse.status} - Found ${categoriesResponse.data.length} categories</p>`;
+                
+                // Test 3: Get Question Types
+                console.log('Testing GET /api/resume-questions/types');
+                const typesResponse = await axios.get(`${baseURL}/api/resume-questions/types`);
+                results.innerHTML += `<p>✅ GET Question Types: ${typesResponse.status} - Found ${Object.keys(typesResponse.data).length} types</p>`;
+                
+                // Test 4: Get Answers for a question (if questions exist)
+                if (questionsResponse.data.length > 0) {
+                    const questionId = questionsResponse.data[0].id;
+                    console.log(`Testing GET /api/resume-questions/${questionId}/answers`);
+                    const answersResponse = await axios.get(`${baseURL}/api/resume-questions/${questionId}/answers`);
+                    results.innerHTML += `<p>✅ GET Answers: ${answersResponse.status} - Found ${answersResponse.data.length} answers for question ${questionId}</p>`;
+                }
+                
+                results.innerHTML += '<p><strong>✅ All API endpoints are working!</strong></p>';
+                
+            } catch (error) {
+                console.error('API Test Error:', error);
+                results.innerHTML += `<p>❌ Error: ${error.response?.status || 'Network Error'} - ${error.response?.data?.message || error.message}</p>`;
+                
+                if (error.response?.status === 401) {
+                    results.innerHTML += '<p>⚠️ Authentication required. Please log in to the application first.</p>';
+                }
+            }
+        }
+        
+        // Run test when page loads
+        testAPI();
+    </script>
+</body>
+</html>

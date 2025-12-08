@@ -1,0 +1,27 @@
+LessonControls.vue:11 Uncaught (in promise) ReferenceError: ref is not defined
+    at setup (localhost:5173/resources/js/Pages/my_class/teacher/peresntation_2/LessonControls.vue?t=1760125852199:9:19)
+    at callWithErrorHandling (localhost:5173/node_modules/.vite/deps/chunk-2L7SCQVK.js?v=aac32d3b:2480:19)
+    at setupStatefulComponent (localhost:5173/node_modules/.vite/deps/chunk-2L7SCQVK.js?v=aac32d3b:8959:25)
+    at setupComponent (localhost:5173/node_modules/.vite/deps/chunk-2L7SCQVK.js?v=aac32d3b:8920:36)
+    at mountComponent (localhost:5173/node_modules/.vite/deps/chunk-2L7SCQVK.js?v=aac32d3b:6449:7)
+    at processComponent (localhost:5173/node_modules/.vite/deps/chunk-2L7SCQVK.js?v=aac32d3b:6415:9)
+    at patch (localhost:5173/node_modules/.vite/deps/chunk-2L7SCQVK.js?v=aac32d3b:5931:11)
+    at mountChildren (localhost:5173/node_modules/.vite/deps/chunk-2L7SCQVK.js?v=aac32d3b:6163:7)
+
+
+
+
+    app.js:162 [Vue warn]: Unhandled error during execution of setup function 
+  at <LessonControls lesson= {lessonId: 'lesson-1', title: 'Demo: Introduction to Fractions', slides: Array(1)} onSave=fn<saveLesson> onExport=fn<exportLesson>  ... > 
+  at <LessonEditor> 
+  at <Peresentation2 errors= {} jetstream= {canCreateTeams: false, canManageTwoFactorAuthentication: true, canUpdatePassword: true, canUpdateProfileInformation: true, hasEmailVerification: false, …} auth= {user: {…}}  ... > 
+  at <AppLayoutDefault errors= {} jetstream= {canCreateTeams: false, canManageTwoFactorAuthentication: true, canUpdatePassword: true, canUpdateProfileInformation: true, hasEmailVerification: false, …} auth= {user: {…}}  ... > 
+  at <Inertia initialPage= {component: 'my_class/teacher/peresntation_2/peresentation_2', props: {…}, url: '/teacher/presentation', version: 'bf1ddec7de32983002d67c904b67cae3', clearHistory: false, …} initialComponent= {__name: 'peresentation_2', __hmrId: 'cf8796d5', __file: 'D:/my_projects/2025/myclass9/myclass9/resources/js…_class/teacher/peresntation_2/peresentation_2.vue', setup: ƒ, render: ƒ, …} resolveComponent=fn<r4>  ... > 
+  at <App>
+
+
+
+
+  LessonControls.vue:11 Uncaught (in promise) ReferenceError: ref is not defined
+    at setup (LessonControls.vue:11:19)
+

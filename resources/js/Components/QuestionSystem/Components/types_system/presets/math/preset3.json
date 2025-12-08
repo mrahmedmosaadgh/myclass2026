@@ -1,0 +1,131 @@
+{
+    "id": "math-preset-3",
+    "name": "Fractions and Decimals",
+    "subject": "math",
+    "metadata": {
+        "author": "Math Department",
+        "createdAt": "2025-11-23",
+        "difficulty": "easy",
+        "tags": [
+            "fractions",
+            "decimals",
+            "conversion"
+        ]
+    },
+    "questions": [
+        {
+            "id": "q1",
+            "type": "match-up",
+            "version": "default",
+            "title": "Match Fractions to Decimals",
+            "description": "Connect equivalent fractions and decimals",
+            "points": 8,
+            "pairs": [
+                {
+                    "id": "p1",
+                    "left": {
+                        "type": "latex",
+                        "content": "\\frac{1}{2}"
+                    },
+                    "right": "0.5"
+                },
+                {
+                    "id": "p2",
+                    "left": {
+                        "type": "latex",
+                        "content": "\\frac{1}{4}"
+                    },
+                    "right": "0.25"
+                },
+                {
+                    "id": "p3",
+                    "left": {
+                        "type": "latex",
+                        "content": "\\frac{3}{4}"
+                    },
+                    "right": "0.75"
+                },
+                {
+                    "id": "p4",
+                    "left": {
+                        "type": "latex",
+                        "content": "\\frac{1}{5}"
+                    },
+                    "right": "0.2"
+                }
+            ],
+            "shuffleRight": true
+        },
+        {
+            "id": "q2",
+            "type": "quiz",
+            "version": "default",
+            "title": "Add Fractions",
+            "description": "Calculate the sum of two fractions",
+            "points": 5,
+            "question": "What is 1/4 + 1/4?",
+            "latex": "\\frac{1}{4} + \\frac{1}{4} = ?",
+            "options": [
+                {
+                    "id": "opt1",
+                    "text": "1/2",
+                    "latex": "\\frac{1}{2}",
+                    "isCorrect": true
+                },
+                {
+                    "id": "opt2",
+                    "text": "2/4",
+                    "latex": "\\frac{2}{4}",
+                    "isCorrect": true
+                },
+                {
+                    "id": "opt3",
+                    "text": "1/8",
+                    "latex": "\\frac{1}{8}",
+                    "isCorrect": false
+                },
+                {
+                    "id": "opt4",
+                    "text": "2/8",
+                    "latex": "\\frac{2}{8}",
+                    "isCorrect": false
+                }
+            ],
+            "multiSelect": true,
+            "explanation": "1/4 + 1/4 = 2/4 = 1/2 (both answers are correct)"
+        },
+        {
+            "id": "q3",
+            "type": "labelled-diagram",
+            "version": "drag-drop",
+            "title": "Label Fraction Parts",
+            "description": "Identify the parts of a fraction",
+            "points": 4,
+            "imageUrl": "/images/math/fraction-diagram.png",
+            "instructions": "Drag the labels to the correct parts",
+            "labels": [
+                {
+                    "id": "l1",
+                    "x": 50,
+                    "y": 30,
+                    "label": "1",
+                    "correctAnswer": "Numerator"
+                },
+                {
+                    "id": "l2",
+                    "x": 50,
+                    "y": 50,
+                    "label": "2",
+                    "correctAnswer": "Fraction Bar"
+                },
+                {
+                    "id": "l3",
+                    "x": 50,
+                    "y": 70,
+                    "label": "3",
+                    "correctAnswer": "Denominator"
+                }
+            ]
+        }
+    ]
+}

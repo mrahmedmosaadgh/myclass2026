@@ -1,0 +1,59 @@
+body {
+  font-family: 'Roboto Mono', monospace;
+  background-color: #f8f9fa;
+  color: #333;
+}
+
+.keyboard-key {
+  width: 50px;
+  height: 50px;
+  margin: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  transition: all 0.1s ease;
+}
+
+.keyboard-key.active {
+  transform: translateY(3px);
+  box-shadow: 0 0 3px rgba(0,0,0,0.1);
+  background-color: #90cdf4;
+}
+
+.keyboard-key.highlight-u {
+  background-color: #ebf8ff;
+  border: 2px solid #4299e1;
+}
+
+.keyboard-key.highlight-r {
+  background-color: #fef6e4;
+  border: 2px solid #ed8936;
+}
+
+.keyboard-key.highlight-k {
+  background-color: #f0fff4;
+  border: 2px solid #48bb78;
+}
+
+.finger-guide {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.6;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.finger-left-index {
+  background-color: rgba(66, 153, 225, 0.5);
+}
+
+.finger-right-index {
+  background-color: rgba(72, 187, 120, 0.5);
+}
+
+.finger-right-middle {
+  background-color: rgba(237, 137, 54, 0.5);
+}

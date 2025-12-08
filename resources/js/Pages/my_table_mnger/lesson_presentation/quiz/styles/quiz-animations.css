@@ -1,0 +1,698 @@
+/**
+ * Enterprise Quiz System - Animations and Transitions
+ * 
+ * This file contains all animations and transitions for the quiz system.
+ * Includes support for reduced motion preferences.
+ * 
+ * Animations:
+ * - Progress bar fill animation
+ * - Feedback fade-in animation
+ * - Option selection transition
+ * - Page transition effects
+ * 
+ * Requirements: UI/UX (Smooth interactions and visual feedback)
+ */
+
+/* ============================================================================
+   Progress Bar Animations
+   ============================================================================ */
+
+/**
+ * Progress bar fill animation
+ * Smooth width transition with easing for natural feel
+ */
+.progress-bar-fill {
+  transition: width var(--quiz-transition-slower) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Progress bar shimmer effect (optional enhancement) */
+@keyframes progressShimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.progress-bar-fill.animating {
+  background: linear-gradient(
+    90deg,
+    var(--quiz-success-500) 0%,
+    var(--quiz-success-400) 25%,
+    var(--quiz-success-600) 50%,
+    var(--quiz-success-400) 75%,
+    var(--quiz-success-500) 100%
+  );
+  background-size: 200% 100%;
+  animation: progressShimmer 2s ease-in-out infinite;
+}
+
+/* Progress percentage number animation */
+@keyframes countUp {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.progress-percentage {
+  animation: countUp var(--quiz-transition-base) ease-out;
+}
+
+/* ============================================================================
+   Feedback Animations
+   ============================================================================ */
+
+/**
+ * Fade-in animation for feedback elements
+ * Used when showing correct/incorrect feedback
+ */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.option-feedback {
+  animation: fadeIn var(--quiz-transition-base) ease-out;
+}
+
+.explanation-panel {
+  animation: fadeIn var(--quiz-transition-slow) ease-out;
+}
+
+/**
+ * Scale-in animation for feedback icons
+ * Creates a "pop" effect for checkmarks and X marks
+ */
+@keyframes scaleIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.feedback-icon {
+  animation: scaleIn var(--quiz-transition-base) cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/**
+ * Bounce animation for correct answers
+ * Celebratory effect when user gets answer right
+ */
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  25% {
+    transform: translateY(-8px);
+  }
+  50% {
+    transform: translateY(0);
+  }
+  75% {
+    transform: translateY(-4px);
+  }
+}
+
+.feedback-icon.correct {
+  animation: scaleIn var(--quiz-transition-base) cubic-bezier(0.34, 1.56, 0.64, 1),
+             bounce 0.6s ease-out 0.2s;
+}
+
+/**
+ * Shake animation for incorrect answers
+ * Subtle shake to indicate error
+ */
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+}
+
+.option-item.incorrect {
+  animation: shake 0.3s ease-out;
+}
+
+/**
+ * Glow animation for correct answers
+ * Subtle pulsing glow effect
+ */
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1), var(--quiz-shadow-base);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.2), var(--quiz-shadow-md);
+  }
+}
+
+.option-item.correct {
+  animation: glow 1.5s ease-in-out;
+}
+
+/* ============================================================================
+   Option Selection Transitions
+   ============================================================================ */
+
+/**
+ * Smooth transitions for option item states
+ */
+.option-item {
+  transition: 
+    border-color var(--quiz-transition-base),
+    background-color var(--quiz-transition-base),
+    transform var(--quiz-transition-base),
+    box-shadow var(--quiz-transition-base);
+}
+
+/**
+ * Hover effect with slide animation
+ */
+.option-item:hover:not([aria-disabled="true"]) {
+  transition: 
+    border-color var(--quiz-transition-fast),
+    background-color var(--quiz-transition-fast),
+    transform var(--quiz-transition-fast),
+    box-shadow var(--quiz-transition-fast);
+}
+
+/**
+ * Option label transitions
+ */
+.option-label {
+  transition: 
+    background-color var(--quiz-transition-base),
+    color var(--quiz-transition-base),
+    border-color var(--quiz-transition-base),
+    box-shadow var(--quiz-transition-base),
+    transform var(--quiz-transition-base);
+}
+
+/**
+ * Pulse animation for selected option label
+ */
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.option-item.selected .option-label {
+  animation: pulse 0.4s ease-out;
+}
+
+/**
+ * Slide-in animation for rationale text
+ */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    max-height: 500px;
+    transform: translateY(0);
+  }
+}
+
+.rationale {
+  animation: slideDown var(--quiz-transition-slow) ease-out;
+}
+
+/* ============================================================================
+   Page/Question Transition Effects
+   ============================================================================ */
+
+/**
+ * Fade transition for question changes
+ */
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.question-content.transitioning-out {
+  animation: fadeOut var(--quiz-transition-base) ease-out;
+}
+
+.question-content.transitioning-in {
+  animation: fadeIn var(--quiz-transition-base) ease-out;
+}
+
+/**
+ * Slide transition for question changes
+ */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutLeft {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-32px);
+  }
+}
+
+.question-content.slide-in {
+  animation: slideInRight var(--quiz-transition-base) ease-out;
+}
+
+.question-content.slide-out {
+  animation: slideOutLeft var(--quiz-transition-base) ease-out;
+}
+
+/**
+ * Scale transition for question changes
+ */
+@keyframes scaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.question-content.scale-in {
+  animation: scaleUp var(--quiz-transition-base) ease-out;
+}
+
+/* ============================================================================
+   Navigation Button Animations
+   ============================================================================ */
+
+/**
+ * Button transitions
+ */
+.nav-button {
+  transition: 
+    background-color var(--quiz-transition-base),
+    color var(--quiz-transition-base),
+    transform var(--quiz-transition-base),
+    box-shadow var(--quiz-transition-base);
+}
+
+/**
+ * Ripple effect for button clicks
+ */
+@keyframes ripple {
+  0% {
+    width: 0;
+    height: 0;
+    opacity: 0.5;
+  }
+  100% {
+    width: 300px;
+    height: 300px;
+    opacity: 0;
+  }
+}
+
+.nav-button::before {
+  transition: width var(--quiz-transition-base), height var(--quiz-transition-base);
+}
+
+.nav-button:active::before {
+  animation: ripple 0.6s ease-out;
+}
+
+/**
+ * Finish button celebration animation
+ */
+@keyframes celebrate {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+  }
+  25% {
+    transform: scale(1.05) rotate(-2deg);
+  }
+  75% {
+    transform: scale(1.05) rotate(2deg);
+  }
+}
+
+.finish-button:hover:not(:disabled) {
+  animation: celebrate 0.5s ease-in-out;
+}
+
+/* ============================================================================
+   Question Navigator Animations
+   ============================================================================ */
+
+/**
+ * Navigator dot transitions
+ */
+.nav-dot {
+  transition: 
+    border-color var(--quiz-transition-base),
+    background-color var(--quiz-transition-base),
+    color var(--quiz-transition-base),
+    transform var(--quiz-transition-base),
+    box-shadow var(--quiz-transition-base);
+}
+
+/**
+ * Stagger animation for navigator dots appearing
+ */
+@keyframes staggerIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.navigator-dots .nav-dot {
+  animation: staggerIn var(--quiz-transition-base) ease-out;
+  animation-fill-mode: backwards;
+}
+
+.navigator-dots .nav-dot:nth-child(1) { animation-delay: 0ms; }
+.navigator-dots .nav-dot:nth-child(2) { animation-delay: 30ms; }
+.navigator-dots .nav-dot:nth-child(3) { animation-delay: 60ms; }
+.navigator-dots .nav-dot:nth-child(4) { animation-delay: 90ms; }
+.navigator-dots .nav-dot:nth-child(5) { animation-delay: 120ms; }
+.navigator-dots .nav-dot:nth-child(6) { animation-delay: 150ms; }
+.navigator-dots .nav-dot:nth-child(7) { animation-delay: 180ms; }
+.navigator-dots .nav-dot:nth-child(8) { animation-delay: 210ms; }
+.navigator-dots .nav-dot:nth-child(9) { animation-delay: 240ms; }
+.navigator-dots .nav-dot:nth-child(10) { animation-delay: 270ms; }
+
+/* For more than 10 dots, continue pattern */
+.navigator-dots .nav-dot:nth-child(n+11) { animation-delay: 300ms; }
+
+/* ============================================================================
+   Time Warning Animations
+   ============================================================================ */
+
+/**
+ * Pulse animation for time warning
+ */
+@keyframes timePulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.02);
+  }
+}
+
+.time-remaining.time-warning {
+  animation: timePulse 1s ease-in-out infinite;
+}
+
+/**
+ * Urgent pulse for final seconds
+ */
+@keyframes urgentPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+    background-color: var(--quiz-error-50);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.05);
+    background-color: var(--quiz-error-100);
+  }
+}
+
+.time-remaining.time-critical {
+  animation: urgentPulse 0.5s ease-in-out infinite;
+}
+
+/* ============================================================================
+   Hints Section Animations
+   ============================================================================ */
+
+/**
+ * Smooth expand/collapse for hints details
+ */
+.hints-section details {
+  transition: background-color var(--quiz-transition-base);
+}
+
+.hints-section summary {
+  transition: color var(--quiz-transition-fast);
+}
+
+/**
+ * Slide down animation for hints content
+ */
+@keyframes expandDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 500px;
+  }
+}
+
+.hints-section details[open] .hints-list {
+  animation: expandDown var(--quiz-transition-base) ease-out;
+}
+
+/* ============================================================================
+   Loading States
+   ============================================================================ */
+
+/**
+ * Skeleton loading animation
+ */
+@keyframes skeleton {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.quiz-loading {
+  background: linear-gradient(
+    90deg,
+    var(--quiz-neutral-100) 0%,
+    var(--quiz-neutral-200) 50%,
+    var(--quiz-neutral-100) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton 1.5s ease-in-out infinite;
+}
+
+/**
+ * Spinner animation
+ */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.quiz-spinner {
+  animation: spin 1s linear infinite;
+}
+
+/* ============================================================================
+   Success/Completion Animations
+   ============================================================================ */
+
+/**
+ * Confetti-like celebration effect
+ */
+@keyframes confetti {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.quiz-complete-celebration {
+  animation: confetti 1s ease-out;
+}
+
+/**
+ * Success checkmark animation
+ */
+@keyframes drawCheck {
+  0% {
+    stroke-dashoffset: 100;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.success-checkmark {
+  stroke-dasharray: 100;
+  animation: drawCheck 0.6s ease-out forwards;
+}
+
+/* ============================================================================
+   Focus Animations
+   ============================================================================ */
+
+/**
+ * Focus ring animation
+ */
+@keyframes focusRing {
+  0% {
+    outline-offset: 0;
+    outline-color: rgba(59, 130, 246, 0);
+  }
+  100% {
+    outline-offset: 2px;
+    outline-color: rgba(59, 130, 246, 1);
+  }
+}
+
+.quiz-focus-visible:focus-visible {
+  animation: focusRing var(--quiz-transition-fast) ease-out;
+}
+
+/* ============================================================================
+   Accessibility - Reduced Motion
+   ============================================================================ */
+
+/**
+ * Disable all animations for users who prefer reduced motion
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .progress-bar-fill,
+  .option-item,
+  .option-label,
+  .nav-button,
+  .nav-dot,
+  .feedback-icon,
+  .rationale,
+  .explanation-panel,
+  .question-content,
+  .time-remaining {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* Keep essential transitions for usability */
+  .option-item:hover:not([aria-disabled="true"]),
+  .nav-button:hover:not(:disabled),
+  .nav-dot:hover {
+    transform: none !important;
+  }
+
+  /* Instant feedback without animation */
+  .option-feedback,
+  .explanation-panel,
+  .rationale {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* ============================================================================
+   Performance Optimizations
+   ============================================================================ */
+
+/**
+ * Use GPU acceleration for smooth animations
+ */
+.option-item,
+.nav-button,
+.progress-bar-fill,
+.option-label {
+  will-change: transform;
+}
+
+/**
+ * Optimize animations with transform and opacity only
+ * (These properties don't trigger layout recalculation)
+ */
+@keyframes optimizedFadeIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -8px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* ============================================================================
+   Custom Easing Functions
+   ============================================================================ */
+
+:root {
+  /* Smooth easing curves for natural motion */
+  --quiz-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --quiz-ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --quiz-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --quiz-ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --quiz-ease-elastic: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}

@@ -1,0 +1,128 @@
+{
+    "id": "lang-preset-2",
+    "name": "Spanish Vocabulary Builder",
+    "subject": "language-learning",
+    "metadata": {
+        "author": "Language Department",
+        "createdAt": "2025-11-23",
+        "difficulty": "medium",
+        "tags": [
+            "spanish",
+            "vocabulary",
+            "translation"
+        ]
+    },
+    "questions": [
+        {
+            "id": "q1",
+            "type": "match-up",
+            "version": "with-audio",
+            "title": "Spanish-English Translation",
+            "description": "Match Spanish words with their English translations",
+            "points": 8,
+            "instructions": "Listen to the Spanish word and match it to the English translation",
+            "pairs": [
+                {
+                    "id": "p1",
+                    "left": "Hola",
+                    "right": "Hello",
+                    "audioUrl": "/audio/spanish/hola.mp3"
+                },
+                {
+                    "id": "p2",
+                    "left": "Gracias",
+                    "right": "Thank you",
+                    "audioUrl": "/audio/spanish/gracias.mp3"
+                },
+                {
+                    "id": "p3",
+                    "left": "Por favor",
+                    "right": "Please",
+                    "audioUrl": "/audio/spanish/por-favor.mp3"
+                },
+                {
+                    "id": "p4",
+                    "left": "Adiós",
+                    "right": "Goodbye",
+                    "audioUrl": "/audio/spanish/adios.mp3"
+                }
+            ],
+            "shuffleRight": true
+        },
+        {
+            "id": "q2",
+            "type": "missing-word",
+            "version": "default",
+            "title": "Complete the Sentence",
+            "description": "Fill in the missing Spanish words",
+            "points": 5,
+            "sentence": "{{b1}} llamo María y {{b2}} de España. Me {{b3}} aprender inglés.",
+            "blanks": [
+                {
+                    "id": "b1",
+                    "correctAnswer": "Me",
+                    "hint": "Reflexive pronoun for 'myself'"
+                },
+                {
+                    "id": "b2",
+                    "correctAnswer": "soy",
+                    "hint": "Verb 'to be' (permanent)"
+                },
+                {
+                    "id": "b3",
+                    "correctAnswer": "gusta",
+                    "hint": "Verb 'to like'"
+                }
+            ],
+            "wordBank": [
+                "Me",
+                "soy",
+                "gusta",
+                "estoy",
+                "tengo",
+                "hablo"
+            ]
+        },
+        {
+            "id": "q3",
+            "type": "speaking-cards",
+            "version": "default",
+            "title": "Practice Spanish Numbers",
+            "description": "Record yourself counting in Spanish",
+            "points": 5,
+            "recordingRequired": false,
+            "cards": [
+                {
+                    "id": "c1",
+                    "text": "Uno",
+                    "phonetic": "/ˈuno/",
+                    "audioUrl": "/audio/spanish/uno.mp3"
+                },
+                {
+                    "id": "c2",
+                    "text": "Dos",
+                    "phonetic": "/dos/",
+                    "audioUrl": "/audio/spanish/dos.mp3"
+                },
+                {
+                    "id": "c3",
+                    "text": "Tres",
+                    "phonetic": "/tɾes/",
+                    "audioUrl": "/audio/spanish/tres.mp3"
+                },
+                {
+                    "id": "c4",
+                    "text": "Cuatro",
+                    "phonetic": "/ˈkwatɾo/",
+                    "audioUrl": "/audio/spanish/cuatro.mp3"
+                },
+                {
+                    "id": "c5",
+                    "text": "Cinco",
+                    "phonetic": "/ˈθiŋko/",
+                    "audioUrl": "/audio/spanish/cinco.mp3"
+                }
+            ]
+        }
+    ]
+}

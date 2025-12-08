@@ -1,0 +1,92 @@
+{
+    "id": "general-preset-1",
+    "name": "General Knowledge Quiz",
+    "subject": "general",
+    "metadata": {
+        "author": "General Education",
+        "createdAt": "2025-11-23",
+        "difficulty": "easy",
+        "tags": [
+            "general-knowledge",
+            "trivia",
+            "facts"
+        ]
+    },
+    "questions": [
+        {
+            "id": "q1",
+            "type": "multiple-choice",
+            "version": "default",
+            "title": "World Geography",
+            "description": "Test your knowledge of world capitals",
+            "points": 3,
+            "question": "What is the capital of France?",
+            "options": [
+                {
+                    "id": "opt1",
+                    "text": "Paris",
+                    "isCorrect": true
+                },
+                {
+                    "id": "opt2",
+                    "text": "London",
+                    "isCorrect": false
+                },
+                {
+                    "id": "opt3",
+                    "text": "Berlin",
+                    "isCorrect": false
+                },
+                {
+                    "id": "opt4",
+                    "text": "Madrid",
+                    "isCorrect": false
+                }
+            ],
+            "explanation": "Paris is the capital and largest city of France"
+        },
+        {
+            "id": "q2",
+            "type": "true-false",
+            "version": "default",
+            "title": "Science Fact Check",
+            "description": "Determine if the statement is true or false",
+            "points": 2,
+            "statement": "The Earth revolves around the Sun",
+            "correctAnswer": true,
+            "explanation": "The Earth orbits the Sun, completing one revolution approximately every 365.25 days"
+        },
+        {
+            "id": "q3",
+            "type": "multiple-choice",
+            "version": "with-explanations",
+            "title": "History Question",
+            "description": "Test your knowledge of historical events",
+            "points": 3,
+            "question": "In which year did World War II end?",
+            "options": [
+                {
+                    "id": "opt1",
+                    "text": "1943",
+                    "isCorrect": false
+                },
+                {
+                    "id": "opt2",
+                    "text": "1944",
+                    "isCorrect": false
+                },
+                {
+                    "id": "opt3",
+                    "text": "1945",
+                    "isCorrect": true
+                },
+                {
+                    "id": "opt4",
+                    "text": "1946",
+                    "isCorrect": false
+                }
+            ],
+            "explanation": "World War II ended in 1945 with Germany's surrender in May and Japan's surrender in September"
+        }
+    ]
+}

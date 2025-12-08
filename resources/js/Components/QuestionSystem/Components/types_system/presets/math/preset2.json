@@ -1,0 +1,162 @@
+{
+    "id": "math-preset-2",
+    "name": "Algebra Basics",
+    "subject": "math",
+    "metadata": {
+        "author": "Math Department",
+        "createdAt": "2025-11-23",
+        "difficulty": "medium",
+        "tags": [
+            "algebra",
+            "equations",
+            "variables"
+        ]
+    },
+    "questions": [
+        {
+            "id": "q1",
+            "type": "quiz",
+            "version": "with-timer",
+            "title": "Solve for x",
+            "description": "Find the value of x in the equation",
+            "points": 5,
+            "timeLimit": 60,
+            "question": "Solve: 2x + 5 = 13",
+            "latex": "2x + 5 = 13",
+            "options": [
+                {
+                    "id": "opt1",
+                    "text": "x = 4",
+                    "latex": "x = 4",
+                    "isCorrect": true
+                },
+                {
+                    "id": "opt2",
+                    "text": "x = 6",
+                    "latex": "x = 6",
+                    "isCorrect": false
+                },
+                {
+                    "id": "opt3",
+                    "text": "x = 8",
+                    "latex": "x = 8",
+                    "isCorrect": false
+                },
+                {
+                    "id": "opt4",
+                    "text": "x = 9",
+                    "latex": "x = 9",
+                    "isCorrect": false
+                }
+            ],
+            "explanation": "Subtract 5 from both sides: 2x = 8, then divide by 2: x = 4"
+        },
+        {
+            "id": "q2",
+            "type": "match-up",
+            "version": "default",
+            "title": "Match Equations to Solutions",
+            "description": "Connect each equation with its solution",
+            "points": 6,
+            "pairs": [
+                {
+                    "id": "p1",
+                    "left": {
+                        "type": "latex",
+                        "content": "x + 3 = 7"
+                    },
+                    "right": {
+                        "type": "latex",
+                        "content": "x = 4"
+                    }
+                },
+                {
+                    "id": "p2",
+                    "left": {
+                        "type": "latex",
+                        "content": "2x = 10"
+                    },
+                    "right": {
+                        "type": "latex",
+                        "content": "x = 5"
+                    }
+                },
+                {
+                    "id": "p3",
+                    "left": {
+                        "type": "latex",
+                        "content": "x - 2 = 8"
+                    },
+                    "right": {
+                        "type": "latex",
+                        "content": "x = 10"
+                    }
+                },
+                {
+                    "id": "p4",
+                    "left": {
+                        "type": "latex",
+                        "content": "3x = 9"
+                    },
+                    "right": {
+                        "type": "latex",
+                        "content": "x = 3"
+                    }
+                }
+            ],
+            "shuffleRight": true
+        },
+        {
+            "id": "q3",
+            "type": "group-sort",
+            "version": "default",
+            "title": "Classify Numbers",
+            "description": "Sort numbers into even and odd categories",
+            "points": 4,
+            "categories": [
+                {
+                    "id": "cat1",
+                    "name": "Even Numbers",
+                    "color": "#3b82f6"
+                },
+                {
+                    "id": "cat2",
+                    "name": "Odd Numbers",
+                    "color": "#ef4444"
+                }
+            ],
+            "items": [
+                {
+                    "id": "item1",
+                    "content": "2",
+                    "categoryId": "cat1"
+                },
+                {
+                    "id": "item2",
+                    "content": "7",
+                    "categoryId": "cat2"
+                },
+                {
+                    "id": "item3",
+                    "content": "14",
+                    "categoryId": "cat1"
+                },
+                {
+                    "id": "item4",
+                    "content": "21",
+                    "categoryId": "cat2"
+                },
+                {
+                    "id": "item5",
+                    "content": "36",
+                    "categoryId": "cat1"
+                },
+                {
+                    "id": "item6",
+                    "content": "45",
+                    "categoryId": "cat2"
+                }
+            ]
+        }
+    ]
+}

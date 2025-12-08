@@ -1,0 +1,182 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+[x-cloak] {
+    display: none;
+}
+
+#nprogress {
+    z-index: 9999 !important;
+  }
+
+  #nprogress .bar {
+    z-index: 9999 !important;
+  }
+
+  #nprogress .peg {
+    z-index: 9999 !important;
+  }
+
+  #nprogress .spinner {
+    z-index: 9999 !important;
+  }
+/* quasar-overrides.css */
+.full-width-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 8px 16px;
+  }
+  .q-field__native:focus ,q-input:focus {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+  }
+  /* .q-tree__icon, .q-tree__node-header-content .q-icon {
+    font-size: 14px!important;
+    margin-right: 8px;
+} */
+
+
+/* .q-btn .q-icon, .q-btn .q-spinner {
+    font-size: 14px!important;
+    margin-right: 8px;
+} */
+
+
+.no-print {
+    /* display: none !important; */
+}
+
+@media print {
+    .no-print {
+        display: none !important;
+    }
+}
+
+
+
+
+/* NProgress custom styles */
+#nprogress .bar {
+    background: #4f46e5 !important; /* Indigo color, matching your theme */
+    height: 3px !important;
+}
+
+#nprogress .peg {
+    box-shadow: 0 0 10px #4f46e5, 0 0 5px #4f46e5 !important;
+}
+
+#nprogress .spinner-icon {
+    border-top-color: #4f46e5 !important;
+    border-left-color: #4f46e5 !important;
+}
+
+
+
+
+
+
+
+
+/* ======================================= */
+._hiddenRadioInput_u1tst_155 {
+    display: none;
+  }
+._boxRadioButton_19yuc_202 {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    /* gap: 2px; */
+    /* width: 92px;
+    height: 50px; */
+    /* border: 1px solid #dc81507e; */
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color .25s ease, filter .25s ease, transform .25s ease;
+}
+
+/* When radio input is checked */
+/* input:checked ~ ._boxRadioButton_19yuc_202 {
+    background-color: #2e6d01;
+    color: #fbff01;
+    border-color: transparent;
+
+} */
+
+/* When radio input is disabled */
+/* input:disabled ~ ._boxRadioButton_19yuc_202 {
+    background-color: #0000001a;
+    color: #807e7a;
+    border-color: transparent;
+} */
+
+/* Hover state when not checked and not disabled */
+/* input:not(:checked):not(:disabled) ~ ._boxRadioButton_19yuc_202:hover {
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,.2));
+    transform: translateY(-4px);
+    background: #f8e7cf;
+} */
+
+/* ======================================= */
+
+/* Menu inactive item styling */
+.inactive {
+    position: relative;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+
+.inactive::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background-color: rgba(107, 114, 128, 0.5); /* gray-500 with opacity */
+    z-index: 1;
+}
+
+.inactive:hover {
+    opacity: 0.9;
+}
+
+/* Add a badge for inactive items */
+.inactive-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #6b7280;
+    background-color: #f3f4f6;
+    border-radius: 0.25rem;
+    margin-left: 0.5rem;
+}
+
+/* Status badge styling */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border-radius: 9999px;
+}
+
+.status-badge-active {
+    color: #065f46;
+    background-color: #d1fae5;
+}
+
+.status-badge-inactive {
+    color: #7f1d1d;
+    background-color: #fee2e2;
+}
+

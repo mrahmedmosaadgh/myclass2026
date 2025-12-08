@@ -1,0 +1,50 @@
+/* RTL specific styles */
+[dir="rtl"] {
+  /* Text alignment */
+  .text-left {
+    text-align: right !important;
+  }
+  
+  .text-right {
+    text-align: left !important;
+  }
+  
+  /* Margins and paddings */
+  .ml-1, .ml-2, .ml-3, .ml-4, .ml-5 {
+    margin-left: 0 !important;
+    margin-right: var(--spacing) !important;
+  }
+  
+  .mr-1, .mr-2, .mr-3, .mr-4, .mr-5 {
+    margin-right: 0 !important;
+    margin-left: var(--spacing) !important;
+  }
+  
+  .pl-1, .pl-2, .pl-3, .pl-4, .pl-5 {
+    padding-left: 0 !important;
+    padding-right: var(--spacing) !important;
+  }
+  
+  .pr-1, .pr-2, .pr-3, .pr-4, .pr-5 {
+    padding-right: 0 !important;
+    padding-left: var(--spacing) !important;
+  }
+  
+  /* Flex direction */
+  .flex-row {
+    flex-direction: row-reverse !important;
+  }
+  
+  /* Border radius adjustments */
+  .rounded-l {
+    border-radius: 0 !important;
+    border-top-right-radius: 0.25rem !important;
+    border-bottom-right-radius: 0.25rem !important;
+  }
+  
+  .rounded-r {
+    border-radius: 0 !important;
+    border-top-left-radius: 0.25rem !important;
+    border-bottom-left-radius: 0.25rem !important;
+  }
+}

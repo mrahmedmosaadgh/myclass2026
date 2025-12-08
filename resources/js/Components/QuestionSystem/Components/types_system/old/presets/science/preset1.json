@@ -1,0 +1,72 @@
+{
+  "subject": "science",
+  "preset_id": "preset1",
+  "title": "Basic Biology - Cell Theory",
+  "description": "Introduction to cell structure and function",
+  "questions": [
+    {
+      "id": "sci_p1_q1",
+      "type": "labelled-diagram",
+      "title": "Human Cell Diagram",
+      "description": "Label the parts of a human cell",
+      "diagramUrl": "https://example.com/cell-diagram.png",
+      "labels": [
+        { "id": "nucleus", "text": "Nucleus", "x": 50, "y": 40 },
+        { "id": "membrane", "text": "Cell Membrane", "x": 10, "y": 20 },
+        { "id": "mitochondria", "text": "Mitochondria", "x": 70, "y": 60 }
+      ]
+    },
+    {
+      "id": "sci_p1_q2",
+      "type": "image-quiz",
+      "title": "Animal vs Plant Cells",
+      "quizImageUrls": ["https://example.com/animal-cell.png", "https://example.com/plant-cell.png"],
+      "questions": [
+        {
+          "id": "img1",
+          "question": "Which cell has a cell wall?",
+          "options": ["Animal Cell", "Plant Cell"],
+          "correct": 1
+        }
+      ]
+    },
+    {
+      "id": "sci_p1_q3",
+      "type": "match-up",
+      "title": "Organelle Functions",
+      "items": [
+        { "id": "m1", "left": "Nucleus", "right": "Controls cell activities" },
+        { "id": "m2", "left": "Mitochondria", "right": "Produces energy" }
+      ]
+    },
+    {
+      "id": "sci_p1_q4",
+      "type": "group-sort",
+      "title": "Classify Organelles",
+      "items": [
+        { "id": "g1", "content": "Nucleus", "groupId": "control" },
+        { "id": "g2", "content": "Ribosome", "groupId": "protein-synthesis" }
+      ],
+      "groups": [
+        { "id": "control", "name": "Control Center", "color": "blue" },
+        { "id": "protein-synthesis", "name": "Protein Synthesis", "color": "green" }
+      ]
+    },
+    {
+      "id": "sci_p1_q5",
+      "type": "missing-word",
+      "title": "Cell Theory",
+      "text": "All living things are made of {{cells}}.",
+      "words": ["cells"]
+    },
+    {
+      "id": "sci_p1_q6",
+      "type": "sequence",
+      "title": "Cell Division Steps",
+      "items": [
+        { "id": "s1", "content": "DNA replicates", "correctPosition": 1 },
+        { "id": "s2", "content": "Cell splits", "correctPosition": 3 }
+      ]
+    }
+  ]
+}

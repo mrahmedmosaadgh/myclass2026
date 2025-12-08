@@ -1,0 +1,229 @@
+// Instead of direct import
+const Editor = await import('./components/Editor.vue')
+
+
+IP    194.164.74.205
+Port            65002
+Username    u369302289
+Password    aAqwer12@
+cd public_html/duratalsharq/lms/
+cd public_html/myclass/myclass/
+Change
+ssh -p 65002 u369302289@194.164.74.205
+php artisan config:clear
+php artisan cache:clear
+
+errr
+419 page expired after upload to hosted server
+2024_11_29_145354_create_students_table
+
+
+
+my_class\main
+php artisan make:model my_class\main\HR -mcr
+php artisan make:model my_class\main\School -mcr
+php artisan make:model my_class\main\Subject -mcr
+php artisan make:model my_class\main\Teacher -mcr
+php artisan make:model my_class\main\Stage -mcr
+php artisan make:model my_class\main\Grade -mcr
+php artisan make:model my_class\main\Classroom -mcr
+php artisan make:model my_class\main\Student -mcr
+php artisan make:model my_class\main\StudentParent -mcr
+php artisan make:model my_class\main\ClassroomSubjectTeacher -mcr
+php artisan make:model my_class\main\AcademicYear -mcr
+php artisan make:model my_class\main\Semester -mcr
+php artisan make:model my_class\main\Calendar -mcr
+php artisan make:model my_class\main\ClassroomSubjectTeacherData -mcr
+php artisan make:model my_class\main\AcademicYearWeek
+
+-----
+Curriculums
+Curriculum_details
+Question bank
+Quiz
+Quiz answers
+
+ssh -p 65002 u369302289@194.164.74.205
+Password	aAqwer12@
+cd public_html/duratalsharq/lms/
+cd public_html/myclass/myclass/
+Change
+ssh -p 65002 u369302289@194.164.74.205
+php artisan config:clear
+php artisan cache:clear
+
+php artisan cache:clear
+php artisan config:clear
+php artisan session:flush
+
+php artisan cache:clear
+php artisan config:clear
+composer dump-autoload
+php artisan optimize:clear
+
+
+
+SESSION_DRIVER=cookie                          # Or file — but cookie is simpler for SPAs
+SESSION_DOMAIN=https://myclass.lms2030.com     /  # Only set if you know what you're doing
+SESSION_SECURE_COOKIE=true                 # Set to true ONLY if your site is served over HTTPS
+
+php artisan make:model my_class\Curriculums\Curriculum -m
+php artisan make:model my_class\Curriculums\CurriculumDetail -m
+php artisan make:model my_class\Curriculums\QuestionBank -m
+php artisan make:model my_class\Curriculums\Quiz -m
+php artisan make:model my_class\Curriculums\QuizQuestion -m
+php artisan make:model my_class\fc\SysMenu -m
+php artisan make:model my_class\fc\SysMenu -m
+php artisan make:model my_class\main\schedule_main -m
+php artisan make:model my_class\main\Schedule -m
+
+
+php artisan make:model my_class\fc\SysMenu
+
+php artisan make:controller my_class\fc\StageController
+php artisan make:controller my_class\fc\GradeController
+php artisan make:controller my_class\fc\ClassroomController
+php artisan make:controller my_class\fc\SubjectController
+php artisan make:controller my_class\fc\TeacherController
+php artisan make:controller my_class\fc\SubjectController
+php artisan make:controller my_class\fc\SubjectController
+
+php artisan make:controller my_class\fc\StudentController
+php artisan make:controller my_class\fc\ClassroomSubjectTeacherController
+php artisan make:controller my_class\fc\AcademicYearController
+php artisan make:controller my_class\fc\CalendarController
+php artisan make:controller my_class\fc\CurriculumDetailController
+php artisan make:controller my_class\fc\AcademicYearWeekController
+php artisan make:model my_class\main\AcademicYearWeek
+
+
+php artisan make:controller my_class\fc\YearWeekController --api
+
+php artisan make:controller CurriculumDetailController
+php artisan make:controller ClassroomSubjectTeacherController
+php artisan make:controller SubjectController
+
+php artisan make:controller fc\SysMenuController --api
+php artisan make:controller fc\PermissionController
+php artisan make:controller fc\UserRoleController
+php artisan make:controller fc\RolePermissionController
+
+
+
+php artisan make:model Role -m
+php artisan make:model Permission -m
+
+php artisan make:model Role
+php artisan make:model Permission
+ManageUserRoles
+
+
+app/Http/Controllers/PermissionController
+
+php artisan make:model my_class\Curriculums\QuizAnswers -m
+php artisan make:model my_class\Curriculums\QuizStatistic -m
+
+
+
+php artisan migrate
+php artisan config:clear
+php artisan route:cache
+php artisan serve
+npm run dev
+npm run build
+php artisan optimize:clear
+composer dump-autoload
+php artisan db:seed
+npm cache verify
+
+php artisan make:controller my_class\main\SchoolController --resource
+php artisan make:controller my_class\main\SubjectController --resource
+php artisan make:controller my_class\main\TeacherController --resource
+php artisan make:controller my_class\main\StageController --resource
+php artisan make:controller my_class\main\GradeController --resource
+php artisan make:controller my_class\main\ClassroomController --resource
+php artisan make:controller my_class\main\StudentController --resource
+php artisan make:controller my_class\main\StudentParentController --resource
+php artisan make:controller my_class\main\ClassroomSubjectTeacherController --resource
+php artisan make:controller my_class\main\AcademicYearController --resource
+php artisan make:controller my_class\main\SemesterController --resource
+php artisan make:controller my_class\main\CalendarController --resource
+php artisan make:controller my_class\main\CurriculumController
+php artisan make:controller YearWeekController --api
+php artisan make:controller CurriculumDetailController --api
+
+php artisan make:controller my_class\teacher\TeacherController
+
+php artisan make:controller CurriculumDetailController
+2024_11_29_145117_create_teachers_table
+php artisan migrate --path=/database/migrations/2024_11_29_145117_create_teachers_table.php
+
+php artisan migrate:refresh --path=/database/migrations/2024_11_29_145117_create_teachers_table.php
+
+
+php artisan migrate --path=/database/migrations/2024_11_30_130333_create_question_banks_table.php
+php artisan migrate --path=/database/migrations/2024_11_30_130337_create_quizzes_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_11_30_130337_create_quizzes_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_11_29_145354_create_students_table.php
+
+php artisan migrate:refresh --path=/database/migrations/2025_01_01_051836_create_schedule_mains_table.php
+php artisan migrate:refresh --path=/database/migrations/2025_01_01_051910_create_schedules_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_11_30_130314_create_curricula_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_11_29_145519_create_calendars_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_11_30_130328_create_curriculum_details_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_11_30_130329_create_curriculum_maps_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_11_29_145031_create_school_sections_table.php
+php artisan migrate:refresh --path=/database/migrations/0001_01_01_000001_create_cache_table.php
+php artisan migrate:refresh --path=/database/migrations/2025_02_08_170004_create_messages_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_11_30_130333_create_question_banks_table.php
+
+
+
+database/migrations/2025_02_08_170004_create_messages_table.php
+
+php artisan migrate:refresh --path=/database/migrations/2024_11_29_145518_create_year_weeks_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_11_29_145518_create_academic_year_weeks_table.php
+
+
+php artisan migrate:refresh --path=/database/migrations/2024_11_29_145522_create_schedules_table.php
+
+D:\my_projects\2025\laravel12\myclass4\database\migrations\2024_11_29_145522_create_schedules_table.php
+
+
+
+database/migrations/2024_11_29_145518_create_year_weeks_table.php
+2024_11_30_130328_create_curriculum_details_table
+database/migrations/2024_11_30_130314_create_curricula_table.php
+database/migrations/2024_11_29_145519_create_calendars_table.php
+2025_01_01_051836_create_schedule_mains_table
+2025_01_01_051910_create_schedules_table
+php artisan make:controller my_class\main\UserController
+php artisan make:controller my_class\main\QuizController
+
+php artisan make:model AcademicYearWeek
+
+
+my_class\main
+php artisan make:model my_class\main\YearWeek
+composer dump-autoload
+php artisan optimize:clear
+
+npm update vite
+npm outdated
+npm list vite
+
+php artisan make:controller my_class\question_bank\question_bank_co
+php artisan make:controller best\fun_co
+
+
+npm install quill-image-uploader --save
+npm install quill-image-uploader --save
+npm install --save quill-blot-formatter
+npm install @vueup/vue-quill@latest --save
+npm add quill-emoji
+npm install --save quill-blot-formatter
+npm install quill-table-ui
+
+
+
+1- model 2- controller 3- vue component with create update delete import export  4- add AppLayout link routes in hr.php

@@ -1,0 +1,1066 @@
+// File structure for typing lessons app
+// 
+// typing-lessons-vue/
+// ├── public/
+// │   ├── index.html
+// │   └── sounds/
+// │       ├── keypress.mp3
+// │       └── success.mp3
+// ├── src/
+// │   ├── App.vue
+// │   ├── main.js
+// │   ├── store.js
+// │   ├── router.js
+// │   ├── assets/
+// │   │   └── styles/
+// │   │       └── global.css
+// │   ├── components/
+// │   │   ├── KeyboardLayout.vue
+// │   │   ├── TypingLesson.vue
+// │   │   ├── TypingInput.vue
+// │   │   ├── TypingStats.vue
+// │   │   ├── FingerGuide.vue
+// │   │   └── ProgressBar.vue
+// │   └── views/
+// │       ├── Home.vue
+// │       ├── LessonU.vue
+// │       ├── LessonR.vue
+// │       ├── LessonK.vue
+// │       └── LessonCombined.vue
+// └── package.json
+
+// public/index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Typing Lessons - U, R, and K Keys</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app"></div>
+</body>
+</html>
+
+// src/main.js
+import { createApp } from 'vue'
+import { createRouter, createWebHashHistory } from 'vue-router'
+import App from './App.vue'
+import store from './store.js'
+import router from './router.js'
+import './assets/styles/global.css'
+
+const app = createApp(App)
+app.use(store)
+app.use(router)
+app.mount('#app')
+
+// src/assets/styles/global.css
+body {
+  font-family: 'Roboto Mono', monospace;
+  background-color: #f8f9fa;
+  color: #333;
+}
+
+.keyboard-key {
+  width: 50px;
+  height: 50px;
+  margin: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  transition: all 0.1s ease;
+}
+
+.keyboard-key.active {
+  transform: translateY(3px);
+  box-shadow: 0 0 3px rgba(0,0,0,0.1);
+  background-color: #90cdf4;
+}
+
+.keyboard-key.highlight-u {
+  background-color: #ebf8ff;
+  border: 2px solid #4299e1;
+}
+
+.keyboard-key.highlight-r {
+  background-color: #fef6e4;
+  border: 2px solid #ed8936;
+}
+
+.keyboard-key.highlight-k {
+  background-color: #f0fff4;
+  border: 2px solid #48bb78;
+}
+
+.finger-guide {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.6;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.finger-left-index {
+  background-color: rgba(66, 153, 225, 0.5);
+}
+
+.finger-right-index {
+  background-color: rgba(72, 187, 120, 0.5);
+}
+
+.finger-right-middle {
+  background-color: rgba(237, 137, 54, 0.5);
+}
+
+// src/router.js
+import { createRouter, createWebHashHistory } from 'vue-router'
+import Home from './views/Home.vue'
+import LessonU from './views/LessonU.vue'
+import LessonR from './views/LessonR.vue'
+import LessonK from './views/LessonK.vue'
+import LessonCombined from './views/LessonCombined.vue'
+
+const routes = [
+  {
+    path: '/',
+    name: 'Home',
+    component: Home
+  },
+  {
+    path: '/lesson-u',
+    name: 'LessonU',
+    component: LessonU
+  },
+  {
+    path: '/lesson-r',
+    name: 'LessonR',
+    component: LessonR
+  },
+  {
+    path: '/lesson-k',
+    name: 'LessonK',
+    component: LessonK
+  },
+  {
+    path: '/lesson-combined',
+    name: 'LessonCombined',
+    component: LessonCombined
+  }
+]
+
+const router = createRouter({
+  history: createWebHashHistory(),
+  routes
+})
+
+export default router
+
+// src/store.js
+import { createStore } from 'vuex'
+
+export default createStore({
+  state: {
+    currentLesson: null,
+    stats: {
+      accuracy: 100,
+      wpm: 0,
+      keystrokesCorrect: 0,
+      keystrokesIncorrect: 0,
+      timeElapsed: 0
+    },
+    lessonProgress: {
+      'u': 0,
+      'r': 0,
+      'k': 0,
+      'combined': 0
+    }
+  },
+  mutations: {
+    setCurrentLesson(state, lesson) {
+      state.currentLesson = lesson
+    },
+    updateStats(state, stats) {
+      state.stats = { ...state.stats, ...stats }
+    },
+    resetStats(state) {
+      state.stats = {
+        accuracy: 100,
+        wpm: 0,
+        keystrokesCorrect: 0,
+        keystrokesIncorrect: 0,
+        timeElapsed: 0
+      }
+    },
+    updateLessonProgress(state, { lesson, progress }) {
+      state.lessonProgress[lesson] = progress
+    }
+  },
+  actions: {
+    startLesson({ commit }, lesson) {
+      commit('setCurrentLesson', lesson)
+      commit('resetStats')
+    },
+    completeLesson({ commit, state }, lesson) {
+      // Save progress to local storage or backend in a real app
+      commit('updateLessonProgress', { 
+        lesson, 
+        progress: Math.min(100, state.lessonProgress[lesson] + 25) 
+      })
+    }
+  },
+  getters: {
+    accuracy(state) {
+      const total = state.stats.keystrokesCorrect + state.stats.keystrokesIncorrect
+      return total === 0 ? 100 : Math.round((state.stats.keystrokesCorrect / total) * 100)
+    }
+  }
+})
+
+// src/App.vue
+<template>
+  <div class="min-h-screen flex flex-col">
+    <header class="bg-white shadow">
+      <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+        <h1 class="text-2xl font-bold text-gray-800">
+          <router-link to="/">Typing Lessons</router-link>
+        </h1>
+      </div>
+    </header>
+    
+    <main class="flex-grow">
+      <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <router-view />
+      </div>
+    </main>
+    
+    <footer class="bg-gray-100 border-t border-gray-200">
+      <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 text-center text-gray-500 text-sm">
+        <p>Typing Lessons - U, R, and K Keys | Built with Vue.js</p>
+      </div>
+    </footer>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'App'
+}
+</script>
+
+// src/components/KeyboardLayout.vue
+<template>
+  <div class="keyboard-container relative mb-8">
+    <div class="keyboard bg-white p-4 rounded-lg shadow">
+      <!-- Function Row -->
+      <div class="flex justify-center">
+        <div v-for="key in ['Esc', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12']" 
+             :key="key" 
+             class="keyboard-key bg-gray-200 text-xs">
+          {{ key }}
+        </div>
+      </div>
+      
+      <!-- Number Row -->
+      <div class="flex justify-center mt-2">
+        <div v-for="key in ['`', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', 'Backspace']" 
+             :key="key" 
+             :class="['keyboard-key bg-gray-200', 
+                      key === 'Backspace' ? 'w-24' : '']">
+          {{ key }}
+        </div>
+      </div>
+      
+      <!-- QWERTY Row -->
+      <div class="flex justify-center mt-1">
+        <div class="keyboard-key bg-gray-200 w-16 text-xs">Tab</div>
+        <div v-for="key in ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '[', ']', '\\']" 
+             :key="key" 
+             :class="['keyboard-key', 
+                     key === currentKey ? 'active' : '',
+                     key === 'R' && highlightR ? 'highlight-r' : '',
+                     key === 'U' && highlightU ? 'highlight-u' : '',
+                     key !== 'R' && key !== 'U' && key !== 'K' ? 'bg-gray-200' : 'bg-gray-100']">
+          {{ key }}
+        </div>
+      </div>
+      
+      <!-- Home Row -->
+      <div class="flex justify-center mt-1">
+        <div class="keyboard-key bg-gray-200 w-20 text-xs">Caps Lock</div>
+        <div v-for="key in ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ';', '\'']" 
+             :key="key" 
+             :class="['keyboard-key', 
+                     key === currentKey ? 'active' : '',
+                     key === 'K' && highlightK ? 'highlight-k' : '',
+                     key !== 'R' && key !== 'U' && key !== 'K' ? 'bg-gray-200' : 'bg-gray-100']">
+          {{ key }}
+        </div>
+        <div class="keyboard-key bg-gray-200 w-20 text-xs">Enter</div>
+      </div>
+      
+      <!-- Bottom Row -->
+      <div class="flex justify-center mt-1">
+        <div class="keyboard-key bg-gray-200 w-24 text-xs">Shift</div>
+        <div v-for="key in ['Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', '/']" 
+             :key="key" 
+             :class="['keyboard-key bg-gray-200', 
+                     key === currentKey ? 'active' : '']">
+          {{ key }}
+        </div>
+        <div class="keyboard-key bg-gray-200 w-24 text-xs">Shift</div>
+      </div>
+      
+      <!-- Space Row -->
+      <div class="flex justify-center mt-1">
+        <div class="keyboard-key bg-gray-200 w-12 text-xs">Ctrl</div>
+        <div class="keyboard-key bg-gray-200 w-12 text-xs">Win</div>
+        <div class="keyboard-key bg-gray-200 w-12 text-xs">Alt</div>
+        <div class="keyboard-key bg-gray-200 w-64">Space</div>
+        <div class="keyboard-key bg-gray-200 w-12 text-xs">Alt</div>
+        <div class="keyboard-key bg-gray-200 w-12 text-xs">Win</div>
+        <div class="keyboard-key bg-gray-200 w-12 text-xs">Menu</div>
+        <div class="keyboard-key bg-gray-200 w-12 text-xs">Ctrl</div>
+      </div>
+      
+      <!-- Finger Guides -->
+      <div v-if="showFingerGuides" class="finger-guides">
+        <div v-if="highlightU" class="finger-guide finger-left-index" style="width: 30px; height: 30px; left: 350px; top: 70px;"></div>
+        <div v-if="highlightR" class="finger-guide finger-left-index" style="width: 30px; height: 30px; left: 210px; top: 70px;"></div>
+        <div v-if="highlightK" class="finger-guide finger-right-middle" style="width: 30px; height: 30px; left: 405px; top: 120px;"></div>
+      </div>
+    </div>
+    
+    <div class="finger-legend flex justify-center mt-4 text-sm" v-if="showFingerGuides">
+      <div class="mr-4 flex items-center">
+        <div class="w-4 h-4 rounded-full bg-blue-300 mr-2"></div>
+        <span>Left index finger (U, R)</span>
+      </div>
+      <div class="flex items-center">
+        <div class="w-4 h-4 rounded-full bg-orange-300 mr-2"></div>
+        <span>Right middle finger (K)</span>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'KeyboardLayout',
+  props: {
+    currentKey: {
+      type: String,
+      default: null
+    },
+    highlightU: {
+      type: Boolean,
+      default: false
+    },
+    highlightR: {
+      type: Boolean,
+      default: false
+    },
+    highlightK: {
+      type: Boolean,
+      default: false
+    },
+    showFingerGuides: {
+      type: Boolean,
+      default: true
+    }
+  }
+}
+</script>
+
+// src/components/TypingInput.vue
+<template>
+  <div class="typing-input-container">
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+      <div class="text-target text-center mb-4 text-xl text-gray-600">
+        {{ targetText }}
+      </div>
+      
+      <div class="text-input-container relative bg-gray-100 p-4 rounded-lg border-2" 
+           :class="{'border-blue-400': isFocused, 'border-gray-300': !isFocused}">
+        <div class="typed-text flex mb-1">
+          <template v-for="(char, index) in typedChars" :key="index">
+            <span :class="{'text-green-600': char.correct, 'text-red-500': !char.correct}">
+              {{ char.value }}
+            </span>
+          </template>
+          <span class="cursor" :class="{'cursor-blink': isFocused}">|</span>
+        </div>
+        
+        <input 
+          ref="inputField" 
+          type="text" 
+          class="absolute opacity-0 left-0 top-0 w-full h-full cursor-default"
+          @focus="isFocused = true"
+          @blur="isFocused = false"
+          @keydown="handleKeyDown"
+          @keypress="handleKeyPress"
+          v-model="inputValue"
+        />
+        
+        <div v-if="!isFocused" class="text-center text-gray-500 mt-2">
+          Click here to start typing
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'TypingInput',
+  props: {
+    targetText: {
+      type: String,
+      required: true
+    },
+    onKeyPress: {
+      type: Function,
+      default: () => {}
+    },
+    onComplete: {
+      type: Function,
+      default: () => {}
+    }
+  },
+  data() {
+    return {
+      inputValue: '',
+      typedChars: [],
+      isFocused: false,
+      startTime: null,
+      keyPressSound: null,
+      successSound: null
+    }
+  },
+  mounted() {
+    this.keyPressSound = new Audio('/sounds/keypress.mp3')
+    this.successSound = new Audio('/sounds/success.mp3')
+    
+    this.$nextTick(() => {
+      this.focusInput()
+    })
+  },
+  methods: {
+    focusInput() {
+      this.$refs.inputField.focus()
+    },
+    handleKeyDown(e) {
+      // Prevent default behavior for specific keys
+      if (e.key === 'Backspace') {
+        e.preventDefault()
+        // Not allowing backspace in this simple typing tutor
+      }
+    },
+    handleKeyPress(e) {
+      e.preventDefault()
+      
+      if (!this.startTime) {
+        this.startTime = Date.now()
+      }
+      
+      const pressedKey = e.key
+      const expectedKey = this.targetText[this.typedChars.length]
+      
+      // Play key press sound
+      this.keyPressSound.currentTime = 0
+      this.keyPressSound.play()
+      
+      const isCorrect = pressedKey === expectedKey
+      
+      this.typedChars.push({
+        value: pressedKey,
+        correct: isCorrect
+      })
+      
+      // Call the onKeyPress callback with the pressed key and correctness
+      this.onKeyPress(pressedKey, isCorrect)
+      
+      // Check if lesson is complete
+      if (this.typedChars.length >= this.targetText.length) {
+        // Play success sound
+        this.successSound.play()
+        
+        const elapsedTime = (Date.now() - this.startTime) / 1000
+        const correctChars = this.typedChars.filter(char => char.correct).length
+        const wpm = Math.round((correctChars / 5) / (elapsedTime / 60))
+        
+        // Call onComplete with stats
+        this.onComplete({
+          wpm,
+          accuracy: Math.round((correctChars / this.typedChars.length) * 100),
+          timeElapsed: elapsedTime
+        })
+      }
+    },
+    reset() {
+      this.inputValue = ''
+      this.typedChars = []
+      this.startTime = null
+      this.focusInput()
+    }
+  }
+}
+</script>
+
+<style scoped>
+.cursor {
+  width: 2px;
+  height: 1.2em;
+  display: inline-block;
+}
+
+.cursor-blink {
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  from, to { opacity: 1; }
+  50% { opacity: 0; }
+}
+</style>
+
+// src/components/TypingStats.vue
+<template>
+  <div class="typing-stats bg-white rounded-lg shadow p-4">
+    <div class="grid grid-cols-3 gap-4">
+      <div class="stat-box p-3 rounded-lg bg-blue-50">
+        <div class="stat-label text-blue-700 font-medium text-sm">WPM</div>
+        <div class="stat-value text-2xl font-bold">{{ stats.wpm }}</div>
+      </div>
+      
+      <div class="stat-box p-3 rounded-lg bg-green-50">
+        <div class="stat-label text-green-700 font-medium text-sm">Accuracy</div>
+        <div class="stat-value text-2xl font-bold">{{ stats.accuracy }}%</div>
+      </div>
+      
+      <div class="stat-box p-3 rounded-lg bg-purple-50">
+        <div class="stat-label text-purple-700 font-medium text-sm">Time</div>
+        <div class="stat-value text-2xl font-bold">{{ formattedTime }}</div>
+      </div>
+    </div>
+    
+    <div class="keystrokes-info flex justify-between mt-4 text-sm text-gray-600">
+      <div>Correct: <span class="font-medium text-green-600">{{ stats.keystrokesCorrect }}</span></div>
+      <div>Incorrect: <span class="font-medium text-red-600">{{ stats.keystrokesIncorrect }}</span></div>
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'TypingStats',
+  props: {
+    stats: {
+      type: Object,
+      required: true
+    }
+  },
+  computed: {
+    formattedTime() {
+      const seconds = Math.round(this.stats.timeElapsed)
+      const minutes = Math.floor(seconds / 60)
+      const remainingSeconds = seconds % 60
+      return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`
+    }
+  }
+}
+</script>
+
+// src/components/ProgressBar.vue
+<template>
+  <div class="progress-container w-full bg-gray-200 rounded-full h-4 mb-6">
+    <div class="progress-bar h-4 rounded-full bg-blue-500" :style="{ width: `${progress}%` }"></div>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'ProgressBar',
+  props: {
+    progress: {
+      type: Number,
+      required: true
+    }
+  }
+}
+</script>
+
+// src/components/TypingLesson.vue
+<template>
+  <div class="typing-lesson">
+    <div class="lesson-header mb-6">
+      <h2 class="text-2xl font-bold text-gray-800 mb-2">{{ title }}</h2>
+      <p class="text-gray-600">{{ description }}</p>
+    </div>
+    
+    <ProgressBar :progress="lessonProgress" />
+    
+    <KeyboardLayout 
+      :currentKey="currentKey" 
+      :highlightU="highlightKeys.includes('U')" 
+      :highlightR="highlightKeys.includes('R')" 
+      :highlightK="highlightKeys.includes('K')" 
+      :showFingerGuides="true"
+    />
+    
+    <TypingInput 
+      ref="typingInput"
+      :targetText="currentExercise.text" 
+      :onKeyPress="handleKeyPress"
+      :onComplete="handleComplete"
+    />
+    
+    <TypingStats :stats="stats" />
+    
+    <div class="lesson-actions mt-6 flex justify-between">
+      <button 
+        @click="resetExercise" 
+        class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded"
+      >
+        Reset
+      </button>
+      
+      <button 
+        v-if="hasNextExercise"
+        @click="nextExercise" 
+        class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
+        :disabled="!exerciseCompleted"
+      >
+        Next Exercise
+      </button>
+      
+      <button 
+        v-else
+        @click="completeLesson" 
+        class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded"
+        :disabled="!exerciseCompleted"
+      >
+        Complete Lesson
+      </button>
+    </div>
+  </div>
+</template>
+
+<script>
+import { mapState, mapActions } from 'vuex'
+import KeyboardLayout from './KeyboardLayout.vue'
+import TypingInput from './TypingInput.vue'
+import TypingStats from './TypingStats.vue'
+import ProgressBar from './ProgressBar.vue'
+
+export default {
+  name: 'TypingLesson',
+  components: {
+    KeyboardLayout,
+    TypingInput,
+    TypingStats,
+    ProgressBar
+  },
+  props: {
+    title: {
+      type: String,
+      required: true
+    },
+    description: {
+      type: String,
+      required: true
+    },
+    exercises: {
+      type: Array,
+      required: true
+    },
+    lessonKey: {
+      type: String,
+      required: true
+    },
+    highlightKeys: {
+      type: Array,
+      default: () => []
+    }
+  },
+  data() {
+    return {
+      currentExerciseIndex: 0,
+      currentKey: null,
+      exerciseCompleted: false,
+      stats: {
+        wpm: 0,
+        accuracy: 100,
+        keystrokesCorrect: 0,
+        keystrokesIncorrect: 0,
+        timeElapsed: 0
+      }
+    }
+  },
+  computed: {
+    ...mapState({
+      lessonProgress: state => state.lessonProgress
+    }),
+    currentExercise() {
+      return this.exercises[this.currentExerciseIndex]
+    },
+    hasNextExercise() {
+      return this.currentExerciseIndex < this.exercises.length - 1
+    }
+  },
+  mounted() {
+    this.startLesson(this.lessonKey)
+  },
+  methods: {
+    ...mapActions(['startLesson', 'completeLesson']),
+    handleKeyPress(key, isCorrect) {
+      this.currentKey = key.toUpperCase()
+      
+      // Update stats
+      if (isCorrect) {
+        this.stats.keystrokesCorrect++
+      } else {
+        this.stats.keystrokesIncorrect++
+      }
+      
+      // Reset current key after a delay
+      setTimeout(() => {
+        this.currentKey = null
+      }, 200)
+    },
+    handleComplete(exerciseStats) {
+      this.exerciseCompleted = true
+      this.stats = {
+        ...this.stats,
+        wpm: exerciseStats.wpm,
+        accuracy: exerciseStats.accuracy,
+        timeElapsed: exerciseStats.timeElapsed
+      }
+    },
+    resetExercise() {
+      this.exerciseCompleted = false
+      this.stats = {
+        wpm: 0,
+        accuracy: 100,
+        keystrokesCorrect: 0,
+        keystrokesIncorrect: 0,
+        timeElapsed: 0
+      }
+      this.$refs.typingInput.reset()
+    },
+    nextExercise() {
+      if (this.currentExerciseIndex < this.exercises.length - 1) {
+        this.currentExerciseIndex++
+        this.resetExercise()
+      }
+    },
+    finishLesson() {
+      this.completeLesson(this.lessonKey)
+      this.$router.push('/')
+    }
+  }
+}
+</script>
+
+// src/views/Home.vue
+<template>
+  <div class="home">
+    <div class="lesson-intro mb-8 text-center">
+      <h1 class="text-3xl font-bold mb-4">Typing Lessons - U, R, and K Keys</h1>
+      <p class="text-xl text-gray-600 mb-6">Learn to type the U, R, and K keys with proper finger positioning</p>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <!-- U Key Lesson Card -->
+      <div class="lesson-card bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="p-6">
+          <h2 class="text-xl font-bold mb-2">U Key</h2>
+          <p class="text-gray-600 mb-4">Learn to type the U key with your left index finger</p>
+          <div class="progress-bar-container bg-gray-200 rounded-full h-2 mb-4">
+            <div class="progress-bar bg-blue-500 h-2 rounded-full" :style="{ width: `${lessonProgress.u}%` }"></div>
+          </div>
+          <router-link 
+            to="/lesson-u" 
+            class="block w-full text-center bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
+          >
+            Start Lesson
+          </router-link>
+        </div>
+      </div>
+      
+      <!-- R Key Lesson Card -->
+      <div class="lesson-card bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="p-6">
+          <h2 class="text-xl font-bold mb-2">R Key</h2>
+          <p class="text-gray-600 mb-4">Learn to type the R key with your left index finger</p>
+          <div class="progress-bar-container bg-gray-200 rounded-full h-2 mb-4">
+            <div class="progress-bar bg-blue-500 h-2 rounded-full" :style="{ width: `${lessonProgress.r}%` }"></div>
+          </div>
+          <router-link 
+            to="/lesson-r" 
+            class="block w-full text-center bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
+          >
+            Start Lesson
+          </router-link>
+        </div>
+      </div>
+      
+      <!-- K Key Lesson Card -->
+      <div class="lesson-card bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="p-6">
+          <h2 class="text-xl font-bold mb-2">K Key</h2>
+          <p class="text-gray-600 mb-4">Learn to type the K key with your right middle finger</p>
+          <div class="progress-bar-container bg-gray-200 rounded-full h-2 mb-4">
+            <div class="progress-bar bg-blue-500 h-2 rounded-full" :style="{ width: `${lessonProgress.k}%` }"></div>
+          </div>
+          <router-link 
+            to="/lesson-k" 
+            class="block w-full text-center bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
+          >
+            Start Lesson
+          </router-link>
+        </div>
+      </div>
+      
+      <!-- Combined Lesson Card -->
+      <div class="lesson-card bg-white rounded-lg shadow-md overflow-hidden md:col-span-2 lg:col-span-3">
+        <div class="p-6">
+          <h2 class="text-xl font-bold mb-2">Combined Practice</h2>
+          <p class="text-gray-600 mb-4">Practice typing with U, R, and K keys together</p>
+          <div class="progress-bar-container bg-gray-200 rounded-full h-2 mb-4">
+            <div class="progress-bar bg-blue-500 h-2 rounded-full" :style="{ width: `${lessonProgress.combined}%` }"></div>
+          </div>
+          <router-link 
+            to="/lesson-combined" 
+            class="block w-full text-center bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded"
+          >
+            Start Combined Practice
+          </router-link>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import { mapState } from 'vuex'
+
+export default {
+  name: 'Home',
+  computed: {
+    ...mapState({
+      lessonProgress: state => state.lessonProgress
+    })
+  }
+}
+</script>
+
+// src/views/LessonU.vue
+<template>
+  <TypingLesson
+    title="U Key Lesson"
+    description="Learn to type the U key with your left index finger. The U key is typed by extending your left index finger upward from the F key."
+    :exercises="exercises"
+    lessonKey="u"
+    :highlightKeys="['U']"
+  />
+</template>
+
+<script>
+import TypingLesson from '../components/TypingLesson.vue'
+
+export default {
+  name: 'LessonU',
+  components: {
+    TypingLesson
+  },
+  data() {
+    return {
+      exercises: [
+        {
+          text: "u u u u u u u u u u u u u u u u u u u u"
+        },
+        {
+          text: "uu uu uu uu uu uu uu uu uu uu"
+        },
+        {
+          text: "ju ju ju ju fu fu fu fu gu gu gu gu"
+        },
+        {
+          text: "fun sun run gun but cut nut hut"
+        }
+      ]
+    }
+  }
+}
+</script>
+
+// src/views/LessonR.vue
+<template>
+  <TypingLesson
+    title="R Key Lesson"
+    description="Learn to type the R key with your left index finger. The R key is typed by extending your left index finger upward and to the left from the F key."
+    :exercises="exercises"
+    lessonKey="r"
+    :highlightKeys="['R']"
+  />
+</template>
+
+<script>
+import TypingLesson from '../components/TypingLesson.vue'
+
+export default {
+  name: 'LessonR',
+  components: {
+    TypingLesson
+  },
+  data() {
+    return {
+      exercises: [
+        {
+          text: "r r r r r r r r r r r r r r r r r r r r"
+        },
+        {
+          text: "fr fr fr fr dr dr dr dr er er er er"
+        },
+        {
+          text: "rr rr rr rr rr rr rr rr rr rr"
+        },
+        {
+          text: "red run raw rat rye row rug rap"
+        }
+      ]
+    }
+  }
+}
+</script>
+
+// src/views/LessonK.vue
+<template>
+  <TypingLesson
+    title="K Key Lesson"
+    description="Learn to type the K key with your right middle finger. The K key is typed by moving your right middle finger from the K key."
+    :exercises="exercises"
+    lessonKey="k"
+    :highlightKeys="['K']"
+  />
+</template>
+
+<script>
+import TypingLesson from '../components/TypingLesson.vue'
+
+export default {
+  name: 'LessonK',
+  components: {
+    TypingLesson
+  },
+  data() {
+    return {
+      exercises: [
+        {
+          text: "k k k k k k k k k k k k k k k k k k k k"
+        },
+        {
+          text: "jk jk jk jk lk lk lk lk ik ik ik ik"
+        },
+        {
+          text: "kk kk kk kk kk kk kk kk kk kk"
+        },
+        {
+          text: "key kit kin kid keg kat kip kale"
+        }
+      ]
+    }
+  }
+}
+</script>
+
+// src/views/LessonCombined.vue
+<template>
+  <TypingLesson
+    title="Combined U, R, K Practice"
+    description="Practice typing words and phrases that include the U, R, and K keys together."
+    :exercises="exercises"
+    lessonKey="combined"
+    :highlightKeys="['U', 'R', 'K']"
+  />
+</template>
+
+<script>
+import TypingLesson from '../components/TypingLesson.vue'
+
+export default {
+  name: 'LessonCombined',
+  components: {
+    TypingLesson
+  },
+  data() {
+    return {
+      exercises: [
+        {
+          text: "ur ur uk uk rk rk ru ru ku ku kr kr"
+        },
+        {
+          text: "ruk ruk kur kur urk urk rku rku ukr ukr"
+        },
+        {
+          text: "run kick turn kurk ruku rurk kurr"
+        },
+        {
+          text: "turkey trunk kraken rukus runic kuru"
+        }
+      ]
+    }
+  }
+}
+</script>
+
+// package.json
+{
+  "name": "typing-lessons-vue",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build",
+    "lint": "vue-cli-service lint"
+  },
+  "dependencies": {
+    "core-js": "^3.8.3",
+    "vue": "^3.2.13",
+    "vue-router": "^4.0.13",
+    "vuex": "^4.0.2"
+  },
+  "devDependencies": {
+    "@vue/cli-plugin-babel": "~5.0.0",
+    "@vue/cli-plugin-eslint": "~5.0.0",
+    "@vue/cli-service": "~5.0.0",
+    "eslint": "^7.32.0",
+    "eslint-plugin-vue": "^8.0.3"
+  },
+  "eslintConfig": {
+    "root": true,
+    "env": {
+      "node": true
+    },
+    "extends": [
+      "plugin:vue/vue3-essential",
+      "eslint:recommended"
+    ],
+    "parserOptions": {
+      "parser": "@babel/eslint-parser"
+    },
+    "rules": {}
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead",
+    "not ie 11"
+  ]
+}

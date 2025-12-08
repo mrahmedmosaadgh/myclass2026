@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Standalone Editor</title>
+    <style>
+        .canvas-area {
+            position: relative;
+            width: 100%;
+            max-width: 1200px;
+            min-height: 100vh;
+            height: auto;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            transform-origin: center top;
+            margin-bottom: 100px;
+        }
+
+        /* Add a container for the canvas */
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: auto;
+            overflow: visible;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .element-container {
+            position: absolute;
+            transition: transform 0.1s;
+            padding: 20px;
+        }
+
+        .element-container:hover .controls {
+            opacity: 1;
+        }
+
+        .controls {
+            position: absolute;
+            top: -30px;
+            right: 0;
+            background: white;
+            padding: 4px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            opacity: 0;
+            transition: opacity 0.2s;
+            display: flex;
+            gap: 4px;
+            z-index: 1000;
+        }
+
+        .drag-handle {
+            position: absolute;
+            top: -8px;
+            left: 0;
+            width: 32px;
+            height: 32px;
+            background: #666;
+            color: white;
+            border-radius: 50%;
+            cursor: move;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 1000;
+        }
+
+        .element-container:hover .drag-handle {
+            opacity: 1;
+        }
+
+        .control-button {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .control-button.copy { background: #22c55e; }
+        .control-button.settings { background: #666; }
+        .control-button.delete { background: #ef4444; }
+        .control-button.visibility { background: #3b82f6; }
+
+        .content-editable {
+            min-width: 100px;
+            min-height: 20px;
+            outline: none;
+            padding: 4px;
+        }
+
+        .settings-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1001;
+        }
+
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        .controls-panel {
+            margin: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .controls-panel button {
+            padding: 8px 16px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .controls-panel button:hover {
+            background: #2563eb;
+        }
+
+        .zoom-select {
+            padding: 6px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            background-color: white;
+            cursor: pointer;
+            font-size: 14px;
+            min-width: 100px;
+        }
+
+        .zoom-select:hover {
+            border-color: #3b82f6;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls-panel">
+        <input type="file" id="bgInput" accept="image/*" style="display: none">
+        <button onclick="document.getElementById('bgInput').click()">Choose Background</button>
+        <button onclick="toggleAllElements()">Show/Hide All</button>
+        <button onclick="addNewElement()">Add Element</button>
+        <select class="zoom-select" onchange="handleZoomChange(this.value)">
+            <option value="fit">Fit Width</option>
+            <option value="0.5">50%</option>
+            <option value="1" selected>100%</option>
+            <option value="1.2">120%</option>
+            <option value="1.5">150%</option>
+            <option value="2">200%</option>
+            <option value="2.5">250%</option>
+        </select>
+        <button onclick="saveToFile()">Save to File</button>
+        <button onclick="loadFromFile()">Load from File</button>
+        <button onclick="browseFiles()">Browse Files</button>
+        <button onclick="clearStorage()" style="background-color: #ef4444;">Clear Storage</button>
+    </div>
+
+    <div class="canvas-container">
+        <div id="canvas" class="canvas-area"></div>
+    </div>
+
+    <script>
+        let elements = [];
+        let isDragging = false;
+        let currentElement = null;
+        let offset = { x: 0, y: 0 };
+        let zoomLevel = 1;
+        const CANVAS_DEFAULT_WIDTH = 1200;
+        let filesData = []; // Make sure this is declared at the top with your other variables
+
+        function calculateFitWidth() {
+            const container = document.querySelector('.canvas-container');
+            const containerWidth = container.clientWidth - 40; // Subtract padding
+            return containerWidth / CANVAS_DEFAULT_WIDTH;
+        }
+
+        function handleZoomChange(value) {
+            if (value === 'fit') {
+                setZoom(calculateFitWidth());
+            } else {
+                setZoom(parseFloat(value));
+            }
+        }
+
+        function setZoom(value) {
+            zoomLevel = value;
+            const canvas = document.getElementById('canvas');
+            canvas.style.transform = `scale(${zoomLevel})`;
+
+            // Update select element to reflect current zoom
+            const zoomSelect = document.querySelector('.zoom-select');
+            const nearestPreset = findNearestPreset(value);
+
+            if (Math.abs(value - calculateFitWidth()) < 0.01) {
+                zoomSelect.value = 'fit';
+            } else {
+                zoomSelect.value = nearestPreset.toString();
+            }
+        }
+
+        function findNearestPreset(value) {
+            const presets = [0.5, 1, 1.2, 1.5, 2, 2.5];
+            return presets.reduce((prev, curr) => {
+                return (Math.abs(curr - value) < Math.abs(prev - value) ? curr : prev);
+            });
+        }
+
+        function loadSavedElements() {
+            try {
+                const saved = localStorage.getItem('canvasElements');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    // Check if data is the correct structure
+                    if (data && data.elements && Array.isArray(data.elements)) {
+                        elements = data.elements;
+                    } else if (Array.isArray(data)) {
+                        // Handle old format where data was just an array
+                        elements = data;
+                    } else {
+                        // Initialize empty array if data is invalid
+                        elements = [];
+                    }
+                    renderElements();
+
+                    // Restore background image if it exists
+                    const canvas = document.getElementById('canvas');
+                    if (data && data.backgroundImage) {
+                        canvas.style.backgroundImage = data.backgroundImage;
+                    }
+                } else {
+                    // Initialize empty array if no saved data
+                    elements = [];
+                }
+            } catch (error) {
+                console.error('Error loading saved elements:', error);
+                // Initialize empty array on error
+                elements = [];
+            }
+        }
+
+        function saveElements() {
+            try {
+                const canvas = document.getElementById('canvas');
+                const dataToSave = {
+                    elements: elements.map(element => ({
+                        ...element,
+                        // Ensure positions are saved as percentages
+                        x: parseFloat(element.x.toFixed(2)),
+                        y: parseFloat(element.y.toFixed(2)),
+                        // Add viewport dimensions for reference
+                        viewportHeight: window.innerHeight,
+                        canvasHeight: canvas.offsetHeight
+                    })),
+                    backgroundImage: canvas.style.backgroundImage
+                };
+                localStorage.setItem('canvasElements', JSON.stringify(dataToSave));
+            } catch (error) {
+                console.error('Error saving elements:', error);
+                showNotification('Failed to save elements', 'error');
+            }
+        }
+
+        function addNewElement() {
+            const element = {
+                id: Date.now(),
+                type: 'text',
+                content: 'Double click to edit',
+                x: 20,
+                y: 20,
+                visible: true,
+                style: {
+                    color: '#000000',
+                    backgroundColor: '#ffffff',
+                    fontSize: '16px'
+                }
+            };
+            elements.push(element);
+            renderElements();
+            saveElements();
+        }
+
+        function copyElement(id) {
+            const element = elements.find(el => el.id === id);
+            if (element) {
+                const newElement = {
+                    ...element,
+                    id: Date.now(),
+                    x: element.x + 5,
+                    y: element.y + 5
+                };
+                elements.push(newElement);
+                renderElements();
+                saveElements();
+            }
+        }
+
+        function deleteElement(id) {
+            elements = elements.filter(el => el.id !== id);
+            renderElements();
+            saveElements();
+        }
+
+        function toggleElement(id) {
+            const element = elements.find(el => el.id === id);
+            if (element) {
+                element.visible = !element.visible;
+                renderElements();
+                saveElements();
+            }
+        }
+
+        function toggleAllElements() {
+            const allHidden = elements.every(el => !el.visible);
+            elements.forEach(el => el.visible = allHidden);
+            renderElements();
+            saveElements();
+        }
+
+        function openSettings(id) {
+            const element = elements.find(el => el.id === id);
+            if (!element) return;
+
+            const backdrop = document.createElement('div');
+            backdrop.className = 'modal-backdrop';
+            document.body.appendChild(backdrop);
+
+            const modal = document.createElement('div');
+            modal.className = 'settings-modal';
+            modal.innerHTML = `
+                <h3>Element Settings</h3>
+                <p>
+                    <label>Text Color: <input type="color" value="${element.style.color}" onchange="updateElementStyle(${id}, 'color', this.value)"></label>
+                </p>
+                <p>
+                    <label>Background Color: <input type="color" value="${element.style.backgroundColor}" onchange="updateElementStyle(${id}, 'backgroundColor', this.value)"></label>
+                </p>
+                <p>
+                    <label>Font Size: <input type="number" value="${parseInt(element.style.fontSize)}" onchange="updateElementStyle(${id}, 'fontSize', this.value + 'px')"></label>
+                </p>
+                <button onclick="closeSettings()">Close</button>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function closeSettings() {
+            document.querySelector('.modal-backdrop')?.remove();
+            document.querySelector('.settings-modal')?.remove();
+        }
+
+        function updateElementStyle(id, property, value) {
+            const element = elements.find(el => el.id === id);
+            if (element) {
+                element.style[property] = value;
+                renderElements();
+                saveElements();
+            }
+        }
+
+        function createElementDOM(element) {
+            const container = document.createElement('div');
+            container.className = 'element-container';
+            container.style.left = `${element.x}%`;
+            container.style.top = `${element.y}%`;
+
+            const dragHandle = document.createElement('div');
+            dragHandle.className = 'drag-handle';
+            dragHandle.innerHTML = '↔';
+            dragHandle.onmousedown = (e) => startDrag(e, element);
+            dragHandle.ondblclick = () => toggleElement(element.id);
+            // Set drag handle opacity based on element visibility
+            dragHandle.style.opacity = element.visible ? '0' : '0.5';
+            // Show drag handle on hover only when element is visible
+            container.addEventListener('mouseenter', () => {
+                if (element.visible) {
+                    dragHandle.style.opacity = '1';
+                }
+            });
+            container.addEventListener('mouseleave', () => {
+                dragHandle.style.opacity = element.visible ? '0' : '0.5';
+            });
+            container.appendChild(dragHandle);
+
+            const controls = document.createElement('div');
+            controls.className = 'controls';
+            controls.innerHTML = `
+                <button class="control-button copy" onclick="copyElement(${element.id})">📋</button>
+                <button class="control-button visibility" onclick="toggleElement(${element.id})">${element.visible ? '👁' : '👁‍🗨'}</button>
+                <button class="control-button settings" onclick="openSettings(${element.id})">⚙️</button>
+                <button class="control-button delete" onclick="deleteElement(${element.id})">×</button>
+            `;
+            container.appendChild(controls);
+
+            const content = document.createElement('div');
+            content.className = 'content-editable';
+            content.contentEditable = true;
+            content.innerHTML = element.content;
+            content.style.color = element.style.color;
+            content.style.backgroundColor = element.style.backgroundColor;
+            content.style.fontSize = element.style.fontSize;
+            content.style.display = element.visible ? 'block' : 'none';
+
+            content.addEventListener('input', () => {
+                element.content = content.innerHTML;
+                saveElements();
+            });
+
+            container.appendChild(content);
+            return container;
+        }
+
+        function renderElements() {
+            const canvas = document.getElementById('canvas');
+            canvas.innerHTML = '';
+            elements.forEach((element, index) => {
+                const elementDOM = createElementDOM(element);
+                elementDOM.setAttribute('data-id', index); // Add unique identifier
+                canvas.appendChild(elementDOM);
+            });
+            updateCanvasHeight();
+        }
+
+        function startDrag(e, element) {
+            e.stopPropagation();
+            isDragging = true;
+            currentElement = element;
+
+            // Get the actual position considering zoom
+            const rect = e.target.getBoundingClientRect();
+            const actualX = (e.clientX - rect.left) / zoomLevel;
+            const actualY = (e.clientY - rect.top) / zoomLevel;
+
+            offset.x = actualX;
+            offset.y = actualY;
+        }
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+
+            const canvas = document.getElementById('canvas');
+            const rect = canvas.getBoundingClientRect();
+
+            // Calculate position considering zoom level
+            const actualX = (e.clientX - rect.left) / zoomLevel;
+            const actualY = (e.clientY - rect.top) / zoomLevel;
+
+            const x = ((actualX - offset.x) / (rect.width / zoomLevel)) * 100;
+            const y = ((actualY - offset.y) / (rect.height / zoomLevel)) * 100;
+
+            currentElement.x = Math.max(0, Math.min(90, x));
+            currentElement.y = Math.max(0, y); // Remove the upper limit for y
+
+            renderElements();
+            updateCanvasHeight(); // Update canvas height while dragging
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                saveElements();
+            }
+        });
+
+        document.getElementById('bgInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const canvas = document.getElementById('canvas');
+                    canvas.style.backgroundImage = `url(${e.target.result})`;
+                    canvas.style.backgroundSize = 'contain';
+                    canvas.style.backgroundRepeat = 'no-repeat';
+                    canvas.style.backgroundPosition = 'center';
+                    localStorage.setItem('backgroundImage', e.target.result);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Add this function to update canvas height
+        function updateCanvasHeight() {
+            const canvas = document.getElementById('canvas');
+            let maxBottom = 0;
+
+            // Find the bottom-most point of all elements
+            elements.forEach(element => {
+                const elementDOM = document.querySelector(`[data-id="${element.id}"]`);
+                if (elementDOM) {
+                    const bottom = element.y + (elementDOM.offsetHeight / canvas.offsetHeight * 100);
+                    maxBottom = Math.max(maxBottom, bottom);
+                }
+            });
+
+            // Set minimum height to either viewport height or content height plus padding
+            const minHeight = Math.max(100, maxBottom + 20); // 20% padding at bottom
+            canvas.style.minHeight = `${minHeight}vh`;
+        }
+
+        // Add ResizeObserver to handle dynamic content changes
+        const resizeObserver = new ResizeObserver(() => {
+            updateCanvasHeight();
+        });
+
+        window.onload = () => {
+            loadSavedElements();
+            setZoom(1); // Set initial zoom
+
+            // Observe the canvas
+            const canvas = document.getElementById('canvas');
+            resizeObserver.observe(canvas);
+
+            // Add window resize handler
+            let resizeTimeout;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => {
+                    if (document.querySelector('.zoom-select').value === 'fit') {
+                        setZoom(calculateFitWidth());
+                    }
+                    updateCanvasHeight();
+                }, 100);
+            });
+        };
+
+        function saveToFile() {
+            const canvas = document.getElementById('canvas');
+            const dataToSave = {
+                elements: elements.map(element => ({
+                    ...element,
+                    x: parseFloat(element.x.toFixed(2)),
+                    y: parseFloat(element.y.toFixed(2)),
+                    viewportHeight: window.innerHeight,
+                    canvasHeight: canvas.offsetHeight
+                })),
+                backgroundImage: canvas.style.backgroundImage
+            };
+
+            const fileName = prompt('Enter file name:', 'canvas_' + new Date().toISOString().slice(0,10));
+            if (!fileName) return;
+
+            const fileData = {
+                name: fileName + '.json',
+                size: JSON.stringify(dataToSave).length,
+                date: new Date().toLocaleDateString(),
+                content: dataToSave
+            };
+
+            // Save to localStorage and download file
+            filesData = filesData.filter(f => f.name !== fileData.name);
+            filesData.push(fileData);
+            localStorage.setItem('savedFiles', JSON.stringify(filesData));
+
+            const blob = new Blob([JSON.stringify(dataToSave, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileData.name;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function loadFromFile() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        elements = data.elements;
+                        if (data.backgroundImage) {
+                            document.getElementById('canvas').style.backgroundImage = data.backgroundImage;
+                        }
+                        renderElements();
+                        saveElements(); // Update localStorage
+                    } catch (error) {
+                        console.error('Error loading file:', error);
+                        alert('Invalid file format');
+                    }
+                };
+
+                reader.readAsText(file);
+            };
+
+            input.click();
+        }
+
+        function clearStorage() {
+            if (confirm('Are you sure you want to clear all saved elements and files? This cannot be undone.')) {
+                localStorage.removeItem('canvasElements');
+                localStorage.removeItem('savedFiles');
+                elements = [];
+                filesData = [];
+                const canvas = document.getElementById('canvas');
+                canvas.style.backgroundImage = '';
+                renderElements();
+            }
+        }
+
+        function browseFiles() {
+            const filesList = document.getElementById('filesList');
+            filesList.innerHTML = '';
+
+            // Get all files from localStorage
+            const savedFiles = localStorage.getItem('savedFiles');
+            if (savedFiles) {
+                filesData = JSON.parse(savedFiles);
+
+                filesData.forEach((fileData, index) => {
+                    const previewItem = createFilePreviewItem(fileData, index);
+                    filesList.appendChild(previewItem);
+                });
+            }
+
+            if (filesData.length === 0) {
+                filesList.innerHTML = '<div class="file-error">No saved files found.</div>';
+            }
+
+            document.getElementById('loadFilesModal').style.display = 'block';
+        }
+
+        function formatFileSize(size) {
+            if (size < 1024) return size + ' B';
+            if (size < 1024 * 1024) return (size / 1024).toFixed(1) + ' KB';
+            return (size / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function createFilePreviewItem(fileData, index) {
+            const div = document.createElement('div');
+            div.className = 'file-preview-item';
+            div.onclick = () => loadPreviewedFile(index);
+
+            const elementCount = fileData.content.elements ? fileData.content.elements.length : 0;
+
+            div.innerHTML = `
+                <div class="file-preview-details">
+                    <span class="file-preview-name">${fileData.name}</span>
+                    <span class="file-preview-info">${formatFileSize(fileData.size)} • ${fileData.date}</span>
+                </div>
+                <div class="file-preview-elements">
+                    ${elementCount} elements
+                </div>
+            `;
+
+            return div;
+        }
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<style>
+.file-error {
+    padding: 15px;
+    color: #666;
+    text-align: center;
+    border: 1px dashed #ccc;
+    border-radius: 4px;
+    margin: 10px 0;
+}
+
+.file-preview-item {
+    padding: 15px;
+    margin: 10px 0;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.file-preview-item:hover {
+    background-color: #f7fafc;
+    border-color: #3b82f6;
+}
+
+.file-preview-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.file-preview-name {
+    font-weight: 500;
+}
+
+.file-preview-info {
+    color: #666;
+    font-size: 0.9em;
+}
+
+.file-preview-elements {
+    margin-top: 5px;
+    font-size: 0.9em;
+    color: #666;
+}
+</style>
+
+
+
+

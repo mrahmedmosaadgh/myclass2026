@@ -1,0 +1,38 @@
+# Set default branch name to 'main'
+git config --global init.defaultBranch main
+
+# Rename current 'master' branch to 'main'
+git branch -m master main
+
+# Verify your Git configuration
+git config --list
+
+# Remove files from Git's index
+git rm -rf --cached .
+
+# Add all files back
+git add .
+
+# Set your Git email
+git config --global user.email "mrahmedmosaad@email.com"
+
+# Set your Git name
+git config --global user.name "Ahmed Mosaad"
+
+# Verify the settings
+git config --list
+
+
+
+
+# Now try the commit again
+git commit -m "initial commit: Setup project with proper line endings"
+
+
+
+
+git remote add origin https://github.com/mrahmedmosaadgh/myclass4.git
+mrahmedmosaadgh
+hggihggiA1gh
+
+

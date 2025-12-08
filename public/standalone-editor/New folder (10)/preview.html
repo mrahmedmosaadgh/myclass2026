@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<head>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            min-height: 100vh;
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .canvas-area {
+            position: relative;
+            width: 100%;
+            max-width: 1200px;
+            height: auto;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center top;
+            transition: transform 0.3s ease;
+            transform-origin: top center;
+        }
+
+        .element-container {
+            position: absolute;
+            cursor: grab;
+            transform-origin: top left;
+            user-select: none;
+            /* Remove the transform scale that might be causing issues */
+        }
+
+        .drag-handle {
+            position: absolute;
+            top: -8px;
+            left: 0;
+            width: 32px;
+            height: 32px;
+            background: #666;
+            color: white;
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 1000;
+        }
+
+        .element-container:hover .drag-handle {
+            opacity: 0.5;
+        }
+
+        .control-button {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .control-button.visibility { background: #3b82f6; }
+
+        .content-display {
+            min-width: 100px;
+            min-height: 20px;
+            padding: 4px;
+        }
+
+        .controls-panel {
+            margin: 20px;
+            display: flex;
+            gap: 10px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: white;
+        }
+
+        .controls-panel button {
+            padding: 8px 16px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .controls-panel button:hover {
+            background: #2563eb;
+        }
+
+        .zoom-select {
+            padding: 6px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            background-color: white;
+            cursor: pointer;
+            font-size: 14px;
+            min-width: 100px;
+        }
+
+        .zoom-select:hover {
+            border-color: #3b82f6;
+        }
+
+        .zoom-select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            ring: 2px;
+            ring-color: #93c5fd;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls-panel">
+        <div class="controls-group">
+            <button onclick="toggleAllElements()" class="btn btn-primary">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <path d="M2 12s3-9 10-9 10 9 10 9-3 9-10 9-10-9-10-9z"/>
+                </svg>
+                Show/Hide All
+            </button>
+
+            <select class="zoom-select" onchange="handleZoomChange(this.value)">
+                <option value="fit">Fit Width</option>
+                <option value="0.5">50%</option>
+                <option value="1" selected>100%</option>
+                <option value="1.2">120%</option>
+                <option value="1.5">150%</option>
+                <option value="2">200%</option>
+                <option value="2.5">250%</option>
+            </select>
+        </div>
+
+        <div class="controls-group">
+            <button onclick="browseFiles()" class="btn btn-secondary">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                </svg>
+                Browse Files
+            </button>
+            <button onclick="clearStorage()" class="btn btn-danger">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+                Clear Storage
+            </button>
+        </div>
+    </div>
+
+    <div class="canvas-container">
+        <div id="canvas" class="canvas-area"></div>
+    </div>
+
+    <div id="loadFilesModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Select File to Load</h2>
+                <button class="close-modal" onclick="closeLoadFilesModal()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="filesList" class="files-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        /* Modern UI Styles */
+        :root {
+            --primary-color: #3b82f6;
+            --primary-hover: #2563eb;
+            --danger-color: #ef4444;
+            --danger-hover: #dc2626;
+            --secondary-color: #4b5563;
+            --secondary-hover: #374151;
+            --background-color: #ffffff;
+            --border-color: #e5e7eb;
+            --text-color: #1f2937;
+            --text-light: #6b7280;
+        }
+
+        .controls-panel {
+            margin: 20px;
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--background-color);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .controls-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .btn .icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: var(--secondary-hover);
+        }
+
+        .btn-danger {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: var(--danger-hover);
+        }
+
+        .zoom-select {
+            padding: 10px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--background-color);
+            cursor: pointer;
+            font-size: 14px;
+            min-width: 120px;
+            color: var(--text-color);
+            transition: all 0.2s;
+        }
+
+        .zoom-select:hover {
+            border-color: var(--primary-color);
+        }
+
+        .zoom-select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            position: relative;
+            background-color: var(--background-color);
+            margin: 5% auto;
+            padding: 24px;
+            width: 90%;
+            max-width: 800px;
+            border-radius: 16px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-header h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-color);
+            margin: 0;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            padding: 4px;
+            cursor: pointer;
+            color: var(--text-light);
+            transition: color 0.2s;
+        }
+
+        .close-modal:hover {
+            color: var(--text-color);
+        }
+
+        .close-modal svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        /* Files Grid */
+        .files-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 16px;
+            padding: 16px 0;
+        }
+
+        .file-preview-item {
+            padding: 16px;
+            background: var(--background-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .file-preview-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            border-color: var(--primary-color);
+        }
+
+        .file-preview-details {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .file-preview-name {
+            font-weight: 600;
+            color: var(--text-color);
+            font-size: 1rem;
+        }
+
+        .file-preview-info {
+            color: var(--text-light);
+            font-size: 0.875rem;
+            display: flex;
+            gap: 8px;
+        }
+
+        .file-preview-elements {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-light);
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .file-error {
+            text-align: center;
+            padding: 32px;
+            color: var(--text-light);
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            grid-column: 1 / -1;
+        }
+    </style>
+
+    <script>
+        // Global variables
+        let elements = [];
+        let zoomLevel = 1;
+        const CANVAS_DEFAULT_WIDTH = 1200; // Should match max-width in CSS
+        let filesData = [];
+
+        // Add this near the top of your JavaScript code, before any functions that use it
+        const resizeObserver = new ResizeObserver(() => {
+            requestAnimationFrame(updateCanvasHeight);
+        });
+
+        // Define updateCanvasHeight first since it's used by other functions
+        function updateCanvasHeight() {
+            const canvas = document.getElementById('canvas');
+            let maxBottom = 0;
+
+            elements.forEach(element => {
+                const elementDOM = document.querySelector(`[data-id="${element.id}"]`);
+                if (elementDOM) {
+                    const elementHeight = elementDOM.offsetHeight;
+                    const elementBottom = (parseFloat(element.y) + (elementHeight / canvas.offsetHeight * 100));
+                    maxBottom = Math.max(maxBottom, elementBottom);
+                }
+            });
+
+            // Set minimum height to either viewport height or content height plus padding
+            const minHeight = Math.max(100, maxBottom + 20); // 20% padding at bottom
+            canvas.style.height = `${minHeight}vh`;
+        }
+
+        function calculateFitWidth() {
+            const container = document.querySelector('.canvas-container');
+            const containerWidth = container.clientWidth - 40; // Subtract padding
+            return containerWidth / CANVAS_DEFAULT_WIDTH;
+        }
+
+        function findNearestPreset(value) {
+            const presets = [0.5, 1, 1.2, 1.5, 2, 2.5];
+            return presets.reduce((prev, curr) => {
+                return (Math.abs(curr - value) < Math.abs(prev - value) ? curr : prev);
+            });
+        }
+
+        function setZoom(value) {
+            zoomLevel = value;
+            const canvas = document.getElementById('canvas');
+
+            // Set CSS custom property for zoom level
+            document.documentElement.style.setProperty('--zoom-level', value);
+
+            // Apply zoom transform
+            canvas.style.transform = `scale(${value})`;
+
+            // Update heights after zoom
+            requestAnimationFrame(() => {
+                updateCanvasHeight();
+            });
+
+            // Update select element
+            const zoomSelect = document.querySelector('.zoom-select');
+            if (Math.abs(value - calculateFitWidth()) < 0.01) {
+                zoomSelect.value = 'fit';
+            } else {
+                const nearestPreset = findNearestPreset(value);
+                zoomSelect.value = nearestPreset.toString();
+            }
+        }
+
+        function handleZoomChange(value) {
+            if (value === 'fit') {
+                setZoom(calculateFitWidth());
+            } else {
+                setZoom(parseFloat(value));
+            }
+        }
+
+        function resetZoom() {
+            setZoom(1);
+        }
+
+        // Handle window resize for fit-width
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                if (document.querySelector('.zoom-select').value === 'fit') {
+                    setZoom(calculateFitWidth());
+                }
+                updateCanvasHeight();
+            }, 100);
+        });
+
+        function loadSavedElements() {
+            try {
+                const saved = localStorage.getItem('canvasElements');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    if (data.elements && Array.isArray(data.elements)) {
+                        elements = data.elements.map(element => ({
+                            ...element,
+                            x: parseFloat(element.x || 0),
+                            y: parseFloat(element.y || 0)
+                        }));
+
+                        const canvas = document.getElementById('canvas');
+                        if (data.backgroundImage) {
+                            canvas.style.backgroundImage = data.backgroundImage;
+                        }
+
+                        renderElements();
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading saved elements:', error);
+                showNotification('Failed to load saved elements', 'error');
+            }
+        }
+
+        function toggleElement(id) {
+            const element = elements.find(el => el.id === id);
+            if (element) {
+                element.visible = !element.visible;
+                renderElements();
+            }
+        }
+
+        function toggleAllElements() {
+            const allHidden = elements.every(el => !el.visible);
+            elements.forEach(el => el.visible = allHidden);
+            renderElements();
+        }
+
+        function createElementDOM(element) {
+            const container = document.createElement('div');
+            container.className = 'element-container';
+
+            // Position relative to canvas size
+            const canvas = document.getElementById('canvas');
+            const x = (parseFloat(element.x || 0) / 100) * canvas.offsetWidth;
+            const y = (parseFloat(element.y || 0) / 100) * canvas.offsetHeight;
+
+            container.style.left = `${x}px`;
+            container.style.top = `${y}px`;
+            container.style.position = 'absolute';
+            container.dataset.id = element.id;
+
+            // Add drag handle
+            const dragHandle = document.createElement('div');
+            dragHandle.className = 'drag-handle';
+            dragHandle.innerHTML = '⋮';
+            container.appendChild(dragHandle);
+
+            // Add content display
+            const content = document.createElement('div');
+            content.className = 'content-display';
+            content.innerHTML = element.content || '';
+            container.appendChild(content);
+
+            // Make draggable
+            makeDraggable(container);
+
+            return container;
+        }
+
+        function makeDraggable(element) {
+            let isDragging = false;
+            let currentX;
+            let currentY;
+            let initialX;
+            let initialY;
+
+            element.addEventListener('mousedown', dragStart);
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', dragEnd);
+
+            function dragStart(e) {
+                if (!e.target.classList.contains('drag-handle')) return;
+
+                const rect = element.getBoundingClientRect();
+                initialX = e.clientX - rect.left;
+                initialY = e.clientY - rect.top;
+
+                isDragging = true;
+                element.style.cursor = 'grabbing';
+            }
+
+            function drag(e) {
+                if (!isDragging) return;
+
+                e.preventDefault();
+
+                const canvas = document.getElementById('canvas');
+                const canvasRect = canvas.getBoundingClientRect();
+
+                currentX = e.clientX - canvasRect.left - initialX;
+                currentY = e.clientY - canvasRect.top - initialY;
+
+                // Convert to percentage
+                const xPercent = (currentX / canvas.offsetWidth) * 100;
+                const yPercent = (currentY / canvas.offsetHeight) * 100;
+
+                // Update element position
+                element.style.left = `${currentX}px`;
+                element.style.top = `${currentY}px`;
+
+                // Update the elements array
+                const elementId = element.dataset.id;
+                const elementIndex = elements.findIndex(el => el.id === elementId);
+                if (elementIndex !== -1) {
+                    elements[elementIndex].x = xPercent;
+                    elements[elementIndex].y = yPercent;
+                }
+            }
+
+            function dragEnd() {
+                if (!isDragging) return;
+
+                isDragging = false;
+                element.style.cursor = 'grab';
+                saveElements();
+            }
+        }
+
+        function renderElements() {
+            const canvas = document.getElementById('canvas');
+            canvas.innerHTML = '';
+
+            elements.forEach(element => {
+                const elementDOM = createElementDOM(element);
+                canvas.appendChild(elementDOM);
+            });
+
+            updateCanvasHeight();
+        }
+
+        window.onload = () => {
+            loadSavedElements();
+            setZoom(1); // Set initial zoom
+            updateCanvasHeight();
+
+            let resizeTimeout;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => {
+                    if (document.querySelector('.zoom-select').value === 'fit') {
+                        setZoom(calculateFitWidth());
+                    }
+                    updateCanvasHeight();
+                }, 100);
+            });
+        };
+
+        function loadFromFiles() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.multiple = true;
+
+            input.onchange = async (e) => {
+                const filesList = document.getElementById('filesList');
+                filesList.innerHTML = '';
+
+                const existingFiles = localStorage.getItem('savedFiles');
+                filesData = existingFiles ? JSON.parse(existingFiles) : [];
+
+                for (const file of e.target.files) {
+                    try {
+                        const content = await readFileContent(file);
+                        let data = JSON.parse(content);
+
+                        if (!data.elements || !Array.isArray(data.elements)) {
+                            throw new Error('Invalid file structure: missing elements array');
+                        }
+
+                        // Ensure x and y are parsed as numbers
+                        data.elements = data.elements.map(element => ({
+                            ...element,
+                            x: parseFloat(element.x || 0),
+                            y: parseFloat(element.y || 0)
+                        }));
+
+                        const fileData = {
+                            name: file.name,
+                            size: file.size,
+                            date: new Date().toLocaleDateString(),
+                            content: data
+                        };
+
+                        const existingIndex = filesData.findIndex(f => f.name === file.name);
+                        if (existingIndex !== -1) {
+                            filesData[existingIndex] = fileData;
+                        } else {
+                            filesData.push(fileData);
+                        }
+
+                        localStorage.setItem('savedFiles', JSON.stringify(filesData));
+                        const previewItem = createFilePreviewItem(fileData, filesData.length - 1);
+                        filesList.appendChild(previewItem);
+                    } catch (error) {
+                        console.error(`Error reading file ${file.name}:`, error);
+                        const errorItem = createErrorFileItem(file.name, error.message);
+                        filesList.appendChild(errorItem);
+                    }
+                }
+
+                if (filesData.length === 0) {
+                    filesList.innerHTML = '<div class="file-error">No valid files were loaded. Please ensure your files are valid JSON with an elements array.</div>';
+                }
+
+                localStorage.setItem('filesLastUpdated', new Date().toISOString());
+                document.getElementById('loadFilesModal').style.display = 'block';
+            };
+
+            input.click();
+        }
+
+        function readFileContent(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = (e) => reject(e);
+                reader.readAsText(file);
+            });
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' bytes';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function createFilePreviewItem(fileData, index) {
+            const div = document.createElement('div');
+            div.className = 'file-preview-item';
+            div.onclick = () => loadPreviewedFile(index);
+
+            const elementCount = fileData.content.elements ? fileData.content.elements.length : 0;
+
+            div.innerHTML = `
+                <div class="file-preview-details">
+                    <span class="file-preview-name">${fileData.name}</span>
+                    <span class="file-preview-info">
+                        <span>${formatFileSize(fileData.size)}</span>
+                        <span>•</span>
+                        <span>${fileData.date}</span>
+                    </span>
+                    <div class="file-preview-elements">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                            <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                        </svg>
+                        ${elementCount} elements
+                    </div>
+                </div>
+            `;
+
+            return div;
+        }
+
+        function createErrorFileItem(fileName, errorMessage) {
+            const div = document.createElement('div');
+            div.className = 'file-preview-item file-error';
+            div.innerHTML = `
+                <div class="file-preview-details">
+                    <span class="file-preview-name">${fileName}</span>
+                    <span class="file-preview-info">Error</span>
+                </div>
+                <div class="file-preview-error">
+                    ${errorMessage}
+                </div>
+            `;
+            return div;
+        }
+
+        function loadPreviewedFile(index) {
+            const fileData = filesData[index];
+            if (!fileData) return;
+
+            try {
+                if (!fileData.content || !Array.isArray(fileData.content.elements)) {
+                    throw new Error('Invalid file structure');
+                }
+
+                elements = fileData.content.elements.map(element => ({
+                    ...element,
+                    x: parseFloat(element.x || 0),
+                    y: parseFloat(element.y || 0)
+                }));
+
+                const canvas = document.getElementById('canvas');
+                if (fileData.content.backgroundImage) {
+                    canvas.style.backgroundImage = fileData.content.backgroundImage;
+                } else {
+                    canvas.style.backgroundImage = 'none';
+                }
+
+                renderElements();
+                updateCanvasHeight();
+                saveElements();
+
+                closeLoadFilesModal();
+                showNotification('File loaded successfully');
+            } catch (error) {
+                console.error('Error loading file:', error);
+                showNotification('Error loading file: ' + error.message, 'error');
+            }
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        function closeLoadFilesModal() {
+            document.getElementById('loadFilesModal').style.display = 'none';
+        }
+
+        function updateControlsPanel() {
+            const controlsPanel = document.querySelector('.controls-panel');
+            const loadButton = document.createElement('button');
+            loadButton.textContent = 'Load Files';
+            loadButton.onclick = loadFromFiles;
+            controlsPanel.appendChild(loadButton);
+        }
+
+        window.addEventListener('load', updateControlsPanel);
+
+        // Add these styles to your existing CSS
+        const styles = `
+            .file-error {
+                border-color: #f56565;
+                background-color: #fff5f5;
+            }
+
+            .file-preview-error {
+                color: #c53030;
+                font-size: 0.875rem;
+                margin-top: 0.5rem;
+            }
+
+            .notification {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                padding: 12px 24px;
+                border-radius: 4px;
+                color: white;
+                z-index: 1000;
+                animation: slideIn 0.3s ease-out;
+            }
+
+            .notification-success {
+                background-color: #48bb78;
+            }
+
+            .notification-error {
+                background-color: #f56565;
+            }
+
+            @keyframes slideIn {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+        `;
+
+        // Add the styles to the document
+        const styleSheet = document.createElement('style');
+        styleSheet.textContent = styles;
+        document.head.appendChild(styleSheet);
+
+        // Add this function to save elements to localStorage
+        function saveElements() {
+            try {
+                const dataToSave = {
+                    elements: elements.map(element => ({
+                        ...element,
+                        x: parseFloat(element.x || 0),
+                        y: parseFloat(element.y || 0)
+                    })),
+                    backgroundImage: document.getElementById('canvas').style.backgroundImage
+                };
+                localStorage.setItem('canvasElements', JSON.stringify(dataToSave));
+            } catch (error) {
+                console.error('Error saving elements:', error);
+                showNotification('Failed to save elements', 'error');
+            }
+        }
+
+        function browseFiles() {
+            const filesList = document.getElementById('filesList');
+            filesList.innerHTML = '';
+
+            // Get all files from localStorage
+            const savedFiles = localStorage.getItem('savedFiles');
+            if (savedFiles) {
+                filesData = JSON.parse(savedFiles);
+
+                filesData.forEach((fileData, index) => {
+                    const previewItem = createFilePreviewItem(fileData, index);
+                    filesList.appendChild(previewItem);
+                });
+            }
+
+            if (filesData.length === 0) {
+                filesList.innerHTML = '<div class="file-error">No saved files found.</div>';
+            }
+
+            document.getElementById('loadFilesModal').style.display = 'block';
+        }
+
+        function formatFileSize(size) {
+            if (size < 1024) return size + ' B';
+            if (size < 1024 * 1024) return (size / 1024).toFixed(1) + ' KB';
+            return (size / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function createFilePreviewItem(fileData, index) {
+            const div = document.createElement('div');
+            div.className = 'file-preview-item';
+            div.onclick = () => loadPreviewedFile(index);
+
+            const elementCount = fileData.content.elements ? fileData.content.elements.length : 0;
+
+            div.innerHTML = `
+                <div class="file-preview-details">
+                    <span class="file-preview-name">${fileData.name}</span>
+                    <span class="file-preview-info">${formatFileSize(fileData.size)} • ${fileData.date}</span>
+                </div>
+                <div class="file-preview-elements">
+                    ${elementCount} elements
+                </div>
+            `;
+
+            return div;
+        }
+
+        function loadPreviewedFile(index) {
+            const fileData = filesData[index];
+            if (!fileData) return;
+
+            try {
+                if (!fileData.content || !Array.isArray(fileData.content.elements)) {
+                    throw new Error('Invalid file structure');
+                }
+
+                // Parse x and y coordinates to numbers
+                elements = fileData.content.elements.map(element => ({
+                    ...element,
+                    x: parseFloat(element.x),
+                    y: parseFloat(element.y)
+                }));
+
+                const canvas = document.getElementById('canvas');
+                if (fileData.content.backgroundImage) {
+                    canvas.style.backgroundImage = fileData.content.backgroundImage;
+                } else {
+                    canvas.style.backgroundImage = 'none';
+                }
+
+                renderElements();
+                saveElements();
+                closeLoadFilesModal();
+                showNotification('File loaded successfully');
+            } catch (error) {
+                console.error('Error loading file:', error);
+                showNotification('Error loading file: ' + error.message, 'error');
+            }
+        }
+
+        function closeLoadFilesModal() {
+            document.getElementById('loadFilesModal').style.display = 'none';
+        }
+
+        function clearStorage() {
+            if (confirm('Are you sure you want to clear all saved elements and files? This cannot be undone.')) {
+                localStorage.removeItem('canvasElements');
+                localStorage.removeItem('savedFiles');
+                elements = [];
+                filesData = [];
+                const canvas = document.getElementById('canvas');
+                canvas.style.backgroundImage = '';
+                renderElements();
+            }
+        }
+
+        // Add these styles to your existing styles
+        </script>
+
+        <style>
+        .file-error {
+            padding: 15px;
+            color: #666;
+            text-align: center;
+            border: 1px dashed #ccc;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+
+        .file-preview-item {
+            padding: 15px;
+            margin: 10px 0;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .file-preview-item:hover {
+            background-color: #f7fafc;
+            border-color: #3b82f6;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+            display: none;
+        }
+
+        .modal-content {
+            position: relative;
+            background-color: white;
+            margin: 10% auto;
+            padding: 20px;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 8px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .close-modal {
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .controls-panel button {
+            padding: 8px 16px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .controls-panel button:hover {
+            background: #2563eb;
+        }
+
+        .controls-panel button[style*="ef4444"]:hover {
+            background: #dc2626;
+        }
+        </style>
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

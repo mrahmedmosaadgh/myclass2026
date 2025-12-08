@@ -1,0 +1,118 @@
+{
+    "id": "lang-preset-1",
+    "name": "English Pronunciation Practice",
+    "subject": "language-learning",
+    "metadata": {
+        "author": "Language Department",
+        "createdAt": "2025-11-23",
+        "difficulty": "easy",
+        "tags": [
+            "english",
+            "pronunciation",
+            "speaking"
+        ]
+    },
+    "questions": [
+        {
+            "id": "q1",
+            "type": "speaking-cards",
+            "version": "default",
+            "title": "Practice Common Phrases",
+            "description": "Record yourself saying each phrase",
+            "points": 10,
+            "instructions": "Listen to the example, then record yourself saying the phrase",
+            "recordingRequired": true,
+            "minRecordingDuration": 2,
+            "cards": [
+                {
+                    "id": "c1",
+                    "text": "Good morning!",
+                    "phonetic": "/ɡʊd ˈmɔːrnɪŋ/",
+                    "audioUrl": "/audio/english/good-morning.mp3",
+                    "imageUrl": "/images/english/morning.png"
+                },
+                {
+                    "id": "c2",
+                    "text": "How are you?",
+                    "phonetic": "/haʊ ɑːr juː/",
+                    "audioUrl": "/audio/english/how-are-you.mp3",
+                    "imageUrl": "/images/english/greeting.png"
+                },
+                {
+                    "id": "c3",
+                    "text": "Thank you very much",
+                    "phonetic": "/θæŋk juː ˈveri mʌtʃ/",
+                    "audioUrl": "/audio/english/thank-you.mp3",
+                    "imageUrl": "/images/english/thanks.png"
+                },
+                {
+                    "id": "c4",
+                    "text": "See you later",
+                    "phonetic": "/siː juː ˈleɪtər/",
+                    "audioUrl": "/audio/english/see-you-later.mp3",
+                    "imageUrl": "/images/english/goodbye.png"
+                }
+            ]
+        },
+        {
+            "id": "q2",
+            "type": "match-up",
+            "version": "with-audio",
+            "title": "Match Words to Sounds",
+            "description": "Listen to each word and match it to the correct spelling",
+            "points": 6,
+            "instructions": "Click the speaker icon to hear the word, then match it",
+            "pairs": [
+                {
+                    "id": "p1",
+                    "left": {
+                        "type": "text",
+                        "content": "🔊 Listen"
+                    },
+                    "right": "Beautiful",
+                    "audioUrl": "/audio/english/beautiful.mp3"
+                },
+                {
+                    "id": "p2",
+                    "left": {
+                        "type": "text",
+                        "content": "🔊 Listen"
+                    },
+                    "right": "Necessary",
+                    "audioUrl": "/audio/english/necessary.mp3"
+                },
+                {
+                    "id": "p3",
+                    "left": {
+                        "type": "text",
+                        "content": "🔊 Listen"
+                    },
+                    "right": "Restaurant",
+                    "audioUrl": "/audio/english/restaurant.mp3"
+                },
+                {
+                    "id": "p4",
+                    "left": {
+                        "type": "text",
+                        "content": "🔊 Listen"
+                    },
+                    "right": "Wednesday",
+                    "audioUrl": "/audio/english/wednesday.mp3"
+                }
+            ],
+            "shuffleRight": true
+        },
+        {
+            "id": "q3",
+            "type": "anagram",
+            "version": "default",
+            "title": "Unscramble the Word",
+            "description": "Rearrange the letters to form the correct word",
+            "points": 3,
+            "scrambledWord": "TNEDUCAIO",
+            "correctWord": "EDUCATION",
+            "hint": "A process of learning",
+            "imageUrl": "/images/english/education.png"
+        }
+    ]
+}
