@@ -247,6 +247,106 @@ card2
               </div>
             </div>
 
+            <!-- Absent Students Card -->
+            <div v-if="students.length > 0" class="mb-6">
+              <q-card class="shadow-lg rounded-2xl overflow-hidden border-2" :class="absentStudents.length > 0 ? 'border-orange-300' : 'border-green-300'">
+                <q-card-section class="p-4" :class="absentStudents.length > 0 ? 'bg-gradient-to-r from-orange-50 to-red-50' : 'bg-gradient-to-r from-green-50 to-emerald-50'">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                      <div class="p-3 rounded-full" :class="absentStudents.length > 0 ? 'bg-orange-100' : 'bg-green-100'">
+                        <q-icon :name="absentStudents.length > 0 ? 'person_off' : 'check_circle'" size="md" :color="absentStudents.length > 0 ? 'orange' : 'positive'" />
+                      </div>
+                      <div>
+                        <div class="text-sm font-medium" :class="absentStudents.length > 0 ? 'text-orange-700' : 'text-green-700'">
+                          Absent Students
+                        </div>
+                        <div class="text-2xl font-bold" :class="absentStudents.length > 0 ? 'text-orange-900' : 'text-green-900'">
+                          {{ absentStudents.length }} / {{ students.length }}
+                        </div>
+                        <div class="text-xs mt-1" :class="absentStudents.length > 0 ? 'text-orange-600' : 'text-green-600'">
+                          {{ absentStudents.length === 0 ? '🎉 Perfect attendance!' : `${absentStudents.length} student${absentStudents.length > 1 ? 's' : ''} absent` }}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="flex gap-2">
+                      <q-btn
+                        v-if="absentStudents.length > 0"
+                        color="primary"
+                        icon="content_copy"
+                        label="Copy List"
+                        @click="copyAbsentStudents"
+                        class="shadow-md"
+                        :disable="absentStudents.length === 0"
+                      >
+                        <q-tooltip>Copy absent students list to clipboard</q-tooltip>
+                      </q-btn>
+                      <q-btn
+                        v-if="absentStudents.length > 0"
+                        color="secondary"
+                        icon="visibility"
+                        label="View List"
+                        @click="showAbsentDialog = true"
+                        class="shadow-md"
+                        :disable="absentStudents.length === 0"
+                      >
+                        <q-tooltip>View absent students in dialog</q-tooltip>
+                      </q-btn>
+                    </div>
+                  </div>
+                </q-card-section>
+              </q-card>
+            </div>
+
+            <!-- Present Students Card -->
+            <div v-if="students.length > 0 && presentStudents.length > 0" class="mb-6">
+              <q-card class="shadow-lg rounded-2xl overflow-hidden border-2 border-blue-300">
+                <q-card-section class="p-4 bg-gradient-to-r from-blue-50 to-indigo-50">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                      <div class="p-3 rounded-full bg-blue-100">
+                        <q-icon name="groups" size="md" color="primary" />
+                      </div>
+                      <div>
+                        <div class="text-sm font-medium text-blue-700">
+                          Present Students
+                        </div>
+                        <div class="text-2xl font-bold text-blue-900">
+                          {{ presentStudents.length }} / {{ students.length }}
+                        </div>
+                        <div class="text-xs mt-1 text-blue-600">
+                          {{ presentStudents.length }} student{{ presentStudents.length > 1 ? 's' : '' }} present
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="flex gap-2 flex-wrap justify-end">
+                      <q-btn
+                        color="primary"
+                        icon="content_copy"
+                        label="Copy Names"
+                        @click="copyPresentStudents"
+                        class="shadow-md"
+                        size="sm"
+                      >
+                        <q-tooltip>Copy present students names to clipboard</q-tooltip>
+                      </q-btn>
+                      <q-btn
+                        color="secondary"
+                        icon="emoji_events"
+                        label="Copy with Points"
+                        @click="copyPresentStudentsWithPoints"
+                        class="shadow-md"
+                        size="sm"
+                      >
+                        <q-tooltip>Copy present students with their points to clipboard</q-tooltip>
+                      </q-btn>
+                    </div>
+                  </div>
+                </q-card-section>
+              </q-card>
+            </div>
+
             <div class="flex flex-wrap justify-center gap-6 p-4">
               <StudentCard
                 v-for="student in students"
@@ -920,6 +1020,63 @@ card2
       </q-card>
     </q-dialog>
 
+    <!-- Absent Students Dialog -->
+    <q-dialog v-model="showAbsentDialog">
+      <q-card class="min-w-[400px] max-w-[600px]">
+        <q-card-section class="bg-gradient-to-r from-orange-500 to-red-500 text-white">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <q-icon name="person_off" size="md" />
+              <div>
+                <div class="text-h6 font-bold">Absent Students</div>
+                <div class="text-sm opacity-90">{{ absentStudents.length }} student{{ absentStudents.length > 1 ? 's' : '' }} absent</div>
+              </div>
+            </div>
+            <q-btn flat round dense icon="close" v-close-popup />
+          </div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-md">
+          <div v-if="absentStudents.length === 0" class="text-center py-8">
+            <q-icon name="check_circle" size="4rem" color="positive" class="mb-3" />
+            <p class="text-lg font-semibold text-green-700">🎉 Perfect Attendance!</p>
+            <p class="text-sm text-gray-600 mt-2">All students are present</p>
+          </div>
+
+          <div v-else class="space-y-2">
+            <div
+              v-for="(student, index) in absentStudents"
+              :key="student.id"
+              class="flex items-center gap-3 p-3 bg-orange-50 rounded-lg border border-orange-200 hover:bg-orange-100 transition-colors"
+            >
+              <div class="flex-shrink-0 w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center font-bold">
+                {{ index + 1 }}
+              </div>
+              <div class="flex-1">
+                <div class="font-bold text-gray-800">{{ [student.firstName, student.secondName, student.lastName].filter(Boolean).join(' ') }}</div>
+                <div class="text-xs text-gray-500">ID: {{ student.id }}</div>
+              </div>
+              <q-icon name="person_off" color="orange" size="sm" />
+            </div>
+          </div>
+        </q-card-section>
+
+        <q-separator v-if="absentStudents.length > 0" />
+
+        <q-card-actions align="right" class="p-4 bg-gray-50">
+          <q-btn flat label="Close" color="grey-7" v-close-popup />
+          <q-btn
+            v-if="absentStudents.length > 0"
+            color="primary"
+            icon="content_copy"
+            label="Copy List"
+            @click="copyAbsentStudents"
+            class="shadow-md"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
     <!-- Behavior Form Dialog -->
     <q-dialog v-model="showBehaviorForm" persistent>
       <q-card class="min-w-[400px]">
@@ -1184,6 +1341,62 @@ const organizedStudents = computed(() => {
   
   return groups
 })
+
+// Absent students computed property
+const absentStudents = computed(() => {
+  return students.value.filter(s => !studentAttendance.value[s.id])
+})
+
+// Absent students list as text
+const absentStudentsText = computed(() => {
+  if (absentStudents.value.length === 0) {
+    return 'No absent students'
+  }
+  const studentList = absentStudents.value
+    .map((s, index) => {
+      const fullName = [s.firstName, s.secondName, s.lastName].filter(Boolean).join(' ')
+      return `${index + 1}. ${fullName}`
+    })
+    .join('\n')
+  return `Absent Students (${absentStudents.value.length}):\n\n${studentList}`
+})
+
+// Present students computed property
+const presentStudents = computed(() => {
+  return students.value.filter(s => studentAttendance.value[s.id])
+})
+
+// Present students list as text (names only)
+const presentStudentsText = computed(() => {
+  if (presentStudents.value.length === 0) {
+    return 'No present students'
+  }
+  const studentList = presentStudents.value
+    .map((s, index) => {
+      const fullName = [s.firstName, s.secondName, s.lastName].filter(Boolean).join(' ')
+      return `${index + 1}. ${fullName}`
+    })
+    .join('\n')
+  return `Present Students (${presentStudents.value.length}):\n\n${studentList}`
+})
+
+// Present students with points as text
+const presentStudentsWithPointsText = computed(() => {
+  if (presentStudents.value.length === 0) {
+    return 'No present students'
+  }
+  const studentList = presentStudents.value
+    .map((s, index) => {
+      const fullName = [s.firstName, s.secondName, s.lastName].filter(Boolean).join(' ')
+      const points = (studentBehaviors.value[s.id]?.points_plus || 0) - (studentBehaviors.value[s.id]?.points_minus || 0)
+      return `${index + 1}. ${fullName} - ${points} points`
+    })
+    .join('\n')
+  return `Present Students with Points (${presentStudents.value.length}):\n\n${studentList}`
+})
+
+// Dialog state for absent students
+const showAbsentDialog = ref(false)
 
 // Top 5 students by total points
 // ============ METHODS ============
@@ -1505,6 +1718,102 @@ function toggleSelected(studentId) {
 
 function clearSelection() {
   selectedIds.value = []
+}
+
+// Copy absent students list to clipboard
+function copyAbsentStudents() {
+  if (absentStudents.value.length === 0) {
+    $q.notify({
+      message: 'No absent students to copy',
+      color: 'info',
+      position: 'top',
+      timeout: 1500
+    })
+    return
+  }
+  
+  navigator.clipboard.writeText(absentStudentsText.value)
+    .then(() => {
+      $q.notify({
+        message: `Copied ${absentStudents.value.length} absent student(s) to clipboard`,
+        color: 'positive',
+        icon: 'content_copy',
+        position: 'top',
+        timeout: 2000
+      })
+    })
+    .catch(err => {
+      console.error('Failed to copy:', err)
+      $q.notify({
+        message: 'Failed to copy to clipboard',
+        color: 'negative',
+        position: 'top'
+      })
+    })
+}
+
+// Copy present students list to clipboard (names only)
+function copyPresentStudents() {
+  if (presentStudents.value.length === 0) {
+    $q.notify({
+      message: 'No present students to copy',
+      color: 'info',
+      position: 'top',
+      timeout: 1500
+    })
+    return
+  }
+  
+  navigator.clipboard.writeText(presentStudentsText.value)
+    .then(() => {
+      $q.notify({
+        message: `Copied ${presentStudents.value.length} present student(s) to clipboard`,
+        color: 'positive',
+        icon: 'content_copy',
+        position: 'top',
+        timeout: 2000
+      })
+    })
+    .catch(err => {
+      console.error('Failed to copy:', err)
+      $q.notify({
+        message: 'Failed to copy to clipboard',
+        color: 'negative',
+        position: 'top'
+      })
+    })
+}
+
+// Copy present students with points to clipboard
+function copyPresentStudentsWithPoints() {
+  if (presentStudents.value.length === 0) {
+    $q.notify({
+      message: 'No present students to copy',
+      color: 'info',
+      position: 'top',
+      timeout: 1500
+    })
+    return
+  }
+  
+  navigator.clipboard.writeText(presentStudentsWithPointsText.value)
+    .then(() => {
+      $q.notify({
+        message: `Copied ${presentStudents.value.length} present student(s) with points to clipboard`,
+        color: 'positive',
+        icon: 'content_copy',
+        position: 'top',
+        timeout: 2000
+      })
+    })
+    .catch(err => {
+      console.error('Failed to copy:', err)
+      $q.notify({
+        message: 'Failed to copy to clipboard',
+        color: 'negative',
+        position: 'top'
+      })
+    })
 }
 
 async function handleClassroomChange(classroomId) {
