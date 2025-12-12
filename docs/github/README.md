@@ -2,47 +2,39 @@
 
 This directory contains comprehensive guides for managing your GitHub repository in different scenarios.
 
-## 📚 Available Guides
+## 🔄 The Daily Cycle (Start Here)
+**1. [Start of Day](./00-start-of-work-day.md)** - **READ THIS FIRST**. How to update your project *before* you code.
+**2. [End of Day](./01-daily-commit-push.md)** - How to save your work and update GitHub when you are done.
+
+## 📚 Scenario Guides
 
 ### Basic Workflows
-1. **[Daily Commit & Push](./01-daily-commit-push.md)** - When you're done with your work and need to update the repository
-2. **[First Time Setup](./02-first-time-setup.md)** - Setting up Git for the first time
-3. **[Checking Status](./03-checking-status.md)** - How to check what changes you have
+- **[Checking Status](./03-checking-status.md)** - How to check what changes you have
+- **[First Time Setup](./02-first-time-setup.md)** - Setting up Git for the first time
 
-### Common Scenarios
-4. **[Merge Conflicts](./04-merge-conflicts.md)** - What to do when you encounter merge conflicts
-5. **[Undo Changes](./05-undo-changes.md)** - How to undo commits or changes
-6. **[Pull Latest Changes](./06-pull-latest-changes.md)** - Getting the latest code from GitHub
-7. **[Branch Management](./07-branch-management.md)** - Working with branches
+### Common Problems
+- **[Merge Conflicts](./04-merge-conflicts.md)** - What to do when you encounter merge conflicts
+- **[Undo Changes](./05-undo-changes.md)** - How to undo commits or changes
+- **[Pull Latest Changes](./06-pull-latest-changes.md)** - Getting the latest code (Deep Dive)
+- **[Branch Management](./07-branch-management.md)** - Working with branches
 
-### Advanced Scenarios
-8. **[Force Push](./08-force-push.md)** - When you need to force push (use carefully!)
-9. **[Stash Changes](./09-stash-changes.md)** - Temporarily save changes without committing
-10. **[Repository Issues](./10-repository-issues.md)** - Fixing common repository problems
-
-### Emergency Scenarios
-11. **[Lost Connection](./11-lost-connection.md)** - When git loses connection to remote
-12. **[Corrupted Repository](./12-corrupted-repository.md)** - Recovering from repository corruption
-13. **[Accidental Deletion](./13-accidental-deletion.md)** - Recovering deleted files
+### Advanced & Emergency
+- **[Force Push](./08-force-push.md)** - When you need to force push (use carefully!)
+- **[Stash Changes](./09-stash-changes.md)** - Temporarily save changes without committing
+- **[Repository Issues](./10-repository-issues.md)** - Fixing common repository problems
 
 ## 🚀 Quick Reference
 
-### Most Common Commands
+### Start of Day ☕
 ```bash
-# Check status
-git status
-
-# Add all changes
-git add .
-
-# Commit with message
-git commit -m "Your message here"
-
-# Push to GitHub
-git push origin main
-
-# Pull from GitHub
 git pull origin main
+```
+
+### End of Day 🌙
+```bash
+git add .
+git commit -m "Description of work"
+git push origin main
 ```
 
 ## 📖 How to Use These Guides
