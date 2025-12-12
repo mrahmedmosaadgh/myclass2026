@@ -1,0 +1,69 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "quiz_sessions": {
+      ".read": true,
+      ".write": true
+    },
+    "firebase_test": {
+      ".read": true,
+      ".write": true
+    },
+    "private_chat_notifications": {
+      "$userId": {
+        ".read": true,
+        ".write": true
+      }
+    },
+    "rooms": {
+      "$roomId": {
+        ".read": true,
+        ".write": true,
+        "messages": {
+          ".read": true,
+          ".write": true,
+          "$messageId": {
+            ".validate": "newData.hasChildren(['text', 'userId', 'userName', 'timestamp'])",
+            "text": {
+              ".validate": "newData.isString() && newData.val().length <= 1000"
+            },
+            "userId": {
+              ".validate": "newData.isString()"
+            },
+            "userName": {
+              ".validate": "newData.isString()"
+            },
+            "timestamp": {
+              ".validate": "newData.val() <= now"
+            }
+          }
+        },
+        "users": {
+          ".read": true,
+          ".write": true,
+          "$userId": {
+            ".validate": "newData.hasChildren(['name', 'lastSeen'])",
+            "name": {
+              ".validate": "newData.isString()"
+            },
+            "lastSeen": {
+              ".validate": "newData.val() <= now"
+            }
+          }
+        }
+      }
+    },
+    "chat_notifications": {
+      "$userId": {
+        ".read": "auth != null && auth.uid == $userId",
+        ".write": true
+      }
+    },
+    ".info": {
+      "connected": {
+        ".read": true
+      }
+    }
+  }
+}

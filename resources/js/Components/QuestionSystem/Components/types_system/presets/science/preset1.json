@@ -1,0 +1,132 @@
+{
+    "id": "science-preset-1",
+    "name": "Human Body Systems",
+    "subject": "science",
+    "metadata": {
+        "author": "Science Department",
+        "createdAt": "2025-11-23",
+        "difficulty": "medium",
+        "tags": [
+            "biology",
+            "anatomy",
+            "human-body"
+        ]
+    },
+    "questions": [
+        {
+            "id": "q1",
+            "type": "labelled-diagram",
+            "version": "interactive",
+            "title": "Label the Human Heart",
+            "description": "Identify the major parts of the human heart",
+            "points": 10,
+            "timeLimit": 300,
+            "imageUrl": "/images/science/human-heart-diagram.png",
+            "instructions": "Click on each glowing point and type the correct anatomical term",
+            "labels": [
+                {
+                    "id": "l1",
+                    "x": 30,
+                    "y": 25,
+                    "label": "1",
+                    "correctAnswer": "Aorta"
+                },
+                {
+                    "id": "l2",
+                    "x": 45,
+                    "y": 35,
+                    "label": "2",
+                    "correctAnswer": "Pulmonary Artery"
+                },
+                {
+                    "id": "l3",
+                    "x": 55,
+                    "y": 45,
+                    "label": "3",
+                    "correctAnswer": "Left Atrium"
+                },
+                {
+                    "id": "l4",
+                    "x": 55,
+                    "y": 65,
+                    "label": "4",
+                    "correctAnswer": "Left Ventricle"
+                },
+                {
+                    "id": "l5",
+                    "x": 45,
+                    "y": 65,
+                    "label": "5",
+                    "correctAnswer": "Right Ventricle"
+                }
+            ]
+        },
+        {
+            "id": "q2",
+            "type": "image-quiz",
+            "version": "default",
+            "title": "Identify the Cell Organelle",
+            "description": "Which organelle is responsible for energy production?",
+            "points": 5,
+            "question": "Select the organelle known as the 'powerhouse of the cell'",
+            "options": [
+                {
+                    "id": "opt1",
+                    "imageUrl": "/images/science/mitochondria.png",
+                    "label": "Mitochondria",
+                    "isCorrect": true
+                },
+                {
+                    "id": "opt2",
+                    "imageUrl": "/images/science/nucleus.png",
+                    "label": "Nucleus",
+                    "isCorrect": false
+                },
+                {
+                    "id": "opt3",
+                    "imageUrl": "/images/science/ribosome.png",
+                    "label": "Ribosome",
+                    "isCorrect": false
+                },
+                {
+                    "id": "opt4",
+                    "imageUrl": "/images/science/golgi.png",
+                    "label": "Golgi Apparatus",
+                    "isCorrect": false
+                }
+            ]
+        },
+        {
+            "id": "q3",
+            "type": "match-up",
+            "version": "default",
+            "title": "Match Body Systems to Functions",
+            "description": "Connect each body system with its primary function",
+            "points": 8,
+            "instructions": "Draw lines to match each system with its function",
+            "pairs": [
+                {
+                    "id": "p1",
+                    "left": "Circulatory System",
+                    "right": "Transports blood and nutrients"
+                },
+                {
+                    "id": "p2",
+                    "left": "Respiratory System",
+                    "right": "Exchanges oxygen and carbon dioxide"
+                },
+                {
+                    "id": "p3",
+                    "left": "Digestive System",
+                    "right": "Breaks down food for energy"
+                },
+                {
+                    "id": "p4",
+                    "left": "Nervous System",
+                    "right": "Controls body functions and responses"
+                }
+            ],
+            "shuffleRight": true
+        }
+    ]
+}

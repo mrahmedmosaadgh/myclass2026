@@ -1,0 +1,1320 @@
+SSH Access
+SSH details
+IP	154.49.245.191
+Port	65002
+Username	u811114808
+Password
+hggiA1234@
+php artisan make:model secretary_data -m
+php artisan make:controller secretary/secretary_data_co --resource
+
+php artisan make:model secretary_tracker -m
+php artisan make:controller secretary/secretary_tracker_co --resource
+
+php artisan make:request Updatesecretary_dataRequest
+__________________________________________
+php artisan serve --host=192.168.1.100 --port=8080
+php artisan serve --host=192.168.110.109 --port=8080
+php artisan serve --host=192.168.162.64 --port=8080
+php artisan websockets:serve
+
+93.112.198.46
+php artisan serve --host=93.112.198.46 --port=8080
+.env
+APP_URL=http://192.168.1.100:8080/
+baseURL= http://192.168.1.100:8080
+PUSHER_HOST=192.168.1.100
+VUE_APP_WEPSOCKETS_SERVER=192.168.1.100
+
+
+D:\lms_2023-2024\old\lms\config\broadcasting.php
+        'host' => '192.168.110.170',
+        'host' => '192.168.1.100',
+
+D:\lms_2023-2024\old\lms\resources\js\app.js
+wsHost:'192.168.1.100',
+
+D:\lms_2023-2024\old\lms\resources\js\pages\attendance_teachers\admin.vue
+                        'http://192.168.1.100:8080/attendance_teachers/user/' +
+
+
+composer clear-cache
+composer dump-autoload
+======================================================
+php artisan config:clear
+
+
+php artisan serve --host=192.168.110.170 --port=8080
+php artisan websockets:serve
+
+_____________________________________________________________
+php artisan migrate:refresh --path=/database/migrations/2024_11_29_145522_create_schedule_timings_table.php
+php artisan migrate:refresh --path=/database/migrations/2025_05_14_141636_fix_push_subscriptions_polymorphic_columns.php
+D:\my_projects\2025\laravel12\myclass7\database\migrations\2025_05_14_141636_fix_push_subscriptions_polymorphic_columns.php
+2025_05_14_141045_fix_push_subscriptions_table
+            php artisan migrate    2024_06_14_110933_create_c_time_tables_table.php
+
+2024_11_29_145522_create_schedule_timings_table
+
+
+
+php artisan migrate:refresh --path=/database/migrations/2024_06_17_103929_create_c_curriculums_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_06_17_103930_create_c_curriculums_details_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_06_17_103937_create_c_question_banks_table.php
+
+php artisan migrate:refresh --path=/database/migrations/2024_07_25_153227_create_c_test_frees_table.php
+
+php artisan migrate:refresh --path=/database/migrations/2024_07_25_153228_create_c_test_frees_answers_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_11_11_173217_create_secretary_datas_table.php
+
+
+
+
+
+
+
+user::create or update if exist  laravel example code
+$user = User::firstOrCreate([
+    'email' => $email, // Specify unique identifier field(s)
+], [
+    'name' => $name,
+    // Other attributes to update/create
+]);
+
+// User object will be the newly created or updated user
+-------------------------------------------------------------
+
+$user = User::where('email', $email)->first();
+
+if ($user) {
+    $user->update([
+        'name' => $name,
+        // Other attributes to update
+    ]);
+} else {
+    $user = User::create([
+        'email' => $email,
+        'name' => $name,
+        // Other attributes to create
+    ]);
+}
+
+// User object will be the updated or created user
+
+
+
+_____________________________________________________________
+
+
+
+
+
+
+
+I'm using Laravel 7.x and this problem arose.. the following fixed it:
+
+go to kernel.php and add these 2 classes to protected $middleware
+
+\Illuminate\Session\Middleware\StartSession::class,
+\Illuminate\View\Middleware\ShareErrorsFromSession::class,
+-------------------------------------------
+install pinia
+----------------------------------------------------------
+npm install pinia
+----------------------------------------------------------
+resources\js\app.js
+
+import { createPinia } from 'pinia'
+.use(createPinia())
+----------------------------------------------------------
+folder create ->
+stores/store.js
+
+
+----------------------------------------------------------
+git checkout -b 0.4
+git add -A
+
+git commit -m "add pinia 17-10"
+git push -u aa1  0.4
+
+----------------------------------------------------------
+
+        <li class="item has-submenu">
+            <a tabindex="0">Services</a>
+            <ul class="submenu">
+                <li class="subitem"><a href="#">Design</a></li>
+                <li class="subitem"><a href="#">Development</a></li>
+                <li class="subitem"><a href="#">SEO</a></li>
+                <li class="subitem"><a href="#">Copywriting</a></li>
+            </ul>
+        </li>
+
+-------------fix fixme fffffffffff---------------------------------------------
+php artisan clear-compiled
+composer dump-autoload
+php artisan optimize
+php artisan optimize:clear
+php artisan optimize:clear
+php artisan route:cache
+
+
+php artisan cache:clear
+
+php artisan route:cache
+
+
+npm run build
+php artisan serve --port=8001
+
+//       classesformdb()
+//   subformdb()
+//  allteachersformdb()
+
+---------uninstall-------------------------------------------------
+npm uninstall monaco-editor-vue3
+---------------Using Font Awesome in Vue 3-------------------------------------------
+These steps got it working for me:
+
+Install latest-3 (3.0.1) of vue-fontawesome, which is compatible with Vue 3, and the icon dependencies:
+
+npm i --save @fortawesome/vue-fontawesome@latest-3
+npm i --save @fortawesome/fontawesome-svg-core
+npm i --save @fortawesome/free-solid-svg-icons
+npm i --save @fortawesome/free-regular-svg-icons
+In main.js, select the icons from @fortawesome/free-solid-svg-icons to load:
+
+import { library } from "@fortawesome/fontawesome-svg-core";
+import { faPhone } from "@fortawesome/free-solid-svg-icons";
+
+library.add(faPhone);
+Globally register the font-awesome-icon component:
+
+import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+
+createApp(App)
+  .component("font-awesome-icon", FontAwesomeIcon)
+  .mount("#app");
+In src/App.vue, use the component like this (note the icon name is phone, not faPhone):
+
+<!-- explicit style -->
+<font-awesome-icon :icon="['fas', 'phone']" />
+
+<!-- implicit style (fas is assumed) -->
+<font-awesome-icon icon="phone" />
+demo
+https://stackblitz.com/edit/vue3-font-awesome?file=src%2Fmain.js
+
+--------------------------------------------
+router.getRoutes()
+------------------------------------------------------
+https://fontawesome.com/docs/web/use-with/vue/
+https://fontawesome.com/docs/web/use-with/vue/add-icons
+
+import { fas  } from '@fortawesome/free-solid-svg-icons'
+https://blog.logrocket.com/font-awesome-icons-vue-js-complete-guide/
+
+-------------------------------------------
+<button @click="AppStore.Toast.fire({
+  icon: 'success',
+  title: 'data loading Done'
+})">aaaa</button>
+
+
+------------------------------------------
+<font-awesome-icon icon="fa-solid fa-power-off"
+class="svred  fixed right-0 overflow-visible select-none"
+:class="(AppStore.user.usertype!='')?'bg-green-500 rounded-full':'bg-red-500 rounded-full opacity-40'"
+@click="logout"
+v-if="AppStore.loggedIn"
+/>
+------------------------------------
+
+
+
+
+        <font-awesome-icon icon="fa-solid fa-play"
+class="svgreen fixed right-2 overflow-visible select-none"
+
+/>
+<br>
+<font-awesome-icon icon="fa-solid fa-arrow-right" />
+<br><font-awesome-icon icon="fa-solid fa-forward-step" />
+<br><font-awesome-icon icon="fa-solid fa-backward-step" />
+<br><font-awesome-icon icon="fa-solid fa-rotate-left" />
+
+        <font-awesome-icon icon="fa-solid fa-eye"
+class="svgreen fixed right-2 overflow-visible select-none"
+
+/>
+
+        <font-awesome-icon icon="fa-solid fa-floppy-disk" class="svgreen fixed right-0 overflow-visible select-none" />
+
+
+    <font-awesome-icon :icon="(editmood)?'fa-solid fa-eye':'fa-solid fa-pen'"
+            class="svgreen   overflow-visible select-none"
+            :class="(myusertype !='')?'bg-green-500':'bg-red-500 opacity-40'" @click="editmood=!editmood"
+            v-if="AppStore.loggedIn" />
+
+
+-----------------------------
+https://dev.to/sureshramani/how-to-install-tailwind-css-3-in-laravel-9-with-vite-3-4hl1
+
+How to Install Tailwind CSS 3 in Laravel 9 With Vite 3
+muaz89@forqan
+2981
+
+
+
+
+
+
+http://127.0.5.1:8080
+
+
+------------------------------------------------------------------------
+    <p class="bg-gradient-to-r from-indigo-600 to-light-blue-500">aaaaaaaaaaaa</p>
+-------------------------------------------madal------------
+ <a class="btn" href="#open-modal">👋 Basic CSS-Only Modal</a>
+  <div class="interior">
+
+  </div>
+<div class="container">
+
+</div>
+<div id="open-modal" class="modal-window">
+  <div>
+    <a href="#" title="Close" class="modal-close">
+    xxxxx
+      <font-awesome-icon icon="fa-solid fa-xmark" />
+
+    </a>
+    <h1>Voilà!</h1>
+    <div>
+<input type="text">
+</div>
+    <br>
+    <div><small>Check out 👇</small></div>
+
+
+      Your new favorite eyedropper tool!
+  </div>
+</div>
+<!-- </div> -->
+
+
+<!-- -------------------------------------------madal------------ -->
+.modal-window {
+  position: fixed;
+  background-color: rgba(255, 255, 255, 0.25);
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 999;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s;
+}
+.modal-window:target {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+}
+.modal-window > div {
+  width: 400px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 2em;
+  background: white;
+}
+.modal-window header {
+  font-weight: bold;
+}
+.modal-window h1 {
+  font-size: 150%;
+  margin: 0 0 15px;
+}
+
+.modal-close {
+  color: #aaa;
+  line-height: 50px;
+  font-size: 80%;
+  position: absolute;
+  right: 0;
+  text-align: center;
+  top: 0;
+  width: 70px;
+  text-decoration: none;
+}
+.modal-close:hover {
+  color: rgb(255, 35, 35);
+}
+
+/* Demo Styles */
+/* html,
+body {
+  height: 100%;
+}
+
+html {
+  font-size: 18px;
+  line-height: 1.4;
+} */
+
+body {
+  font-family: apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  font-weight: 600;
+  background-image: linear-gradient(to right, #7f53ac 0, #657ced 100%);
+  color: black;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* .container {
+  display: grid;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+} */
+
+.modal-window > div {
+  border-radius: 1rem;
+}
+
+.modal-window div:not(:last-of-type) {
+  margin-bottom: 15px;
+}
+
+.logo {
+  max-width: 150px;
+  display: block;
+}
+
+small {
+  color: lightgray;
+}
+
+.btn {
+  background-color: white;
+  padding: 1em 1.5em;
+  border-radius: 0.5rem;
+  text-decoration: none;
+}
+.btn i {
+  padding-right: 0.3em;
+}
+
+-----------------------------------------
+import { watchEffect, watch, ref, defineComponent } from "vue";
+    watch(showNotesSavedNotification, (value) => {
+      if (value) {
+        setTimeout(() => {
+          showNotesSavedNotification.value = false;
+        }, 5000);
+      }
+    })
+    ----------------------------
+    Ahmed1A545@forqan
+1A929
+========================== Code Mora Soft ===================================
+composer create-project --prefer-dist laravel/laravel Hospital
+تحميل نسخة لارفيل عن طريق الكمبوزر
+---------------------------------------------------
+php artisan  serve
+تشغيل سيرفر لارفيل
+---------------------------------------------------
+php artisan make:controller ContactController
+php artisan make:controller AddstudentController
+php artisan make:controller ControlMarksTotalController
+php artisan make:controller roleController
+php artisan make:controller school_admin/add_classes
+
+php artisan make:controller school_emp_absence/absence_emp_record_co
+php artisan make:controller school_emp_absence/absence_emp_status_co
+php artisan make:controller school_emp_absence/absence_emp_record_print_co
+php artisan make:controller cs/c_semester_report_co
+php artisan make:controller cs/c_semester_report_co
+
+absence_emp_record
+school_admin/add_classes
+
+
+php artisan make:controller higriController
+php artisan make:controller userprofileController
+
+php artisan make:controller hr_user_dataController
+
+
+php artisan make:controller hr_student_data_xlsController
+
+
+
+roleController
+
+انشاء كنترول
+---------------------------------------------------
+php artisan make:controller RoleController --resource
+
+composer create-project --prefer-dist laravel/laravel 7 project
+
+------------------------------------------------
+Requset Validation
+
+php artisan make:request InvoicesValidation
+------------------------------------------------
+
+php artisan make:notification add_invoice
+php artisan make:notification InvoicePaid
+
+composer require consoletvs/charts:5.*
+
+
+انشاء كنترول ريسورس
+Route::resource('photos', 'PhotoController');
+---------------------------------------------------
+php artisan make:model doctors -mcr
+php artisan make:model Grade -mc
+php artisan make:model SetMenu -mc
+php artisan make:model Userdata -mc
+php artisan make:model Controlmarkstotal -mc
+php artisan make:model setclassteacher -mc
+php artisan make:model Setgrade -mc
+
+php artisan make:model Wallet -mc
+php artisan make:model custummenu -mc
+
+php artisan make:model hrempdata -mc
+php artisan make:model hrschool -mc
+php artisan make:model qr_time_table -mc
+
+php artisan make:model hrschool -mc
+php artisan make:model hrschooluser -mc
+php artisan make:model hrschoolclass -mc
+php artisan make:model hrschoolsubject -mc
+php artisan make:model hrschoolclasssubjectteacher -mc
+php artisan make:model hrschoolsemester -mc
+php artisan make:model hrschoolcalender -mc      // semester_id
+php artisan make:model hrschoolabsentteacher -mc // semester_id calender_id
+php artisan make:model hrschoolabsentstudent -mc // semester_id calender_id
+php artisan make:model hrschoolweekly -mc //        semester_id calender_id  class_id subject_id
+php artisan make:model hrschooltimetable -mc        semester_id calender_id  class_id subject_id teacher_id
+php artisan make:model hrschoolmarksetup -mc        semester_id
+php artisan make:model hrschoolmark -mc             semester_id    class_id subject_id teacher_id
+php artisan make:model hrschoolstudent -mc             semester_id    class_id subject_id teacher_id
+php artisan make:model hrschoolgradesubjectmark -mc
+
+php artisan make:model hrabsence -mc
+
+php artisan make:model hrstudentdata -mc
+php artisan make:model hrschoolstage -mc
+php artisan make:model hrschoolgrade -mc
+php artisan make:model hrschoolsemester -mc
+php artisan make:model hrschoolcalender -mc
+php artisan make:model hrschoolexam -mc
+php artisan make:model hrschoolexammark -mc
+php artisan make:model hrschoolexammarkfollow -mc
+php artisan make:model hrschoolexammarktotal -mc
+
+//php artisan make:model hrschoolexammarktotalubject -mc
+
+php artisan make:model hryear -mcr
+php artisan make:model hryearmonth -mcr
+php artisan make:model hryearmonthabsence -mcr
+php artisan make:model hrschoolmarkcategory -mcr
+
+php artisan make:model admin/adminusermsg -mcr
+
+php artisan make:model attendance_teacher -mcr
+
+php artisan make:model attendance_teacher_school_server_api -mc
+
+php artisan make:model attendance_teachers_qr_code_link -mc
+attendance_teachers_qrcode_link
+
+php artisan make:model c_subject -mc
+php artisan make:model c_subject_title -mc
+
+
+php artisan make:model cs/c_subject_title_sum -m
+php artisan make:model cs/news_qr -m
+
+php artisan make:model cs/c_school -m
+php artisan make:model cs/c_teacher -m
+
+php artisan make:model site_admin/site_progress -m
+php artisan make:controller site_admin/site_progress_co
+
+
+
+php artisan make:controller cs/c_semester_top_co
+
+php artisan make:controller cs/c_subject_title_sum
+
+php artisan make:model c_semester -mc
+php artisan make:model c_exam -mc
+php artisan make:model cs/c_exam_setting -mc
+php artisan make:model cs/c_mark_grade_letter -m
+php artisan make:controller cs/c_mark_grade_letter_co
+php artisan make:model cs/c_calendar
+php artisan make:controller cs/c_calendar_co
+
+
+
+php artisan make:model c_exam_grade -mc
+php artisan make:model c_exam_mark -mc
+php artisan make:model c_exam_total -mc
+
+php artisan make:controller cs/admin_semester_co
+php artisan make:controller cs/student_data_co
+
+
+php artisan make:model cs_2/c_curriculum -m
+php artisan make:model cs_2/c_question_bank -m
+php artisan make:model cs_2/c_test_free -m
+
+
+php artisan make:model cs_2/c_quiz_setting -m
+
+php artisan make:model cs_2/c_quiz_question -m
+php artisan make:model cs_2/c_quiz_answer -m
+
+php artisan make:model cs_2/c_lesson_plan_form -m
+
+
+php artisan make:model cs_2/c_lesson_plan -m
+
+
+php artisan make:model cs_2/c_lesson_plan_evaluation -m
+php artisan make:model cs_2/c_lesson_plan_evaluation_student -m
+php artisan make:model cs_2/c_subject_participation -m
+php artisan make:model cs_2/c_subject_participation_student -m
+
+
+
+php artisan make:model c_subject_class_tea -mc
+php artisan make:model c_class -mc
+php artisan make:model cs/c_class -mc
+c_subject_category
+php artisan make:model cs/c_subject_category -mc
+
+php artisan migrate:refresh --path=/database/migrations/2024_02_05_164843_create_c_subjects_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_02_05_164951_create_c_semesters_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_02_05_165008_create_c_exams_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_02_05_165120_create_c_exam_marks_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_02_05_165129_create_c_exam_totals_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_02_06_175720_create_c_exam_grades_table.php
+D:\laragon\www\old\lms\database\migrations/2024_02_06_175720_create_c_exam_grades_table.php
+D:\laragon\www\old\lms\database\migrations/2024_02_07_061822_create_c_subject_categories_table.php
+database/migrations/2024_02_05_164917_create_c_subject_titles_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_02_05_164917_create_c_subject_titles_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_02_07_061822_create_c_subject_categories_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_02_05_164843_create_c_subjects_table.php
+
+php artisan migrate:refresh --path=/database/migrations/2024_03_26_055931_create_site_progresses_table.php
+
+database/migrations/2024_02_05_164917_create_c_subject_titles_table.php
+
+database/migrations/2024_02_05_164843_create_c_subjects_table.php
+D:\laragon\www\old\lms\database\migrations\2024_02_05_164917_create_c_subject_titles_table.php
+database/migrations/2024_02_07_061822_create_c_subject_categories_table.php
+
+php artisan migrate:refresh --path=/database/migrations/2023_03_05_081010_create_hryears_table.php
+php artisan migrate:refresh --path=/database/migrations/2023_03_05_082331_create_hryearmonths_table.php
+php artisan migrate:refresh --path=/database/migrations/2023_03_05_084256_create_hryearmonthabsences_table.php
+php artisan migrate:refresh --path=/database/migrations/2023_03_05_084256_create_hryearmonthabsences_table.php
+php artisan migrate:refresh --path=/database/migrations/2023_04_05_161739_create_hrschoolgradesubjectmarkssetups_table.php
+php artisan migrate:refresh --path=/database/migrations/2023_04_08_232925_add_google_id_column.php
+
+
+php artisan migrate:refresh --path=/database/migrations/2024_02_10_113632_create_c_subject_title_sums_table.php
+
+database/migrations/2024_02_10_113632_create_c_subject_title_sums_table.php
+
+php artisan migrate:refresh --path=/database/migrations/2023_11_11_094937_create_adminusermsgs_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_01_15_050541_create_attendance_teachers_qr_code_links_table.php
+
+php artisan migrate:refresh --path=/database/migrations/2023_04_05_161739_create_hrschoolgradesubjectmarkssetups_table.php
+
+
+php artisan migrate:refresh --path=/database/migrations/2023_11_20_100522_create_table_settings_table.php
+php artisan migrate:refresh --path=/database/migrations/2023_12_23_124048_create_attendance_teachers_qrcodes_table.php
+
+php artisan migrate:refresh --path=/database/migrations/2023_12_23_045239_create_attendance_teachers_timers_table.php
+php artisan migrate:refresh --path=/database/migrations/2023_12_23_130347_create_attendance_teachers_settings_table.php
+
+php artisan migrate:refresh --path=/database/migrations/2023_01_29_083046_create_hrschoolcalenders_table.php
+php artisan migrate:refresh --path=/database/migrations/2023_12_11_170001_create_attendance_teachers_table.php
+
+php artisan migrate:refresh --path=/database/migrations/2023_01_29_083046_create_hrschoolcalenders_table.php
+php artisan migrate:refresh --path=/database/migrations/2023_12_23_070928_create_attendance_teachers_permissions_table.php
+php artisan migrate:refresh --path=/database/migrations/2023_12_23_124048_create_attendance_teachers_qrcodes_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_01_07_123153_add_calendar_id_to_attendance_teachers_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_01_19_185823_create_qr_time_tables_table.php
+
+
+
+
+php artisan migrate:refresh --path=/database/migrations/2024_06_21_113626_create_c_lesson_plan_forms_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_06_17_103940_create_c_lesson_plans_table.php
+
+
+
+
+
+php artisan migrate:refresh --path=/database/migrations/2024_02_06_053725_create_c_subject_class_teas_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_02_06_054336_create_c_classes_table.php
+
+php artisan migrate:refresh --path=/database/migrations/2024_07_01_171557_create_c_quiz_settings_table.php
+
+
+
+
+
+php artisan migrate:refresh --path=/database/migrations/2024_02_05_165120_create_c_exam_marks_table.php
+database/migrations/2024_02_05_165120_create_c_exam_marks_table.php
+
+
+php artisan migrate:refresh --path=/database/migrations/2024_02_08_074514_create_c_exam_settings_table.php
+
+D:\laragon\www\old\lms\database\migrations/2024_02_08_074514_create_c_exam_settings_table.php
+
+
+
+database\migrations\2023_12_23_124048_create_attendance_teachers_qrcodes_table.php
+hrschoolgradesubjectmarksD:\laragon\www\old\lms\database\migrations\2023_01_29_083046_create_hrschoolcalenders_table.php
+
+php artisan migrate:refresh --path=/database/migrations/2023_12_23_070928_create_attendance_teachers_permission_types_table.php
+php artisan migrate:refresh --path=/database/migrations/2023_12_23_070928_create_attendance_teachers_permissions_table.php
+
+
+
+
+
+php artisan make:model Controlmarkstotal -mc
+php artisan make:model hrschoolgradesubjectmarkssetup -mc
+php artisan make:model attendance_teachers_timer -mc
+php artisan make:model attendance_teachers_invest -mc
+php artisan make:model attendance_teachers_permission -mc
+php artisan make:model attendance_teachers_qrcode -mc
+php artisan make:model attendance_teachers_setting -mc
+php artisan make:model attendance_teachers_setting -mc
+
+php artisan make:model Controlmarkstotal -mc
+
+php artisan make:model attendance_teachers_permission_type
+attendance_teachers_permission_types
+
+
+php artisan make:model cs/c_mark -m
+php artisan make:model cs/c_mark_sum -m
+php artisan make:model cs/c_mark_total -m
+php artisan make:model cs/c_mark_setting -m
+php artisan make:model cs/c_student -m
+
+php artisan make:model cs/c_grade -m
+php artisan make:controller cs/c_grade_co
+php artisan make:controller cs/data_from_old_site_to_new
+
+
+php artisan make:controller cs/c_subject_co
+php artisan make:model cs/c_calendar -m
+
+
+php artisan make:model Walletin -c
+
+php artisan make:model permissions -c
+php artisan make:model cs/c_student
+php artisan mod
+
+php artisan make:controller MypermissionsController
+php artisan make:controller Wallet_out_userController
+
+php artisan make:controller wallet_out_reportController
+
+php artisan make:controller hr_user_data_xlsController
+php artisan make:controller school/teacher/teacher_home_co
+php artisan make:controller school/student/semester_marks
+
+php artisan make:controller cs/sa/c_role_co
+
+
+
+
+hr_user_data_xlsController
+hr_user_data_xls
+
+
+
+php artisan make:controller wallet_out_user_admin_acceptController
+php artisan make:controller notificationController
+wallet_out_user_admin_accept
+
+
+
+
+database/migrations/2024_02_05_164843_create_c_subjects_table.php
+database/migrations/2024_02_09_101927_create_c_grades_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_02_06_054336_create_c_classes_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_02_09_101927_create_c_grades_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_02_05_164843_create_c_subjects_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_02_20_203014_create_c_students_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_03_17_213418_create_news_qrs_table.php
+
+php artisan migrate:refresh --path=/database/migrations/2024_02_06_053725_create_c_subject_class_teas_table.php
+
+database/migrations/2024_02_06_054336_create_c_classes_table.php
+
+php artisan migrate:refresh --path=/database/migrations/2024_02_11_054729_create_c_mark_grade_letters_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_02_08_082935_create_c_mark_sums_table.php
+2024_02_08_082935_create_c_mark_sums_table
+
+database/migrations/2024_02_11_054729_create_c_mark_grade_letters_table.php
+
+php artisan migrate:refresh --path=/database/migrations/2022_11_25_062417_create_controlmarkstotals_table.php
+php artisan migrate:refresh --path=/database/migrations/2022_10_09_073629_create_categories_table.php
+
+php artisan migrate:refresh --path=/database/migrations/2022_12_21_082457_create_wallets_table.php
+php artisan migrate:refresh --path=/database/migrations/2023_01_28_114825_create_hrschools_table.php
+php artisan migrate:refresh --path=/database/migrations/2023_01_29_163713_create_hrstudentdatas_table.php
+
+php artisan migrate:refresh --path=/database/migrations/2023_01_29_082619_create_hrschoolclasses_table.php
+php artisan migrate:refresh --path=/database/migrations/2023_02_03_162003_create_hrabsences_table.php
+
+php artisan migrate:refresh --path=/database/migrations/2025_03_23_235403_create_schedule_dailies_table.php
+
+php artisan migrate:refresh --path=/database/migrations/2023_01_20_163051_create_hruserdatas_table.php
+
+php artisan migrate:refresh --path=/database/migrations/2023_02_08_072743_create_hrschoolgradesubjectmarks_table.php
+
+
+php artisan migrate:refresh --path=/database/migrations/2023_02_11_152405_create_hrschoolexammarktotals_table.php
+
+php artisan migrate:refresh --path=/database/migrations/2023_04_05_161749_create_hrschoolgradesubjectmarks_table.php
+php artisan migrate:refresh --path=/database/migrations/2023_04_05_161739_create_hrschoolgradesubjectmarkssetups_table.php
+
+
+
+D:\lms_2023-2024\old\lms\database\migrations\new\2023_11_11_094936_create_n_schools_table.php
+
+php artisan migrate:refresh --path=/database/migrations/new/2023_11_11_094936_create_n_schools_table.php
+
+php artisan migrate:refresh --path=/database/migrations/2024_02_08_082929_create_c_marks_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_02_08_082935_create_c_mark_sums_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_02_08_082941_create_c_mark_totals_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_02_08_082946_create_c_mark_settings_table.php
+
+
+
+
+php artisan migrate:refresh --path=/database/migrations/2024_03_15_170450_create_c_calendars_table.php
+
+
+database/migrations/2024_02_08_082946_create_c_mark_settings_table.php
+2024_02_08_082929_create_c_marks_tabledatabase/migrations/2024_02_08_082941_create_c_mark_totals_table.php
+database/migrations/2024_02_08_082935_create_c_mark_sums_table.php
+database/migrations/2024_02_08_082946_create_c_mark_settings_table.php
+database/migrations/2024_02_08_082929_create_c_marks_table.php
+
+
+            $table->string('detail',50);
+            $table->foreignId('school_id')->references('id')->on('hrschools')->onDelete('cascade');
+
+
+
+
+
+
+
+
+
+database/migrations/2024_02_08_082946_create_c_mark_settings_table.php
+
+database/migrations/2024_02_08_082929_create_c_marks_table.php
+
+npm i --save @fortawesome/fontawesome-svg-core
+npm i --save @fortawesome/free-solid-svg-icons
+npm i --save @fortawesome/free-regular-svg-icons
+npm i --save @fortawesome/free-brands-svg-icons
+
+npm uninstall @fortawesome/fontawesome-svg-core
+npm uninstall @fortawesome/free-solid-svg-icons
+npm uninstall @fortawesome/free-regular-svg-icons
+npm uninstall @fortawesome/free-brands-svg-icons
+
+
+
+
+
+---------------------********------------
+php artisan make:seeder createUserSeeder
+
+php artisan db:seed --class=createUserSeeder
+---------------------------------
+
+Carbon::now()->format('Y-m-d')
+ ->where(function($query) use ($datefrom,$dateto,$timfrom,$timto){
+//     $query->whereBetween('date',array($datefrom,$dateto));
+
+// })->get();
+---------------------------------
+
+
+انشاء كنترولار مجمع
+---------------------------------------------------
+
+Route::get('name','controller@fun');
+عمل روت علي صفحة
+---------------------------------------------------
+public function  home(){
+return view(page name,compact('var name'));
+}
+انشاء فنكشن
+----------------------------------------------------
+public function __invoke($id){
+return view(page name,compact('var name'));}
+ انشاء فنكشن وحيد
+----------------------------------------------------
+@extends('pages.master')
+استدعاء صفحة الماستر
+----------------------------------------------------
+@yield("name")
+تسمية الحقل المراد التعديل فية فى كل صفحة جديد
+----------------------------------------------------
+@section('content')@stop
+استدعاء اسمة الحقل المراد التعديل علية
+----------------------------------------------------
+{{csrf_field()}}
+كود حماية الفورم
+----------------------------------------------------
+php artisan make:migration create_Doctor_Appointment_table --create=Doctor_Appointment
+كود انشاء جدول فى قاعدة البيانات
+-----------------------------------------------------
+php artisan make:model posts_model
+كود انشاء المديول الخاص بالجدول
+------------------------------------------------------
+php artisan make:migration add_votes_to_categories_table --table=categories
+كود اضافة حقل بعد انشاء الجدول
+------------------------------------------------------
+كود مسح كل الجداول من قاعدة البيانات
+php artisan migrate:fresh
+------------------------------------------------------
+php artisan migrate
+
+php artisan migrate:refresh --path=/database/migrations/fileName.php
+php artisan migrate:refresh --path=/database/migrations/2022_10_09_073629_create_categories_table.php
+php artisan migrate:refresh --path=/database/migrations/2022_11_16_194043_create_set_menus_table.php
+php artisan migrate:refresh --path=/database/migrations/2022_12_17_033959_foreign_key_school_id_users_table.php
+
+
+php artisan migrate:refresh --path=/database/migrations/2023_01_29_095124_create_hrschoolmarks_table.php
+
+php artisan migrate:refresh --path=/database/migrations/2023_01_29_095118_create_hrschoolmarksetups_table.php
+php artisan migrate:refresh --path=/database/migrations/2023_01_28_114825_create_hrschools_table.php  --force
+
+php artisan migrate:refresh --path=/database/migrations/2023_02_10_112645_create_hrschoolstages_table.php  --force
+php artisan migrate:refresh --path=/database/migrations/2023_02_10_112816_create_hrschoolgrades_table.php  --force
+php artisan migrate:refresh --path=/database/migrations/2023_01_29_083018_create_hrschoolsemesters_table.php  --force
+php artisan migrate:refresh --path=/database/migrations/2023_01_29_083046_create_hrschoolcalenders_table.php  --force
+php artisan migrate:refresh --path=/database/migrations/2023_02_11_145507_create_hrschoolexams_table.php  --force
+php artisan migrate:refresh --path=/database/migrations/2023_02_11_152303_create_hrschoolexammarks_table.php  --force
+php artisan migrate:refresh --path=/database/migrations/2023_03_05_081010_create_hryears_table.php  --force
+
+
+
+
+
+
+
+
+
+
+
+2023_01_20_163051_create_hrempdatas_table
+2022_10_14_143053_create_posts_table
+
+php artisan make:model SetMenu -mc
+
+php artisan make:model hrlist -mc
+php artisan make:model hrempdata -mc
+php artisan make:model hruserdata -mc
+php artisan make:model hrstudentdata -mc
+php artisan make:model hrschoolmarks -mc.//////
+
+
+php artisan make:model c_attend_meeting -mc
+
+Schema::create('your_table_name', function (Blueprint $table) {
+  $table->id(); // Creates an auto-incrementing primary key called 'id'
+  $table->unsignedBigInteger('user_id'); // Creates a foreign key referencing the 'id' column on the 'users' table (assuming your user table is named 'users')
+  $table->boolean('active'); // Creates a boolean column named 'active'
+  $table->timestamp('at')->nullable(); // Creates a timestamp column named 'at' that can be null
+});
+
+
+
+
+hrstudentdata
+
+hrschoolmarks
+
+
+SELECT `id`, `controlmarkssetup_id`, `school_id`, `teacher_id`, `class_id`, `subject_id`, `student_id`, `grade`, `classname`, `stage`, `subject`, `sub1`, `sub2`, `sub3`, `sub4`, `sub5`, `sub6`, `sub7`, `sub8`, `sub9`, `sub10`, `sub11`, `sub12`, `sub13`, `sub14`, `sub15`, `sub16`, `sub_count`, `notes`, `updatedby`, `created_at`, `updated_at` FROM `forqan_controlmarks` WHERE 1
+
+
+
+
+
+
+
+
+
+
+
+
+
+php artisan make:model hrempdata_view -c
+
+empdata
+===========================================
+
+php artisan serve --host=192.168.1.100 --port=8080
+npm run dev
+php artisan websockets:serve
+npm run serve
+ php artisan serve --host=192.168.110.170 --port=8080
+===========================================
+
+HR_admin_list
+
+php artisan migrate:refresh --path=/database/migrations/2023_01_20_084034_create_hrlists_table.php
+php artisan migrate:refresh --path=/database/migrations/2024_05_08_050354_create_c_attend_meetings_table.php
+
+2024_05_08_050354_create_c_attend_meetings_table
+
+
+2024_05_08_050354_create_c_attend_meetings_table
+
+php artisan migrate:refresh --path=/database/migrations/2023_12_11_170001_create_attendance_teachers_table.php
+
+D:\lms_2023-2024\old\lms\database\migrations\2023_12_11_170001_create_attendance_teachers_table.php
+
+Route::get('admin', [AdminController::class, 'xx']);
+
+
+كود التاكيد علي انشاء الجدول
+------------------------------------------------------
+php artisan migrate:rollback
+كود حذف اخر جدول تم انشاءه
+------------------------------------------------------
+
+
+php artisan db:seed --class=PermissionTableSeeder
+php artisan db:seed --class=CreateAdminUserSeeder
+php artisan db:seed --class=CreateAdminUserSeeder
+php artisan db:seed --class=createmeSeeder
+
+
+morasoft_doctorydb
+
+public function(Request $request){
+
+}
+فنكشن كود الحفظ
+------------------------------------------------------
+$var  =new model;
+بداية كود الحفظ تعريف اسمة المديول
+------------------------------------------------------
+var->fieldname=$request->input name
+طريقة كتابة المتغيرات فى كود الحفظ
+------------------------------------------------------
+return redirect('show');
+العود مباشرة الي الصفحة المطلوبة
+------------------------------------------------------
+checkbox
+var->fieldname=implode("-",$request->input name);
+طريقة حفظ تشيك بوكس
+------------------------------------------------------
+file
+$var=$request->file('input')
+$var2=$var->getClientOriginalName();
+طريقة تعريف الصورة
+-------------------------------------------------------
+$varpic->move('folder','var2')
+طريقة نقل الصورة
+-------------------------------------------------------
+$varmodel->save();
+كود حفظ البيانات
+-------------------------------------------------------
+use Illuminate\Support\Facades\DB;
+فى حالة العرض كتابة الكود اعلي الكنترولر
+-------------------------------------------------------
+$varname=DB::table('table name')->get();
+جملة select
+-------------------------------------------------------
+return view('page',compact('varname'));
+العودة بشاشة العرض مع المتغير
+-------------------------------------------------------
+@foreach($var name as $var)
+{{$var->field name}}
+@endforeach
+جملة الفور اتش
+-------------------------------------------------------
+validation
+لينك التحقق فى لارفيل
+https://laravel.com/docs/5.8/validation#available-validation-rules
+-------------------------------------------------------
+<a href="{{$row->id}}/delete">delet</a> كود زر الحذف
+Route::get('{id}/delete','con1@delete'); روت الحذف
+function delete(model $adid){$adid->delete();}
+--------------------------------------------------------
+<a href="{{id}}/edit">edit</a> كود زر التعديل
+Route::get('{adid}/edit','con1@edut'); روت التعديل
+function edit(model $adid){return view('update',compact('adid'));}
+---------------------------------------------------------
+form  action =update  صفحة عرض البيانات للتعديل
+{{csrf_field()}}
+Route::post('{adid}/update','con1@update'); روت التعديل
+function update(model $adid,Request $request){
+
+$adid>update($request->all()); الطريقة الاولي تعديل الكل
+
+DB::table('table name')->where('id',$adid->id)
+->update(['field name'=>$request->input name]) الطريقة الثاني
+
+}
+---------------------------------------------------------
+protected $fillable = [
+        'username', 'email', 'password',
+    ];
+كود سماح التعديل داخل المديول
+
+protected $table="nametable";
+كود ربط الجدول بالموديل
+
+----------------------------------------------------------
+php artisan make:auth
+كود انشاء نظام الدخول
+----------------------------------------------------------
+$request->session()->put(['name'=>'html-php']);
+
+session()->put(['names'=>['ahmed','20','html']])  ;
+كود فتح السيشن
+----------------------------------------------------------
+session()->get('');
+عرض السيشن
+-----------------------------------------------------------
+ session()->forget('key');
+ session()->flush();
+غلق السيشن
+-----------------------------------------------------------
+artisan make:middleware name
+كود انشاء ميدلوير
+-----------------------------------------------------------
+
+-----------------------------------------------------------
+@auth
+@endauth
+كود التاكد من عملية تسجيل الدخول
+-----------------------------------------------------------
+
+-----------------------------------------------------------
+@guest
+@endguest
+كود الدخول زائر
+-----------------------------------------------------------
+use Illuminate\Support\Facades\Schema;
+Schema::defaultS
+----------------------------------------------
+npm install vue-media-upload
+https://github.com/simmodev/vue-media-upload
+
+
+
+[]==================================================
+'C:\Users\mrahm\Downloads\laravelvsc14.sql'
+Crypt::encryptString('password');
+
+ you can get the cleartext version by
+
+Crypt::decryptString('encryptedstring');
+
+
+function generateRandomString($characters) {
+    $length = 6;
+    $charactersLength = strlen($characters);
+    $randomString = '';
+    for ($i = 0; $i < $length; $i++) {
+        $randomString. = $characters[rand(0, $charactersLength - 1)];
+    }
+    return bcrypt($randomString); //This will return encrypted password
+}
+---------------------------------------------------------------------
+You can use faker to generate a random password
+
+Copy Code
+use Illuminate\Support\Facades\Crypt;
+
+public function generateEncryptedPasssword() {
+
+   $faker = Faker\Factory::create();
+   return Crypt::encryptString($faker->password);
+
+}
+
+
+------------------------------------
+You can then show the decrypted value using Crypt::decryptString('$2y$10...'); e.g. the value in your database.
+
+===================================================================================
+Simply put, all you have to do is create their account, generate a random string and encrypt that for the password:
+
+Copy Code
+$password = Hash::make(str_rand(25));
+
+ you can encrypt and decrypt using those words...
+
+Copy Code
+$password = encrypt($some_string);
+$some_same_string = decrypt($password);
+
+
+====================================================================================================
+To get back old classic context menu, run the following command in the CMD and press Enter:
+
+reg add 'HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32' /ve /d "" /f
+-----------------------------------------------------------
+https://schooleverything.com/login
+
+''11@@@''''
+
+https://schooleverything.com/login
+Forqan@Forqan.com
+password
+teacher acount
+muaz89@forqan
+2981
+=====================================================
+bounce
+flash
+pulse
+shake
+swing
+tada
+wobble
+bounceIn
+bounceInDown
+bounceInLeft
+bounceInRight
+bounceInUp
+bounceOut
+bounceOutDown
+bounceOutLeft
+bounceOutRight
+bounceOutUp
+fadeIn
+fadeInDown
+fadeInDownBig
+fadeInLeft
+fadeInLeftBig
+fadeInRight
+fadeInRightBig
+fadeInUp
+fadeInUpBig
+fadeOut
+fadeOutDown
+fadeOutDownBig
+fadeOutLeft
+fadeOutLeftBig
+fadeOutRight
+fadeOutRightBig
+fadeOutUp
+fadeOutUpBig
+flip
+flipInX
+flipInY
+flipOutX
+flipOutY
+lightSpeedIn
+lightSpeedOut
+rotateIn
+rotateInDownLeft
+rotateInDownRight
+rotateInUpLeft
+rotateInUpRight
+rotateOut
+rotateOutDownLeft
+rotateOutDownRight
+rotateOutUpLeft
+rotateOutUpRight
+slideInDown
+slideInLeft
+slideInRight
+slideOutLeft
+slideOutRight
+slideOutUp
+hinge
+rollIn
+rollOut
+
+===============================================================
+<template>
+    <div>
+
+    </div>
+</template>
+
+<script setup>
+    // import { ref, reactive } from 'vue';
+    import { ref} from 'vue';
+    // import {useAppStore} from '@/stores/appstore'
+    // const AppStore = useAppStore();
+            const featureRef = ref('');
+            // const featureState = reactive({ property: 'value' });
+
+
+</script>
+
+<style scoped>
+
+</style>
+------------------------------
+npm i vue-awesome-progress
+
+filter--------------------------------------------------------------------
+
+             function filterfun (){
+             myloading.value=true
+
+                if (myclassname.value=='') {
+                    fromdb2.value=fromdb.value
+                    return
+                }
+
+fromdb2.value=Object.values(fromdb.value).filter(function (el)
+{
+
+// return  el['subject'] == mysubject.value
+return el['classname'] == myclassname.value && el['subject'] == mysubject.value && el['myteacher']['nameen'] == myteacher.value
+// return el['classname'] == myclassname.value
+// return el[txt] == txtfilter.value
+
+}
+);
+// myteacher.value=fromdb2.value[0].myteacher.nameen
+
+myloading.value = false;
+
+
+        }
+filter--------------------------------------------------------------------
+
+php artisan schedule:list
+php artisan schedule:work
+php artisan schedule:run

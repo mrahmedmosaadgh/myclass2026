@@ -1,0 +1,20 @@
+rd -r -fo node_modules\.vite
+npm run dev
+php artisan serve
+------------------
+php artisan config:clear
+>> php artisan cache:clear
+>> php artisan route:clear
+>> php artisan view:clear
+>> php artisan optimize:clear
+
+
+php artisan config:clear
+php artisan cache:clear
+php artisan route:clear
+php artisan view:clear
+php artisan optimize:clear
+-----------------------------------------------------------
+SQL command to drop the column from the existing database table:
+ALTER TABLE classroom_subject_teachers DROP FOREIGN KEY classroom_subject_teachers_grade_id_foreign;
+ALTER TABLE classroom_subject_teachers DROP COLUMN grade_id;

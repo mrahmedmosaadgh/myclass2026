@@ -1,0 +1,106 @@
+{
+    "id": "lang-preset-3",
+    "name": "French Grammar Basics",
+    "subject": "language-learning",
+    "metadata": {
+        "author": "Language Department",
+        "createdAt": "2025-11-23",
+        "difficulty": "hard",
+        "tags": [
+            "french",
+            "grammar",
+            "verbs"
+        ]
+    },
+    "questions": [
+        {
+            "id": "q1",
+            "type": "anagram",
+            "version": "timed",
+            "title": "Unscramble French Words",
+            "description": "Rearrange letters to form French words",
+            "points": 4,
+            "timeLimit": 45,
+            "scrambledWord": "JNUOOBR",
+            "correctWord": "BONJOUR",
+            "hint": "A common French greeting",
+            "imageUrl": "/images/french/greeting.png"
+        },
+        {
+            "id": "q2",
+            "type": "match-up",
+            "version": "default",
+            "title": "Match Verb Conjugations",
+            "description": "Match French verbs with their English meanings",
+            "points": 6,
+            "instructions": "Connect each French verb to its English translation",
+            "pairs": [
+                {
+                    "id": "p1",
+                    "left": "Je suis",
+                    "right": "I am"
+                },
+                {
+                    "id": "p2",
+                    "left": "Tu as",
+                    "right": "You have"
+                },
+                {
+                    "id": "p3",
+                    "left": "Il fait",
+                    "right": "He does/makes"
+                },
+                {
+                    "id": "p4",
+                    "left": "Nous allons",
+                    "right": "We go"
+                },
+                {
+                    "id": "p5",
+                    "left": "Vous êtes",
+                    "right": "You are (formal)"
+                },
+                {
+                    "id": "p6",
+                    "left": "Ils ont",
+                    "right": "They have"
+                }
+            ],
+            "shuffleRight": true
+        },
+        {
+            "id": "q3",
+            "type": "missing-word",
+            "version": "with-hints",
+            "title": "Complete French Sentences",
+            "description": "Fill in the correct French words",
+            "points": 6,
+            "sentence": "Je {{b1}} étudiant et j'{{b2}} à Paris. J'{{b3}} apprendre le français.",
+            "blanks": [
+                {
+                    "id": "b1",
+                    "correctAnswer": "suis",
+                    "hint": "Verb 'être' (to be) - 1st person"
+                },
+                {
+                    "id": "b2",
+                    "correctAnswer": "habite",
+                    "hint": "Verb 'habiter' (to live)"
+                },
+                {
+                    "id": "b3",
+                    "correctAnswer": "aime",
+                    "hint": "Verb 'aimer' (to like/love)"
+                }
+            ],
+            "wordBank": [
+                "suis",
+                "habite",
+                "aime",
+                "ai",
+                "vais",
+                "fais"
+            ]
+        }
+    ]
+}

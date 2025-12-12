@@ -1,0 +1,126 @@
+{
+    "id": "math-preset-1",
+    "name": "Geometry Fundamentals",
+    "subject": "math",
+    "metadata": {
+        "author": "Math Department",
+        "createdAt": "2025-11-23",
+        "difficulty": "medium",
+        "tags": [
+            "geometry",
+            "shapes",
+            "angles"
+        ]
+    },
+    "questions": [
+        {
+            "id": "q1",
+            "type": "labelled-diagram",
+            "version": "default",
+            "title": "Label Triangle Parts",
+            "description": "Identify the parts of a right triangle",
+            "points": 6,
+            "imageUrl": "/images/math/right-triangle.png",
+            "instructions": "Label each part of the triangle",
+            "labels": [
+                {
+                    "id": "l1",
+                    "x": 30,
+                    "y": 80,
+                    "label": "A",
+                    "correctAnswer": "Base"
+                },
+                {
+                    "id": "l2",
+                    "x": 80,
+                    "y": 50,
+                    "label": "B",
+                    "correctAnswer": "Height"
+                },
+                {
+                    "id": "l3",
+                    "x": 55,
+                    "y": 35,
+                    "label": "C",
+                    "correctAnswer": "Hypotenuse"
+                }
+            ]
+        },
+        {
+            "id": "q2",
+            "type": "quiz",
+            "version": "default",
+            "title": "Pythagorean Theorem",
+            "description": "Test your knowledge of the Pythagorean theorem",
+            "points": 5,
+            "question": "In a right triangle, if a = 3 and b = 4, what is c (the hypotenuse)?",
+            "latex": "a^2 + b^2 = c^2",
+            "options": [
+                {
+                    "id": "opt1",
+                    "text": "5",
+                    "isCorrect": true
+                },
+                {
+                    "id": "opt2",
+                    "text": "7",
+                    "isCorrect": false
+                },
+                {
+                    "id": "opt3",
+                    "text": "12",
+                    "isCorrect": false
+                },
+                {
+                    "id": "opt4",
+                    "text": "25",
+                    "isCorrect": false
+                }
+            ],
+            "explanation": "Using the Pythagorean theorem: 3² + 4² = 9 + 16 = 25, so c = √25 = 5"
+        },
+        {
+            "id": "q3",
+            "type": "match-up",
+            "version": "default",
+            "title": "Match Shapes to Properties",
+            "description": "Connect each shape with its defining property",
+            "points": 6,
+            "pairs": [
+                {
+                    "id": "p1",
+                    "left": {
+                        "type": "text",
+                        "content": "Square"
+                    },
+                    "right": "4 equal sides, 4 right angles"
+                },
+                {
+                    "id": "p2",
+                    "left": {
+                        "type": "text",
+                        "content": "Circle"
+                    },
+                    "right": "All points equidistant from center"
+                },
+                {
+                    "id": "p3",
+                    "left": {
+                        "type": "text",
+                        "content": "Triangle"
+                    },
+                    "right": "3 sides, angles sum to 180°"
+                },
+                {
+                    "id": "p4",
+                    "left": {
+                        "type": "text",
+                        "content": "Rectangle"
+                    },
+                    "right": "4 sides, opposite sides equal"
+                }
+            ],
+            "shuffleRight": true
+        }
+    ]
+}

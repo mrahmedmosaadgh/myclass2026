@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preview</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #canvas {
+            position: relative;
+            width: 100%;
+            max-width: 1200px;
+            min-height: 100px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center top;
+            transition: transform 0.3s ease;
+            transform-origin: top center;
+        }
+
+        .element-container {
+            position: absolute;
+            transform-origin: top left;
+            transform: scale(calc(1 / var(--zoom-level, 1)));
+        }
+
+        .content-display {
+            min-width: 20px;
+            min-height: 20px;
+        }
+
+        .controls-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 10px 20px;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .zoom-select {
+            padding: 6px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            background-color: white;
+            cursor: pointer;
+            font-size: 14px;
+            min-width: 100px;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls-panel">
+        <select class="zoom-select" onchange="handleZoomChange(this.value)">
+            <option value="fit">Fit Width</option>
+            <option value="0.5">50%</option>
+            <option value="1" selected>100%</option>
+            <option value="1.2">120%</option>
+            <option value="1.5">150%</option>
+            <option value="2">200%</option>
+            <option value="2.5">250%</option>
+        </select>
+    </div>
+
+    <div class="canvas-container">
+        <div id="canvas"></div>
+    </div>
+
+    <script>
+        // Global variables
+        let elements = [];
+        let zoomLevel = 1;
+        const CANVAS_DEFAULT_WIDTH = 1200;
+
+        // Utility function to get actual element height in pixels
+        function getElementActualHeight(element) {
+            const elementDOM = document.querySelector(`[data-id="${element.id}"]`);
+            return elementDOM ? elementDOM.getBoundingClientRect().height : 0;
+        }
+
+        // Calculate the maximum height needed for the canvas based on elements
+        function calculateCanvasHeight() {
+            if (elements.length === 0) return 100; // Default minimum height
+
+            let maxBottom = 0;
+            elements.forEach(element => {
+                const elementHeight = getElementActualHeight(element);
+                // Convert percentage to pixels for accurate calculation
+                const elementY = (parseFloat(element.y) / 100) * document.getElementById('canvas').offsetHeight;
+                const bottomPosition = elementY + elementHeight;
+                maxBottom = Math.max(maxBottom, bottomPosition);
+            });
+
+            // Add padding and convert back to pixels
+            return maxBottom + 50; // 50px padding at bottom
+        }
+
+        // Update canvas height based on content
+        function updateCanvasHeight() {
+            const canvas = document.getElementById('canvas');
+            const newHeight = calculateCanvasHeight();
+            canvas.style.height = `${newHeight}px`;
+        }
+
+        // Create DOM element for content
+        function createElementDOM(element) {
+            const container = document.createElement('div');
+            container.className = 'element-container';
+            container.style.left = `${element.x}%`;
+            container.style.top = `${element.y}%`;
+            container.dataset.id = element.id;
+
+            const content = document.createElement('div');
+            content.className = 'content-display';
+            content.innerHTML = element.content || '';
+
+            container.appendChild(content);
+            return container;
+        }
+
+        // Render all elements
+        function renderElements() {
+            const canvas = document.getElementById('canvas');
+            canvas.innerHTML = '';
+
+            elements.forEach(element => {
+                if (element.visible !== false) {
+                    const elementDOM = createElementDOM(element);
+                    canvas.appendChild(elementDOM);
+                    resizeObserver.observe(elementDOM);
+                }
+            });
+
+            updateCanvasHeight();
+        }
+
+        // Calculate fit width zoom level
+        function calculateFitWidth() {
+            const container = document.querySelector('.canvas-container');
+            const containerWidth = container.clientWidth - 40; // Subtract padding
+            return containerWidth / CANVAS_DEFAULT_WIDTH;
+        }
+
+        // Find nearest preset zoom level
+        function findNearestPreset(value) {
+            const presets = [0.5, 1, 1.2, 1.5, 2, 2.5];
+            return presets.reduce((prev, curr) =>
+                Math.abs(curr - value) < Math.abs(prev - value) ? curr : prev
+            );
+        }
+
+        // Set zoom level
+        function setZoom(value) {
+            zoomLevel = value;
+            document.documentElement.style.setProperty('--zoom-level', value);
+
+            const canvas = document.getElementById('canvas');
+            canvas.style.transform = `scale(${value})`;
+
+            requestAnimationFrame(updateCanvasHeight);
+
+            // Update zoom select to match current zoom
+            const zoomSelect = document.querySelector('.zoom-select');
+            if (Math.abs(value - calculateFitWidth()) < 0.01) {
+                zoomSelect.value = 'fit';
+            } else {
+                zoomSelect.value = findNearestPreset(value).toString();
+            }
+        }
+
+        // Handle zoom change from select
+        function handleZoomChange(value) {
+            setZoom(value === 'fit' ? calculateFitWidth() : parseFloat(value));
+        }
+
+        // Load elements from localStorage
+        function loadSavedElements() {
+            const saved = localStorage.getItem('elements');
+            if (saved) {
+                elements = JSON.parse(saved);
+                renderElements();
+            }
+        }
+
+        // Create ResizeObserver to handle element content changes
+        const resizeObserver = new ResizeObserver(() => {
+            requestAnimationFrame(updateCanvasHeight);
+        });
+
+        // Initialize
+        window.onload = () => {
+            loadSavedElements();
+            setZoom(1);
+
+            // Handle window resize
+            let resizeTimeout;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => {
+                    const zoomSelect = document.querySelector('.zoom-select');
+                    if (zoomSelect.value === 'fit') {
+                        setZoom(calculateFitWidth());
+                    }
+                    updateCanvasHeight();
+                }, 100);
+            });
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+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
+
+Create a Key
+Your new key:
+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
+
+Please copy it now and write it down somewhere safe. You will not be able to see it again.
+You can use it with OpenAI-compatible apps, or your own code
+
+https://openrouter.ai/settings/keys

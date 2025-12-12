@@ -1,0 +1,103 @@
+{
+    "id": "general-preset-3",
+    "name": "Mixed Topics Challenge",
+    "subject": "general",
+    "metadata": {
+        "author": "General Education",
+        "createdAt": "2025-11-23",
+        "difficulty": "hard",
+        "tags": [
+            "mixed",
+            "challenge",
+            "comprehensive"
+        ]
+    },
+    "questions": [
+        {
+            "id": "q1",
+            "type": "multiple-choice",
+            "version": "with-explanations",
+            "title": "Literature",
+            "description": "Identify the author",
+            "points": 4,
+            "question": "Who wrote 'Romeo and Juliet'?",
+            "options": [
+                {
+                    "id": "opt1",
+                    "text": "Charles Dickens",
+                    "isCorrect": false
+                },
+                {
+                    "id": "opt2",
+                    "text": "William Shakespeare",
+                    "isCorrect": true
+                },
+                {
+                    "id": "opt3",
+                    "text": "Jane Austen",
+                    "isCorrect": false
+                },
+                {
+                    "id": "opt4",
+                    "text": "Mark Twain",
+                    "isCorrect": false
+                }
+            ],
+            "explanation": "William Shakespeare wrote Romeo and Juliet around 1594-1596"
+        },
+        {
+            "id": "q2",
+            "type": "true-false",
+            "version": "default",
+            "title": "Technology Fact",
+            "description": "Verify the technology statement",
+            "points": 2,
+            "statement": "HTML stands for HyperText Markup Language",
+            "correctAnswer": true,
+            "explanation": "HTML is indeed an acronym for HyperText Markup Language, the standard markup language for web pages"
+        },
+        {
+            "id": "q3",
+            "type": "multiple-choice",
+            "version": "default",
+            "title": "Music Theory",
+            "description": "Test your music knowledge",
+            "points": 3,
+            "question": "How many keys are on a standard piano?",
+            "options": [
+                {
+                    "id": "opt1",
+                    "text": "76",
+                    "isCorrect": false
+                },
+                {
+                    "id": "opt2",
+                    "text": "88",
+                    "isCorrect": true
+                },
+                {
+                    "id": "opt3",
+                    "text": "92",
+                    "isCorrect": false
+                },
+                {
+                    "id": "opt4",
+                    "text": "100",
+                    "isCorrect": false
+                }
+            ],
+            "explanation": "A standard piano has 88 keys: 52 white keys and 36 black keys"
+        },
+        {
+            "id": "q4",
+            "type": "true-false",
+            "version": "instant",
+            "title": "Sports Trivia",
+            "description": "Quick sports fact check",
+            "points": 2,
+            "statement": "A marathon is 42.195 kilometers long",
+            "correctAnswer": true,
+            "explanation": "The official marathon distance is 42.195 km (26.2 miles)"
+        }
+    ]
+}

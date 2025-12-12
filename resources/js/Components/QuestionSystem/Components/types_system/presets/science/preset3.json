@@ -1,0 +1,172 @@
+{
+    "id": "science-preset-3",
+    "name": "Solar System",
+    "subject": "science",
+    "metadata": {
+        "author": "Science Department",
+        "createdAt": "2025-11-23",
+        "difficulty": "medium",
+        "tags": [
+            "astronomy",
+            "space",
+            "planets"
+        ]
+    },
+    "questions": [
+        {
+            "id": "q1",
+            "type": "labelled-diagram",
+            "version": "default",
+            "title": "Label the Solar System",
+            "description": "Identify the planets in our solar system",
+            "points": 8,
+            "imageUrl": "/images/science/solar-system.png",
+            "instructions": "Click each point and type the planet name",
+            "labels": [
+                {
+                    "id": "l1",
+                    "x": 15,
+                    "y": 50,
+                    "label": "1",
+                    "correctAnswer": "Mercury"
+                },
+                {
+                    "id": "l2",
+                    "x": 25,
+                    "y": 50,
+                    "label": "2",
+                    "correctAnswer": "Venus"
+                },
+                {
+                    "id": "l3",
+                    "x": 35,
+                    "y": 50,
+                    "label": "3",
+                    "correctAnswer": "Earth"
+                },
+                {
+                    "id": "l4",
+                    "x": 45,
+                    "y": 50,
+                    "label": "4",
+                    "correctAnswer": "Mars"
+                },
+                {
+                    "id": "l5",
+                    "x": 60,
+                    "y": 50,
+                    "label": "5",
+                    "correctAnswer": "Jupiter"
+                },
+                {
+                    "id": "l6",
+                    "x": 75,
+                    "y": 50,
+                    "label": "6",
+                    "correctAnswer": "Saturn"
+                },
+                {
+                    "id": "l7",
+                    "x": 85,
+                    "y": 50,
+                    "label": "7",
+                    "correctAnswer": "Uranus"
+                },
+                {
+                    "id": "l8",
+                    "x": 95,
+                    "y": 50,
+                    "label": "8",
+                    "correctAnswer": "Neptune"
+                }
+            ]
+        },
+        {
+            "id": "q2",
+            "type": "sequence",
+            "version": "default",
+            "title": "Order the Planets",
+            "description": "Arrange the planets from closest to farthest from the Sun",
+            "points": 8,
+            "instructions": "Drag the planets into the correct order",
+            "items": [
+                {
+                    "id": "p1",
+                    "content": "Mercury",
+                    "order": 1
+                },
+                {
+                    "id": "p2",
+                    "content": "Venus",
+                    "order": 2
+                },
+                {
+                    "id": "p3",
+                    "content": "Earth",
+                    "order": 3
+                },
+                {
+                    "id": "p4",
+                    "content": "Mars",
+                    "order": 4
+                },
+                {
+                    "id": "p5",
+                    "content": "Jupiter",
+                    "order": 5
+                },
+                {
+                    "id": "p6",
+                    "content": "Saturn",
+                    "order": 6
+                },
+                {
+                    "id": "p7",
+                    "content": "Uranus",
+                    "order": 7
+                },
+                {
+                    "id": "p8",
+                    "content": "Neptune",
+                    "order": 8
+                }
+            ]
+        },
+        {
+            "id": "q3",
+            "type": "image-quiz",
+            "version": "with-timer",
+            "title": "Identify the Planet",
+            "description": "Which planet is known as the Red Planet?",
+            "points": 3,
+            "timeLimit": 30,
+            "question": "Select the Red Planet",
+            "options": [
+                {
+                    "id": "opt1",
+                    "imageUrl": "/images/science/mars.png",
+                    "label": "Mars",
+                    "isCorrect": true
+                },
+                {
+                    "id": "opt2",
+                    "imageUrl": "/images/science/venus.png",
+                    "label": "Venus",
+                    "isCorrect": false
+                },
+                {
+                    "id": "opt3",
+                    "imageUrl": "/images/science/jupiter.png",
+                    "label": "Jupiter",
+                    "isCorrect": false
+                },
+                {
+                    "id": "opt4",
+                    "imageUrl": "/images/science/saturn.png",
+                    "label": "Saturn",
+                    "isCorrect": false
+                }
+            ]
+        }
+    ]
+}

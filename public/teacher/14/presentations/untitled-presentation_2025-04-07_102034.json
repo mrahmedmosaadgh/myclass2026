@@ -1,0 +1,79 @@
+{
+    "title": "Untitled Presentation",
+    "slides": [
+        {
+            "id": 1744021202836,
+            "content": {
+                "elements": [
+                    {
+                        "id": 1744021210417,
+                        "type": "text",
+                        "content": "New Element",
+                        "x": 20,
+                        "y": 20,
+                        "visible": true,
+                        "locked": false,
+                        "style": {
+                            "color": "#000000",
+                            "backgroundColor": "#ffffff",
+                            "fontSize": "16px"
+                        }
+                    },
+                    {
+                        "id": 1744021216428,
+                        "type": "text",
+                        "content": "New Element",
+                        "x": 43.089622641509436,
+                        "y": 6.419016110471806,
+                        "visible": true,
+                        "locked": false,
+                        "style": {
+                            "color": "#000000",
+                            "backgroundColor": "#ffffff",
+                            "fontSize": "16px"
+                        }
+                    },
+                    {
+                        "id": 1744021224680,
+                        "type": "text",
+                        "content": "New Element",
+                        "x": 56.69103773584906,
+                        "y": 13.603998849252013,
+                        "visible": true,
+                        "locked": false,
+                        "style": {
+                            "color": "#000000",
+                            "backgroundColor": "#ffffff",
+                            "fontSize": "16px"
+                        }
+                    }
+                ],
+                "backgroundImage": null
+            }
+        },
+        {
+            "id": 1744021206673,
+            "content": {
+                "elements": [
+                    {
+                        "id": 1744021234672,
+                        "type": "text",
+                        "content": "New Element",
+                        "x": 20,
+                        "y": 20,
+                        "visible": true,
+                        "locked": false,
+                        "style": {
+                            "color": "#000000",
+                            "backgroundColor": "#ffffff",
+                            "fontSize": "16px"
+                        }
+                    }
+                ],
+                "backgroundImage": null
+            }
+        }
+    ],
+    "created_at": "2025-04-07T10:20:34.672Z",
+    "updated_at": "2025-04-07T10:20:34.672Z"
+}

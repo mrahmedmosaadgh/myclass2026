@@ -1,0 +1,170 @@
+{
+    "id": "science-preset-2",
+    "name": "Plant Biology",
+    "subject": "science",
+    "metadata": {
+        "author": "Science Department",
+        "createdAt": "2025-11-23",
+        "difficulty": "easy",
+        "tags": [
+            "biology",
+            "plants",
+            "photosynthesis"
+        ]
+    },
+    "questions": [
+        {
+            "id": "q1",
+            "type": "labelled-diagram",
+            "version": "drag-drop",
+            "title": "Parts of a Flower",
+            "description": "Drag and drop the correct labels onto the flower diagram",
+            "points": 10,
+            "imageUrl": "/images/science/flower-diagram.png",
+            "instructions": "Drag labels from the word bank to the correct positions",
+            "labels": [
+                {
+                    "id": "l1",
+                    "x": 50,
+                    "y": 15,
+                    "label": "1",
+                    "correctAnswer": "Petal"
+                },
+                {
+                    "id": "l2",
+                    "x": 50,
+                    "y": 35,
+                    "label": "2",
+                    "correctAnswer": "Stamen"
+                },
+                {
+                    "id": "l3",
+                    "x": 50,
+                    "y": 50,
+                    "label": "3",
+                    "correctAnswer": "Pistil"
+                },
+                {
+                    "id": "l4",
+                    "x": 50,
+                    "y": 70,
+                    "label": "4",
+                    "correctAnswer": "Sepal"
+                },
+                {
+                    "id": "l5",
+                    "x": 50,
+                    "y": 85,
+                    "label": "5",
+                    "correctAnswer": "Stem"
+                }
+            ]
+        },
+        {
+            "id": "q2",
+            "type": "group-sort",
+            "version": "default",
+            "title": "Classify Plant Types",
+            "description": "Sort plants into their correct categories",
+            "points": 6,
+            "instructions": "Drag each plant to its category",
+            "categories": [
+                {
+                    "id": "cat1",
+                    "name": "Flowering Plants",
+                    "color": "#10b981"
+                },
+                {
+                    "id": "cat2",
+                    "name": "Non-Flowering Plants",
+                    "color": "#3b82f6"
+                }
+            ],
+            "items": [
+                {
+                    "id": "item1",
+                    "content": "Rose",
+                    "categoryId": "cat1"
+                },
+                {
+                    "id": "item2",
+                    "content": "Fern",
+                    "categoryId": "cat2"
+                },
+                {
+                    "id": "item3",
+                    "content": "Sunflower",
+                    "categoryId": "cat1"
+                },
+                {
+                    "id": "item4",
+                    "content": "Moss",
+                    "categoryId": "cat2"
+                },
+                {
+                    "id": "item5",
+                    "content": "Tulip",
+                    "categoryId": "cat1"
+                },
+                {
+                    "id": "item6",
+                    "content": "Pine Tree",
+                    "categoryId": "cat2"
+                }
+            ]
+        },
+        {
+            "id": "q3",
+            "type": "missing-word",
+            "version": "default",
+            "title": "Photosynthesis Process",
+            "description": "Fill in the blanks to complete the sentence about photosynthesis",
+            "points": 5,
+            "sentence": "Plants use {{b1}} from the sun, {{b2}} from the air, and {{b3}} from the soil to produce {{b4}} and oxygen.",
+            "blanks": [
+                {
+                    "id": "b1",
+                    "correctAnswer": "light",
+                    "alternatives": [
+                        "sunlight",
+                        "energy"
+                    ],
+                    "hint": "What does the sun provide?"
+                },
+                {
+                    "id": "b2",
+                    "correctAnswer": "carbon dioxide",
+                    "alternatives": [
+                        "CO2"
+                    ],
+                    "hint": "A gas in the atmosphere"
+                },
+                {
+                    "id": "b3",
+                    "correctAnswer": "water",
+                    "alternatives": [
+                        "H2O"
+                    ],
+                    "hint": "A liquid absorbed by roots"
+                },
+                {
+                    "id": "b4",
+                    "correctAnswer": "glucose",
+                    "alternatives": [
+                        "sugar",
+                        "food"
+                    ],
+                    "hint": "A type of sugar"
+                }
+            ],
+            "wordBank": [
+                "light",
+                "carbon dioxide",
+                "water",
+                "glucose",
+                "nitrogen",
+                "oxygen"
+            ]
+        }
+    ]
+}

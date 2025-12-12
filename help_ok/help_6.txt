@@ -1,0 +1,20 @@
+Save your Access Token
+
+Save your token value somewhere safe. You will not be able to see it again after you close this modal. If you lose it, you'll have to create a new one.
+
+hf_placeholder_token_removed
+Name
+
+myclass5
+
+Permissions
+
+FINEGRAINED
+
+hf_placeholder_token_removed
+
+
+https://huggingface.co/settings/tokens/new?ownUserPermissions=repo.content.read&ownUserPermissions=repo.write&ownUserPermissions=inference.serverless.write&ownUserPermissions=inference.endpoints.infer.write&ownUserPermissions=inference.endpoints.write&canReadGatedRepos=true&tokenType=fineGrained
+https://huggingface.co/settings/tokens
+
+php artisan route:list | grep timings    

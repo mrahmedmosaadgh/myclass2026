@@ -1,0 +1,7 @@
+php artisan tinker
+\Illuminate\Support\Facades\DB::statement('DROP TABLE IF EXISTS question_banks');
+exit
+php artisan migrate:reset --path=database/migrations/2024_11_30_130333_create_question_banks_table.php
+-----------------------------------------
+
+

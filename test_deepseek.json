@@ -1,0 +1,14 @@
+{
+    "model": "deepseek-chat",
+    "messages": [
+        {
+            "role": "system",
+            "content": "You are a helpful assistant."
+        },
+        {
+            "role": "user",
+            "content": "Explain what the DeepSeek API is in one sentence."
+        }
+    ],
+    "stream": false
+}

@@ -1,0 +1,68 @@
+// Migration for creating period_activities table
+Schema::create('period_activities', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('schedule_id')->constrained('schedules')->onDelete('cascade');
+    $table->foreignId('calendar_id')->constrained('calendars')->comment('Reference to date information including year, semester, week number');
+
+    // Teacher information
+    $table->foreignId('teacher_substitute_id')->nullable()->constrained('users')->comment('Teacher substitute for this specific activity');
+    $table->boolean('teacher_present')->default(true)->comment('Whether the assigned teacher was present');
+
+    // Period details
+    $table->date('activity_date')->comment('The specific date of this activity');
+    $table->string('period_status', 20)->default('completed')->comment('Status: completed, canceled, modified, etc.');
+
+    // Student tracking
+    $table->json('student_attendance')->nullable()->comment('JSON record of student attendance');
+    $table->json('student_behavior')->nullable()->comment('JSON record of student behavior notes, plus/minus marks');
+    $table->json('student_participation')->nullable()->comment('JSON record of student participation metrics');
+
+    // Academic tracking
+    $table->json('homework_records')->nullable()->comment('JSON record of homework completion and marks');
+    $table->text('lesson_notes')->nullable()->comment('Notes about what was covered in this period');
+    $table->text('improvement_notes')->nullable()->comment('Notes for improvement in future periods');
+
+    // Additional information
+    $table->boolean('was_duty_period')->default(false)->comment('Whether this was a duty period');
+    $table->text('duty_notes')->nullable()->comment('Notes related to duty if applicable');
+    $table->string('location_override', 120)->nullable()->comment('Override for the default location if needed');
+
+    // System fields
+    $table->foreignId('created_by')->constrained('users');
+    $table->foreignId('updated_by')->nullable()->constrained('users');
+    $table->timestamps();
+    $table->softDeletes();
+
+    // Indexes for better performance
+    $table->index(['schedule_id', 'activity_date']);
+    $table->index('calendar_id');
+});
+
+// Optional: Create an additional table for individual student records if you want more detailed/normalized tracking
+Schema::create('student_period_records', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('period_activity_id')->constrained('period_activities')->onDelete('cascade');
+    $table->foreignId('student_id')->constrained('users')->comment('Reference to the student');
+
+    // Attendance and participation
+    $table->string('attendance_status', 15)->default('present')->comment('present, absent, late, excused');
+    $table->integer('late_minutes')->nullable()->comment('Minutes late if applicable');
+    $table->boolean('homework_completed')->default(false);
+    $table->decimal('homework_score', 5, 2)->nullable();
+
+    // Behavior tracking
+    $table->integer('behavior_plus_marks')->default(0)->comment('Number of positive behavior marks');
+    $table->integer('behavior_minus_marks')->default(0)->comment('Number of negative behavior marks');
+    $table->text('behavior_notes')->nullable()->comment('Notes on student behavior');
+
+    // Participation
+    $table->integer('participation_score')->nullable()->comment('Score for participation (e.g., 1-10)');
+    $table->text('participation_notes')->nullable();
+
+    // System fields
+    $table->timestamps();
+
+    // Indexes
+    $table->unique(['period_activity_id', 'student_id']);
+    $table->index('student_id');
+});

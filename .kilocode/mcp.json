@@ -1,0 +1,55 @@
+{
+  "mcpServers": {
+    "mcp-time-server": {
+      "command": "node",
+      "args": ["server.js"],
+      "cwd": "./MCP Server",
+      "env": {
+        "NODE_ENV": "development",
+        "AUTO_START": "true"
+      },
+      "description": "MCP server providing time-related functionality including current server time and health checks. Automatically started when needed.",
+      "autoStart": true,
+      "autoConnect": true,
+      "tools": {
+        "get-time": {
+          "description": "Get current server time with formatted display and full timestamp",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "requestId": {
+                "type": "string",
+                "description": "Optional request identifier for tracking"
+              },
+              "format": {
+                "type": "string",
+                "enum": ["iso", "locale", "unix"],
+                "description": "Time format preference",
+                "default": "locale"
+              }
+            }
+          },
+          "autoInvoke": true,
+          "triggers": ["current time", "server time", "timestamp", "now", "date"]
+        },
+        "health-check": {
+          "description": "Check if the MCP server is running and responsive",
+          "inputSchema": {
+            "type": "object",
+            "properties": {}
+          },
+          "autoInvoke": true,
+          "triggers": ["server health", "mcp status", "check server"]
+        }
+      },
+      "fallback": {
+        "enabled": true,
+        "localTime": true
+      }
+    }
+  },
+  "autoDiscovery": {
+    "enabled": true,
+    "patterns": ["time", "timestamp", "date", "server time", "current time"]
+  }
+}
