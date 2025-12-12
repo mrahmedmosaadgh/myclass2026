@@ -609,11 +609,15 @@ const deleteTemplate = async () => {
   isDeleting.value = true;
 
   try {
-    // Remove from the array
+    const template = templates.value[templateToDelete.value];
+    
+    // Delete from database if it has an ID
+    if (template.id) {
+      await axios.delete(`/api/lesson-plan-templates/${template.id}`);
+    }
+    
+    // Remove from local array
     templates.value.splice(templateToDelete.value, 1);
-
-    // Save to server
-    await saveTemplates();
 
     $q.notify({
       color: 'positive',
@@ -633,21 +637,50 @@ const deleteTemplate = async () => {
   }
 };
 
+
 const saveTemplates = async () => {
   try {
-    // Use axios to send the request to the correct URL
-    const url = `/admin/subject/${props.subject.id}/lesson-plan-templates`;
-
-    const response = await axios.patch(url, {
-      lesson_plan_templates: JSON.stringify(templates.value)
-    });
-
-    return response.data;
+    // NEW: Use API endpoints for individual template operations
+    // Templates now have IDs if they exist in the database
+    const template = isEditing.value 
+      ? templates.value[editingIndex.value]
+      : templates.value[templates.value.length - 1]; // Last added template
+    
+    if (isEditing.value && template.id) {
+      // Update existing database template
+      const response = await axios.put(`/api/lesson-plan-templates/${template.id}`, {
+        name: template.name,
+        structure: template.structure,
+        subject_id: props.subject.id,
+        is_active: true
+      });
+      
+      // Update local array with response
+      templates.value[editingIndex.value] = response.data.data;
+    } else {
+      // Create new database template
+      const response = await axios.post('/api/lesson-plan-templates', {
+        name: template.name,
+        structure: template.structure,
+        subject_id: props.subject.id,
+        is_active: true
+      });
+      
+      // Replace local object with database record (has ID now)
+      if (isEditing.value) {
+        templates.value[editingIndex.value] = response.data.data;
+      } else {
+        templates.value[templates.value.length - 1] = response.data.data;
+      }
+    }
+    
+    return { success: true };
   } catch (error) {
-    console.error('Error saving templates:', error);
+    console.error('Error saving template:', error);
     throw error;
   }
 };
+
 </script>
 
 <style scoped>

@@ -20,7 +20,8 @@ class Subject extends Model
         'school_id',
         'color_bg',
         'color_text',
-        'lesson_plan_templates'
+        'lesson_plan_templates', // DEPRECATED: Use lessonPlanTemplates() relationship instead
+        'templates_migrated_at'
     ];
 
     protected $casts = [
@@ -39,8 +40,17 @@ class Subject extends Model
         return $this->hasMany(Lesson::class);
     }
 
-public function curricula()
-{
-    return $this->hasMany(Curriculum::class);
-}
+    public function curricula()
+    {
+        return $this->hasMany(Curriculum::class);
+    }
+
+    /**
+     * Get lesson plan templates for this subject (database-backed).
+     * This replaces the legacy JSON templates stored in lesson_plan_templates column.
+     */
+    public function lessonPlanTemplates()
+    {
+        return $this->hasMany(\App\Models\CourseManagement\LessonPlanTemplate::class, 'subject_id');
+    }
 }

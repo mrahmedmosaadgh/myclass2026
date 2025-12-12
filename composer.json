@@ -16,6 +16,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
         "minishlink/web-push": "^9.0",
+        "myclabs/deep-copy": "^1.13",
         "phpoffice/phpspreadsheet": "*",
         "spatie/laravel-permission": "^6.16",
         "spomky-labs/web-push": "^3.1",

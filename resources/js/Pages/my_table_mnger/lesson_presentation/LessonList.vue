@@ -26,14 +26,13 @@
           </p>
         </div>
         
-        <Link :href="route('lesson-presentation.edit')">
-          <q-btn
-            color="primary"
-            icon="add"
-            label="Create New Lesson"
-            no-caps
-          />
-        </Link>
+        <q-btn
+          color="primary"
+          icon="add"
+          label="Create New Lesson"
+          no-caps
+          @click="showAddDialog = true"
+        />
       </div>
 
       <!-- Loading State -->
@@ -253,15 +252,22 @@
         </div>
       </div>
     </div>
+
+    <!-- Add New Presentation Dialog -->
+    <AddNewPresentationDialog 
+      v-model="showAddDialog"
+      @submit="handleCreateLesson"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { Link } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { useQuasar } from 'quasar';
 import { useTeacherStore } from '@/Stores/teacherStore';
+import AddNewPresentationDialog from './components/AddNewPresentationDialog.vue';
 
 const $q = useQuasar();
 const teacherStore = useTeacherStore();
@@ -269,6 +275,7 @@ const lessons = ref([]);
 const loading = ref(false);
 const selectedGrade = ref(null);
 const viewMode = ref('grades'); // 'grades' or 'lessons'
+const showAddDialog = ref(false);
 
 const selectGrade = (grade) => {
   selectedGrade.value = grade;
@@ -371,6 +378,16 @@ const copyLink = (id) => {
       position: 'top'
     });
   });
+};
+
+const handleCreateLesson = (data) => {
+  // Navigate to edit page with query parameters for grade_id and subject_id
+  const queryParams = new URLSearchParams({
+    grade_id: data.grade_id,
+    subject_id: data.subject_id
+  }).toString();
+  
+  window.location.href = route('lesson-presentation.edit') + '?' + queryParams;
 };
 
 onMounted(async () => {

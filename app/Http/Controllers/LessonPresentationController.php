@@ -26,56 +26,56 @@ class LessonPresentationController extends Controller
 
 
     public function getTeacherGrades(Request $request)
-{
-    $user = $request->user();
+    {
+        $user = $request->user();
 
-    if (!$user->teacher) {
-        return response()->json(['error' => 'User is not a teacher'], 403);
+        if (!$user->teacher) {
+            return response()->json(['error' => 'User is not a teacher'], 403);
+        }
+
+        $assignments = \App\Models\ClassroomSubjectTeacher::where('teacher_id', $user->teacher->id)
+            ->with(['classroom.grade', 'subject'])
+            ->get();
+
+        $data = $assignments->groupBy('classroom.grade_id')->map(function ($group) {
+            $grade = $group->first()->classroom->grade;
+
+            return [
+                'grade' => [
+                    'id' => $grade?->id,
+                    'name' => $grade?->name ?? 'Unknown Grade',
+                ],
+                'classrooms' => $group->groupBy('classroom_id')->map(function ($classroomGroup) {
+                    $classroom = $classroomGroup->first()->classroom;
+
+                    return [
+                        'id' => $classroom->id,
+                        'name' => $classroom->name,
+                        'subjects' => $classroomGroup->map(fn($item) => [
+                            'id' => $item->subject->id,
+                            'name' => $item->subject->name,
+                        ])->unique('id')->values()->toArray(),
+                    ];
+                })->values(),
+            ];
+        })->values();
+
+        return response()->json([
+            'data' => $data,
+            'error' => null
+        ]);
     }
 
-    $assignments = \App\Models\ClassroomSubjectTeacher::where('teacher_id', $user->teacher->id)
-        ->with(['classroom.grade', 'subject'])
-        ->get();
-
-    $data = $assignments->groupBy('classroom.grade_id')->map(function ($group) {
-        $grade = $group->first()->classroom->grade;
-
-        return [
-            'grade' => [
-                'id' => $grade?->id,
-                'name' => $grade?->name ?? 'Unknown Grade',
-            ],
-            'classrooms' => $group->groupBy('classroom_id')->map(function ($classroomGroup) {
-                $classroom = $classroomGroup->first()->classroom;
-
-                return [
-                    'id' => $classroom->id,
-                    'name' => $classroom->name,
-                    'subjects' => $classroomGroup->map(fn($item) => [
-                        'id' => $item->subject->id,
-                        'name' => $item->subject->name,
-                    ])->unique('id')->values()->toArray(),
-                ];
-            })->values(),
-        ];
-    })->values();
-
-    return response()->json([
-        'data' => $data,
-        'error' => null
-    ]);
-}
 
 
- 
     public function show($id)
     {
         $presentation = LessonPresentation::with(['slides', 'lessonPlanTemplate'])->findOrFail($id);
 
         $templates = \App\Models\CourseManagement\LessonPlanTemplate::query()
-            ->where(function($q) use ($presentation) {
+            ->where(function ($q) use ($presentation) {
                 $q->whereNull('subject_id')
-                  ->orWhere('subject_id', $presentation->subject_id);
+                    ->orWhere('subject_id', $presentation->subject_id);
             })
             ->active()
             ->ordered()
@@ -89,7 +89,7 @@ class LessonPresentationController extends Controller
 
 
 
- 
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -113,7 +113,7 @@ class LessonPresentationController extends Controller
 
         // Auto-assign to all students in this grade
         $students = \App\Models\Student::where('grade_id', $validated['grade_id'])->get();
-        
+
         foreach ($students as $student) {
             \App\Models\LessonStudentProgress::create([
                 'lesson_presentation_id' => $presentation->id,
@@ -221,7 +221,7 @@ class LessonPresentationController extends Controller
             'section' => 'required|string|in:' . implode(',', array_column(LessonPresentation::SECTIONS, 'id')),
             'order_index' => 'nullable|integer',
         ]);
-        
+
         // Ensure slide_content is at least an empty array
         $validated['slide_content'] = $validated['slide_content'] ?? [];
 
@@ -249,7 +249,7 @@ class LessonPresentationController extends Controller
             'section' => 'sometimes|string|in:' . implode(',', array_column(LessonPresentation::SECTIONS, 'id')),
             'order_index' => 'nullable|integer',
         ]);
-        
+
         // Ensure slide_content is at least an empty array if provided
         if (isset($validated['slide_content'])) {
             $validated['slide_content'] = $validated['slide_content'] ?? [];
@@ -291,7 +291,7 @@ class LessonPresentationController extends Controller
                 $contentType = $response->header('Content-Type');
                 $content = $response->body();
                 $base64 = 'data:' . $contentType . ';base64,' . base64_encode($content);
-                
+
                 return response()->json(['base64' => $base64]);
             }
 
@@ -323,12 +323,14 @@ class LessonPresentationController extends Controller
      */
     public function teacherProgressDashboard($lessonId)
     {
-        // Get teacher from auth (for now using first teacher as fallback)
-        $teacher = \App\Models\Teacher::first(); // TODO: Replace with Auth::user()->teacher
-        
+        $teacher = auth()->user()->teacher;
+        if (!$teacher) {
+            abort(403, 'Teacher access required');
+        }
+
         return \Inertia\Inertia::render('my_table_mnger/lesson_presentation/TeacherProgressDashboard', [
-            'lessonId' => (int)$lessonId,
-            'teacherId' => $teacher ? $teacher->id : 1
+            'lessonId' => (int) $lessonId,
+            'teacherId' => $teacher->id
         ]);
     }
 
@@ -337,51 +339,53 @@ class LessonPresentationController extends Controller
      */
     public function studentLessonList()
     {
-    if (!$user->teacher) {
-        return response()->json(['error' => 'User is not a teacher'], 403);
+        $user = auth()->user();
+
+        if (!$user->teacher) {
+            return response()->json(['error' => 'User is not a teacher'], 403);
+        }
+
+        $assignments = \App\Models\ClassroomSubjectTeacher::where('teacher_id', $user->teacher->id)
+            ->with(['classroom.grade', 'subject'])
+            ->get();
+
+        $data = $assignments->groupBy('classroom.grade_id')->map(function ($group) {
+            $grade = $group->first()->classroom->grade;
+
+            return [
+                'grade' => [
+                    'id' => $grade?->id,
+                    'name' => $grade?->name ?? 'Unknown Grade',
+                ],
+                'classrooms' => $group->groupBy('classroom_id')->map(function ($classroomGroup) {
+                    $classroom = $classroomGroup->first()->classroom;
+
+                    return [
+                        'id' => $classroom->id,
+                        'name' => $classroom->name,
+                        'subjects' => $classroomGroup->map(fn($item) => [
+                            'id' => $item->subject->id,
+                            'name' => $item->subject->name,
+                        ])->unique('id')->values()->toArray(),
+                    ];
+                })->values(),
+            ];
+        })->values();
+
+        return response()->json([
+            'data' => $data,
+            'error' => null
+        ]);
     }
 
-    $assignments = \App\Models\ClassroomSubjectTeacher::where('teacher_id', $user->teacher->id)
-        ->with(['classroom.grade', 'subject'])
-        ->get();
-
-    $data = $assignments->groupBy('classroom.grade_id')->map(function ($group) {
-        $grade = $group->first()->classroom->grade;
-
-        return [
-            'grade' => [
-                'id' => $grade?->id,
-                'name' => $grade?->name ?? 'Unknown Grade',
-            ],
-            'classrooms' => $group->groupBy('classroom_id')->map(function ($classroomGroup) {
-                $classroom = $classroomGroup->first()->classroom;
-
-                return [
-                    'id' => $classroom->id,
-                    'name' => $classroom->name,
-                    'subjects' => $classroomGroup->map(fn($item) => [
-                        'id' => $item->subject->id,
-                        'name' => $item->subject->name,
-                    ])->unique('id')->values()->toArray(),
-                ];
-            })->values(),
-        ];
-    })->values();
-
-    return response()->json([
-        'data' => $data,
-        'error' => null
-    ]);
-}
 
 
 
 
- 
- 
- 
- 
- 
+
+
+
+
 
     /**
      * Show student lesson list
@@ -392,12 +396,12 @@ class LessonPresentationController extends Controller
         $student = \App\Models\Student::first(); // TODO: Replace with Auth::user()->student
         $grade = $student ? $student->grade : \App\Models\Grade::first();
         $subject = \App\Models\Subject::first();
-        
+
         return \Inertia\Inertia::render('my_table_mnger/lesson_presentation/StudentLessonList', [
             'studentId' => $student ? $student->id : 1,
             'gradeId' => $grade ? $grade->id : 1,
             'subjectId' => $subject ? $subject->id : 1,
-            'sections' => \App\Models\LessonPresentation::SECTIONS,
+            'sections' => \App\Models\free\LessonPresentation::SECTIONS,
         ]);
     }
 }

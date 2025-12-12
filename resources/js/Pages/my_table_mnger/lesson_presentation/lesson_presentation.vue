@@ -28,6 +28,11 @@
                 color="primary" 
                 :label="currentGradeName"
               />
+              <q-badge 
+                v-if="props.defaultContext.subject_id" 
+                color="secondary" 
+                :label="currentSubjectName"
+              />
               <input 
                 v-model="presentation.name" 
                 class="text-base font-semibold text-gray-800 border-none focus:ring-0 p-0 flex-1 bg-transparent placeholder-gray-400"
@@ -413,6 +418,22 @@ const currentGradeName = computed(() => {
   if (!presentation.value.grade_id) return 'No Grade';
   const grade = teacherStore.grades.find(g => g.id === presentation.value.grade_id);
   return grade ? grade.name : 'Unknown Grade';
+});
+
+const currentSubjectName = computed(() => {
+  if (!props.defaultContext.subject_id) return 'No Subject';
+  // Try to find subject from the teacher store grades
+  for (const grade of teacherStore.grades) {
+    if (grade.subjects) {
+      const subject = grade.subjects.find(s => s.id === props.defaultContext.subject_id);
+      if (subject) return subject.name;
+    }
+  }
+  return 'Unknown Subject';
+});
+
+const hasPresetGradeAndSubject = computed(() => {
+  return props.defaultContext.grade_id !== null && props.defaultContext.grade_id !== undefined;
 });
 
 const getSlideComponent = (type) => {
@@ -816,8 +837,10 @@ onMounted(async () => {
     if (slides.value.length === 0) {
       addSlide();
     }
-    // Pre-select first grade if creating new
-    if (teacherStore.grades.length > 0) {
+    // Set grade_id from props if provided (from the dialog), otherwise pre-select first grade
+    if (props.defaultContext.grade_id) {
+      presentation.value.grade_id = props.defaultContext.grade_id;
+    } else if (teacherStore.grades.length > 0) {
       presentation.value.grade_id = teacherStore.grades[0].id;
     }
   }

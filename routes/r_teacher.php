@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\PresentationController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\TeacherController;
 use Illuminate\Support\Facades\Route;
@@ -17,7 +16,7 @@ Route::middleware(['auth', 'role:teacher', 'role:admin'])->prefix('teacher')->na
     Route::get('/grades', [TeacherController::class, 'grades'])->name('grades');
     Route::post('/students', [TeacherController::class, 'students'])->name('students2');
     Route::post('/classes/students', [TeacherController::class, 'classes_students'])->name('classes_students');
-    
+
     Route::get('/getTeacherClasses', [TeacherController::class, 'getTeacherClasses'])->name('getTeacherClasses');
     Route::get('/lesson_presentation', [TeacherController::class, 'lesson_presentation'])->name('lesson_presentation');
 
@@ -36,16 +35,21 @@ Route::middleware(['auth', 'role:teacher', 'role:admin'])->prefix('teacher')->na
 
 
 Route::middleware(['auth', 'role:teacher'])->prefix('api/teacher')->name('teacher.')->group(function () {
-        Route::post('/students', [TeacherController::class, 'students'])->name('students');
-        Route::post('/store_presentation', [ PresentationController::class, 'store_presentation'])
-        ->name('presentation_store');
+    Route::post('/students', [TeacherController::class, 'students'])->name('students');
+
+    // DEPRECATED: PresentationController has been removed
+    // Use /lesson-presentation API instead
+    // Route::post('/store_presentation', [PresentationController::class, 'store_presentation'])
+    //     ->name('presentation_store');
 
 
-    Route::get('/teacher/schedule/{school_id}/{teacher_id}',
-        [App\Http\Controllers\Teacher\ScheduleTeacherController::class, 'getTeacherScheduleData'])
+    Route::get(
+        '/teacher/schedule/{school_id}/{teacher_id}',
+        [App\Http\Controllers\Teacher\ScheduleTeacherController::class, 'getTeacherScheduleData']
+    )
         ->name('schedule.data');
 
-        // Route::post('/teacher', [TeacherController::class, 'students'])->name('students');
+    // Route::post('/teacher', [TeacherController::class, 'students'])->name('students');
 });
 
 
@@ -70,7 +74,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('teacher')->name('teacher.')->group(function () {
         Route::get('/timeline', [TeacherNewTimeLineController::class, 'index'])
             ->name('timeline.index');
-                 Route::get('/timeline', [TeacherNewTimeLineController::class, 'index'])
+        Route::get('/timeline', [TeacherNewTimeLineController::class, 'index'])
             ->name('timeline');
 
         Route::post('/timeline/schedule', [TeacherNewTimeLineController::class, 'getTeacherSchedule'])
