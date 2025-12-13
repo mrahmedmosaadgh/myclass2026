@@ -1,8 +1,8 @@
 <template>
   <div class="h-screen flex bg-gray-50">
     <!-- Sidebar Navigation -->
+    <!-- :sections="sections" -->
     <LessonSidebar
-      :sections="sections"
       v-model:currentSection="currentSection"
       v-model:currentSection_data="currentSection_data"
       :slides="slides"
@@ -241,6 +241,8 @@ import axios from 'axios';
 import UniversalQuestionPlayer from '@/Components/QuestionSystem/UniversalQuestionPlayer.vue';
 import LessonSidebar from './LessonSidebar.vue';
 import QuestionSlide from './slides/QuestionSlide.vue';
+import { useLessonPresentationStore } from '@/Stores/lessonPresentationStore';
+const store = useLessonPresentationStore();
 
 const $q = useQuasar();
 
@@ -249,10 +251,10 @@ const props = defineProps({
     type: Object,
     default: () => ({})
   },
-  sections: {
-    type: Array,
-    default: () => []
-  },
+  // sections: {
+  //   type: Array,
+  //   default: () => []
+  // },
   slides: {
     type: Array,
     default: () => []
@@ -317,7 +319,7 @@ const canAccessQuiz = computed(() => {
 });
 
 const getSectionConfig = (sectionId) => {
-  return props.sections?.find(s => s.id === sectionId) || null;
+  return store.value.sections?.find(s => s.id === sectionId) || null;
 };
 
 const evaluateUnlockRule = (rule) => {

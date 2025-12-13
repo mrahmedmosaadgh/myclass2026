@@ -613,7 +613,7 @@ const deleteTemplate = async () => {
     
     // Delete from database if it has an ID
     if (template.id) {
-      await axios.delete(`/api/lesson-plan-templates/${template.id}`);
+      await axios.delete(`/api/course-management/lesson-plan-templates/${template.id}`);
     }
     
     // Remove from local array
@@ -648,7 +648,7 @@ const saveTemplates = async () => {
     
     if (isEditing.value && template.id) {
       // Update existing database template
-      const response = await axios.put(`/api/lesson-plan-templates/${template.id}`, {
+      const response = await axios.put(`/api/course-management/lesson-plan-templates/${template.id}`, {
         name: template.name,
         structure: template.structure,
         subject_id: props.subject.id,
@@ -659,7 +659,7 @@ const saveTemplates = async () => {
       templates.value[editingIndex.value] = response.data.data;
     } else {
       // Create new database template
-      const response = await axios.post('/api/lesson-plan-templates', {
+      const response = await axios.post('/api/course-management/lesson-plan-templates', {
         name: template.name,
         structure: template.structure,
         subject_id: props.subject.id,

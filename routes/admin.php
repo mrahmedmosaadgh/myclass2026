@@ -3,7 +3,7 @@
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\DocumentationController;
 use App\Http\Controllers\PermissionsController;
-use App\Http\Controllers\ScheduleCopyController;
+// use App\Http\Controllers\ScheduleCopyController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\LoadSchoolsController;
@@ -37,7 +37,7 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->group(fu
     Route::get('/school/{school}/classroom-subject-teachers', [ClassroomSubjectTeacherController::class, 'bySchool']);
 
     // Schedule Copies
-    Route::get('/school/{school}/schedule-copies', [ScheduleCopyController::class, 'bySchool']);
+    // Route::get('/school/{school}/schedule-copies', [ScheduleCopyController::class, 'bySchool']);
 
     Route::resource('documentation', DocumentationController::class);
 
@@ -62,7 +62,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/admin/schedules/update/{schedule}', [ScheduleController::class, 'update_day_period']);
     // Route::get('/admin/schedules/update_period/{schedule_id}', [ScheduleController::class, 'update_period']);
     Route::get('/admin/schedules/{school_id}/{schedule_copy_id}', [ScheduleController::class, 'getScheduleData']);
-Route::post('/admin/schedule-copies/create-entries', [ScheduleCopyController::class, 'createScheduleEntries']);
+    // Route::post('/admin/schedule-copies/create-entries', [ScheduleCopyController::class, 'createScheduleEntries']);
     // Add new school routes
     Route::get('/admin/schools', [LoadSchoolsController::class, 'adminSchools']);
     Route::get('/teacher/{teacher}/schools', [LoadSchoolsController::class, 'teacherSchools']);

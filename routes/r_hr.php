@@ -10,7 +10,7 @@ use App\Http\Controllers\GradeSubjectController;
 use App\Http\Controllers\HRController;
 use App\Http\Controllers\PeriodDetailController;
 use App\Http\Controllers\QuestionBankController;
-use App\Http\Controllers\ScheduleCopyController;
+// use App\Http\Controllers\ScheduleCopyController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\ScheduleAdminNewController;
 use App\Http\Controllers\ScheduleDailyController;
@@ -50,7 +50,7 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::resource('semester', SemesterController::class);
     Route::resource('calendar', CalendarController::class);
     Route::resource('schedule-dailies', ScheduleDailyController::class);
-    Route::resource('schedule-copies', ScheduleCopyController::class);
+    // Route::resource('schedule-copies', ScheduleCopyController::class);
     Route::resource('schedules', ScheduleController::class);
     Route::post('schedule/update2', [ScheduleController::class, 'update2'])->name('schedules.update2');
     Route::get('schedule/load_data', [ScheduleController::class, 'load_data'])->name('schedules.load_data');
@@ -63,8 +63,8 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     // Classroom Routes
     Route::resource('period-details', PeriodDetailController::class);
     // createSchedule
-    Route::get('/schedule-copies/{id}/check-schedule-changes', [ScheduleCopyController::class, 'checkScheduleChanges']);
-    Route::post('/schedule-copies/{id}/execute-schedule-changes', [ScheduleCopyController::class, 'executeScheduleChanges']);
+    // Route::get('/schedule-copies/{id}/check-schedule-changes', [ScheduleCopyController::class, 'checkScheduleChanges']);
+    // Route::post('/schedule-copies/{id}/execute-schedule-changes', [ScheduleCopyController::class, 'executeScheduleChanges']);
 
 
     Route::get('classroom/export', [ClassroomController::class, 'export'])

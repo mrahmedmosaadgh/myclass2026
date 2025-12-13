@@ -499,3 +499,10 @@ Route::middleware([
             ->name('join');
     });
 });
+
+// Add route for LessonTemplateManager
+Route::get('/lesson-template-manager', function () {
+     return Inertia::render('LessonTemplateManager/index');
+    // return view('LessonTemplateManager.index');
+    // /Users/ahmedmosaad/Herd/myclass2026-main/resources/js/Pages/LessonTemplateManager/index.vue
+})->name('lesson-template-manager');

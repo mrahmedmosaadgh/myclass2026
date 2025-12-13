@@ -1,4 +1,5 @@
 <template>
+  <Head :title="pageTitle" />
   <div class="q-pa-md bg-grey-2">
     <div class="max-w-7xl mx-auto">
       
@@ -22,17 +23,21 @@
             </h1>
           </div>
           <p class="text-subtitle2 text-grey-7 q-mt-xs">
-            {{ viewMode === 'grades' ? 'Select a grade to view lessons.' : 'Manage your interactive lessons for this grade.' }}
+            {{ viewMode === 'grades' ? 'Select a grade to view or create lessons.' : 'Manage your interactive lessons for this grade.' }}
           </p>
         </div>
-        
+        <!-- Lesson Templates Management -->
         <q-btn
-          color="primary"
-          icon="add"
-          label="Create New Lesson"
+          v-if="availableSubjects.length > 0"
+          color="secondary"
+          icon="tune"
+          label="Manage Templates"
           no-caps
-          @click="showAddDialog = true"
-        />
+          flat
+          dense
+          class="q-mr-sm"
+          @click="showTemplateManager = true"
+        /> 
       </div>
 
       <!-- Loading State -->
@@ -53,10 +58,9 @@
           class="col-12 col-sm-6 col-md-4 col-lg-3"
         >
           <q-card 
-            class="cursor-pointer hover-shadow transition-generic full-height"
-            @click="selectGrade(grade)"
+            class="hover-shadow transition-generic full-height column"
           >
-            <q-card-section class="text-center q-py-lg">
+            <q-card-section class="text-center q-py-lg col" @click="selectGrade(grade)" style="cursor: pointer;">
               <q-avatar size="80px" font-size="40px" color="blue-1" text-color="primary" icon="school" />
               <div class="text-h5 q-mt-md text-weight-bold text-grey-9">{{ grade.name }}</div>
               <div class="text-caption text-grey-6 q-mt-sm">
@@ -75,8 +79,18 @@
                 <span v-else>No subjects assigned</span>
               </div>
             </q-card-section>
-            <q-card-actions align="center" class="bg-grey-1 q-py-sm">
-              <span class="text-primary text-weight-medium text-caption">View Lessons <q-icon name="arrow_forward" size="xs" /></span>
+            <q-separator />
+            <q-card-actions align="center" class="bg-grey-1 q-py-md q-px-md column q-gutter-sm">
+ 
+              <q-btn
+                flat
+                color="primary"
+                icon="arrow_forward"
+                label="View Lessons"
+                no-caps
+                class="full-width"
+                @click="selectGrade(grade)"
+              />
             </q-card-actions>
           </q-card>
         </div>
@@ -84,190 +98,139 @@
 
       <!-- View 2: Lesson List -->
       <div v-else-if="viewMode === 'lessons'">
-        <!-- Empty State -->
-        <div v-if="lessons.length === 0" class="text-center q-py-xl bg-white rounded-borders shadow-1">
-          <q-icon name="auto_stories" size="4rem" color="grey-4" class="q-mb-md" />
-          <h3 class="text-h6 text-weight-medium text-grey-9 q-my-none">No lessons found for {{ selectedGrade?.name }}</h3>
-          <p class="text-body2 text-grey-6 q-mt-xs">Get started by creating your first interactive lesson.</p>
-          <div class="q-mt-md">
-            <Link :href="route('lesson-presentation.edit')">
+        <!-- Subject Tabs or Single Subject Header -->
+        <div v-if="gradeSubjects.length > 0">
+          <!-- Multiple Subjects: Show Tabs -->
+          <q-tabs
+            v-if="gradeSubjects.length > 1"
+            v-model="selectedSubjectTab"
+            dense
+            class="text-grey-7 bg-white rounded-borders shadow-1 q-mb-md"
+            active-color="primary"
+            indicator-color="primary"
+            align="left"
+          >
+            <q-tab
+              v-for="subject in gradeSubjects"
+              :key="subject.id"
+              :name="subject.id"
+              :label="subject.name"
+              class="text-weight-medium"
+            />
+          </q-tabs>
+          
+          <!-- Single Subject: Show Header -->
+          <div v-else class="bg-white rounded-borders shadow-1 q-pa-md q-mb-md">
+            <div class="row items-center justify-between">
+              <div class="text-h6 text-grey-9">{{ gradeSubjects[0].name }}</div>
               <q-btn
                 color="primary"
                 icon="add"
-                label="Create Lesson"
+                label="Create New Lesson"
                 no-caps
+                unelevated
+                @click="openCreateDialogWithSubject(gradeSubjects[0])"
               />
-            </Link>
+            </div>
           </div>
         </div>
 
-        <!-- Lesson Grid -->
-        <div v-else class="row q-col-gutter-md">
-          <div
-            v-for="lesson in lessons"
-            :key="lesson.id"
-            class="col-12 col-sm-6 col-lg-4"
-          >
-            <q-card class="column full-height hover-shadow transition-generic">
-              <q-card-section class="col q-pb-none">
-                <div class="row items-center q-gutter-xs q-mb-sm">
-                  <!-- Learn Section Badge -->
-                  <q-badge color="blue-1" text-color="primary">
-                    <q-icon name="menu_book" size="xs" class="q-mr-xs" />
-                    {{ lesson.slides_count || 0 }}
-                  </q-badge>
-                  
-                  <!-- Practice Section Badge -->
-                  <q-badge color="purple-1" text-color="purple">
-                    <q-icon name="edit" size="xs" class="q-mr-xs" />
-                    Practice
-                  </q-badge>
-
-                  <!-- Quiz Section Badge -->
-                  <q-badge v-if="lesson.quiz_id" color="green-1" text-color="green">
-                    <q-icon name="quiz" size="xs" class="q-mr-xs" />
-                    Quiz: {{ lesson.quiz_id }}
-                  </q-badge>
-                  
-                  <q-space />
-                  
-                  <span class="text-caption text-grey-5">
-                    {{ new Date(lesson.created_at).toLocaleDateString() }}
-                  </span>
-                </div>
-                <div class="text-h6 text-grey-9 ellipsis" :title="lesson.name">
-                  {{ lesson.name }}
-                </div>
-                <div class="text-body2 text-grey-6 ellipsis-2-lines q-mt-xs">
-                  {{ lesson.description || 'No description provided.' }}
-                </div>
-              </q-card-section>
+        <!-- Subject Tab Content (for multiple subjects) -->
+        <div v-if="gradeSubjects.length > 1">
+          <q-tab-panels v-model="selectedSubjectTab" animated>
+            <q-tab-panel
+              v-for="subject in gradeSubjects"
+              :key="subject.id"
+              :name="subject.id"
+              class="q-pa-none"
+            >
+              <!-- Create Button for this subject -->
+              <div class="row justify-end q-mb-md">
+                <q-btn
+                  color="primary"
+                  icon="add"
+                  label="Create New Lesson"
+                  no-caps
+                  unelevated
+                  @click="openCreateDialogWithSubject(subject)"
+                />
+              </div>
               
-              <q-card-actions class="bg-grey-1 border-top-grey-3 q-px-md q-py-sm">
-                <div class="column full-width q-gutter-xs">
-                  <!-- First Row: Edit, Delete, Preview -->
-                  <div class="row justify-between items-center">
-                    <div class="row q-gutter-xs">
-                      <Link :href="route('lesson-presentation.edit', { id: lesson.id })">
-                        <q-btn
-                          flat
-                          dense
-                          size="sm"
-                          color="grey-7"
-                          icon="edit"
-                          label="Edit"
-                          no-caps
-                          class="hover-text-primary"
-                        />
-                      </Link>
-                      <q-btn
-                        flat
-                        dense
-                        size="sm"
-                        color="grey-7"
-                        icon="delete"
-                        label="Delete"
-                        no-caps
-                        class="hover-text-negative"
-                        @click="deleteLesson(lesson)"
-                      />
-                    </div>
-                    
-                    <div class="row q-gutter-xs">
-                       <a
-                        :href="route('lesson-presentation.student.view', { id: lesson.id })"
-                        target="_blank"
-                        class="text-decoration-none"
-                      >
-                        <q-btn
-                          flat
-                          dense
-                          size="sm"
-                          color="primary"
-                          icon="play_arrow"
-                          label="Preview"
-                          no-caps
-                        />
-                      </a>
-                      <q-btn
-                        flat
-                        round
-                        dense
-                        size="sm"
-                        color="grey-6"
-                        icon="link"
-                        @click="copyLink(lesson.id)"
-                      >
-                        <q-tooltip>Copy Student Link</q-tooltip>
-                      </q-btn>
-                      <a
-                        :href="route('lesson-presentation.print', { id: lesson.id })"
-                        target="_blank"
-                        class="text-decoration-none"
-                      >
-                        <q-btn
-                          flat
-                          round
-                          dense
-                          size="sm"
-                          color="grey-6"
-                          icon="print"
-                        >
-                          <q-tooltip>Print Lesson</q-tooltip>
-                        </q-btn>
-                      </a>
-                    </div>
-                  </div>
-
-                  <!-- Second Row: Progress Management -->
-                  <q-separator />
-                  <div class="row q-gutter-xs full-width">
-                    <q-btn
-                      unelevated
-                      dense
-                      size="sm"
-                      color="positive"
-                      icon="lock_open"
-                      label="Open to All Students"
-                      no-caps
-                      class="col"
-                      @click="openToAllStudents(lesson)"
-                    />
-                    <Link :href="route('lesson-presentation.teacher.progress', { lessonId: lesson.id })">
-                      <q-btn
-                        unelevated
-                        dense
-                        size="sm"
-                        color="primary"
-                        icon="assessment"
-                        label="View Progress"
-                        no-caps
-                      />
-                    </Link>
-                  </div>
+              <!-- Lessons for this subject -->
+              <div v-if="getSubjectLessons(subject.id).length === 0" class="text-center q-py-xl bg-white rounded-borders shadow-1">
+                <q-icon name="auto_stories" size="4rem" color="grey-4" class="q-mb-md" />
+                <h3 class="text-h6 text-weight-medium text-grey-9 q-my-none">No lessons found for {{ subject.name }}</h3>
+                <p class="text-body2 text-grey-6 q-mt-xs">Get started by creating your first interactive lesson.</p>
+              </div>
+              
+              <div v-else class="row q-col-gutter-md">
+                <div
+                  v-for="lesson in getSubjectLessons(subject.id)"
+                  :key="lesson.id"
+                  class="col-12 col-sm-6 col-lg-4"
+                >
+                  <LessonCard :lesson="lesson" @delete="deleteLesson" @copy-link="copyLink" @open-to-all="openToAllStudents" />
                 </div>
-              </q-card-actions>
-            </q-card>
+              </div>
+            </q-tab-panel>
+          </q-tab-panels>
+        </div>
+        
+        <!-- Lessons for single subject -->
+        <div v-else-if="gradeSubjects.length === 1">
+          <div v-if="lessons.length === 0" class="text-center q-py-xl bg-white rounded-borders shadow-1">
+            <q-icon name="auto_stories" size="4rem" color="grey-4" class="q-mb-md" />
+            <h3 class="text-h6 text-weight-medium text-grey-9 q-my-none">No lessons found for {{ gradeSubjects[0].name }}</h3>
+            <p class="text-body2 text-grey-6 q-mt-xs">Get started by creating your first interactive lesson.</p>
+          </div>
+          
+          <div v-else class="row q-col-gutter-md">
+            <div
+              v-for="lesson in lessons"
+              :key="lesson.id"
+              class="col-12 col-sm-6 col-lg-4"
+            >
+              <LessonCard :lesson="lesson" @delete="deleteLesson" @copy-link="copyLink" @open-to-all="openToAllStudents" />
+            </div>
           </div>
         </div>
+        
+        <!-- No subjects assigned -->
+        <div v-else class="text-center q-py-xl bg-white rounded-borders shadow-1">
+          <q-icon name="subject" size="4rem" color="grey-4" class="q-mb-md" />
+          <h3 class="text-h6 text-weight-medium text-grey-9 q-my-none">No subjects assigned to {{ selectedGrade?.name }}</h3>
+          <p class="text-body2 text-grey-6 q-mt-xs">Please assign subjects to this grade first.</p>
+        </div>
+
+
       </div>
     </div>
 
     <!-- Add New Presentation Dialog -->
     <AddNewPresentationDialog 
       v-model="showAddDialog"
+      :preselected-grade="preselectedGrade"
+      :preselected-subject="preselectedSubject"
       @submit="handleCreateLesson"
+    />
+    <!-- Lesson Template Manager Dialog -->
+    <LessonTemplateManager
+      v-model="showTemplateManager"
+      :subjects="availableSubjects"
     />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { useQuasar } from 'quasar';
 import { useTeacherStore } from '@/Stores/teacherStore';
 import AddNewPresentationDialog from './components/AddNewPresentationDialog.vue';
+import LessonTemplateManager from './components/LessonTemplateManager.vue';
+import LessonCard from './components/LessonCard.vue';
+import { Head } from '@inertiajs/vue3';
 
 const $q = useQuasar();
 const teacherStore = useTeacherStore();
@@ -276,11 +239,83 @@ const loading = ref(false);
 const selectedGrade = ref(null);
 const viewMode = ref('grades'); // 'grades' or 'lessons'
 const showAddDialog = ref(false);
+const preselectedGrade = ref(null);
+const preselectedSubject = ref(null);
+const selectedSubjectTab = ref(null);
+const showTemplateManager = ref(false);
+
+const pageTitle = computed(() => {
+  if (viewMode.value === 'lessons' && selectedGrade.value) {
+    return `${selectedGrade.value.name} Lessons`;
+  }
+  return 'My Classes';
+});
+
+const gradeSubjects = computed(() => {
+  if (!selectedGrade.value || !selectedGrade.value.subjects) return [];
+  return selectedGrade.value.subjects;
+});
+
+const availableSubjects = computed(() => {
+  // If in lesson mode (specific grade), show that grade's subjects
+  if (viewMode.value === 'lessons' && selectedGrade.value) {
+    return gradeSubjects.value;
+  }
+  // Otherwise (grades mode), collect unique subjects from all grades
+  const subjectsMap = new Map();
+  teacherStore.grades.forEach(grade => {
+    if (grade.subjects) {
+      grade.subjects.forEach(subject => {
+        if (!subjectsMap.has(subject.id)) {
+          subjectsMap.set(subject.id, subject);
+        }
+      });
+    }
+  });
+  return Array.from(subjectsMap.values());
+});
 
 const selectGrade = (grade) => {
   selectedGrade.value = grade;
   viewMode.value = 'lessons';
+  // Set first subject as default tab
+  if (grade.subjects && grade.subjects.length > 0) {
+    selectedSubjectTab.value = grade.subjects[0].id;
+  }
   fetchLessons();
+};
+
+const openCreateDialog = (grade) => {
+  preselectedGrade.value = grade;
+  preselectedSubject.value = null;
+  showAddDialog.value = true;
+};
+
+const openCreateDialogWithSubject = (subject) => {
+  preselectedGrade.value = selectedGrade.value;
+  preselectedSubject.value = subject;
+  showAddDialog.value = true;
+};
+
+const getSubjectLessons = (subjectId) => {
+  return lessons.value.filter(lesson => lesson.subject_id === subjectId);
+};
+
+const openCreateDialogForCurrentView = () => {
+  // When in lesson view with single subject, preselect it
+  if (gradeSubjects.value.length === 1) {
+    openCreateDialogWithSubject(gradeSubjects.value[0]);
+  } else if (gradeSubjects.value.length > 1 && selectedSubjectTab.value) {
+    // When in lesson view with multiple subjects, use the active tab
+    const activeSubject = gradeSubjects.value.find(s => s.id === selectedSubjectTab.value);
+    if (activeSubject) {
+      openCreateDialogWithSubject(activeSubject);
+    } else {
+      openCreateDialog(selectedGrade.value);
+    }
+  } else {
+    openCreateDialog(selectedGrade.value);
+  }
 };
 
 const fetchLessons = async () => {
@@ -381,13 +416,18 @@ const copyLink = (id) => {
 };
 
 const handleCreateLesson = (data) => {
-  // Navigate to edit page with query parameters for grade_id and subject_id
-  const queryParams = new URLSearchParams({
+  // Navigate to edit page with query parameters for grade_id, subject_id, and template_id
+  const queryParams = {
     grade_id: data.grade_id,
-    subject_id: data.subject_id
-  }).toString();
-  
-  window.location.href = route('lesson-presentation.edit') + '?' + queryParams;
+    subject_id: data.subject_id,
+  };
+
+  // Add template_id if provided
+  if (data.template_id) {
+    queryParams.template_id = data.template_id;
+  }
+
+  router.visit(route('lesson-presentation.edit', queryParams));
 };
 
 onMounted(async () => {
