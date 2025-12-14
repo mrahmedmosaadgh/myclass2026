@@ -22,6 +22,6 @@ Route::middleware(['auth'])->prefix('qdrat')->name('qdrat.')->group(function () 
     // Question Difficulties
     Route::resource('question-difficulties', \App\Http\Controllers\QudratQuantitative\QdratQuestionDifficultyController::class);
 
-    // Questions
-    Route::resource('questions', \App\Http\Controllers\QudratQuantitative\QdratQuestionController::class);
+    // Questions (renamed to avoid conflicts)
+    Route::resource('qdrat-questions', \App\Http\Controllers\QudratQuantitative\QdratQuestionController::class);
 });

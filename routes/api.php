@@ -128,7 +128,7 @@ Route::middleware(['auth:sanctum', 'web'])->group(function () {
         Route::put('/attempts/{attemptId}/complete', [App\Http\Controllers\QuizAttemptController::class, 'complete']);
         Route::get('/attempts/{attemptId}/results', [App\Http\Controllers\QuizAttemptController::class, 'results']);
         Route::post('/questions/import', [App\Http\Controllers\QuestionController::class, 'import']);
-        Route::apiResource('questions', App\Http\Controllers\QuestionController::class);
+        Route::apiResource('quiz-questions', App\Http\Controllers\QuestionController::class);
     });
 
     // Quiz Management
