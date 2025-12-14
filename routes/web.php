@@ -506,3 +506,12 @@ Route::get('/lesson-template-manager', function () {
     // return view('LessonTemplateManager.index');
     // /Users/ahmedmosaad/Herd/myclass2026-main/resources/js/Pages/LessonTemplateManager/index.vue
 })->name('lesson-template-manager');
+
+
+Route::get('/clear', function () {
+    Artisan::call('config:clear');
+    Artisan::call('cache:clear');
+    Artisan::call('route:clear');
+    Artisan::call('view:clear');
+    return 'Cleared!';
+});
