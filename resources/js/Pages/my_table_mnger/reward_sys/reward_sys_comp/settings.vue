@@ -940,11 +940,11 @@ import { ref, onMounted, onUnmounted, watch, computed, nextTick } from 'vue'
 
 import axios from 'axios'
 import { useQuasar } from 'quasar'
-import roadmap from './roadmap.vue'
-import BehaviorManager from './BehaviorManager.vue'
+import roadmap from '../roadmap.vue'
+import BehaviorManager from '../BehaviorManager.vue'
 
-import RoadmapEditor from './RoadmapTree/RoadmapEditor.vue'
-import LmsRoadmapTree from './RoadmapTree/LmsRoadmapTree.vue'
+import RoadmapEditor from '../RoadmapTree/RoadmapEditor.vue'
+import LmsRoadmapTree from '../RoadmapTree/LmsRoadmapTree.vue'
 // import { useSafeI18n } from '@/composables/useSafeI18n'
 import { useI18n } from 'vue-i18n'
 // const { t } = useSafeI18n()

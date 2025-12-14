@@ -19,7 +19,6 @@
                 @click="fetchDataGet('all_teachers', 'teachers')" class="shadow-sm rounded-lg" size="md" />
             
                 <q-btn color="secondary" icon="class" label="Load Classes with Students"
-      import CameraCapture from './CameraCapture.vue'
                 @click="fetchDataGet('my_classes_with_students', 'my_classes_with_students')"
                 class="shadow-sm rounded-lg" size="md" />
              -->
@@ -799,8 +798,9 @@
 </template>
 
 <script setup>
-import CameraCapture from './CameraCapture.vue'
-import NeonText from './neontext.vue'
+import CameraCapture from './reward_sys_comp/CameraCapture.vue'
+//resources\js\Pages\my_table_mnger/reward_sys/reward_sys_comp/CameraCapture.vue
+import NeonText from './reward_sys_comp/neontext.vue'
 // resources/js/Pages/my_table_mnger/reward_sys/classroom_records/classroom_records_components/ClassroomRecordsPage.vue
 // Camera dialog handlers for CameraCapture.vue
 const handleCameraCancel = () => {

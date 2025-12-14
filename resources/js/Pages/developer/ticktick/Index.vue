@@ -2,7 +2,7 @@
   <div class="ticktick-container">
     <Head title="TickTick Tasks" />
     
-    <dddd />
+
     <q-layout view="hHh LpR fFf" class="bg-grey-1">
       <!-- Header -->
       <q-header elevated class="bg-primary text-white">
@@ -260,7 +260,7 @@ import TaskForm from './components/TaskForm.vue';
 import MultiTaskForm from './components/MultiTaskForm.vue';
 import PomodoroTimer from './components/PomodoroTimer.vue';
 import FocusMode from './components/FocusMode.vue';
-import dddd from './components/copy_data_to_table.vue';
+
 import './components/icons.js';
  
 // Props from controller
