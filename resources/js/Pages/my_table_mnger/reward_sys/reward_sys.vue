@@ -1164,7 +1164,6 @@ const periodCode = computed(() => {
 
 // Computed behavior lists
 const positiveBehaviors = computed(() => {
-  console.log('🔍 All behaviors:', behaviors.value)
   const positive = behaviors.value.filter(b => {
     // Check type field first, then value
     if (b.type) {
@@ -1173,7 +1172,6 @@ const positiveBehaviors = computed(() => {
     const value = b.value || b.points || 0
     return value > 0
   })
-  console.log('✅ Positive behaviors:', positive)
   return positive
 })
 
@@ -1186,7 +1184,6 @@ const negativeBehaviors = computed(() => {
     const value = b.value || b.points || 0
     return value < 0
   })
-  console.log('⚠️ Negative behaviors:', negative)
   return negative
 })
 
@@ -1572,7 +1569,10 @@ function handlePeriodChange(data) {
   selectedWeek.value = data.week
   selectedDay.value = data.day
   selectedPeriodNumber.value = data.periodNumber
-  console.log('📅 Period changed:', { periodCode: periodCode.value, ...data })
+  // Period change logged only in development
+  if (import.meta.env.DEV) {
+    console.log('📅 Period changed:', { periodCode: periodCode.value, ...data })
+  }
 }
 
 function toggleSelected(studentId) {
@@ -1944,13 +1944,16 @@ function getMedalEmoji(index) {
 }
 
 function handleStudentClick(student) {
-  console.log('Student clicked:', student)
-  // You can add behavior manager or other actions here
-  // For now, just log the click
+  // Student click handler - add behavior manager or other actions here
+  if (import.meta.env.DEV) {
+    console.log('Student clicked:', student)
+  }
 }
 
 async function handleIncidentRecorded(incident) {
-  console.log('Incident recorded:', incident)
+  if (import.meta.env.DEV) {
+    console.log('Incident recorded:', incident)
+  }
   // Refresh student behaviors to reflect the -1 point
   await initClassroomSession()
   $q.notify({
@@ -1963,19 +1966,22 @@ async function handleIncidentRecorded(incident) {
 // ============ LIFECYCLE ============
 onMounted(async () => {
   try {
-    console.log('🚀 Initializing reward system...')
+    if (import.meta.env.DEV) {
+      console.log('🚀 Initializing reward system...')
+    }
 
     // Load classrooms
     const classRes = await axios.get('/my_classes_with_students')
     classrooms.value = classRes.data
-    console.log(`✅ Loaded ${classrooms.value.length} classrooms`)
+    
+    if (import.meta.env.DEV) {
+      console.log(`✅ Loaded ${classrooms.value.length} classrooms`)
+    }
 
     // Load behaviors
     const behaviorRes = await rewardPointService.fetchBehaviors()
     if (behaviorRes.success) {
       behaviors.value = behaviorRes.data
-      console.log(`✅ Loaded ${behaviors.value.length} behaviors`)
-      console.log('📋 Behaviors data:', behaviors.value)
       
       // Normalize behaviors to ensure they have a 'value' field
       behaviors.value = behaviors.value.map(b => ({
@@ -1983,7 +1989,9 @@ onMounted(async () => {
         value: b.value || b.points || 0
       }))
       
-      console.log('📋 Normalized behaviors:', behaviors.value)
+      if (import.meta.env.DEV) {
+        console.log(`✅ Loaded ${behaviors.value.length} behaviors`)
+      }
     } else {
       console.error('❌ Failed to load behaviors:', behaviorRes.error)
       $q.notify({
@@ -1993,7 +2001,9 @@ onMounted(async () => {
       })
     }
 
-    console.log('✅ Reward system initialized')
+    if (import.meta.env.DEV) {
+      console.log('✅ Reward system initialized')
+    }
   } catch (error) {
     console.error('❌ Failed to initialize reward system:', error)
     $q.notify({

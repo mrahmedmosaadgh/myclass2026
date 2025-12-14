@@ -7,7 +7,7 @@
             Draw & Sign on Your Certificate
           </h1>
           <div class="pdf-annotator-wrapper">
-            <PDFAnnotator />
+            <LazyPDFAnnotator />
           </div>
         </div>
       </div>
@@ -17,7 +17,7 @@
 
 <script setup>
  
-import PDFAnnotator from './PDFAnnotator.vue'  // Adjust path if in /final/ folder
+import LazyPDFAnnotator from '@/Components/LazyPDFAnnotator.vue'
 </script>
 
 <style scoped>

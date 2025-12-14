@@ -36,7 +36,7 @@
 
           <!-- PDF Viewer -->
           <div class="pdf-viewer-container">
-            <PDFViewer :pdf-url="localPdfUrl" />
+            <LazyPDFViewer :pdf-url="localPdfUrl" />
           </div>
 
         </div>
@@ -46,9 +46,9 @@
 </template>
 
 <script setup>
-import { ref,onUnmounted  } from 'vue'
+import { ref, onUnmounted } from 'vue'
 // import div from '@/Layouts/div.vue'
-import PDFViewer from './PDFViewer.vue'
+import LazyPDFViewer from '@/Components/LazyPDFViewer.vue'
 
 // متغيرات مهمة
 const localPdfUrl = ref('')    // رابط الملف المؤقت

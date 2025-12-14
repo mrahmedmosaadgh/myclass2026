@@ -53,8 +53,13 @@ import { createI18n } from 'vue-i18n';
 import Vue3Toastify from 'vue3-toastify';
 // Lazy load Quasar components
 const { Quasar, Notify, Loading, Dialog, Dark } = await import('quasar');
+// Import layout directly (lazy loading handled by Vite chunks)
 import AppLayoutDefault from '@/Layouts/AppLayoutDefault.vue';
 import languageSwitcher from './plugins/languageSwitcher.js';
+// Route code splitting utilities available but not used in main resolver
+// import { resolvePageWithCodeSplitting, initializeRouteCodeSplitting } from './utils/RouteCodeSplitting.js';
+// Import bundle analyzer for monitoring
+import bundleAnalyzer from './utils/BundleAnalyzer.js';
 // Lazy load heavy CSS
 import('./loadStyles.js');
 
@@ -113,6 +118,7 @@ const i18n = createI18n({
 createInertiaApp({
     title: (title) => `${title} - ${appName}`,
     resolve: (name) => {
+        // Use standard Laravel Vite resolver (code splitting handled by Vite config)
         const page = resolvePageComponent(`./Pages/${name}.vue`, import.meta.glob('./Pages/**/*.vue'));
         return page.then((module) => {
             // Set default layout if none is specified
@@ -165,7 +171,21 @@ createInertiaApp({
                 }
             });
 
-        return app.mount(el);
+        // Initialize route code splitting after app is mounted
+        const mountedApp = app.mount(el);
+        
+        // Route code splitting handled by Vite configuration
+        // initializeRouteCodeSplitting();
+        
+        // Log bundle analysis in development (disabled by default to reduce console noise)
+        // Uncomment the following lines to enable bundle analysis logging:
+        // if (import.meta.env.DEV) {
+        //     setTimeout(() => {
+        //         bundleAnalyzer.logReport();
+        //     }, 3000);
+        // }
+        
+        return mountedApp;
     },
     progress: false, // Disable Inertia's built-in progress
 });
