@@ -799,8 +799,8 @@
 </template>
 
 <script setup>
-import CameraCapture from './CameraCapture.vue'
-import NeonText from './neontext.vue'
+import CameraCapture from './reward_sys_comp/CameraCapture.vue'
+import NeonText from './reward_sys_comp/neontext.vue'
 // resources/js/Pages/my_table_mnger/reward_sys/classroom_records/classroom_records_components/ClassroomRecordsPage.vue
 // Camera dialog handlers for CameraCapture.vue
 const handleCameraCancel = () => {

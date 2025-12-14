@@ -652,7 +652,7 @@ onMounted(() => {
   }
 }
 
-// Responsive
+/* Responsive */
 @media (max-width: 960px) {
   .quiz-analytics {
     &__header {
