@@ -1,9 +1,9 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
 import vue from '@vitejs/plugin-vue';
-import { splitVendorChunkPlugin } from 'vite';
-import { quasar, transformAssetUrls } from '@quasar/vite-plugin';
-import { generateViteBuildConfig, getTreeShakingConfig } from './resources/js/config/quasar-build-config.js';
+import { quasar } from '@quasar/vite-plugin';
+
+const isProduction = process.env.NODE_ENV === 'production';
 
 export default defineConfig({
     plugins: [
@@ -21,9 +21,17 @@ export default defineConfig({
         }),
         quasar({
             sassVariables: false,
-            ...getTreeShakingConfig().quasar
+            // Production-optimized Quasar config
+            importStrategy: 'kebab',
+            components: isProduction ? 'auto' : 'all', // Auto-import only used components in production
+            directives: isProduction ? 'auto' : 'all',
+            plugins: [
+                'Notify',
+                'Loading', 
+                'Dialog',
+                'Dark'
+            ]
         }),
-        // Remove splitVendorChunkPlugin()
     ],
     resolve: {
         alias: {
@@ -43,106 +51,112 @@ export default defineConfig({
         exclude: ['@quasar/extras']
     },
     build: {
-        ...generateViteBuildConfig({ production: process.env.NODE_ENV === 'production' }),
+        // Explicit build configuration for production safety
+        outDir: 'public/build',
+        assetsDir: 'assets',
+        manifest: true,
+        emptyOutDir: true,
+        
+        // Production-optimized settings
+        target: 'es2020',
+        minify: isProduction ? 'terser' : false,
+        sourcemap: !isProduction,
+        
+        // Chunk size warnings - aligned with spec requirements
+        chunkSizeWarningLimit: 1000, // 1MB warning threshold
+        
+        terserOptions: isProduction ? {
+            compress: {
+                drop_console: true,
+                drop_debugger: true,
+                pure_funcs: ['console.log', 'console.info', 'console.debug']
+            },
+            mangle: {
+                safari10: true
+            }
+        } : {},
+        
         rollupOptions: {
             output: {
+                // Deterministic chunk naming for better caching
+                chunkFileNames: 'assets/js/[name]-[hash].js',
+                entryFileNames: 'assets/js/[name]-[hash].js',
+                
+                // Fixed assetFileNames to remove deprecated 'name' property
+                assetFileNames: (assetInfo) => {
+                    const fileName = assetInfo.names?.[0] || assetInfo.name || 'asset';
+                    const info = fileName.split('.');
+                    const ext = info[info.length - 1];
+                    
+                    if (/\.(css)$/.test(fileName)) {
+                        return `assets/css/[name]-[hash].${ext}`;
+                    }
+                    if (/\.(png|jpe?g|svg|gif|tiff|bmp|ico)$/i.test(fileName)) {
+                        return `assets/images/[name]-[hash].${ext}`;
+                    }
+                    if (/\.(woff2?|eot|ttf|otf)$/i.test(fileName)) {
+                        return `assets/fonts/[name]-[hash].${ext}`;
+                    }
+                    return `assets/[name]-[hash].${ext}`;
+                },
+                
+                // Production-safe manual chunks strategy
                 manualChunks: (id) => {
-                    // Vendor chunks - more granular splitting
+                    // Always handle node_modules first for consistent vendor splitting
                     if (id.includes('node_modules')) {
-                        // Vue ecosystem - split into smaller chunks
-                        if (id.includes('vue/dist') || id.includes('vue/runtime')) return 'vue-core';
-                        if (id.includes('@vue/') || id.includes('vue-router')) return 'vue-utils';
-                        if (id.includes('@inertiajs')) return 'inertia';
-                        if (id.includes('pinia')) return 'pinia';
+                        // Core Vue ecosystem - most stable
+                        if (id.includes('vue') && !id.includes('vue-')) return 'vendor-vue-core';
+                        if (id.includes('@vue/')) return 'vendor-vue-core';
+                        if (id.includes('@inertiajs')) return 'vendor-inertia';
                         
-                        // Quasar - split by components for better tree shaking
-                        if (id.includes('quasar/src/components')) return 'quasar-components';
-                        if (id.includes('quasar/src/directives') || id.includes('quasar/src/plugins')) return 'quasar-plugins';
-                        if (id.includes('quasar')) return 'quasar-core';
+                        // Quasar framework - stable but large
+                        if (id.includes('quasar')) return 'vendor-quasar';
                         
-                        // UI and styling libraries
-                        if (id.includes('vue-i18n')) return 'i18n';
-                        if (id.includes('vue3-toastify') || id.includes('nprogress')) return 'ui-utils';
+                        // State management and routing
+                        if (id.includes('pinia') || id.includes('vue-router')) return 'vendor-state';
                         
-                        // Icon libraries
-                        if (id.includes('lucide') || id.includes('@lucide')) return 'icons';
+                        // Heavy feature libraries - separate for better caching
+                        if (id.includes('echarts') || id.includes('chart')) return 'vendor-charts';
+                        if (id.includes('pdf') || id.includes('jspdf') || id.includes('html2canvas')) return 'vendor-pdf';
+                        if (id.includes('cropperjs') || id.includes('canvas-confetti')) return 'vendor-media';
+                        if (id.includes('katex') || id.includes('mathjax')) return 'vendor-math';
+                        if (id.includes('dexie') || id.includes('localforage')) return 'vendor-storage';
                         
-                        // Chart libraries - separate chunk for heavy components
-                        if (id.includes('chart') || id.includes('echarts') || id.includes('d3')) return 'charts';
+                        // Utilities and smaller libraries
+                        if (id.includes('axios') || id.includes('lodash') || id.includes('date-fns')) return 'vendor-utils';
+                        if (id.includes('lucide') || id.includes('@lucide') || id.includes('heroicons')) return 'vendor-icons';
+                        if (id.includes('vue-i18n') || id.includes('vue3-toastify') || id.includes('nprogress')) return 'vendor-ui-utils';
                         
-                        // Document processing - PDF viewer gets its own chunk
-                        if (id.includes('vue-pdf-embed')) return 'pdf-viewer';
-                        if (id.includes('pdf') || id.includes('canvas') || id.includes('html2canvas')) return 'pdf-canvas';
-                        if (id.includes('xlsx') || id.includes('excel') || id.includes('sheetjs')) return 'excel';
-                        
-                        // Media processing - camera and image libraries
-                        if (id.includes('cropperjs') || id.includes('html2canvas') || id.includes('canvas-confetti')) return 'media-processing';
-                        if (id.includes('katex') || id.includes('mathjax')) return 'math';
-                        if (id.includes('qrcode') || id.includes('barcode') || id.includes('@zxing') || id.includes('@ericblade/quagga2')) return 'qr-barcode';
-                        
-                        // Utility libraries
-                        if (id.includes('axios') || id.includes('lodash') || id.includes('date-fns')) return 'utils';
-                        if (id.includes('dexie') || id.includes('localforage')) return 'storage';
-                        
-                        // Other vendor dependencies
+                        // Catch-all for remaining vendor code
                         return 'vendor-misc';
                     }
                     
-                    // Camera and media components - separate chunk for lazy loading
-                    if (id.includes('CameraCapture') || id.includes('ImageCropper') || id.includes('MediaCapture')) {
-                        return 'camera-components';
-                    }
-                    
-                    // PDF Components - separate chunk for lazy loading
-                    if (id.includes('PDFViewer') || id.includes('PDFAnnotator') || id.includes('SimplePDFViewer')) {
-                        return 'pdf-components';
-                    }
-                    
-                    // Route-level chunks - major pages
-                    if (id.includes('/Pages/Dashboard/') || id.includes('/Pages/Dashboard.vue')) return 'route-dashboard';
-                    if (id.includes('/Pages/Auth/')) return 'route-auth';
-                    if (id.includes('/Pages/Profile/')) return 'route-profile';
-                    if (id.includes('/Pages/Students/') || id.includes('/Pages/Student/')) return 'route-students';
-                    if (id.includes('/Pages/Teachers/') || id.includes('/Pages/Teacher/')) return 'route-teachers';
-                    if (id.includes('/Pages/WeeklyPlans/')) return 'route-weekly-plans';
-                    if (id.includes('/Pages/VocabularyFlashcards/')) return 'route-vocabulary';
-                    if (id.includes('/Pages/Conversations/') || id.includes('/Pages/Chat/')) return 'route-chat';
-                    if (id.includes('/Pages/Notifications/')) return 'route-notifications';
-                    
-                    // Feature-specific chunks - more granular
-                    if (id.includes('/QuizManagement/')) {
-                        if (id.includes('QuizBuilder') || id.includes('QuestionEditor')) return 'quiz-builder';
-                        if (id.includes('QuizEngine') || id.includes('QuizPlayer')) return 'quiz-engine';
-                        if (id.includes('Live/')) return 'quiz-live';
-                        return 'quiz-management';
-                    }
-                    
-                    if (id.includes('/reward_sys/')) {
-                        if (id.includes('BehaviorManager') || id.includes('BehaviorIncidents')) return 'rewards-behavior';
-                        if (id.includes('Leaderboard') || id.includes('TopLeaderboard')) return 'rewards-leaderboard';
-                        if (id.includes('CameraCapture')) return 'rewards-camera';
-                        return 'rewards-core';
-                    }
-                    
-                    if (id.includes('/my_table_mnger/')) {
-                        if (id.includes('attendance') || id.includes('Attendance')) return 'table-attendance';
-                        if (id.includes('schedule') || id.includes('Schedule')) return 'table-schedule';
-                        if (id.includes('lesson_presentation')) return 'table-lessons';
-                        return 'table-manager-core';
-                    }
-                    
-                    if (id.includes('/CourseManagement/')) return 'course-management';
-                    if (id.includes('/LessonManagement/') || id.includes('/Lessons/')) return 'lessons';
-                    if (id.includes('/QuestionManagement/')) return 'question-management';
-                    if (id.includes('/dailyTasks/')) return 'daily-tasks';
-                    if (id.includes('/project_manager/')) return 'project-manager';
-                    
-                    // Components by type
-                    if (id.includes('/Components/')) {
-                        if (id.includes('Chart') || id.includes('Graph')) return 'components-charts';
-                        if (id.includes('Form') || id.includes('Input')) return 'components-forms';
-                        if (id.includes('Table') || id.includes('DataTable')) return 'components-tables';
-                        return 'components-common';
+                    // Application code splitting - only major features to prevent chunk explosion
+                    if (isProduction) {
+                        // Route-level chunks for major sections
+                        if (id.includes('/Pages/QuizManagement/')) return 'route-quiz';
+                        if (id.includes('/Pages/my_table_mnger/reward_sys/')) return 'route-rewards';
+                        if (id.includes('/Pages/CourseManagement/')) return 'route-courses';
+                        if (id.includes('/Pages/Auth/')) return 'route-auth';
+                        if (id.includes('/Pages/Dashboard/')) return 'route-dashboard';
+                        
+                        // Heavy components that should be lazy-loaded
+                        if (id.includes('CameraCapture') || id.includes('/camera/')) return 'component-camera';
+                        if (id.includes('PDFViewer') || id.includes('/pdf/')) return 'component-pdf';
+                        if (id.includes('ChartComponent') || id.includes('/charts/')) return 'component-charts';
+                        
+                        // Don't split other app code in production for simplicity
+                        return undefined;
+                    } else {
+                        // Development: More granular splitting for debugging
+                        if (id.includes('/Pages/QuizManagement/')) return 'dev-quiz';
+                        if (id.includes('/Pages/my_table_mnger/reward_sys/')) return 'dev-rewards';
+                        if (id.includes('/Pages/CourseManagement/')) return 'dev-courses';
+                        if (id.includes('/Pages/Auth/')) return 'dev-auth';
+                        if (id.includes('/Components/')) return 'dev-components';
+                        if (id.includes('/Composables/')) return 'dev-composables';
+                        
+                        return undefined;
                     }
                 }
             }
