@@ -58,7 +58,7 @@ export default defineConfig({
         emptyOutDir: true,
         
         // Production-optimized settings
-        target: 'es2020',
+        target: 'es2022', // Changed from es2020 to support top-level await
         minify: isProduction ? 'terser' : false,
         sourcemap: !isProduction,
         
@@ -84,7 +84,7 @@ export default defineConfig({
                 
                 // Fixed assetFileNames to remove deprecated 'name' property
                 assetFileNames: (assetInfo) => {
-                    const fileName = assetInfo.names?.[0] || assetInfo.name || 'asset';
+                    const fileName = assetInfo.names?.[0] || 'asset';
                     const info = fileName.split('.');
                     const ext = info[info.length - 1];
                     
