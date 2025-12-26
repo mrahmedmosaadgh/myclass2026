@@ -12,10 +12,7 @@ class CurriculumLesson extends Model
 {
     protected $fillable = [
         'school_id',
-        'curriculum_id',
-        'selected',
-        'topic_number',
-        'topic_title',
+        'topic_id',
         'lesson_number',
         'lesson_title',
         'page_number',
@@ -27,27 +24,30 @@ class CurriculumLesson extends Model
         'activities',
         'assignment',
         'assessment',
-        'notes_admin',
-        'notes_teacher',
         'objective',
         'data',
         'type'
     ];
 
     protected $casts = [
-        'selected' => 'integer',
         'page_number' => 'integer',
         'data' => 'json'
     ];
 
+    // Relationships
     public function school(): BelongsTo
     {
         return $this->belongsTo(School::class);
     }
 
-    public function curriculum(): BelongsTo
+    public function topic(): BelongsTo
     {
-        return $this->belongsTo(Curriculum::class);
+        return $this->belongsTo(CurriculumTopic::class, 'topic_id');
+    }
+
+    public function curriculum()
+    {
+        return $this->topic->curriculum();
     }
 
     public function lessonPlans(): HasMany
@@ -61,14 +61,11 @@ class CurriculumLesson extends Model
     }
 
     // Scopes
-    public function scopeSelected($query)
-    {
-        return $query->where('selected', 1);
-    }
-
     public function scopeForCurriculum($query, $curriculumId)
     {
-        return $query->where('curriculum_id', $curriculumId);
+        return $query->whereHas('topic', function ($q) use ($curriculumId) {
+            $q->where('curriculum_id', $curriculumId);
+        });
     }
 
     public function scopeByType($query, $type)
@@ -76,19 +73,15 @@ class CurriculumLesson extends Model
         return $query->where('type', $type);
     }
 
+    public function scopeWithTopic($query)
+    {
+        return $query->with('topic');
+    }
+
     // Helper methods
-    public function isSelected(): bool
+    public function isOfType($type): bool
     {
-        return $this->selected === 1;
-    }
-
-    public function select()
-    {
-        $this->update(['selected' => 1]);
-    }
-
-    public function deselect()
-    {
-        $this->update(['selected' => 0]);
+        return $this->type === $type;
     }
 }
+

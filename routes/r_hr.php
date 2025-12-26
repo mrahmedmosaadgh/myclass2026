@@ -4,7 +4,8 @@ use App\Http\Controllers\AcademicYearController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ClassroomController;
 use App\Http\Controllers\ClassroomSubjectTeacherController;
-use App\Http\Controllers\CurriculumController;
+use App\Http\Controllers\Curriculum\CurriculumController;
+
 use App\Http\Controllers\GradeController;
 use App\Http\Controllers\GradeSubjectController;
 use App\Http\Controllers\HRController;

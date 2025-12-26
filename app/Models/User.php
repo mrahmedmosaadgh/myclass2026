@@ -27,7 +27,7 @@ class User extends Authenticatable
     use HasPushSubscriptions;
 
     protected $fillable = [
-'name', 'email', 'password', 'last_login', 'last_active', 'is_active', 'role', 'first_login'
+        'name', 'email', 'password', 'last_login', 'last_active', 'is_active', 'role', 'first_login', 'school_id'
     ];
     protected $dates = ['last_login', 'last_active'];
     protected $hidden = [
@@ -50,9 +50,15 @@ class User extends Authenticatable
     {
         return $this->hasOne(Teacher::class);
     }
+    
     public function student()
     {
         return $this->hasOne(student::class);
+    }
+    
+    public function school()
+    {
+        return $this->belongsTo(School::class);
     }
     /**
      * Get the conversations that the user belongs to.

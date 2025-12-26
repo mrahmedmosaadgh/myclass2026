@@ -28,19 +28,29 @@ class CurriculumController extends Controller
     public function getUserSchools()
     {
         $user = Auth::user();
-        
+
         // Get schools based on user role
         $schools = School::query()
             ->when($user->hasRole('superadmin'), function ($query) {
                 return $query; // Superadmin sees all schools
             })
             ->when(!$user->hasRole('superadmin'), function ($query) use ($user) {
-                // Regular users see only their assigned schools
-                return $query->whereHas('users', function ($q) use ($user) {
-                    $q->where('user_id', $user->id);
-                });
+                // Regular users see only their school (based on school_id field)
+                if ($user->school_id) {
+                    return $query->where('id', $user->school_id);
+                } else {
+                    // If user doesn't have school_id, try to get it from teacher/student relationship
+                    if ($user->teacher) {
+                        return $query->where('id', $user->teacher->school_id);
+                    } elseif ($user->student) {
+                        return $query->where('id', $user->student->school_id);
+                    } else {
+                        // No school association found, return empty
+                        return $query->whereRaw('1 = 0');
+                    }
+                }
             })
-            ->select('id', 'name', 'name_ar')
+            ->select('id', 'name', 'data')
             ->orderBy('name')
             ->get();
 

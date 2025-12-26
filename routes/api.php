@@ -200,6 +200,41 @@ Route::middleware(['auth:sanctum', 'web'])->group(function () {
     Route::get('/topics', [App\Http\Controllers\SubjectController::class, 'getTopics']);
 });
 
+// Curriculum Management API Routes
+Route::middleware(['auth:sanctum', 'web'])->prefix('curriculum')->group(function () {
+    // Get user's schools
+    Route::get('/user-schools', [App\Http\Controllers\Curriculum\CurriculumController::class, 'getUserSchools']);
+    
+    // Get school-specific data
+    Route::get('/school/{school}/subjects', [App\Http\Controllers\Curriculum\CurriculumController::class, 'getSchoolSubjects']);
+    Route::get('/school/{school}/grades', [App\Http\Controllers\Curriculum\CurriculumController::class, 'getSchoolGrades']);
+    
+    // Curriculum CRUD operations
+    Route::get('/curricula', [App\Http\Controllers\Curriculum\CurriculumController::class, 'getCurricula']);
+    Route::post('/curricula', [App\Http\Controllers\Curriculum\CurriculumController::class, 'store']);
+    Route::put('/curricula/{curriculum}', [App\Http\Controllers\Curriculum\CurriculumController::class, 'update']);
+    Route::delete('/curricula/{curriculum}', [App\Http\Controllers\Curriculum\CurriculumController::class, 'destroy']);
+    
+    // Curriculum activation/deactivation
+    Route::post('/curricula/{curriculum}/activate', [App\Http\Controllers\Curriculum\CurriculumController::class, 'activate']);
+    Route::post('/curricula/{curriculum}/deactivate', [App\Http\Controllers\Curriculum\CurriculumController::class, 'deactivate']);
+    
+    // Curriculum Topics CRUD operations
+    Route::get('/{curriculum}/topics', [App\Http\Controllers\Curriculum\CurriculumTopicController::class, 'index']);
+    Route::post('/topics', [App\Http\Controllers\Curriculum\CurriculumTopicController::class, 'store']);
+    Route::put('/topics/{topic}', [App\Http\Controllers\Curriculum\CurriculumTopicController::class, 'update']);
+    Route::delete('/topics/{topic}', [App\Http\Controllers\Curriculum\CurriculumTopicController::class, 'destroy']);
+    Route::post('/{curriculum}/topics/reorder', [App\Http\Controllers\Curriculum\CurriculumTopicController::class, 'reorder']);
+    Route::post('/{curriculum}/bulk-import-topics-lessons', [App\Http\Controllers\Curriculum\CurriculumTopicController::class, 'bulkImportTopicsLessons']);
+    
+    // Curriculum Lessons CRUD operations
+    Route::get('/{curriculum}/lessons', [App\Http\Controllers\Curriculum\CurriculumLessonController::class, 'index']);
+    Route::post('/lessons', [App\Http\Controllers\Curriculum\CurriculumLessonController::class, 'store']);
+    Route::put('/lessons/{lesson}', [App\Http\Controllers\Curriculum\CurriculumLessonController::class, 'update']);
+    Route::delete('/lessons/{lesson}', [App\Http\Controllers\Curriculum\CurriculumLessonController::class, 'destroy']);
+    Route::post('/topics/{topic}/lessons/reorder', [App\Http\Controllers\Curriculum\CurriculumLessonController::class, 'reorder']);
+});
+
 // Live Quiz Session API Routes
 Route::middleware(['auth:sanctum', 'web'])->prefix('quiz-sessions')->group(function () {
     // Session management

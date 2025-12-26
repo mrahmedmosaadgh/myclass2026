@@ -46,6 +46,11 @@ class Curriculum extends Model
         return $this->hasMany(CurriculumLesson::class)->orderBy('topic_number', 'lesson_number');
     }
 
+    public function topics(): HasMany
+    {
+        return $this->hasMany(\App\Models\my_class\Curriculums\CurriculumTopic::class)->orderBy('number');
+    }
+
     public function lessonPlans(): HasMany
     {
         return $this->hasMany(CurriculumLessonPlan::class);
