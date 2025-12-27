@@ -54,6 +54,15 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->group(fu
     // Curriculum Management Routes
     Route::get('curriculum/management', [App\Http\Controllers\Curriculum\CurriculumController::class, 'index'])->name('admin.curriculum.management');
 
+    // Year, Semester & Calendar Management
+    Route::get('academic-calendar', [App\Http\Controllers\YearSemesterCalendarController::class, 'index'])->name('admin.academic_calendar.index');
+    Route::post('academic-calendar/year', [App\Http\Controllers\YearSemesterCalendarController::class, 'storeYear'])->name('admin.academic_calendar.year.store');
+    Route::put('academic-calendar/year/{year}/toggle', [App\Http\Controllers\YearSemesterCalendarController::class, 'toggleYearActive'])->name('admin.academic_calendar.year.toggle');
+    Route::get('academic-calendar/year/{year}/calendar-data', [App\Http\Controllers\YearSemesterCalendarController::class, 'getCalendarData'])->name('admin.academic_calendar.year.calendar_data');
+    Route::post('academic-calendar/semester/{semester}', [App\Http\Controllers\YearSemesterCalendarController::class, 'updateSemester'])->name('admin.academic_calendar.semester.update');
+    Route::post('academic-calendar/semester/{semester}/generate', [App\Http\Controllers\YearSemesterCalendarController::class, 'generateCalendar'])->name('admin.academic_calendar.semester.generate');
+    Route::get('academic-calendar/year/{year}/missing-days', [App\Http\Controllers\YearSemesterCalendarController::class, 'getMissingDays'])->name('admin.academic_calendar.year.missing_days');
+
 });
 
 Route::middleware(['auth:sanctum'])->group(function () {

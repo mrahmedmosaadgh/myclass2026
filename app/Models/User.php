@@ -123,6 +123,34 @@ class User extends Authenticatable
     {
         return $this->hasMany(DpReward::class);
     }
+
+
+
+
+   public function schoolIdRole(): ?int
+    {
+        return match ($this->role) {
+            'student' => $this->student?->school_id,
+            'teacher' => $this->teacher?->school_id,
+            'admin'   => $this->adminSchool()?->id,
+            default   => null,
+        };
+    }
+
+    public function schoolId(): ?int
+    {
+        if ($this->teacher) {
+            return $this->teacher->school_id;
+        }
+
+        if ($this->student) {
+            return $this->student->school_id;
+        }
+
+        return null; // no school
+    }
+
+
 }
 
 

@@ -301,21 +301,21 @@ Route::group(['prefix' => 'admin/schedules', 'as' => 'admin.schedules.'], functi
     )->name('notifications.settings');
 
 // Calendar Events Routes
-Route::middleware(['auth'])->group(function () {
-    Route::get('/calendar', [CalendarEventController::class, 'index'])->name('calendar.index');
-    Route::get('/calendar/events', [CalendarEventController::class, 'getEvents'])->name('calendar.events');
-    Route::get('/calendar/event-types', [CalendarEventController::class, 'getEventTypes'])->name('calendar.event-types');
-    Route::get('/calendar/export', [CalendarEventController::class, 'exportEvents'])->name('calendar.export');
+// Route::middleware(['auth'])->group(function () {
+//     Route::get('/calendar', [CalendarEventController::class, 'index'])->name('calendar.index');
+//     Route::get('/calendar/events', [CalendarEventController::class, 'getEvents'])->name('calendar.events');
+//     Route::get('/calendar/event-types', [CalendarEventController::class, 'getEventTypes'])->name('calendar.event-types');
+//     Route::get('/calendar/export', [CalendarEventController::class, 'exportEvents'])->name('calendar.export');
 
-    Route::post('/calendar/events', [CalendarEventController::class, 'store'])->name('calendar.events.store');
-    Route::put('/calendar/events/{calendarEvent}', [CalendarEventController::class, 'update'])->name('calendar.events.update');
-    Route::delete('/calendar/events/{calendarEvent}', [CalendarEventController::class, 'destroy'])->name('calendar.events.destroy');
+//     Route::post('/calendar/events', [CalendarEventController::class, 'store'])->name('calendar.events.store');
+//     Route::put('/calendar/events/{calendarEvent}', [CalendarEventController::class, 'update'])->name('calendar.events.update');
+//     Route::delete('/calendar/events/{calendarEvent}', [CalendarEventController::class, 'destroy'])->name('calendar.events.destroy');
 
 
-    Route::get('/project-manager', function () {
-    return Inertia::render('project_manager/ProjectTracker');
-});
-});
+//     Route::get('/project-manager', function () {
+//     return Inertia::render('project_manager/ProjectTracker');
+// });
+// });
 
 // Developer Routes
 Route::middleware([
