@@ -18,7 +18,13 @@ class WeeklyPlan extends Model
         'academic_year_id',
         'semester_number',
         'week_number',
+        'schedule_id',
+        'copy_id',
         'cst_id',
+        'cw',
+        'hw',
+        'notes',
+        'comments',
     ];
 
     /**
@@ -32,11 +38,53 @@ class WeeklyPlan extends Model
     ];
 
     /**
+     * Appended attributes
+     */
+    protected $appends = ['status'];
+
+    /**
+     * Get computed status based on CW/HW content
+     * 
+     * @return string 'empty' | 'partial' | 'completed'
+     */
+    public function getStatusAttribute(): string
+    {
+        $hasCw = !empty(trim($this->cw ?? ''));
+        $hasHw = !empty(trim($this->hw ?? ''));
+
+        if (!$hasCw && !$hasHw) {
+            return 'empty';
+        }
+
+        if ($hasCw && $hasHw) {
+            return 'completed';
+        }
+
+        return 'partial';
+    }
+
+    /**
      * Get the academic year that owns the weekly plan.
      */
     public function academicYear()
     {
         return $this->belongsTo(AcademicYear::class);
+    }
+
+    /**
+     * Get the schedule that owns the weekly plan.
+     */
+    public function schedule()
+    {
+        return $this->belongsTo(Schedule::class);
+    }
+
+    /**
+     * Get the schedule copy that owns the weekly plan.
+     */
+    public function copy()
+    {
+        return $this->belongsTo(ScheduleCopy::class, 'copy_id');
     }
 
     /**

@@ -69,9 +69,10 @@ return new class extends Migration
 
             // $table->unsignedTinyInteger('period_code')
             //     ->nullable();
-
-            $table->string('period_code',  20)
-                ->nullable();
+ 
+            $table->tinyInteger('period_number');
+            $table->tinyInteger('day_number');
+                
 
                 // ->check('num > 0');
            

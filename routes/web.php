@@ -192,7 +192,7 @@ include dirname(__DIR__) . '/routes/acadimy.php';
 include dirname(__DIR__) . '/routes/qudrat_routes.php';
 include dirname(__DIR__) . '/routes/course_management.php';
 include dirname(__DIR__) . '/routes/dp.php';
-// include dirname(__DIR__) . '/routes/r_api.php';
+include dirname(__DIR__) . '/routes/weekly_system.php';
 
 // TickTick Task Management Routes
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
