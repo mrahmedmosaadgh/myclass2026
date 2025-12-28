@@ -56,6 +56,36 @@
           </q-linear-progress>
         </div>
       </div>
+
+      <!-- Filters -->
+      <div class="row q-gutter-md items-center q-mt-sm">
+        <div class="col-12 col-sm-6 col-md-4">
+          <q-select
+            v-model="selectedClassrooms"
+            :options="classroomOptions"
+            label="Filter by Classroom"
+            outlined
+            dense
+            multiple
+            use-chips
+            clearable
+          />
+        </div>
+        <div class="col-12 col-sm-6 col-md-4">
+          <q-select
+            v-model="selectedDays"
+            :options="dayOptions"
+            label="Filter by Day"
+            outlined
+            dense
+            multiple
+            use-chips
+            clearable
+            emit-value
+            map-options
+          />
+        </div>
+      </div>
     </q-card>
 
     <!-- Loading State -->
@@ -86,6 +116,45 @@
           <div class="plan-header" :style="getPlanStyle(plan)">
             <span class="period-badge">P{{ plan.schedule?.period_number }}</span>
             <span class="subject-name">{{ plan.schedule?.cst?.subject_name }}</span>
+            
+            <q-space />
+            
+            <!-- Copy/Paste Buttons -->
+            <div class="flex q-gutter-xs">
+              <q-btn
+                v-if="copyingPlanId === plan.id"
+                icon="close"
+                size="xs"
+                flat
+                round
+                color="white"
+                @click="(e) => cancelSelection(e)"
+              >
+                <q-tooltip>Cancel Copy</q-tooltip>
+              </q-btn>
+              <q-btn
+                v-else-if="!copiedData"
+                icon="content_copy"
+                size="xs"
+                flat
+                round
+                color="white"
+                @click="(e) => copyPlan(plan, e)"
+              >
+                <q-tooltip>Copy CW, HW & Notes</q-tooltip>
+              </q-btn>
+              <q-btn
+                v-if="copiedData && copyingPlanId !== plan.id"
+                icon="content_paste"
+                size="xs"
+                flat
+                round
+                color="white"
+                @click="(e) => pastePlan(plan, e)"
+              >
+                <q-tooltip>Paste Data</q-tooltip>
+              </q-btn>
+            </div>
           </div>
 
           <!-- Classroom -->
@@ -140,6 +209,14 @@ const semesterNumber = ref(1)
 const maxWeeks = ref(18)
 const currentWeek = ref(1)
 
+// Filters
+const selectedClassrooms = ref([])
+const selectedDays = ref([])
+
+// Copy/Paste state
+const copiedData = ref(null)
+const copyingPlanId = ref(null)
+
 // Dialog state
 const showEditor = ref(false)
 const selectedPlan = ref(null)
@@ -157,10 +234,39 @@ const days = {
 }
 
 // Computed
+const classroomOptions = computed(() => {
+  const classrooms = new Set()
+  weeklyPlans.value.forEach(p => {
+    if (p.schedule?.cst?.classroom_name) {
+      classrooms.add(p.schedule.cst.classroom_name)
+    }
+  })
+  return Array.from(classrooms).sort()
+})
+
+const dayOptions = Object.entries(days).map(([value, label]) => ({
+  label,
+  value: parseInt(value)
+}))
+
+const filteredPlans = computed(() => {
+  let plans = weeklyPlans.value
+
+  if (selectedClassrooms.value?.length) {
+    plans = plans.filter(p => selectedClassrooms.value.includes(p.schedule?.cst?.classroom_name))
+  }
+
+  if (selectedDays.value?.length) {
+    plans = plans.filter(p => selectedDays.value.includes(p.schedule?.day))
+  }
+
+  return plans
+})
+
 const sortedPlansByDay = computed(() => {
   const byDay = {}
   
-  weeklyPlans.value.forEach(plan => {
+  filteredPlans.value.forEach(plan => {
     const dayNum = plan.schedule?.day
     if (!byDay[dayNum]) {
       byDay[dayNum] = {
@@ -232,8 +338,53 @@ const fetchPlans = async () => {
 }
 
 const editPlan = (plan) => {
+  if (copiedData.value) return // Prevent edit mode when in paste mode if needed, or just let them both work
   selectedPlan.value = plan
   showEditor.value = true
+}
+
+const copyPlan = (plan, event) => {
+  event.stopPropagation()
+  copiedData.value = {
+    cw: plan.cw,
+    hw: plan.hw,
+    notes: plan.notes
+  }
+  copyingPlanId.value = plan.id
+  $q.notify({
+    message: 'Data copied. Click "Paste" on other cards to apply.',
+    color: 'info',
+    icon: 'content_copy',
+    timeout: 2000
+  })
+}
+
+const cancelSelection = (event) => {
+  event.stopPropagation()
+  copiedData.value = null
+  copyingPlanId.value = null
+}
+
+const pastePlan = async (plan, event) => {
+  event.stopPropagation()
+  if (!copiedData.value) return
+
+  try {
+    await axios.put(`/weekly-system/api/weekly-plans/${plan.id}`, {
+      ...copiedData.value
+    })
+    
+    // Update local state to avoid full re-fetch
+    plan.cw = copiedData.value.cw
+    plan.hw = copiedData.value.hw
+    plan.notes = copiedData.value.notes
+    plan.status = getStatus(plan)
+    
+    $q.notify({ type: 'positive', message: 'Data pasted successfully!' })
+  } catch (error) {
+    console.error('Error pasting plan:', error)
+    $q.notify({ type: 'negative', message: 'Failed to paste data' })
+  }
 }
 
 const handleSave = async (formData) => {
