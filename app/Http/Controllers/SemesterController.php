@@ -73,4 +73,23 @@ class SemesterController extends Controller
         $semester->delete();
         return redirect()->back()->with('success', 'Semester deleted successfully');
     }
+
+    /**
+     * Get all semesters for API dropdowns
+     */
+    public function apiIndex()
+    {
+        $schoolId = auth()->user()->schoolId();
+        
+        $query = Semester::select('id', 'name');
+
+        if ($schoolId) {
+            $query->where('school_id', $schoolId);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $query->orderBy('name')->get()
+        ]);
+    }
 }

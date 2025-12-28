@@ -1,5 +1,7 @@
 <template>
+  <Head title="Weekly Schedule Copies" />
   <div class="q-pa-md">
+    <WeeklyPlanMenu />
     <!-- Page Header -->
     <div class="row items-center q-mb-lg">
       <div class="col">
@@ -105,6 +107,7 @@ import axios from 'axios'
 import ScheduleCopyCard from '../components/schedule-copies/ScheduleCopyCard.vue'
 import ScheduleCopyForm from '../components/schedule-copies/ScheduleCopyForm.vue'
 import ScheduleCopyFilters from '../components/schedule-copies/ScheduleCopyFilters.vue'
+import WeeklyPlanMenu from '../WeeklyPlanMenu.vue'
 
 const $q = useQuasar()
 
@@ -160,7 +163,7 @@ const filteredCopies = computed(() => {
 const fetchScheduleCopies = async () => {
   loading.value = true
   try {
-    const response = await axios.get('/hr/schedule-copies')
+    const response = await axios.get('/admin/schedule-copies')
     scheduleCopies.value = response.data.data || response.data || []
   } catch (error) {
     console.error('Error fetching schedule copies:', error)
@@ -220,10 +223,10 @@ const handleSubmit = async (formData) => {
   saving.value = true
   try {
     if (formData.isEdit) {
-      await axios.put(`/hr/schedule-copies/${editingCopy.value.id}`, formData)
+      await axios.put(`/admin/schedule-copies/${editingCopy.value.id}`, formData)
       $q.notify({ type: 'positive', message: 'Schedule copy updated successfully' })
     } else {
-      const response = await axios.post('/hr/schedule-copies', formData)
+      const response = await axios.post('/admin/schedule-copies', formData)
       
       // Auto-generate schedules if option is checked
       if (formData.auto_generate && response.data.id) {
@@ -248,7 +251,7 @@ const handleSubmit = async (formData) => {
 
 const handleActivate = async (copy) => {
   try {
-    await axios.put(`/hr/schedule-copies/${copy.id}`, { status: 'active' })
+    await axios.put(`/admin/schedule-copies/${copy.id}`, { status: 'active' })
     $q.notify({ type: 'positive', message: 'Schedule copy activated' })
     await fetchScheduleCopies()
   } catch (error) {
@@ -259,7 +262,7 @@ const handleActivate = async (copy) => {
 
 const handleArchive = async (copy) => {
   try {
-    await axios.put(`/hr/schedule-copies/${copy.id}`, { status: 'archived' })
+    await axios.put(`/admin/schedule-copies/${copy.id}`, { status: 'archived' })
     $q.notify({ type: 'info', message: 'Schedule copy archived' })
     await fetchScheduleCopies()
   } catch (error) {
@@ -276,7 +279,7 @@ const handleDelete = (copy) => {
 const confirmDelete = async () => {
   deleting.value = true
   try {
-    await axios.delete(`/hr/schedule-copies/${deletingCopy.value.id}`)
+    await axios.delete(`/admin/schedule-copies/${deletingCopy.value.id}`)
     $q.notify({ type: 'positive', message: 'Schedule copy deleted' })
     showDeleteDialog.value = false
     await fetchScheduleCopies()

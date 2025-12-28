@@ -71,8 +71,20 @@ Route::middleware(['auth', 'verified'])->prefix('weekly-system')->name('weekly-s
         Route::get('/teacher/my-weekly-plans', [WeeklySystemController::class, 'getMyWeeklyPlans'])
             ->name('api.my-weekly-plans');
         
+        // Get weekly plans (admin can filter by teacher_id)
+        Route::get('/weekly-plans', [WeeklySystemController::class, 'getWeeklyPlans'])
+            ->name('api.weekly-plans');
+        
         // Update a weekly plan (CW/HW/Notes)
         Route::put('/weekly-plans/{weeklyPlan}', [WeeklySystemController::class, 'updateWeeklyPlan'])
             ->name('api.update');
+
+        // Sync a weekly plan
+        Route::post('/weekly-plans/{weeklyPlan}/sync', [WeeklySystemController::class, 'syncHelper'])
+            ->name('api.sync');
+            
+        // Sync entire week
+        Route::post('/weekly-plans/sync-week', [WeeklySystemController::class, 'syncWeek'])
+            ->name('api.sync-week');
     });
 });

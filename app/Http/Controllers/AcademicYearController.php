@@ -91,29 +91,23 @@ class AcademicYearController extends Controller
     /**
      * Get academic years for API (used by Weekly Plans)
      */
+    /**
+     * Get academic years for API (used by Weekly Plans)
+     */
     public function apiIndex()
     {
-        $user = auth()->user();
+        $schoolId = auth()->user()->schoolId();
         
-        if (!$user) {
-            return response()->json(['error' => 'User not authenticated'], 401);
-        }
-        
-        $teacher = Teacher::where('user_id', $user->id)->first();
-        
-        if (!$teacher) {
-            return response()->json(['error' => 'User is not a teacher'], 400);
-        }
-        
-        if (!$teacher->school_id) {
-            return response()->json(['error' => 'Teacher has no school assigned'], 400);
+        $query = AcademicYear::select('id', 'name');
+
+        if ($schoolId) {
+            $query->where('school_id', $schoolId);
         }
 
-        $academicYears = AcademicYear::where('school_id', $teacher->school_id)
-            ->orderBy('start_date', 'desc')
-            ->get(['id', 'name', 'start_date', 'end_date', 'active']);
-
-        return response()->json($academicYears);
+        return response()->json([
+            'success' => true,
+            'data' => $query->orderBy('start_date', 'desc')->get()
+        ]);
     }
 
     public function generateCalendar(AcademicYear $academicYear)

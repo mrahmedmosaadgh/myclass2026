@@ -37,8 +37,21 @@ Route::middleware(['auth:sanctum','web'])->get('/auth-test', function (Request $
 // Academic Years API
 Route::middleware(['auth:sanctum','web'])->get('/academic-years', [App\Http\Controllers\AcademicYearController::class, 'apiIndex']);
 
+// Schools API
+Route::middleware(['auth:sanctum','web'])->get('/schools', [App\Http\Controllers\SchoolController::class, 'apiIndex']);
+
+// Semesters API
+Route::middleware(['auth:sanctum','web'])->get('/semesters', [App\Http\Controllers\SemesterController::class, 'apiIndex']);
+
 // Classroom Subject Teachers API
 Route::middleware(['auth:sanctum','web'])->get('/classroom-subject-teachers/my-assignments', [App\Http\Controllers\ClassroomSubjectTeacherController::class, 'myAssignments']);
+Route::middleware(['auth:sanctum','web'])->get('/classroom-subject-teachers', [App\Http\Controllers\ClassroomSubjectTeacherController::class, 'apiIndex']);
+
+// Classrooms API
+Route::middleware(['auth:sanctum','web'])->get('/classrooms', [App\Http\Controllers\ClassroomController::class, 'apiIndex']);
+
+// Teachers API (adding GET support)
+Route::middleware(['auth:sanctum','web'])->get('/teachers', [App\Http\Controllers\TeacherController::class, 'apiIndex']);
 
 // Teacher Dashboard API
 Route::middleware(['auth:sanctum','web'])

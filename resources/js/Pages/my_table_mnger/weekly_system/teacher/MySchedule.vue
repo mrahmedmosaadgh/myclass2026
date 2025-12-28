@@ -1,5 +1,7 @@
 <template>
+  <Head title="My Weekly Schedule" />
   <div class="q-pa-md">
+    <WeeklyPlanMenu />
     <!-- Page Header -->
     <div class="row items-center q-mb-lg">
       <div class="col">
@@ -86,6 +88,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import { router } from '@inertiajs/vue3'
 import axios from 'axios'
+import WeeklyPlanMenu from '../WeeklyPlanMenu.vue'
 
 const $q = useQuasar()
 
@@ -107,7 +110,7 @@ const periods = [1, 2, 3, 4, 5, 6, 7, 8]
 const scheduleMap = computed(() => {
   const map = {}
   schedules.value.forEach(schedule => {
-    const key = `${schedule.day_number}-${schedule.period_number}`
+    const key = `${schedule.day}-${schedule.period_number}`
     map[key] = schedule
   })
   return map
@@ -143,7 +146,7 @@ const fetchSchedule = async () => {
   loading.value = true
   try {
     // This endpoint should return schedules filtered by the logged-in teacher
-    const response = await axios.get('/api/teacher/my-schedule')
+    const response = await axios.get('/weekly-system/api/teacher/my-schedule')
     schedules.value = response.data.data || response.data || []
   } catch (error) {
     console.error('Error fetching schedule:', error)

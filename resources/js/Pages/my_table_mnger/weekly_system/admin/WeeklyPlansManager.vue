@@ -1,5 +1,7 @@
 <template>
+  <Head title="Weekly Plans Manager" />
   <div class="q-pa-md">
+    <WeeklyPlanMenu />
     <!-- Page Header -->
     <div class="row items-center q-mb-lg">
       <div class="col">
@@ -62,13 +64,25 @@
           </q-select>
         </div>
 
-        <!-- Week Selector -->
-        <div class="col-12 col-sm-5 col-md-4">
-          <WeekSelector
-            v-model="weekNumber"
-            :max-weeks="maxWeeks"
-            :current-week="currentWeek"
-          />
+        <!-- Week Selector & Sync -->
+        <div class="col-12 col-sm-5 col-md-5">
+          <div class="row q-gutter-sm items-center">
+            <WeekSelector
+              v-model="weekNumber"
+              :max-weeks="maxWeeks"
+              :current-week="currentWeek"
+            />
+            <q-btn
+              flat
+              dense
+              round
+              icon="sync"
+              color="secondary"
+              @click="syncCurrentWeek"
+            >
+              <q-tooltip>Sync Current Week with Active Schedule</q-tooltip>
+            </q-btn>
+          </div>
         </div>
 
         <!-- Stats Summary -->
@@ -122,6 +136,7 @@
         <q-separator />
         <q-card-section class="scroll" style="max-height: 80vh">
           <q-table
+            v-model:pagination="planPagination"
             :rows="teacherPlans"
             :columns="planColumns"
             row-key="id"
@@ -158,6 +173,7 @@ import axios from 'axios'
 import WeekSelector from '../components/weekly-plans/WeekSelector.vue'
 import CompletionProgressBar from '../components/weekly-plans/CompletionProgressBar.vue'
 import StatusBadge from '../components/shared/StatusBadge.vue'
+import WeeklyPlanMenu from '../WeeklyPlanMenu.vue'
 
 const $q = useQuasar()
 
@@ -165,6 +181,9 @@ const $q = useQuasar()
 const activeCopies = ref([])
 const teacherStats = ref([])
 const teacherPlans = ref([])
+const planPagination = ref({
+  rowsPerPage: 50
+})
 
 // Selected values
 const selectedCopyId = ref(null)
@@ -189,13 +208,13 @@ const semesterOptions = [
 ]
 
 const planColumns = [
-  { name: 'day', label: 'Day', field: row => getDayName(row.schedule?.day_number), align: 'left' },
-  { name: 'period', label: 'Period', field: row => row.schedule?.period_number, align: 'center' },
-  { name: 'subject', label: 'Subject', field: row => row.schedule?.cst?.subject_name, align: 'left' },
-  { name: 'classroom', label: 'Classroom', field: row => row.schedule?.cst?.classroom_name, align: 'left' },
-  { name: 'status', label: 'Status', field: 'status', align: 'center' },
-  { name: 'cw', label: 'Classwork', field: 'cw', align: 'left' },
-  { name: 'hw', label: 'Homework', field: 'hw', align: 'left' }
+  { name: 'day', label: 'Day', field: row => row.schedule?.day, format: val => getDayName(val), sortable: true, align: 'left' },
+  { name: 'period', label: 'Period', field: row => row.schedule?.period_number, sortable: true, align: 'center' },
+  { name: 'subject', label: 'Subject', field: row => row.schedule?.cst?.subject_name, sortable: true, align: 'left' },
+  { name: 'classroom', label: 'Classroom', field: row => row.schedule?.cst?.classroom_name, sortable: true, align: 'left' },
+  { name: 'status', label: 'Status', field: 'status', sortable: true, align: 'center' },
+  { name: 'cw', label: 'Classwork', field: 'cw', sortable: true, align: 'left' },
+  { name: 'hw', label: 'Homework', field: 'hw', sortable: true, align: 'left' }
 ]
 
 // Computed
@@ -220,7 +239,7 @@ const getDayName = (dayNum) => {
 const fetchActiveCopies = async () => {
   loadingCopies.value = true
   try {
-    const response = await axios.get('/hr/schedule-copies', {
+    const response = await axios.get('/admin/schedule-copies', {
       params: { status: 'active' }
     })
     const copies = response.data.data || response.data || []
@@ -241,7 +260,7 @@ const fetchTeacherStats = async () => {
   
   loading.value = true
   try {
-    const response = await axios.get('/api/weekly-plans/teacher-stats', {
+    const response = await axios.get('/weekly-system/api/weekly-plans/teacher-stats', {
       params: {
         week_number: weekNumber.value,
         academic_year_id: selectedCopy.value?.academic_year_id,
@@ -265,7 +284,7 @@ const generatePlans = async () => {
 
   generating.value = true
   try {
-    const response = await axios.post('/api/weekly-plans/generate', {
+    const response = await axios.post('/weekly-system/api/weekly-plans/generate', {
       copy_id: selectedCopyId.value,
       week_number: weekNumber.value,
       semester_number: semesterNumber.value
@@ -286,12 +305,40 @@ const generatePlans = async () => {
   }
 }
 
+const syncCurrentWeek = async () => {
+  if (!selectedCopy.value) {
+    $q.notify({ type: 'warning', message: 'No active schedule found' })
+    return
+  }
+
+  $q.loading.show({ message: 'Syncing week plans...' })
+  try {
+    const response = await axios.post('/weekly-system/api/weekly-plans/sync-week', {
+      academic_year_id: selectedCopy.value.academic_year_id,
+      semester_number: semesterNumber.value,
+      week_number: weekNumber.value
+    })
+    
+    $q.notify({ 
+      type: 'positive', 
+      message: response.data.message || 'Week synced successfully' 
+    })
+    
+    await fetchTeacherStats()
+  } catch (error) {
+    console.error('Sync error:', error)
+    $q.notify({ type: 'negative', message: 'Failed to sync week' })
+  } finally {
+    $q.loading.hide()
+  }
+}
+
 const viewTeacherPlans = async (teacher) => {
   selectedTeacher.value = teacher
   showTeacherDialog.value = true
   
   try {
-    const response = await axios.get('/api/weekly-plans', {
+    const response = await axios.get('/weekly-system/api/weekly-plans', {
       params: {
         teacher_id: teacher.teacher_id,
         week_number: weekNumber.value,

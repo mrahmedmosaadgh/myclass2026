@@ -68,7 +68,7 @@ const periods = [1, 2, 3, 4, 5, 6, 7, 8]
 const scheduleMap = computed(() => {
   const map = {}
   props.schedules.forEach(schedule => {
-    const key = `${schedule.day_number}-${schedule.period_number}`
+    const key = `${schedule.day}-${schedule.period_number}`
     map[key] = schedule
   })
   return map

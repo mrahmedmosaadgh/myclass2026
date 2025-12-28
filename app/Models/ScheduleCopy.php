@@ -40,6 +40,11 @@ class ScheduleCopy extends Model
         return $this->belongsTo(School::class);
     }
 
+    public function schedules()
+    {
+        return $this->hasMany(Schedule::class, 'copy_id');
+    }
+
     public function academicYear()
     {
         return $this->belongsTo(AcademicYear::class);

@@ -60,29 +60,47 @@ class ScheduleController extends Controller
     }
 
 
-    public function index()
+    public function index(Request $request)
     {
-        $active_copy = ScheduleCopy::where('active', true)->first();
-
-        if (!$active_copy) {
-            return Inertia::render('my_class/admin/Schedules/Index', [
-                'records' => [],
-                'options' => [],
-                'active_copy' => null,
-                'error' => 'No active schedule copy found. Please activate one copy.'
-            ]);
-        }
-
-        $records = Schedule::with([
+        $schoolId = auth()->user()->schoolId();
+        
+        $query = Schedule::with([
             'cst',
             'cst.classroom',
             'cst.subject',
             'cst.teacher',
-        ])
-            ->where('copy_id', $active_copy->id)
-            // ->where('active', true)
-            ->orderBy('period_code')
-            ->get();
+        ]);
+
+        if ($request->has('copy_id')) {
+            $query->where('copy_id', $request->copy_id);
+        } else {
+            $active_copy = ScheduleCopy::where('active', true);
+            if ($schoolId) {
+                $active_copy->where('school_id', $schoolId);
+            }
+            $active_copy = $active_copy->first();
+            
+            if ($active_copy) {
+                $query->where('copy_id', $active_copy->id);
+            }
+        }
+
+        if ($request->has('classroom_id')) {
+            $query->whereHas('cst', function($q) use ($request) {
+                $q->where('classroom_id', $request->classroom_id);
+            });
+        }
+
+        $records = $query->orderBy('period_code')->get();
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'data' => $records
+            ]);
+        }
+
+        $active_copy = ScheduleCopy::where('active', true)->first(); // Fallback for Inertia view
 
         $options = [
             'csts' => ClassroomSubjectTeacher::with(['classroom', 'subject', 'teacher'])
@@ -130,8 +148,15 @@ class ScheduleController extends Controller
                 'period_number' => 'required|integer|min:1|max:8',
                 'active' => 'boolean',
                 'notes' => 'nullable|string|max:1000',
-                'copy_id' => 'exists:schedule_copies,id'  // Optional in validation since we're setting it
+                'copy_id' => 'required|exists:schedule_copies,id',
+                'school_id' => 'nullable|exists:schools,id'
             ]);
+
+            // Set school_id from request, copy, or user
+            if (empty($validated['school_id'])) {
+                $copy = ScheduleCopy::find($validated['copy_id']);
+                $validated['school_id'] = $copy->school_id ?? auth()->user()->schoolId();
+            }
 
             // Convert day and period_number to period_code
             $validated['period_code'] = Schedule::makePeriodCode($validated['day'], $validated['period_number']);
@@ -141,18 +166,20 @@ class ScheduleController extends Controller
             $schedule->load(['cst.classroom', 'cst.subject', 'cst.teacher']);
 
             return response()->json([
+                'success' => true,
                 'message' => 'Schedule created successfully',
-                'record' => $schedule
+                'data' => $schedule
             ], 201);
         } catch (ValidationException $e) {
             return response()->json([
-                'message' => 'store Validation failed',
+                'success' => false,
+                'message' => 'Validation failed',
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Failed to create schedule',
-                'error' => $e->getMessage()
+                'success' => false,
+                'message' => 'Failed to create schedule: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -173,12 +200,9 @@ class ScheduleController extends Controller
                 'day' => 'required|integer|min:1|max:5',
                 'period_number' => 'required|integer|min:1|max:8',
                 'active' => 'boolean',
-                'notes' => 'nullable|string|max:1000'
+                'notes' => 'nullable|string|max:1000',
+                'copy_id' => 'exists:schedule_copies,id'
             ]);
-            $active_copy = ScheduleCopy::where('active', true)->first();
-
-            // Add copy_id from active copy
-            $validated['copy_id'] = $active_copy->id;
 
             // Convert day and period_number to period_code
             $validated['period_code'] = Schedule::makePeriodCode($validated['day'], $validated['period_number']);
@@ -218,6 +242,7 @@ class ScheduleController extends Controller
                     );
 
                 return response()->json([
+                    'success' => false,
                     'message' => $message,
                     'conflict' => $conflictingSchedule
                 ], 422);
@@ -229,12 +254,14 @@ class ScheduleController extends Controller
             $schedule->update($validated);
 
             return response()->json([
+                'success' => true,
                 'message' => 'Schedule updated successfully',
-                'record' => $schedule->fresh(['cst.classroom', 'cst.subject', 'cst.teacher'])
+                'data' => $schedule->fresh(['cst.classroom', 'cst.subject', 'cst.teacher'])
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
+                'success' => false,
                 'message' => 'Error updating schedule',
                 'error' => $e->getMessage()
             ], 500);

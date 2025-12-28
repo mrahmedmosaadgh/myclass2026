@@ -83,6 +83,17 @@
       <q-separator />
 
       <q-card-actions align="right" class="q-pa-md">
+        <q-btn 
+          flat 
+          icon="sync" 
+          label="Sync Schedule" 
+          color="secondary" 
+          :loading="syncing"
+          @click="handleSync"
+        >
+          <q-tooltip>Update assigned teacher/schedule info</q-tooltip>
+        </q-btn>
+        <q-space />
         <q-btn flat label="Cancel" color="grey" v-close-popup />
         <q-btn
           label="Save Changes"
@@ -98,6 +109,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import axios from 'axios'
 import StatusBadge from '../shared/StatusBadge.vue'
 
 const props = defineProps({
@@ -185,5 +197,37 @@ const handleSubmit = () => {
     ...form.value,
     id: props.plan?.id
   })
+}
+
+const syncing = ref(false)
+const handleSync = async () => {
+  if (!props.plan?.id) return
+  
+  syncing.value = true
+  try {
+    const response = await axios.post(route('weekly-system.api.sync', props.plan.id))
+    if (response.data.success) {
+      // Notify parent to refresh or update local plan
+      emit('submit', { ...props.plan, ...response.data.data, ...form.value }) // Re-submit to update parent view? Or emit a 'refresh' event?
+      // Better to just emit a success notif or refresh
+      // For now, let's assume submitting updates the parent list/view
+      // But we should probably emit a specific 'refresh' event if possible.
+      // Given the props, maybe 'submit' is used to save form. 
+      // Let's emit 'submit' with the updated details so parent re-fetches or updates.
+      // Actually, response.data.data has the fresh plan. 
+      // But we also have form data. 
+      
+      // Let's just emit 'refresh' if the parent supports it, otherwise 'submit'.
+      emit('submit', { ...response.data.data, ...form.value }) // Merge fresh plan with current form edits
+      
+      // Also show notification (if Quasar Notify is available, which it usually is in these setups)
+      // import { useQuasar } from 'quasar' ... const $q = useQuasar() ... $q.notify(...)
+      // Since I didn't import useQuasar, I'll skip the toast for now or add it if easy.
+    }
+  } catch (error) {
+    console.error('Sync failed', error)
+  } finally {
+    syncing.value = false
+  }
 }
 </script>

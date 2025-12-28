@@ -14,6 +14,8 @@
       :options="weekOptions"
       outlined
       dense
+      emit-value
+      map-options
       style="min-width: 150px"
       @update:model-value="$emit('update:modelValue', $event)"
     >

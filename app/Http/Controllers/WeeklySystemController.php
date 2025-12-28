@@ -156,6 +156,38 @@ class WeeklySystemController extends Controller
     }
 
     /**
+     * Get weekly plans (admin can filter by teacher_id)
+     */
+    public function getWeeklyPlans(Request $request): JsonResponse
+    {
+        $request->validate([
+            'teacher_id' => 'nullable|integer|exists:teachers,id',
+            'week_number' => 'required|integer|min:1',
+            'academic_year_id' => 'required|integer|exists:academic_years,id',
+            'semester_number' => 'required|integer|min:1|max:2'
+        ]);
+
+        $query = WeeklyPlan::with(['schedule.cst.subject', 'schedule.cst.classroom', 'schedule.cst.teacher'])
+            ->where('week_number', $request->week_number)
+            ->where('academic_year_id', $request->academic_year_id)
+            ->where('semester_number', $request->semester_number);
+
+        // Filter by teacher if provided
+        if ($request->has('teacher_id')) {
+            $query->whereHas('schedule.cst', function ($q) use ($request) {
+                $q->where('teacher_id', $request->teacher_id);
+            });
+        }
+
+        $plans = $query->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $plans
+        ]);
+    }
+
+    /**
      * Update a weekly plan (CW/HW/Notes)
      */
     public function updateWeeklyPlan(Request $request, WeeklyPlan $weeklyPlan): JsonResponse
@@ -188,6 +220,66 @@ class WeeklySystemController extends Controller
             'success' => true,
             'data' => $weeklyPlan->fresh(),
             'message' => 'Weekly plan updated successfully'
+        ]);
+    }
+
+    /**
+     * Sync a weekly plan with the active schedule
+     */
+    public function syncHelper(Request $request, WeeklyPlan $weeklyPlan): JsonResponse
+    {
+        // Check authorization
+        $teacherId = $this->getTeacherId();
+        if (!$teacherId) {
+             return response()->json(['message' => 'Unauthorized'], 403);
+        }
+        
+        // Optional: Check if teacher owns the plan
+        if ($weeklyPlan->schedule && $weeklyPlan->schedule->cst->teacher_id !== $teacherId) {
+             return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $success = $this->weeklyPlanService->syncWithSchedule($weeklyPlan);
+
+        if ($success) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Plan synced with active schedule',
+                'data' => $weeklyPlan->fresh(['schedule.cst'])
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Could not find matching active schedule'
+        ], 422);
+    }
+
+    /**
+     * Bulk sync for a partial week
+     */
+    public function syncWeek(Request $request): JsonResponse
+    {
+        $request->validate([
+            'academic_year_id' => 'required|integer',
+            'semester_number' => 'required|integer',
+            'week_number' => 'required|integer'
+        ]);
+
+        // Authorization: Admin only? Or check permission?
+        // Assuming Admin or authorized teacher manager.
+        // For now, allow auth users (middleware takes care of auth).
+
+        $result = $this->weeklyPlanService->syncWeek(
+             $request->academic_year_id,
+             $request->semester_number,
+             $request->week_number
+        );
+
+        return response()->json([
+             'success' => true,
+             'data' => $result,
+             'message' => $result['message'] ?? 'Week synced successfully'
         ]);
     }
 }

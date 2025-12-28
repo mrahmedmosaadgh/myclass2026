@@ -26,3 +26,13 @@ Implemented a comprehensive Weekly Schedule Management System using Quasar compo
 - **Frontend**: Vue.js, Inertia.js, Quasar Framework.
 - **Backend**: Laravel Services, Eloquent Models, API Controllers.
 - **Routes**: New `routes/weekly_system.php` included in `web.php`.
+📌 Access URLs
+Page	URL
+Schedule Copies	/weekly-system/schedule-copies
+Timetable Editor	/weekly-system/timetable-editor
+Weekly Plans Manager	/weekly-system/weekly-plans-manager
+My Schedule (Teacher)	/weekly-system/my-schedule
+My Weekly Plans (Teacher)	/weekly-system/my-weekly-plans
+🆕 Created Files
+routes/weekly_system.php - All page & API routes
+app/Http/Controllers/WeeklySystemController.php - API endpoints

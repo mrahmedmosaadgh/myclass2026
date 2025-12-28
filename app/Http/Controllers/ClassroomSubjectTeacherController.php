@@ -448,4 +448,25 @@ $data= ClassroomSubjectTeacher::where('school_id', $school_id)->where('teacher_i
 }
 
 
+    public function apiIndex(Request $request)
+    {
+        $schoolId = auth()->user()->schoolId();
+        
+        $query = ClassroomSubjectTeacher::with(['classroom', 'subject', 'teacher']);
+
+        if ($request->has('school_id')) {
+            $query->where('school_id', $request->school_id);
+        } elseif ($schoolId) {
+            $query->where('school_id', $schoolId);
+        }
+
+        if ($request->has('classroom_id')) {
+            $query->where('classroom_id', $request->classroom_id);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $query->get()
+        ]);
+    }
 }

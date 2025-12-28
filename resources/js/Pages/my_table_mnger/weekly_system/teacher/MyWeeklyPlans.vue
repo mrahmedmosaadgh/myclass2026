@@ -1,5 +1,7 @@
 <template>
+  <Head title="My Weekly Plans" />
   <div class="q-pa-md">
+    <WeeklyPlanMenu />
     <!-- Page Header -->
     <div class="row items-center q-mb-lg">
       <div class="col">
@@ -127,6 +129,7 @@ import axios from 'axios'
 import WeekSelector from '../components/weekly-plans/WeekSelector.vue'
 import WeeklyPlanEditor from '../components/weekly-plans/WeeklyPlanEditor.vue'
 import StatusBadge from '../components/shared/StatusBadge.vue'
+import WeeklyPlanMenu from '../WeeklyPlanMenu.vue'
 
 const $q = useQuasar()
 
@@ -158,7 +161,7 @@ const sortedPlansByDay = computed(() => {
   const byDay = {}
   
   weeklyPlans.value.forEach(plan => {
-    const dayNum = plan.schedule?.day_number
+    const dayNum = plan.schedule?.day
     if (!byDay[dayNum]) {
       byDay[dayNum] = {
         dayNumber: dayNum,
@@ -210,7 +213,7 @@ const getPlanStyle = (plan) => {
 const fetchPlans = async () => {
   loading.value = true
   try {
-    const response = await axios.get('/api/teacher/my-weekly-plans', {
+    const response = await axios.get('/weekly-system/api/teacher/my-weekly-plans', {
       params: {
         week_number: weekNumber.value,
         semester_number: semesterNumber.value
@@ -236,7 +239,7 @@ const editPlan = (plan) => {
 const handleSave = async (formData) => {
   saving.value = true
   try {
-    await axios.put(`/api/weekly-plans/${formData.id}`, {
+    await axios.put(`/weekly-system/api/weekly-plans/${formData.id}`, {
       cw: formData.cw,
       hw: formData.hw,
       notes: formData.notes

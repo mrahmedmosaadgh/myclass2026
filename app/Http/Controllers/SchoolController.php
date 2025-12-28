@@ -60,6 +60,25 @@ public function getSubjects($schoolId)
     $subjects = $school->subjects; // Assuming a relationship exists
     return response()->json($subjects);
 }
+
+    /**
+     * Get all schools for API dropdowns
+     */
+    public function apiIndex()
+    {
+        $schoolId = auth()->user()->schoolId();
+        
+        $query = School::select('id', 'name');
+
+        if ($schoolId) {
+            $query->where('id', $schoolId);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $query->orderBy('name')->get()
+        ]);
+    }
     // public function getSubjects($schoolId)
     // {
     //     return Subject::where('school_id', $schoolId)

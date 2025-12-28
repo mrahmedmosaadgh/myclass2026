@@ -192,6 +192,38 @@ class WeeklyPlanController extends Controller
     }
 
     /**
+     * Sync the specified weekly plan with the active schedule.
+     */
+    public function sync(WeeklyPlan $weeklyPlan, WeeklyPlanService $service): JsonResponse
+    {
+        // Check authorization
+        $teacherId = $this->getTeacherId();
+        if (!$teacherId) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $weeklyPlan->load('classroomSubjectTeacher');
+        if ($weeklyPlan->classroomSubjectTeacher->teacher_id !== $teacherId) {
+            // Allow if the NEW teacher is the current user? 
+            // The sync might transfer ownership. 
+            // But usually the user clicking sync currently owns it or is admin.
+            // For now, simple check:
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $success = $service->syncWithSchedule($weeklyPlan);
+
+        if ($success) {
+            return response()->json([
+                'message' => 'Plan synced with active schedule successfully',
+                'plan' => $weeklyPlan->fresh(['classroomSubjectTeacher.teacher'])
+            ]);
+        }
+
+        return response()->json(['message' => 'Could not find matching active schedule'], 422);
+    }
+
+    /**
      * Get weekly plans by academic year for authenticated teacher.
      */
     public function getByAcademicYear(int $academicYearId): JsonResponse

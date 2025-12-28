@@ -1,5 +1,7 @@
 <template>
+  <Head title="Timetable Editor" />
   <div class="q-pa-md">
+    <WeeklyPlanMenu />
     <!-- Page Header -->
     <div class="row items-center q-mb-lg">
       <div class="col">
@@ -142,6 +144,7 @@ import axios from 'axios'
 import TimetableGrid from '../components/timetable/TimetableGrid.vue'
 import CSTAssignDialog from '../components/timetable/CSTAssignDialog.vue'
 import StatusBadge from '../components/shared/StatusBadge.vue'
+import WeeklyPlanMenu from '../WeeklyPlanMenu.vue'
 
 const $q = useQuasar()
 
@@ -183,12 +186,15 @@ const stats = ref(null)
 const fetchScheduleCopies = async () => {
   loadingCopies.value = true
   try {
-    const response = await axios.get('/hr/schedule-copies')
-    scheduleCopies.value = response.data.data || response.data || []
-    // Auto-select active copy if exists
-    const activeCopy = scheduleCopies.value.find(c => c.status === 'active')
-    if (activeCopy) {
-      selectedCopyId.value = activeCopy.id
+    const response = await axios.get('/admin/schedule-copies')
+    const result = response.data.data || response.data || []
+    scheduleCopies.value = Array.isArray(result) ? result : (result.data || [])
+    // Auto-select active copy if exists and not already set
+    if (!selectedCopyId.value) {
+      const activeCopy = scheduleCopies.value.find(c => c.status === 'active')
+      if (activeCopy) {
+        selectedCopyId.value = activeCopy.id
+      }
     }
   } catch (error) {
     console.error('Error fetching schedule copies:', error)
@@ -207,8 +213,9 @@ const fetchClassrooms = async () => {
   loadingClassrooms.value = true
   try {
     const response = await axios.get(`/api/classrooms?school_id=${copy.school_id}`)
-    classrooms.value = response.data.data || response.data || []
-    // Auto-select first classroom
+    const result = response.data.data || response.data || []
+    classrooms.value = Array.isArray(result) ? result : []
+    // Auto-select first classroom if not already set
     if (classrooms.value.length && !selectedClassroomId.value) {
       selectedClassroomId.value = classrooms.value[0].id
     }
@@ -225,13 +232,14 @@ const fetchSchedules = async () => {
 
   loadingSchedules.value = true
   try {
-    const response = await axios.get('/hr/schedules', {
+    const response = await axios.get('/admin/schedules', {
       params: {
         copy_id: selectedCopyId.value,
         classroom_id: selectedClassroomId.value
       }
     })
-    schedules.value = response.data.data || response.data || []
+    const result = response.data.data || response.data || []
+    schedules.value = Array.isArray(result) ? result : []
     calculateStats()
   } catch (error) {
     console.error('Error fetching schedules:', error)
@@ -298,8 +306,16 @@ const fetchSubjects = async () => {
 }
 
 const calculateStats = () => {
+  if (!Array.isArray(schedules.value) || schedules.value.length === 0) {
+    stats.value = {
+      total_slots: 0,
+      assigned_slots: 0,
+      empty_slots: 0
+    }
+    return
+  }
   const total = schedules.value.length
-  const assigned = schedules.value.filter(s => s.cst_id).length
+  const assigned = schedules.value.filter(s => s && s.cst_id).length
   stats.value = {
     total_slots: total,
     assigned_slots: assigned,
@@ -310,14 +326,10 @@ const calculateStats = () => {
 const handleCopyChange = async () => {
   selectedClassroomId.value = null
   schedules.value = []
-  await fetchClassrooms()
 }
 
 const handleClassroomChange = async () => {
-  await Promise.all([
-    fetchSchedules(),
-    fetchCSTOptions()
-  ])
+  // Watcher will handle data fetching
 }
 
 const handleCellClick = ({ day, period, schedule }) => {
@@ -329,14 +341,14 @@ const handleCellClick = ({ day, period, schedule }) => {
 
 const handleEdit = (schedule) => {
   selectedSchedule.value = schedule
-  selectedDay.value = schedule.day_number
+  selectedDay.value = schedule.day
   selectedPeriod.value = schedule.period_number
   showAssignDialog.value = true
 }
 
 const handleClear = async (schedule) => {
   try {
-    await axios.put(`/hr/schedules/${schedule.id}`, {
+    await axios.put(`/admin/schedules/${schedule.id}`, {
       cst_id: null,
       teacher_substitute_id: null,
       co_teacher_id: null,
@@ -355,10 +367,10 @@ const handleAssignSubmit = async (formData) => {
   try {
     if (formData.schedule_id) {
       // Update existing schedule
-      await axios.put(`/hr/schedules/${formData.schedule_id}`, formData)
+      await axios.put(`/admin/schedules/${formData.schedule_id}`, formData)
     } else {
       // Create new schedule
-      await axios.post('/hr/schedules', {
+      await axios.post('/admin/schedules', {
         ...formData,
         copy_id: selectedCopyId.value,
         school_id: scheduleCopies.value.find(c => c.id === selectedCopyId.value)?.school_id,

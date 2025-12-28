@@ -43,20 +43,15 @@ class ScheduleCopyController extends Controller
      * @throws \Exception
      * @return void
      */
-    public function createScheduleEntries(Request $request)
-    // public function createScheduleEntries(ScheduleCopy $scheduleCopy, array $validated)
+    public function createScheduleEntries(ScheduleCopy $scheduleCopy, array $validated)
     {
-        // return $request->all();
-
-       $schedule_copy_id= $request->schedule_copy_id;
-       $school_id= $request->school_id;
-
-        $academicYearId = AcademicYear::where('school_id', $school_id)
-            ->where('active', 1)
-            ->value('id');
+       $schedule_copy_id = $scheduleCopy->id;
+       $school_id = $scheduleCopy->school_id;
+       $academicYearId = $scheduleCopy->academic_year_id;
 
         if (!$academicYearId) {
-            throw new \Exception("No active academic year found for this school.");
+            Log::warning("No academic year found for schedule copy {$scheduleCopy->id}");
+            return;
         }
 
         // Get all classroom subject teachers for this school
@@ -65,7 +60,8 @@ class ScheduleCopyController extends Controller
             ->get();
 
         if ($csts->isEmpty()) {
-            throw new \Exception("No classroom subject teachers found for this school and academic year.");
+            Log::info("No classroom subject teachers found for school {$school_id} and academic year {$academicYearId}");
+            return;
         }
 
         // Create schedule entries for each CST
@@ -107,24 +103,18 @@ class ScheduleCopyController extends Controller
 
     public function index()
     {
-        $records = ScheduleCopy::with(['school', 'academicYear', 'semester', 'createdBy'])
-            ->orderBy('created_at', 'desc')
+        $schoolId = auth()->user()->schoolId();
+        
+        $query = ScheduleCopy::with(['school', 'academicYear', 'semester', 'createdBy']);
+
+        if ($schoolId) {
+            $query->where('school_id', $schoolId);
+        }
+
+        $records = $query->orderBy('created_at', 'desc')
             ->paginate(40);
 
-        return Inertia::render('my_class/admin/ScheduleCopies/Index', [
-            'records' => $records,
-            'options' => [
-                'schools' => School::select('id', 'name')->get(),
-                'academicYears' => AcademicYear::select('id', 'name')->get(),
-                'semesters' => Semester::select('id', 'name')->get(),
-                'statuses' => [
-                    ['value' => 'draft', 'label' => 'Draft'],
-                    ['value' => 'pending', 'label' => 'Pending'],
-                    ['value' => 'active', 'label' => 'Active'],
-                    ['value' => 'archived', 'label' => 'Archived'],
-                ]
-            ]
-        ]);
+        return response()->json($records);
     }
 
     public function store(Request $request)
@@ -153,6 +143,15 @@ class ScheduleCopyController extends Controller
                 'metadata' => 'nullable|json',
                 'notes' => 'nullable|string'
             ]);
+
+            // Ensure user can only create for their own school
+            $schoolId = auth()->user()->schoolId();
+            if ($schoolId && $validated['school_id'] != $schoolId) {
+                 return response()->json([
+                    'message' => 'You do not have permission to create schedule copies for this school.',
+                    'status' => 'error'
+                ], 403);
+            }
 
             $validated['created_by'] = auth()->id();
             $validated['last_modified_by'] = auth()->id();

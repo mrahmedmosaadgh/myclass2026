@@ -89,6 +89,23 @@ class ClassroomController extends Controller
             'message' => 'Classroom deleted successfully'
         ]);
     }
+    public function apiIndex(Request $request)
+    {
+        $schoolId = auth()->user()->schoolId();
+        
+        $query = Classroom::with(['grade', 'stage']);
+
+        if ($request->has('school_id')) {
+            $query->where('school_id', $request->school_id);
+        } elseif ($schoolId) {
+            $query->where('school_id', $schoolId);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $query->orderBy('name')->get()
+        ]);
+    }
 }
 
 
