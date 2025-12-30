@@ -18,38 +18,29 @@
     <!-- Filters Row -->
     <q-card flat bordered class="q-pa-md q-mb-lg">
       <div class="row q-gutter-md items-end">
-        <!-- Schedule Copy Selector -->
+        <!-- Active Schedule Copy -->
         <div class="col-12 col-sm-6 col-md-4">
-          <q-select
-            v-model="selectedCopyId"
-            :options="scheduleCopies"
-            option-value="id"
-            option-label="name"
-            label="Schedule Copy"
-            outlined
-            dense
-            emit-value
-            map-options
-            :loading="loadingCopies"
-            @update:model-value="handleCopyChange"
-          >
-            <template v-slot:prepend>
-              <q-icon name="content_copy" color="primary" />
-            </template>
-            <template v-slot:option="{ opt, itemProps }">
-              <q-item v-bind="itemProps">
-                <q-item-section>
-                  <q-item-label>{{ opt.name }}</q-item-label>
-                  <q-item-label caption>
-                    {{ opt.academic_year?.name }} - {{ opt.semester?.name }}
-                  </q-item-label>
-                </q-item-section>
-                <q-item-section side>
-                  <StatusBadge :status="opt.status" />
-                </q-item-section>
-              </q-item>
-            </template>
-          </q-select>
+          <q-skeleton v-if="loadingCopies" type="rect" height="40px" />
+          <q-banner v-else-if="activeCopy" dense class="bg-grey-1" rounded>
+            <div class="row items-center no-wrap">
+              <q-icon name="content_copy" color="primary" class="q-mr-sm" />
+              <div class="col">
+                <div class="text-weight-medium">{{ activeCopy.name }}</div>
+                <div class="text-caption text-grey-7">
+                  {{ activeCopy.academic_year?.name }} - {{ activeCopy.semester?.name }}
+                </div>
+              </div>
+              <div class="col-auto">
+                <StatusBadge :status="activeCopy.status" />
+              </div>
+            </div>
+          </q-banner>
+          <q-banner v-else dense class="bg-red-1 text-red-9" rounded>
+            <div class="row items-center no-wrap">
+              <q-icon name="error" class="q-mr-sm" />
+              <div>No active schedule copy found</div>
+            </div>
+          </q-banner>
         </div>
 
         <!-- Classroom Selector -->
@@ -65,7 +56,7 @@
             emit-value
             map-options
             :loading="loadingClassrooms"
-            :disable="!selectedCopyId"
+            :disable="!activeCopy"
             @update:model-value="handleClassroomChange"
           >
             <template v-slot:prepend>
@@ -102,10 +93,16 @@
     </div>
 
     <!-- Empty State -->
-    <q-card v-else-if="!selectedCopyId || !selectedClassroomId" flat bordered class="text-center q-pa-xl">
+    <q-card v-else-if="!activeCopy" flat bordered class="text-center q-pa-xl">
+      <q-icon name="error" size="64px" color="red-5" />
+      <p class="text-h6 text-grey-7 q-mt-md">No active schedule copy</p>
+      <p class="text-grey-6">Activate a schedule copy to view and edit the timetable</p>
+    </q-card>
+
+    <q-card v-else-if="!selectedClassroomId" flat bordered class="text-center q-pa-xl">
       <q-icon name="touch_app" size="64px" color="grey-5" />
-      <p class="text-h6 text-grey-7 q-mt-md">Select a schedule copy and classroom</p>
-      <p class="text-grey-6">Choose from the dropdowns above to view and edit the timetable</p>
+      <p class="text-h6 text-grey-7 q-mt-md">Select a classroom</p>
+      <p class="text-grey-6">Choose a classroom to view and edit the timetable</p>
     </q-card>
 
     <!-- Timetable Grid -->
@@ -157,8 +154,10 @@ const teachers = ref([])
 const subjects = ref([])
 
 // Selected values
-const selectedCopyId = ref(null)
 const selectedClassroomId = ref(null)
+const activeCopy = computed(() => {
+  return scheduleCopies.value.find(c => c?.status === 'active' || c?.active === true) || null
+})
 const selectedClassroomName = computed(() => {
   const classroom = classrooms.value.find(c => c.id === selectedClassroomId.value)
   return classroom?.name || ''
@@ -189,13 +188,6 @@ const fetchScheduleCopies = async () => {
     const response = await axios.get('/admin/schedule-copies')
     const result = response.data.data || response.data || []
     scheduleCopies.value = Array.isArray(result) ? result : (result.data || [])
-    // Auto-select active copy if exists and not already set
-    if (!selectedCopyId.value) {
-      const activeCopy = scheduleCopies.value.find(c => c.status === 'active')
-      if (activeCopy) {
-        selectedCopyId.value = activeCopy.id
-      }
-    }
   } catch (error) {
     console.error('Error fetching schedule copies:', error)
     $q.notify({ type: 'negative', message: 'Failed to load schedule copies' })
@@ -205,9 +197,8 @@ const fetchScheduleCopies = async () => {
 }
 
 const fetchClassrooms = async () => {
-  if (!selectedCopyId.value) return
-  
-  const copy = scheduleCopies.value.find(c => c.id === selectedCopyId.value)
+  if (!activeCopy.value) return
+  const copy = activeCopy.value
   if (!copy) return
 
   loadingClassrooms.value = true
@@ -228,13 +219,13 @@ const fetchClassrooms = async () => {
 }
 
 const fetchSchedules = async () => {
-  if (!selectedCopyId.value || !selectedClassroomId.value) return
+  if (!activeCopy.value || !selectedClassroomId.value) return
 
   loadingSchedules.value = true
   try {
     const response = await axios.get('/admin/schedules', {
       params: {
-        copy_id: selectedCopyId.value,
+        copy_id: activeCopy.value.id,
         classroom_id: selectedClassroomId.value
       }
     })
@@ -250,9 +241,8 @@ const fetchSchedules = async () => {
 }
 
 const fetchCSTOptions = async () => {
-  if (!selectedCopyId.value) return
-  
-  const copy = scheduleCopies.value.find(c => c.id === selectedCopyId.value)
+  if (!activeCopy.value) return
+  const copy = activeCopy.value
   if (!copy) return
 
   loadingCST.value = true
@@ -275,9 +265,8 @@ const fetchCSTOptions = async () => {
 }
 
 const fetchTeachers = async () => {
-  if (!selectedCopyId.value) return
-  
-  const copy = scheduleCopies.value.find(c => c.id === selectedCopyId.value)
+  if (!activeCopy.value) return
+  const copy = activeCopy.value
   if (!copy) return
 
   loadingTeachers.value = true
@@ -323,11 +312,6 @@ const calculateStats = () => {
   }
 }
 
-const handleCopyChange = async () => {
-  selectedClassroomId.value = null
-  schedules.value = []
-}
-
 const handleClassroomChange = async () => {
   // Watcher will handle data fetching
 }
@@ -369,11 +353,15 @@ const handleAssignSubmit = async (formData) => {
       // Update existing schedule
       await axios.put(`/admin/schedules/${formData.schedule_id}`, formData)
     } else {
+      if (!activeCopy.value) {
+        $q.notify({ type: 'negative', message: 'No active schedule copy found' })
+        return
+      }
       // Create new schedule
       await axios.post('/admin/schedules', {
         ...formData,
-        copy_id: selectedCopyId.value,
-        school_id: scheduleCopies.value.find(c => c.id === selectedCopyId.value)?.school_id,
+        copy_id: activeCopy.value.id,
+        school_id: activeCopy.value.school_id,
         day_number: formData.day,
         period_number: formData.period
       })
@@ -395,14 +383,17 @@ const handleFilterCST = (searchTerm) => {
 }
 
 // Watchers
-watch(selectedCopyId, async (newVal) => {
-  if (newVal) {
-    await Promise.all([
-      fetchClassrooms(),
-      fetchTeachers(),
-      fetchSubjects()
-    ])
-  }
+watch(activeCopy, async (newVal) => {
+  if (!newVal) return
+  selectedClassroomId.value = null
+  classrooms.value = []
+  schedules.value = []
+  stats.value = null
+  await Promise.all([
+    fetchClassrooms(),
+    fetchTeachers(),
+    fetchSubjects()
+  ])
 })
 
 watch(selectedClassroomId, async (newVal) => {

@@ -30,6 +30,7 @@
         <q-tab name="sync" icon="sync" label="1- Generate & Sync" />
         <q-tab name="monitor" icon="analytics" label="2- Monitor Progress" />
         <q-tab name="print" icon="print" label="3- Print Weekly" />
+        <q-tab name="classroom" icon="meeting_room" label="4- By Classroom" />
       </q-tabs>
 
       <q-separator />
@@ -60,6 +61,14 @@
             :initial-week="weekNumber" 
           />
         </q-tab-panel>
+
+        <!-- TAB 4: BY CLASSROOM -->
+        <q-tab-panel name="classroom" class="q-pa-none">
+          <WeeklyPlanClassroomView 
+            :initial-copy-id="selectedCopyId" 
+            :initial-week="weekNumber" 
+          />
+        </q-tab-panel>
       </q-tab-panels>
     </q-card>
   </div>
@@ -67,10 +76,11 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import WeeklyPlanMenu from '../WeeklyPlanMenu.vue'
-import WeeklyPlanSync from './WeeklyPlanSync.vue'
-import WeeklyPlanStats from './WeeklyPlanStats.vue'
-import WeeklyPlanPrinter from './WeeklyPlanPrinter.vue'
+import WeeklyPlanMenu from '@/Pages/my_table_mnger/weekly_system/WeeklyPlanMenu.vue'
+import WeeklyPlanSync from '@/Pages/my_table_mnger/weekly_system/admin/WeeklyPlanSync.vue'
+import WeeklyPlanStats from '@/Pages/my_table_mnger/weekly_system/admin/WeeklyPlanStats.vue'
+import WeeklyPlanPrinter from '@/Pages/my_table_mnger/weekly_system/admin/WeeklyPlanPrinter.vue'
+import WeeklyPlanClassroomView from '@/Pages/my_table_mnger/weekly_system/admin/WeeklyPlanClassroomView.vue'
 
 // Tab state
 const tab = ref('sync')
