@@ -1,41 +1,29 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import BaseLayout from '@/Layouts/BaseLayout.vue';
+import { useNavigationStore } from '@/Stores/useNavigationStore';
 
+const navStore = useNavigationStore();
 
-const navigation = [
-  { name: 'Dashboard', href: route('dashboard'), icon: '📊' },
-  {
-    name: 'Users',
-    icon: '👥',
-    children: [
-      { name: 'Teachers', href: route('dashboard'), icon: '👨‍🏫' },
-      { name: 'Students', href: route('dashboard'), icon: '👨‍🎓' },
-      { name: 'Parents', href: route('dashboard'), icon: '👨‍👩‍👧' },
-      { name: 'Staff', href: route('dashboard'), icon: '👥' },
-    ]
-  },
-  {
-    name: 'Academics',
-    icon: '🎓',
-    children: [
-      { name: 'Classes', href: route('dashboard'), icon: '📚' },
-      { name: 'Subjects', href: route('dashboard'), icon: '📖' },
-      { name: 'Schedules', href: route('dashboard'), icon: '📅' },
-    ]
-  },
-  { name: 'Attendance', href: route('dashboard'), icon: '📋' },
-  { name: 'Reports', href: route('dashboard'), icon: '📊' },
-  { name: 'Finance', href: route('dashboard'), icon: '💰' },
-  { name: 'Settings', href: route('dashboard'), icon: '⚙️' },
-];
+// Fetch menu on mount
+onMounted(() => {
+  navStore.fetchMenu();
+});
 
-const quickActions = [
-  { name: 'Add User', href: route('dashboard'), icon: '➕' },
-  { name: 'Create Class', href: route('dashboard'), icon: '📚' },
-  { name: 'View Reports', href: route('dashboard'), icon: '📊' },
-];
+// Get navigation from store
+const navigation = computed(() => navStore.visibleItems);
+
+// Quick actions - can be filtered from navigation or hardcoded
+const quickActions = computed(() => {
+  // You can either hardcode these or filter from navigation
+  // For now, keeping hardcoded for quick actions
+  return [
+    { name: 'Add User', href: route('dashboard'), icon: '➕' },
+    { name: 'Create Class', href: route('dashboard'), icon: '📚' },
+    { name: 'View Reports', href: route('dashboard'), icon: '📊' },
+  ];
+});
 
 const expandedItems = ref(new Set());
 
@@ -66,24 +54,29 @@ const toggleExpand = (itemName) => {
     <!-- Responsive Navigation -->
     <template #responsive-navigation>
       <div class="pt-2 pb-3 space-y-1">
-        <template v-for="item in navigation" :key="item.name">
-          <button v-if="item.children"
-                  @click="toggleExpand(item.name)"
+        <!-- Loading state -->
+        <div v-if="navStore.isLoading" class="pl-3 pr-4 py-2 text-gray-500">
+          Loading navigation...
+        </div>
+        
+        <template v-else v-for="item in navigation" :key="item.id">
+          <button v-if="item.children && item.children.length > 0"
+                  @click="toggleExpand(item.label)"
                   class="w-full text-left block pl-3 pr-4 py-2 border-l-4 text-base font-medium hover:bg-gray-50 hover:border-gray-300">
-            {{ item.icon }} {{ item.name }}
+            {{ item.icon }} {{ item.label }}
           </button>
-          <div v-if="item.children && expandedItems.has(item.name)" class="ml-4">
+          <div v-if="item.children && item.children.length > 0 && expandedItems.has(item.label)" class="ml-4">
             <Link v-for="child in item.children"
-                  :key="child.name"
-                  :href="child.href"
+                  :key="child.id"
+                  :href="child.route ? route(child.route) : '#'"
                   class="block pl-3 pr-4 py-2 border-l-4 text-sm font-medium hover:bg-gray-50 hover:border-gray-300">
-              {{ child.icon }} {{ child.name }}
+              {{ child.icon }} {{ child.label }}
             </Link>
           </div>
-          <Link v-else-if="!item.children"
-                :href="item.href"
+          <Link v-else-if="!item.children || item.children.length === 0"
+                :href="item.route ? route(item.route) : '#'"
                 class="block pl-3 pr-4 py-2 border-l-4 text-base font-medium hover:bg-gray-50 hover:border-gray-300">
-            {{ item.icon }} {{ item.name }}
+            {{ item.icon }} {{ item.label }}
           </Link>
         </template>
       </div>
@@ -92,15 +85,19 @@ const toggleExpand = (itemName) => {
     <!-- Sidebar -->
     <template #sidebar>
       <nav class="mt-5 px-2">
-        <div class="space-y-1">
-          <template v-for="item in navigation" :key="item.name">
+        <div v-if="navStore.isLoading" class="text-gray-500 px-2 py-2">
+          Loading navigation...
+        </div>
+        
+        <div v-else class="space-y-1">
+          <template v-for="item in navigation" :key="item.id">
             <!-- Items with children -->
-            <div v-if="item.children" class="space-y-1">
-              <button @click="toggleExpand(item.name)"
+            <div v-if="item.children && item.children.length > 0" class="space-y-1">
+              <button @click="toggleExpand(item.label)"
                       class="w-full group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900">
                 <span class="mr-3 flex-shrink-0">{{ item.icon }}</span>
-                {{ item.name }}
-                <svg :class="[expandedItems.has(item.name) ? 'transform rotate-90' : '', 'ml-auto h-5 w-5']"
+                {{ item.label }}
+                <svg :class="[expandedItems.has(item.label) ? 'transform rotate-90' : '', 'ml-auto h-5 w-5']"
                      xmlns="http://www.w3.org/2000/svg"
                      viewBox="0 0 20 20"
                      fill="currentColor">
@@ -110,29 +107,29 @@ const toggleExpand = (itemName) => {
                 </svg>
               </button>
 
-              <div v-show="expandedItems.has(item.name)" class="space-y-1">
+              <div v-show="expandedItems.has(item.label)" class="space-y-1">
                 <Link v-for="child in item.children"
-                      :key="child.name"
-                      :href="child.href"
-                      :class="[$page.url.startsWith(child.href)
+                      :key="child.id"
+                      :href="child.route ? route(child.route) : '#'"
+                      :class="[child.route && $page.url.startsWith(route(child.route))
                         ? 'bg-indigo-50 text-indigo-600'
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
                         'group flex items-center pl-10 pr-2 py-2 text-sm font-medium rounded-md']">
                   <span class="mr-3 flex-shrink-0">{{ child.icon }}</span>
-                  {{ child.name }}
+                  {{ child.label }}
                 </Link>
               </div>
             </div>
 
             <!-- Regular items -->
             <Link v-else
-                  :href="item.href"
-                  :class="[$page.url.startsWith(item.href)
+                  :href="item.route ? route(item.route) : '#'"
+                  :class="[item.route && $page.url.startsWith(route(item.route))
                     ? 'bg-indigo-50 text-indigo-600'
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
                     'group flex items-center px-2 py-2 text-base font-medium rounded-md']">
               <span class="mr-3 flex-shrink-0">{{ item.icon }}</span>
-              {{ item.name }}
+              {{ item.label }}
             </Link>
           </template>
         </div>

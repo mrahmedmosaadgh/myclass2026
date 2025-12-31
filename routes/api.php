@@ -259,8 +259,28 @@ Route::middleware(['auth:sanctum', 'web'])->prefix('quiz-sessions')->group(funct
     Route::post('/{session}/state', [App\Http\Controllers\QuizSessionController::class, 'updateState']);
     Route::patch('/{session}/settings', [App\Http\Controllers\QuizSessionController::class, 'updateSettings']);
     
+
     // Answer submission (student)
     Route::post('/{session}/answers', [App\Http\Controllers\QuizSessionController::class, 'submitAnswer']);
 });
+
+// Navigation API
+Route::middleware(['auth:sanctum'])->get('/navigation/menu', [\App\Http\Controllers\Api\NavigationController::class, 'index']);
+
+// Load Feature API Routes (Modules)
+$modulesPath = base_path('routes/modules');
+
+if (file_exists($modulesPath)) {
+    $modules = scandir($modulesPath);
+    foreach ($modules as $module) {
+        if ($module === '.' || $module === '..') continue;
+        
+        $moduleApiRoute = $modulesPath . '/' . $module . '/api.php';
+        if (file_exists($moduleApiRoute)) {
+            require $moduleApiRoute;
+        }
+    }
+}
+
 
 

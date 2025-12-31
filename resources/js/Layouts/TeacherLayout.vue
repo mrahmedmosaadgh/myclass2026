@@ -1,25 +1,26 @@
 <script setup>
-import { ref } from 'vue';
+import { onMounted, computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import BaseLayout from '@/Layouts/BaseLayout.vue';
+import { useNavigationStore } from '@/Stores/useNavigationStore';
 
-const navigation = [
-  { name: 'Dashboard', href: route('dashboard'), icon: '📊' },
-  { name: 'Classes', href: route('dashboard'), icon: '👨‍🏫' },
-  { name: 'Students', href: route('dashboard'), icon: '👨‍🎓' },
-  { name: 'Assignments', href: route('dashboard'), icon: '📝' },
-  { name: 'Grades', href: route('dashboard'), icon: '📈' },
-  { name: 'Attendance', href: route('dashboard'), icon: '📅' },
-  { name: 'Resources', href: route('dashboard'), icon: '📚' },
-  { name: 'Messages', href: route('dashboard'), icon: '💬' },
-  { name: 'Calendar', href: route('dashboard'), icon: '📆' },
-];
+const navStore = useNavigationStore();
 
-const quickActions = [
-  { name: 'Take Attendance', href: route('dashboard'), icon: '✍️' },
-  { name: 'Create Assignment', href: route('dashboard'), icon: '📋' },
-  { name: 'Schedule Class', href: route('dashboard'), icon: '🕒' },
-];
+// Fetch menu on mount
+onMounted(() => {
+  navStore.fetchMenu();
+});
+
+// Get navigation from store
+const navigation = computed(() => navStore.visibleItems);
+
+const quickActions = computed(() => {
+  return [
+    { name: 'Take Attendance', href: route('dashboard'), icon: '✍️' },
+    { name: 'Create Assignment', href: route('dashboard'), icon: '📋' },
+    { name: 'Schedule Class', href: route('dashboard'), icon: '🕒' },
+  ];
+});
 </script>
 
 <template>
@@ -40,11 +41,15 @@ const quickActions = [
     <!-- Responsive Navigation -->
     <template #responsive-navigation>
       <div class="pt-2 pb-3 space-y-1">
-        <Link v-for="item in navigation"
-              :key="item.name"
-              :href="item.href"
+        <div v-if="navStore.isLoading" class="pl-3 pr-4 py-2 text-gray-500">
+          Loading navigation...
+        </div>
+        
+        <Link v-else v-for="item in navigation"
+              :key="item.id"
+              :href="item.route ? route(item.route) : '#'"
               class="block pl-3 pr-4 py-2 border-l-4 text-base font-medium hover:bg-gray-50 hover:border-gray-300">
-          {{ item.icon }} {{ item.name }}
+          {{ item.icon }} {{ item.label }}
         </Link>
       </div>
     </template>
@@ -52,16 +57,20 @@ const quickActions = [
     <!-- Sidebar -->
     <template #sidebar>
       <nav class="mt-5 px-2">
-        <div class="space-y-1">
+        <div v-if="navStore.isLoading" class="text-gray-500 px-2 py-2">
+          Loading navigation...
+        </div>
+        
+        <div v-else class="space-y-1">
           <Link v-for="item in navigation"
-                :key="item.name"
-                :href="item.href"
-                :class="[$page.url.startsWith(item.href) 
+                :key="item.id"
+                :href="item.route ? route(item.route) : '#'"
+                :class="[item.route && $page.url.startsWith(route(item.route)) 
                   ? 'bg-blue-50 text-blue-600'
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
                   'group flex items-center px-2 py-2 text-base font-medium rounded-md']">
             <span class="mr-3 flex-shrink-0">{{ item.icon }}</span>
-            {{ item.name }}
+            {{ item.label }}
           </Link>
         </div>
       </nav>

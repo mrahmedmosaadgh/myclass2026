@@ -15,8 +15,8 @@ Before you start coding a new feature or fixing a bug:
 Once the feature or bug fix is finished and verified:
 
 1.  **Document in History**: Create/update a history file in `docs/history/`.
-    - **Format**: `YYYY-MM-DD_history_feature_name.md`
-    - **Title**: Start the file content with `# YYYY-MM-DD HH:MM | Title`.
+    - **Format**: `<TIMESTAMP>_history_feature_name.md`
+    - **Title**: Start the file content with `# <TIMESTAMP> | Title`.
 2.  **Stage Changes**: `git add .`
 3.  **Commit**: Use the mandatory detailed message format:
     ```bash
@@ -58,7 +58,7 @@ Before you start coding a new feature or fixing a bug:
 Once the feature or bug fix is finished and verified:
 
 1.  **Document in History**: Create/update a history file in `docs/history/`.
-    - **Format**: `YYYY-MM-DD_history_feature_name.md`
+    - **Format**: `YYYY-MM-DD_HH-MM_history_feature_name.md`
     - **Title**: Start the file content with `# YYYY-MM-DD HH:MM | Title`.
 2.  **Stage Changes**: `git add .`
 3.  **Commit**: Use the mandatory detailed message format:

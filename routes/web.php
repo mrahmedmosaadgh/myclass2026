@@ -518,11 +518,20 @@ Route::middleware([
 Route::get('/register-school-admin', [App\Http\Controllers\SchoolHrAdminRegistrationController::class, 'create'])->name('register.school_admin');
 Route::post('/register-school-admin', [App\Http\Controllers\SchoolHrAdminRegistrationController::class, 'store'])->name('register.school_admin.store');
 
-// School Management for HR Admin
-Route::middleware(['auth:sanctum', 'verified'])->group(function () {
-    Route::get('/my-school', [App\Http\Controllers\SchoolHrAdminRegistrationController::class, 'mySchool'])->name('my_school.manage');
-    Route::put('/my-school/{school}', [App\Http\Controllers\SchoolHrAdminRegistrationController::class, 'update'])->name('my_school.update');
-    Route::get('/school-logos/{path}', [App\Http\Controllers\SchoolHrAdminRegistrationController::class, 'logo'])
-        ->where('path', '.*')
-        ->name('school.logo');
-});
+
+// ... existing code ...
+
+// Load Feature Routes (Modules)
+$modulesPath = base_path('routes/modules');
+if (file_exists($modulesPath)) {
+    $modules = scandir($modulesPath);
+    foreach ($modules as $module) {
+        if ($module === '.' || $module === '..') continue;
+        
+        $moduleWebRoute = $modulesPath . '/' . $module . '/web.php';
+        if (file_exists($moduleWebRoute)) {
+            require $moduleWebRoute;
+        }
+    }
+}
+
