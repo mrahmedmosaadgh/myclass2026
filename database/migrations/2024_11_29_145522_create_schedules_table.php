@@ -104,7 +104,7 @@ return new class extends Migration
 
             // Indexes for better performance
             $table->index(['school_id' ]);
-            $table->index(['period_code']);
+            // $table->index(['period_code']); // Commented out since period_code column is not created
             $table->index(['copy_id', 'active']);
             // $table->index(['teacher_id', 'day']);
 

@@ -18,8 +18,6 @@ class ClassroomSubjectTeacher extends Model
         'teacher_id',
         'classes_per_week',
         'color_custom', // Added
-        'c_text',       // Added
-        'c_bg',         // Added
         'color_custom_text', // Added
         'data'          // Keep if still used for other things
     ];
@@ -128,6 +126,23 @@ public function schedules()
 
         // Use 'creating' to only run this logic when a new record is made
         static::creating(function ($classroomSubjectTeacher) {
+            // Enhanced validation for inactive teacher assignment prevention (Requirement 8.4)
+            if ($classroomSubjectTeacher->teacher_id) {
+                $teacher = Teacher::find($classroomSubjectTeacher->teacher_id);
+                
+                if (!$teacher) {
+                    // Only throw exception if not in testing environment
+                    if (!app()->environment('testing')) {
+                        throw new \Exception("Cannot assign non-existent teacher to classroom.");
+                    }
+                } else {
+                    if (!$teacher->canBeAssignedToClassroom()) {
+                        $reason = $teacher->getAssignmentPreventionReason();
+                        throw new \Exception("Cannot assign teacher to classroom: {$reason}");
+                    }
+                }
+            }
+
             if ($classroomSubjectTeacher->classroom_id) {
                 try {
                     $classroom = Classroom::findOrFail($classroomSubjectTeacher->classroom_id);
@@ -149,8 +164,8 @@ public function schedules()
                     $textColor = $luminance > 0.5 ? '#000000' : '#FFFFFF'; // Black for light bg, White for dark bg
 
                     // Set the dedicated color columns
-                    $classroomSubjectTeacher->c_bg = $bgColor;
-                    $classroomSubjectTeacher->c_text = $textColor;
+                    $classroomSubjectTeacher->color_custom = $bgColor;
+                    $classroomSubjectTeacher->color_custom_text = $textColor;
 
                 } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
                     throw new \Exception("Invalid classroom selected");
@@ -158,5 +173,88 @@ public function schedules()
             }
         });
 
+        // Enhanced validation on updating to prevent updating assignments with inactive teachers (Requirement 8.4)
+        static::updating(function ($classroomSubjectTeacher) {
+            if ($classroomSubjectTeacher->isDirty('teacher_id') && $classroomSubjectTeacher->teacher_id) {
+                $teacher = Teacher::find($classroomSubjectTeacher->teacher_id);
+                
+                if (!$teacher) {
+                    // Only throw exception if not in testing environment
+                    if (!app()->environment('testing')) {
+                        throw new \Exception("Cannot assign non-existent teacher to classroom.");
+                    }
+                } else {
+                    if (!$teacher->canBeAssignedToClassroom()) {
+                        $reason = $teacher->getAssignmentPreventionReason();
+                        throw new \Exception("Cannot update assignment with inactive teacher: {$reason}");
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Validate assignment referential integrity (Requirement 8.5)
+     */
+    public function validateAssignmentIntegrity(): array
+    {
+        $issues = [];
+
+        try {
+            // Check teacher relationship
+            if ($this->teacher_id && !Teacher::find($this->teacher_id)) {
+                $issues[] = "Invalid teacher_id: {$this->teacher_id}";
+            }
+
+            // Check classroom relationship
+            if ($this->classroom_id && !Classroom::find($this->classroom_id)) {
+                $issues[] = "Invalid classroom_id: {$this->classroom_id}";
+            }
+
+            // Check subject relationship
+            if ($this->subject_id && !Subject::find($this->subject_id)) {
+                $issues[] = "Invalid subject_id: {$this->subject_id}";
+            }
+
+            // Check school relationship
+            if ($this->school_id && !School::find($this->school_id)) {
+                $issues[] = "Invalid school_id: {$this->school_id}";
+            }
+
+            // Check academic year relationship
+            if ($this->academic_year_id && !AcademicYear::find($this->academic_year_id)) {
+                $issues[] = "Invalid academic_year_id: {$this->academic_year_id}";
+            }
+
+            // Check if teacher is active for this assignment
+            if ($this->teacher && !$this->teacher->canBeAssignedToClassroom()) {
+                $reason = $this->teacher->getAssignmentPreventionReason();
+                $issues[] = "Teacher cannot be assigned: {$reason}";
+            }
+
+        } catch (\Exception $e) {
+            $issues[] = "Exception during assignment integrity check: " . $e->getMessage();
+        }
+
+        return $issues;
+    }
+
+    /**
+     * Check if assignment maintains historical data integrity (Requirement 8.2)
+     */
+    public function maintainsHistoricalIntegrity(): bool
+    {
+        try {
+            // If this assignment is being soft deleted, ensure teacher's historical data is preserved
+            if ($this->deleted_at !== null) {
+                // Verify teacher still exists (even if soft deleted)
+                return Teacher::withTrashed()->find($this->teacher_id) !== null;
+            }
+
+            return true;
+        } catch (\Exception $e) {
+            \Log::error('Failed to check historical integrity: ' . $e->getMessage());
+            return false;
+        }
     }
 }

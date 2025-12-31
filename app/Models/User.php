@@ -40,6 +40,7 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'is_active' => 'boolean',
     ];
 
     protected $appends = [
@@ -127,18 +128,23 @@ class User extends Authenticatable
 
 
 
-   public function schoolIdRole(): ?int
+    public function schoolIdRole(): ?int
     {
         return match ($this->role) {
             'student' => $this->student?->school_id,
             'teacher' => $this->teacher?->school_id,
             'admin'   => $this->adminSchool()?->id,
+            'hr_admin' => $this->school_id,
             default   => null,
         };
     }
 
     public function schoolId(): ?int
     {
+        if ($this->school_id) {
+            return $this->school_id;
+        }
+
         if ($this->teacher) {
             return $this->teacher->school_id;
         }

@@ -9,7 +9,11 @@ class School extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'h_r_id'];
+    protected $fillable = ['name', 'h_r_id', 'data'];
+
+    protected $casts = [
+        'data' => 'array',
+    ];
 
     public function hr()
     {

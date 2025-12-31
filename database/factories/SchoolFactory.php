@@ -13,11 +13,14 @@ class SchoolFactory extends Factory
     {
         return [
             'name' => $this->faker->company() . ' School',
-            'address' => $this->faker->address(),
-            'phone' => $this->faker->phoneNumber(),
-            'email' => $this->faker->unique()->safeEmail(),
-            'logo' => null,
-            'status' => 'active',
+            'h_r_id' => \App\Models\HR::factory(),
+            'data' => [
+                'address' => $this->faker->address(),
+                'phone' => $this->faker->phoneNumber(),
+                'email' => $this->faker->unique()->safeEmail(),
+                'logo' => null,
+                'status' => 'active',
+            ],
         ];
     }
 }

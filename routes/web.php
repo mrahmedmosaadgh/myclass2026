@@ -133,6 +133,18 @@ Route::middleware([
             return Inertia::render('my_class/teacher/peresntation_2/peresentation_2');
         })->name('teacher.presentation');
     });
+
+    // Teacher Import Routes
+    Route::get('teachers/import', [\App\Http\Controllers\TeacherImportController::class, 'index'])
+        ->name('teachers.import');
+    Route::get('teachers/import/schools', [\App\Http\Controllers\TeacherImportController::class, 'getSchools'])
+        ->name('teachers.import.schools');
+    Route::get('teachers/import/academic-year/{schoolId}', [\App\Http\Controllers\TeacherImportController::class, 'getActiveAcademicYear'])
+        ->name('teachers.import.academic-year');
+    Route::post('teachers/import/validate', [\App\Http\Controllers\TeacherImportController::class, 'validateImport'])
+        ->name('teachers.import.validate');
+    Route::post('teachers/import/process', [\App\Http\Controllers\TeacherImportController::class, 'processImport'])
+        ->name('teachers.import.process');
 });
 
 // Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
@@ -161,10 +173,12 @@ Route::get('/network-test', function () {
 
 // Test route to check CSRF cookie and session
 Route::get('/sanctum-test', function () {
+    $user = Auth::user();
+
     return response()->json([
         'message' => 'CSRF cookie is set',
         'session_id' => session()->getId(),
-        'user' => auth()->check() ? auth()->user()->only(['id', 'name', 'email']) : null,
+        'user' => $user ? ['id' => $user->id, 'name' => $user->name, 'email' => $user->email] : null,
     ]);
 });
 
@@ -498,4 +512,17 @@ Route::middleware([
         Route::get('/join', [App\Http\Controllers\QuizSessionController::class, 'studentJoin'])
             ->name('join');
     });
+});
+
+// School HR Admin Registration
+Route::get('/register-school-admin', [App\Http\Controllers\SchoolHrAdminRegistrationController::class, 'create'])->name('register.school_admin');
+Route::post('/register-school-admin', [App\Http\Controllers\SchoolHrAdminRegistrationController::class, 'store'])->name('register.school_admin.store');
+
+// School Management for HR Admin
+Route::middleware(['auth:sanctum', 'verified'])->group(function () {
+    Route::get('/my-school', [App\Http\Controllers\SchoolHrAdminRegistrationController::class, 'mySchool'])->name('my_school.manage');
+    Route::put('/my-school/{school}', [App\Http\Controllers\SchoolHrAdminRegistrationController::class, 'update'])->name('my_school.update');
+    Route::get('/school-logos/{path}', [App\Http\Controllers\SchoolHrAdminRegistrationController::class, 'logo'])
+        ->where('path', '.*')
+        ->name('school.logo');
 });

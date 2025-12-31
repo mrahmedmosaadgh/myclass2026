@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\TeacherImportController;
 use App\Http\Controllers\DocumentationController;
 use App\Http\Controllers\PermissionsController;
 use App\Http\Controllers\ScheduleCopyController;
@@ -62,6 +63,16 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->group(fu
     Route::post('academic-calendar/semester/{semester}', [App\Http\Controllers\YearSemesterCalendarController::class, 'updateSemester'])->name('admin.academic_calendar.semester.update');
     Route::post('academic-calendar/semester/{semester}/generate', [App\Http\Controllers\YearSemesterCalendarController::class, 'generateCalendar'])->name('admin.academic_calendar.semester.generate');
     Route::get('academic-calendar/year/{year}/missing-days', [App\Http\Controllers\YearSemesterCalendarController::class, 'getMissingDays'])->name('admin.academic_calendar.year.missing_days');
+
+    // Teacher Import Routes
+    Route::prefix('teachers')->name('teachers.')->group(function () {
+        Route::get('import', [TeacherImportController::class, 'index'])->name('import');
+        Route::get('import/schools', [TeacherImportController::class, 'getSchools'])->name('import.schools');
+        Route::get('import/academic-year/{schoolId}', [TeacherImportController::class, 'getActiveAcademicYear'])->name('import.academic_year');
+        Route::post('import/validate-file', [TeacherImportController::class, 'validateFile'])->name('import.validate_file');
+        Route::post('import/validate', [TeacherImportController::class, 'validateImport'])->name('import.validate');
+        Route::post('import/process', [TeacherImportController::class, 'processImport'])->name('import.process');
+    });
 
 });
 

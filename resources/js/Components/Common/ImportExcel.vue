@@ -184,7 +184,7 @@ const props = defineProps({
     }
 });
 
-const emit = defineEmits(['imported']);
+const emit = defineEmits(['imported', 'validation-success']);
 
 // Refs
 const fileInput = ref(null);
@@ -257,22 +257,27 @@ const validatePreviewData = async () => {
         const response = await axios.post(props.validateUrl, {
             data: previewData.value.map(row => row.data),
             required_fields: required_fields,
-            columns: props.columns // Add this line to pass the full columns configuration
+            columns: props.columns
         });
-console.log(response.data )
-console.log(response.data.fileData)
-
 
         // Set status based on validation results
+        const hasErrors = response.data.summary?.invalid_rows > 0 || 
+                         response.data.summary?.errors?.length > 0;
+        
         previewData.value = previewData.value.map((row, index) => ({
             ...row,
-            status: response.data.stats.invalid_rows > 0 ? 'warning' : 'valid'
+            status: hasErrors ? 'warning' : 'valid'
         }));
         
         // Emit validation success with the response data
         emit('validation-success', response.data);
     } catch (error) {
         console.error('Validation error:', error);
+        // Set all rows to error status
+        previewData.value = previewData.value.map(row => ({
+            ...row,
+            status: 'error'
+        }));
     }
 };
 
