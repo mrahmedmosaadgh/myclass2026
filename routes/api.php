@@ -265,7 +265,7 @@ Route::middleware(['auth:sanctum', 'web'])->prefix('quiz-sessions')->group(funct
 });
 
 // Navigation API
-Route::middleware(['auth:sanctum'])->get('/navigation/menu', [\App\Http\Controllers\Api\NavigationController::class, 'index']);
+
 
 // Load Feature API Routes (Modules)
 $modulesPath = base_path('routes/modules');

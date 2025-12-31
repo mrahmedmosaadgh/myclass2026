@@ -19,6 +19,7 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->group(fu
     Route::delete('/permissions/{permission}', [PermissionsController::class, 'destroy'])->name('permissions.destroy');
 
     // Roles
+    Route::get('/roles', [PermissionsController::class, 'index'])->name('admin.roles.index');
     Route::post('/roles', [PermissionsController::class, 'storeRole'])->name('admin.roles.store');
     Route::put('/roles/{role}', [PermissionsController::class, 'updateRole'])->name('admin.roles.update');
     Route::delete('/roles/{role}', [PermissionsController::class, 'destroyRole'])->name('admin.roles.destroy');

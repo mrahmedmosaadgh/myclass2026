@@ -20,6 +20,9 @@ class EventServiceProvider extends ServiceProvider
     {
         parent::boot();
 
+        // Register Menu Observer for cache invalidation
+        \App\Models\Menu::observe(\App\Observers\MenuObserver::class);
+
         Event::listen(Authenticated::class, function ($event) {
             $user = $event->user;
             $user->last_login = now();

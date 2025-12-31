@@ -39,6 +39,9 @@ Route::middleware([
         return Inertia::render('Dashboard');
     })->name('dashboard');
 
+    // Navigation Menu (moved from api.php to share session state)
+    Route::get('/api/navigation/menu', [\App\Http\Controllers\Api\NavigationController::class, 'index']);
+
     // Quick link to Course Management
     Route::get('/courses', function () {
         return redirect()->route('course-management.courses.index');
@@ -145,6 +148,28 @@ Route::middleware([
         ->name('teachers.import.validate');
     Route::post('teachers/import/process', [\App\Http\Controllers\TeacherImportController::class, 'processImport'])
         ->name('teachers.import.process');
+
+    // Admin Menu Management
+    Route::middleware(['permission:manage-menus'])->group(function () {
+        Route::get('/admin/menus', [App\Http\Controllers\Admin\MenuController::class, 'index'])
+            ->name('admin.menus.index');
+            
+        // API endpoints for menu management (using session auth)
+        Route::prefix('api/admin/menus')->group(function () {
+            Route::post('/', [App\Http\Controllers\Admin\MenuController::class, 'store']);
+            Route::put('/{menu}', [App\Http\Controllers\Admin\MenuController::class, 'update']);
+            Route::delete('/{menu}', [App\Http\Controllers\Admin\MenuController::class, 'destroy']);
+            Route::post('/reorder', [App\Http\Controllers\Admin\MenuController::class, 'reorder']);
+            Route::post('/bulk-import', [App\Http\Controllers\Admin\MenuController::class, 'bulkImport']);
+            
+            // Helper endpoints
+            Route::get('/helpers/routes', [App\Http\Controllers\Admin\MenuController::class, 'getAvailableRoutes']);
+            Route::get('/helpers/permissions', [App\Http\Controllers\Admin\MenuController::class, 'getAvailablePermissions']);
+            Route::get('/helpers/modules', [App\Http\Controllers\Admin\MenuController::class, 'getAvailableModules']);
+            Route::get('/helpers/parents', [App\Http\Controllers\Admin\MenuController::class, 'getAvailableParents']);
+            Route::get('/helpers/ai-prompt', [App\Http\Controllers\Admin\MenuController::class, 'generateAIPrompt']);
+        });
+    });
 });
 
 // Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {

@@ -84,6 +84,13 @@ const canSwitchRoles = computed(() => {
   return userRoles.value.some(role => ['admin', 'superadmin'].includes(role));
 });
 
+// Check if user can manage menus
+const canManageMenus = computed(() => {
+  const roles = userRoles.value || [];
+  const permissions = user.value?.permissions || [];
+  return roles.includes('admin') || roles.includes('superadmin') || permissions.includes('manage-menus');
+});
+
 // Cache for menu items
 const menuCache = ref({});
 const menuItems = ref([]);
@@ -298,6 +305,20 @@ const getDefaultIcon = (icon) => {
                 <!-- Language Switcher -->
                 <LanguageSwitcher class="q-mr-sm" />
                 <!--  School Switcher -->
+                <!-- Edit Menu Button -->
+                <q-btn
+                  v-if="canManageMenus"
+                  round
+                  flat
+                  icon="edit_note"
+                  color="grey-7"
+                  size="sm"
+                  class="q-mr-sm"
+                  @click="router.visit(route('admin.menus.index'))"
+                >
+                  <q-tooltip>Edit Menus</q-tooltip>
+                </q-btn>
+
                 <!--    toolsSwitcher -->
                 <ToolsSwitcherPanel class="q-mr-sm" />
 
