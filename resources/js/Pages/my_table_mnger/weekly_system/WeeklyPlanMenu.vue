@@ -59,6 +59,7 @@ const showGuide = ref(false);
 
 const menuItems = [
   // Admin Routes
+  { label: 'School Browser', route: 'weekly-system.school-browser', icon: 'school' },
   { label: 'Manager', route: 'weekly-system.weekly-plans-manager', icon: 'dashboard' },
   { label: 'Schedule Copies', route: 'weekly-system.schedule-copies.index', icon: 'content_copy' },
   { label: 'Timetable', route: 'weekly-system.timetable-editor', icon: 'edit_calendar' },

@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\WeeklySystemController;
+use App\Http\Controllers\SchoolBrowserController;
 use Inertia\Inertia;
 
 /*
@@ -20,6 +21,10 @@ Route::middleware(['auth', 'verified'])->prefix('weekly-system')->name('weekly-s
     // =====================================================================
     // ADMIN ROUTES
     // =====================================================================
+    
+    // School Browser
+    Route::get('/school-browser', [App\Http\Controllers\SchoolBrowserController::class, 'index'])
+        ->name('school-browser');
     
     // Schedule Copies Management
     Route::get('/schedule-copies', function () {
@@ -55,6 +60,10 @@ Route::middleware(['auth', 'verified'])->prefix('weekly-system')->name('weekly-s
     // =====================================================================
     
     Route::prefix('api')->group(function () {
+        // Get school data for school browser
+        Route::get('/school-data', [App\Http\Controllers\SchoolBrowserController::class, 'getSchoolData'])
+            ->name('api.school-data');
+        
         // Get teacher completion stats for a week
         Route::get('/weekly-plans/teacher-stats', [WeeklySystemController::class, 'getTeacherStats'])
             ->name('api.teacher-stats');
