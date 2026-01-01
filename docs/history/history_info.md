@@ -14,7 +14,7 @@ Before you start coding a new feature or fixing a bug:
 ## ✅ 2. Completing a Task
 Once the feature or bug fix is finished and verified:
 
-1.  **Document in History**: Create/update a history file in `docs/history/`.
+1.  **Document in History**: Create  a history file in `docs/history/`.
     - **Format**: `<TIMESTAMP>_history_feature_name.md`
     - **Title**: Start the file content with `# <TIMESTAMP> | Title`.
 2.  **Stage Changes**: `git add .`

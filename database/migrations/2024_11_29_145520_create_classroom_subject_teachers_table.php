@@ -27,6 +27,25 @@ return new class extends Migration
             $table->json('data')->nullable();
             $table->softDeletes();
             $table->timestamps();
+            
+            // Performance indexes
+            // Unique composite index for assignment constraint
+            $table->unique([
+                'school_id', 
+                'academic_year_id', 
+                'classroom_id', 
+                'subject_id', 
+                'teacher_id'
+            ], 'unique_assignment_idx');
+            
+            // Index for school and academic year queries (for import operations)
+            $table->index(['school_id', 'academic_year_id'], 'school_academic_year_idx');
+            
+            // Index for teacher queries
+            $table->index(['teacher_id', 'school_id'], 'teacher_school_idx');
+            
+            // Index for classroom queries
+            $table->index(['classroom_id', 'subject_id'], 'classroom_subject_idx');
         });
     }
 

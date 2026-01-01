@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('stages', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->string('name_ar')->nullable();
             $table->text('description')->nullable();
             $table->foreignId('school_id')->constrained('schools')->onDelete('cascade');
             $table->timestamps();

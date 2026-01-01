@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('subjects', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->string('name_ar')->nullable();
             $table->string('nour_name')->nullable();
             $table->string('nour_id')->nullable();
             $table->text('description')->nullable();

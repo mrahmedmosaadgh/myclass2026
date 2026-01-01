@@ -13,25 +13,37 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
+            
+            // School association (nullable, no FK constraint due to circular dependency)
+            // The schools table will be created later, FK can be added separately if needed
+            $table->unsignedBigInteger('school_id')->nullable();
+            
             $table->string('name');
             $table->string('email')->unique();
             $table->string('email_verified')->nullable()->unique();
 
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            
+            // Two-factor authentication columns
+            $table->text('two_factor_secret')->nullable();
+            $table->text('two_factor_recovery_codes')->nullable();
+            $table->timestamp('two_factor_confirmed_at')->nullable();
+            
             $table->rememberToken();
             $table->foreignId('current_team_id')->nullable();
             $table->string('profile_photo_path', 2048)->nullable();
 
 
-            $table->enum('role', ['SuperAdmin','admin', 'supervisor', 'teacher', 'student', 'parent', 'user','guest'])->default('user');
+            $table->enum('role', ['SuperAdmin','admin', 'hr_admin', 'supervisor', 'teacher', 'student', 'parent', 'user','guest'])->default('user');
             $table->tinyInteger('first_login')->default(1);
             $table->timestamp('last_login')->nullable();
             $table->timestamp('last_active')->nullable();
             $table->boolean('is_active')->default(false);
             $table->timestamps();
-            // $table->softDeletes(); // Adds a 'deleted_at' column
+            $table->softDeletes(); // Soft deletes for user deactivation
         });
+
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();

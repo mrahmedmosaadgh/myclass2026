@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('name_ar')->nullable();
             $table->string('name_cute')->nullable();
+            $table->string('avatar')->nullable();
             $table->string('order_1')->nullable();
             $table->string('order_2')->nullable();
             $table->string('notes')->nullable();

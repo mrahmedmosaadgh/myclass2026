@@ -1,6 +1,7 @@
 <template>
-  <AdminLayout>
+ 
     <div class="q-pa-md">
+      <WeeklyPlanMenu />
       <!-- Header -->
       <div class="row items-center q-mb-md">
         <div class="col">
@@ -84,14 +85,15 @@
         <div class="text-body2 text-grey-6">Choose a school from the dropdown above to browse its structure</div>
       </q-card>
     </div>
-  </AdminLayout>
+ 
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useQuasar } from 'quasar';
 import axios from 'axios';
-import AdminLayout from '@/Layouts/AdminLayout.vue';
+ 
+import WeeklyPlanMenu from '@/Pages/my_table_mnger/weekly_system/WeeklyPlanMenu.vue';
 import SchoolOverview from './components/SchoolOverview.vue';
 import ClassroomHierarchy from './components/ClassroomHierarchy.vue';
 import AssignmentsTable from './components/AssignmentsTable.vue';

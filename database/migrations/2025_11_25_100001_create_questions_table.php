@@ -41,6 +41,7 @@ return new class extends Migration
             $table->json('hints')->nullable()->comment('Array of hint strings');
             $table->json('explanation')->nullable()->comment('Object with text and revealed_after_attempt fields');
             
+            $table->softDeletes();
             $table->timestamps();
             
             // Indexes for performance
