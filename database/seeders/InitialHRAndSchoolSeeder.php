@@ -54,7 +54,8 @@ class InitialHRAndSchoolSeeder extends Seeder
                 'logo' => null,
                 'established_year' => date('Y'),
                 'notes' => 'Initial school setup'
-            ])
+            ]),
+            'is_active' => true
         ]);
 
         // Step 4: Update HR User with school_id

@@ -61,6 +61,11 @@ class User extends Authenticatable
     {
         return $this->belongsTo(School::class);
     }
+
+    public function hr()
+    {
+        return $this->hasOne(HR::class);
+    }
     /**
      * Get the conversations that the user belongs to.
      */

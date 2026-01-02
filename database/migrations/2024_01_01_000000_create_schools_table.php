@@ -16,6 +16,10 @@ return new class extends Migration
             $table->foreignId('h_r_id')->constrained('h_r_s')->onDelete('cascade');
             $table->string('name');
             $table->string('name_ar')->nullable();
+            $table->string('section')->nullable();
+            $table->string('section_ar')->nullable();
+            $table->boolean('is_active')->default(true);
+            
             // $table->string('address');
             $table->json('data')->nullable();
             $table->timestamps();

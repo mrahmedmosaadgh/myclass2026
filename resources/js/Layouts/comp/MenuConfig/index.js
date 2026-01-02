@@ -10,6 +10,7 @@ import parentMenu from './parent';
 import adminMenu from './admin';
 import superadminMenu from './superadmin';
 import developerMenu from './developer';
+import hrAdminMenu from './hr_admin';
 
 // Export all menus with their respective roles
 const menuConfig = {
@@ -18,6 +19,7 @@ const menuConfig = {
   teacher: teacherMenu,
   parent: parentMenu,
   admin: adminMenu,
+  hr_admin: hrAdminMenu,
   super_admin: superadminMenu,
   developer: developerMenu
 };

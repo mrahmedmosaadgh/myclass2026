@@ -3,13 +3,14 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use App\Models\AcademicYear;
+use App\Models\Calendar;
 use App\Models\School;
-use App\Models\SchoolSection;
 use App\Models\Stage;
 use App\Models\Grade;
+use App\Models\Classroom;
 use App\Models\Subject;
-use App\Models\AcademicYear;
-use App\Models\ScheduleTiming;
+use App\Models\HR;
 
 class InitialSchoolStructureSeeder extends Seeder
 {
@@ -24,52 +25,64 @@ class InitialSchoolStructureSeeder extends Seeder
      */
     public function run()
     {
-        // Get the first school
-        $school = School::first();
+        $hr = HR::first(); // Get the first HR user to associate with the school
         
-        if (!$school) {
-            $this->command->error('❌ No school found! Please run InitialHRAndSchoolSeeder first.');
+        if (!$hr) {
+            $this->command->error('No HR user found. Please create an HR user first.');
             return;
         }
 
-        $this->command->info('Setting up structure for: ' . $school->name);
+        // Create a sample school
+        $school = School::create([
+            'name' => 'Sample School',
+            'name_ar' => 'مدرسة نموذجية',
+            'h_r_id' => $hr->id,
+            'section' => 'Main',
+            'section_ar' => 'الرئيسي',
+            'data' => ['type' => 'public', 'level' => 'primary'],
+            'is_active' => true
+        ]);
 
-        // Create School Sections
-        $this->createSchoolSections($school);
-        
-        // Create Stages and Grades
+        $this->command->info('✓ Created sample school');
+
+        // Create academic year
+        $academicYear = AcademicYear::create([
+            'name' => '2025-2026',
+            // 'name_ar' => '2025-2026',
+            'school_id' => $school->id,
+            'active' => true
+        ]);
+
+        $this->command->info('✓ Created academic year 2025-2026');
+
+        // Create calendar for the academic year
+        // $calendar = Calendar::create([
+        //     'name' => 'Academic Year Calendar',
+        //     'name_ar' => 'تقويم السنة الدراسية',
+        //     'academic_year_id' => $academicYear->id,
+        //     'school_id' => $school->id,
+        //     'data' => [
+        //         'start_date' => '2025-09-01',
+        //         'end_date' => '2026-06-15',
+        //         'holidays' => [
+        //             ['start' => '2025-11-15', 'end' => '2025-11-20', 'name' => 'Fall Break'],
+        //             ['start' => '2025-12-20', 'end' => '2026-01-05', 'name' => 'Winter Break'],
+        //             ['start' => '2026-03-15', 'end' => '2026-03-20', 'name' => 'Spring Break']
+        //         ]
+        //     ]
+        // ]);
+
+        // $this->command->info('✓ Created academic calendar');
+
+        // Create stages and grades
         $this->createStagesAndGrades($school);
         
-        // Create Subjects
+        // Create some sample subjects
         $this->createSubjects($school);
-        
-        // Create Academic Year
-        $this->createAcademicYear($school);
-        
-        // Create Schedule Timings
-        $this->createScheduleTimings($school);
 
         $this->command->info('✅ School structure created successfully!');
     }
 
-    private function createSchoolSections($school)
-    {
-        $sections = [
-            ['name' => 'Boys Section', 'name_ar' => 'قسم البنين', 'data' => json_encode(['capacity' => 500])],
-            ['name' => 'Girls Section', 'name_ar' => 'قسم البنات', 'data' => json_encode(['capacity' => 500])],
-            ['name' => 'Mixed Section', 'name_ar' => 'القسم المختلط', 'data' => json_encode(['capacity' => 300])],
-        ];
-
-        foreach ($sections as $sectionData) {
-            SchoolSection::create([
-                'school_id' => $school->id,
-                'name' => $sectionData['name'],
-                'data' => $sectionData['data']
-            ]);
-        }
-
-        $this->command->info('   ✓ Created 3 school sections');
-    }
 
     private function createStagesAndGrades($school)
     {
@@ -199,45 +212,4 @@ class InitialSchoolStructureSeeder extends Seeder
         $this->command->info('   ✓ Created ' . count($subjects) . ' subjects');
     }
 
-    private function createAcademicYear($school)
-    {
-        $currentYear = date('Y');
-        $nextYear = $currentYear + 1;
-
-        AcademicYear::create([
-            'school_id' => $school->id,
-            'name' => "$currentYear-$nextYear",
-            'start_date' => "$currentYear-09-01",
-            'end_date' => "$nextYear-06-30",
-            'active' => 1
-        ]);
-
-        $this->command->info('   ✓ Created academic year: ' . $currentYear . '-' . $nextYear);
-    }
-
-    private function createScheduleTimings($school)
-    {
-        $timings = [
-            ['period' => 1, 'start_time' => '08:00', 'end_time' => '08:45'],
-            ['period' => 2, 'start_time' => '08:45', 'end_time' => '09:30'],
-            ['period' => 3, 'start_time' => '09:30', 'end_time' => '10:15'],
-            ['period' => 4, 'start_time' => '10:30', 'end_time' => '11:15'], // 15min break before
-            ['period' => 5, 'start_time' => '11:15', 'end_time' => '12:00'],
-            ['period' => 6, 'start_time' => '12:00', 'end_time' => '12:45'],
-            ['period' => 7, 'start_time' => '13:00', 'end_time' => '13:45'], // 15min break before
-        ];
-
-        // Create a single schedule timing record with all periods in the timing JSON field
-        ScheduleTiming::create([
-            'school_id' => $school->id,
-            'timing' => json_encode($timings),
-            'options' => json_encode([
-                'break_after_period_3' => 15, // 15 minutes break
-                'break_after_period_6' => 15, // 15 minutes break
-            ]),
-            'notes' => 'Default schedule timings for 7 periods per day'
-        ]);
-
-        $this->command->info('   ✓ Created schedule timings (' . count($timings) . ' periods)');
-    }
 }

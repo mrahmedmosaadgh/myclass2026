@@ -23,8 +23,7 @@ return new class extends Migration
             $table->string('notes')->nullable();
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('parent_id')->nullable()->constrained('student_parents');
-            $table->foreignId('school_section_id')->nullable()->constrained('school_sections');
-            $table->foreignId('school_id')->constrained('schools')->onDelete('cascade');
+             $table->foreignId('school_id')->constrained('schools')->onDelete('cascade');
             $table->json('data')->nullable();
             $table->foreignId('stage_id')->constrained('stages')->onDelete('cascade');
             $table->foreignId('grade_id')->constrained('grades')->onDelete('cascade');

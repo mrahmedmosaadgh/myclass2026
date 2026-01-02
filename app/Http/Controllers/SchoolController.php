@@ -25,12 +25,59 @@ class SchoolController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'h_r_id' => 'required|exists:h_r_s,id',
+            'h_r_id' => 'required_without:create_new_hr|exists:h_r_s,id',
+            'create_new_hr' => 'boolean',
+            'hr_name' => 'required_if:create_new_hr,true|string|max:255',
+            'hr_email' => 'required_if:create_new_hr,true|email|unique:users,email',
+            'hr_password' => 'required_if:create_new_hr,true|string|min:8',
         ]);
 
-        School::create($validated);
+        try {
+            \Illuminate\Support\Facades\DB::beginTransaction();
 
-        return redirect()->back()->with('success', 'School created successfully');
+            $hrId = $request->h_r_id;
+
+            if ($request->create_new_hr) {
+                // Create User
+                $user = \App\Models\User::create([
+                    'name' => $validated['hr_name'],
+                    'email' => $validated['hr_email'],
+                    'password' => \Illuminate\Support\Facades\Hash::make($validated['hr_password']),
+                    'role' => 'hr_admin',
+                    'is_active' => true,
+                    'email_verified_at' => now(),
+                ]);
+                $user->assignRole('hr_admin');
+
+                // Create HR Record
+                $hr = HR::create([
+                    'user_id' => $user->id,
+                    'name' => $validated['hr_name'],
+                    'active' => 1,
+                    'data' => json_encode(['notes' => 'Created via School Manager'])
+                ]);
+
+                $hrId = $hr->id;
+            }
+
+            $school = School::create([
+                'name' => $validated['name'],
+                'h_r_id' => $hrId
+            ]);
+
+            // Update user with school_id
+            if (isset($user)) {
+                $user->update(['school_id' => $school->id]);
+            }
+
+            \Illuminate\Support\Facades\DB::commit();
+
+            return redirect()->back()->with('success', 'School created successfully');
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+            return redirect()->back()->withErrors(['error' => 'Failed to create school: ' . $e->getMessage()]);
+        }
     }
 
     public function update(Request $request, School $school)
@@ -49,6 +96,14 @@ class SchoolController extends Controller
     {
         $school->delete();
         return redirect()->back()->with('success', 'School deleted successfully');
+    }
+
+    public function toggleStatus(School $school)
+    {
+        $school->update(['is_active' => !$school->is_active]);
+        
+        $status = $school->is_active ? 'activated' : 'deactivated';
+        return redirect()->back()->with('success', "School has been $status");
     }
 public function getSubjects($schoolId)
 {

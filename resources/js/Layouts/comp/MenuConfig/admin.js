@@ -39,6 +39,13 @@ export default [
     to: '/admin/user_management',
   },
 
+  // My Schools (For HR)
+  {
+    title: 'My Schools',
+    icon: 'business',
+    to: '/admin/my-schools',
+  },
+
   // School Management Section
   {
     title: 'School Management',
@@ -75,9 +82,26 @@ export default [
         icon: 'grid_view',
         children: [
           {
-            title: 'Sections',
-            icon: 'view_quilt',
-            to: '/admin/school_section',
+            title: 'Schools',
+            icon: 'school',
+            to: '/admin/school',
+            children: [
+              {
+                title: 'Add School',
+                icon: 'add',
+                to: '/admin/school/add',
+              },
+              {
+                title: 'Edit School',
+                icon: 'edit',
+                to: '/admin/school/edit',
+              },
+              {
+                title: 'Delete School',
+                icon: 'delete',
+                to: '/admin/school/delete',
+              }
+            ]
           },
           {
             title: 'Stages',

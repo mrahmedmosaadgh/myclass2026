@@ -9,10 +9,11 @@ class School extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'h_r_id', 'data'];
+    protected $fillable = ['name', 'name_ar', 'h_r_id', 'data', 'is_active'];
 
     protected $casts = [
         'data' => 'array',
+        'is_active' => 'boolean',
     ];
 
     public function hr()
@@ -55,9 +56,10 @@ class School extends Model
         return $this->hasMany(Subject::class);
     }
 
-    public function sections()
+ 
+    public function academic_years()
     {
-        return $this->hasMany(SchoolSection::class);
+        return $this->hasMany(AcademicYear::class);
     }
 }
 

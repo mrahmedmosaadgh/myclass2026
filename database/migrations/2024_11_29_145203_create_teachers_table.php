@@ -22,8 +22,7 @@ return new class extends Migration
             $table->foreignId('school_id')->nullable()->constrained('schools')->onDelete('cascade');
             $table->tinyInteger('schools_number')->default(1);
             $table->json('school_extra_ids')->nullable();
-            // $table->foreignId('school_section_id')->nullable()->constrained('school_sections');
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->string('name');
             $table->string('name_ar')->nullable();
             $table->string('name_cute')->nullable();

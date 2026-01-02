@@ -16,7 +16,7 @@ use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\ScheduleAdminNewController;
 use App\Http\Controllers\ScheduleDailyController;
 use App\Http\Controllers\SchoolController;
-use App\Http\Controllers\SchoolSectionController;
+// Removed SchoolSectionController import since the model and controller have been removed
 use App\Http\Controllers\StageController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\SubjectController;
@@ -28,13 +28,32 @@ use App\Http\Controllers\SemesterTestController;
 use App\Http\Controllers\TeacherManagementController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+// HR Setup Wizard - accessible by both admin and hr_admin roles
+Route::middleware(['auth', 'verified', 'role:admin|hr_admin|super_admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('hr/setup-wizard', [App\Http\Controllers\HRSetupWizardController::class, 'index'])
+        ->name('hr.setup-wizard');
+    Route::post('hr/setup-wizard/validate-step', [App\Http\Controllers\HRSetupWizardController::class, 'validateStep'])
+        ->name('hr.setup-wizard.validate-step');
+    Route::post('hr/setup-wizard', [App\Http\Controllers\HRSetupWizardController::class, 'store'])
+        ->name('hr.setup-wizard.store');
+    Route::delete('hr/schools/{id}', [App\Http\Controllers\HRSetupWizardController::class, 'destroy'])
+        ->name('hr.schools.destroy');
+
+        Route::get('my-schools', [App\Http\Controllers\MySchoolsController::class, 'index'])->name('hr.my-schools.index');
+        Route::post('my-schools', [App\Http\Controllers\MySchoolsController::class, 'store'])->name('hr.my-schools.store');
+        Route::post('my-schools/{school}/select', [App\Http\Controllers\MySchoolsController::class, 'selectSchool'])->name('hr.my-schools.select');
+});
+
+Route::middleware(['auth', 'verified', 'role:admin|super_admin'])->prefix('admin')->name('admin.')->group(function () {
     // Resource Routes
 Route::get('/teachers', [TeacherManagementController::class, 'index']);
 
     Route::resource('hr', HRController::class);
+    
     Route::resource('school', SchoolController::class);
-    Route::resource('school_section', SchoolSectionController::class);
+    Route::post('school/{school}/toggle-status', [SchoolController::class, 'toggleStatus'])
+        ->name('school.toggle-status');
+    // Removed SchoolSection resource route since the model and controller have been removed
     Route::resource('subject', SubjectController::class);
     Route::resource('stage', StageController::class);
     Route::resource('grade', GradeController::class);
@@ -173,6 +192,9 @@ Route::post('/schedule-copies/{id}/execute-schedule-changes', [ScheduleCopyContr
     Route::resource('question-banks', QuestionBankController::class);
 });
 
+// HR Setup Wizard - accessible by both admin and hr_admin roles
+
+
 
 
 Route:: middleware(['auth', 'verified', 'role:admin'])->prefix('api')->group(function () {
@@ -183,15 +205,3 @@ Route::put('/teachers/{teacher}', [TeacherManagementController::class, 'update']
 Route::delete('/teachers/{teacher}', [TeacherManagementController::class, 'destroy']);
 Route::get('/teachers/export', [TeacherManagementController::class, 'export']);
 });
-
-
-
-
-
-
-
-
-
-
-
-
