@@ -17,7 +17,8 @@ class Schedule extends Model
         'teacher_substitute_id',
         'co_teacher_id',
         'period_order',
-        'period_code',
+        'day_number',
+        'period_number',
         'place',
         'color_custom',
         'active',
@@ -29,7 +30,7 @@ class Schedule extends Model
         'active' => 'boolean',
     ];
 
-    protected $appends = ['teacher_id', 'subject_id', 'classroom_id', 'grade_id', 'day', 'period_number'];
+    protected $appends = ['teacher_id', 'subject_id', 'classroom_id', 'grade_id', 'day'];
 
     public function getTeacherIdAttribute()
     {
@@ -54,20 +55,10 @@ class Schedule extends Model
     // Extract day from period_code (e.g., "d5p6" -> 5)
     public function getDayAttribute()
     {
-        if (!$this->period_code) return null;
-        
-        preg_match('/d(\d+)/', $this->period_code, $matches);
-        return isset($matches[1]) ? (int)$matches[1] : null;
+        return $this->day_number;
     }
 
-    // Extract period number from period_code (e.g., "d5p6" -> 6)
-    public function getPeriodNumberAttribute()
-    {
-        if (!$this->period_code) return null;
-        
-        preg_match('/p(\d+)/', $this->period_code, $matches);
-        return isset($matches[1]) ? (int)$matches[1] : null;
-    }
+
 
     // Helper method to create period_code from day and period
     public static function makePeriodCode($day, $period)

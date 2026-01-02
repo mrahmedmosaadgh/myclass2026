@@ -24,12 +24,29 @@
 
       <q-separator />
 
+      <!-- Busy Teachers Info Banner -->
+      <q-card-section v-if="loadingAvailability" class="q-py-sm">
+        <q-skeleton type="text" width="60%" />
+      </q-card-section>
+      
+      <q-card-section v-else-if="busyTeachersCount > 0" class="q-py-sm">
+        <q-banner dense rounded class="bg-orange-1 text-orange-9">
+          <template v-slot:avatar>
+            <q-icon name="warning" color="orange" />
+          </template>
+          <span class="text-weight-medium">{{ busyTeachersCount }} teacher(s)</span> already assigned at this time slot in other classrooms.
+          <div class="text-caption q-mt-xs">
+            They are marked with ⚠️ in the dropdown below.
+          </div>
+        </q-banner>
+      </q-card-section>
+
       <q-card-section>
         <q-form class="q-gutter-md">
           <!-- CST Selector (Main) -->
           <q-select
             v-model="form.cst_id"
-            :options="cstOptions"
+            :options="enrichedCstOptions"
             option-value="id"
             option-label="display_label"
             label="Subject & Teacher *"
@@ -41,13 +58,16 @@
             use-input
             input-debounce="300"
             @filter="filterCST"
-            :loading="loadingCST"
+            :loading="loadingCST || loadingAvailability"
           >
             <template v-slot:prepend>
               <q-icon name="menu_book" color="primary" />
             </template>
             <template v-slot:option="{ opt, itemProps }">
-              <q-item v-bind="itemProps">
+              <q-item 
+                v-bind="itemProps" 
+                :class="{ 'bg-orange-1': opt.is_busy }"
+              >
                 <q-item-section avatar>
                   <q-avatar
                     :style="{ backgroundColor: opt.c_bg || '#e0e0e0', color: opt.c_text || '#333' }"
@@ -57,8 +77,17 @@
                   </q-avatar>
                 </q-item-section>
                 <q-item-section>
-                  <q-item-label>{{ opt.subject_name }}</q-item-label>
-                  <q-item-label caption>{{ opt.teacher_name }}</q-item-label>
+                  <q-item-label :class="{ 'text-orange-9': opt.is_busy }">
+                    {{ opt.subject_name }}
+                    <q-icon v-if="opt.is_busy" name="warning" color="orange" size="xs" class="q-ml-xs" />
+                  </q-item-label>
+                  <q-item-label caption :class="{ 'text-orange-7': opt.is_busy }">
+                    {{ opt.teacher_name }}
+                  </q-item-label>
+                  <q-item-label v-if="opt.is_busy" caption class="text-orange-8">
+                    <q-icon name="info" size="xs" class="q-mr-xs" />
+                    Busy in {{ opt.busy_info?.assigned_to_classroom }} ({{ opt.busy_info?.subject }})
+                  </q-item-label>
                 </q-item-section>
               </q-item>
             </template>
@@ -184,7 +213,9 @@ const props = defineProps({
   loadingCST: { type: Boolean, default: false },
   loadingTeachers: { type: Boolean, default: false },
   loadingSubjects: { type: Boolean, default: false },
-  saving: { type: Boolean, default: false }
+  saving: { type: Boolean, default: false },
+  slotAvailability: { type: Object, default: null },
+  loadingAvailability: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['update:modelValue', 'submit', 'filter-cst'])
@@ -196,6 +227,39 @@ const dialogModel = computed({
 
 const days = ['', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday']
 const dayName = computed(() => days[props.day] || 'Day')
+
+// Enrich CST options with busy teacher information
+const enrichedCstOptions = computed(() => {
+  if (!props.slotAvailability) return props.cstOptions.map(cst => ({
+    ...cst,
+    is_busy: false,
+    busy_info: null,
+    display_label: `${cst.subject_name} - ${cst.teacher_name}`
+  }))
+  
+  const busyTeachers = props.slotAvailability.busy_teachers || {}
+  
+  return props.cstOptions.map(cst => {
+    const busyInfo = busyTeachers[cst.teacher_id]
+    const isBusy = !!busyInfo && !busyInfo.is_current_classroom
+    return {
+      ...cst,
+      is_busy: isBusy,
+      busy_info: busyInfo,
+      display_label: isBusy 
+        ? `${cst.subject_name} - ${cst.teacher_name} ⚠️`
+        : `${cst.subject_name} - ${cst.teacher_name}`
+    }
+  })
+})
+
+// Count of busy teachers
+const busyTeachersCount = computed(() => {
+  if (!props.slotAvailability) return 0
+  const busyTeachers = props.slotAvailability.busy_teachers || {}
+  // Count only teachers busy in OTHER classrooms
+  return Object.values(busyTeachers).filter(t => !t.is_current_classroom).length
+})
 
 const defaultForm = () => ({
   cst_id: null,

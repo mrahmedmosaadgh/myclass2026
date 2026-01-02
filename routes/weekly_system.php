@@ -95,5 +95,13 @@ Route::middleware(['auth', 'verified'])->prefix('weekly-system')->name('weekly-s
         // Sync entire week
         Route::post('/weekly-plans/sync-week', [WeeklySystemController::class, 'syncWeek'])
             ->name('api.sync-week');
+
+        // Slot availability for conflict detection
+        Route::get('/slot-availability', [\App\Http\Controllers\ScheduleController::class, 'getSlotAvailability'])
+            ->name('api.slot-availability');
+
+        // Get all teacher conflicts for the grid display
+        Route::get('/teacher-conflicts', [\App\Http\Controllers\ScheduleController::class, 'getTeacherConflicts'])
+            ->name('api.teacher-conflicts');
     });
 });

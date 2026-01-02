@@ -91,7 +91,7 @@ class ScheduleController extends Controller
             });
         }
 
-        $records = $query->orderBy('period_code')->get();
+        $records = $query->orderBy('day_number')->orderBy('period_number')->get();
 
         if ($request->wantsJson()) {
             return response()->json([
@@ -158,9 +158,10 @@ class ScheduleController extends Controller
                 $validated['school_id'] = $copy->school_id ?? auth()->user()->schoolId();
             }
 
-            // Convert day and period_number to period_code
-            $validated['period_code'] = Schedule::makePeriodCode($validated['day'], $validated['period_number']);
-            unset($validated['day'], $validated['period_number']);
+            // Use day and period_number directly as day_number and period_number
+            $validated['day_number'] = $validated['day'];
+            $validated['period_number'] = $validated['period_number'];
+            unset($validated['day']); // Remove the original 'day' field
 
             $schedule = Schedule::create($validated);
             $schedule->load(['cst.classroom', 'cst.subject', 'cst.teacher']);
@@ -195,24 +196,35 @@ class ScheduleController extends Controller
     public function update(Request $request, Schedule $schedule)
     {
         try {
+            // Handle clearing the schedule slot
+            if ($request->has('cst_id') && is_null($request->cst_id)) {
+                $schedule->delete();
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Schedule slot cleared successfully'
+                ]);
+            }
+
             $validated = $request->validate([
                 'cst_id' => 'required|exists:classroom_subject_teachers,id',
-                'day' => 'required|integer|min:1|max:5',
-                'period_number' => 'required|integer|min:1|max:8',
+                'day' => 'required|integer|min:1|max:7',
+                'period_number' => 'required|integer|min:1|max:12', // Adjusted max values reasonable for school
                 'active' => 'boolean',
                 'notes' => 'nullable|string|max:1000',
                 'copy_id' => 'exists:schedule_copies,id'
             ]);
 
-            // Convert day and period_number to period_code
-            $validated['period_code'] = Schedule::makePeriodCode($validated['day'], $validated['period_number']);
+            // Map day to day_number
+            $validated['day_number'] = $validated['day'];
+            unset($validated['day']);
 
             // Get the CST record to check teacher conflicts
             $cst = ClassroomSubjectTeacher::find($validated['cst_id']);
 
-            // Check for conflicts using period_code
+            // Check for conflicts using day_number and period_number
             $conflicts = $this->checkForConflicts([
-                'period_code' => $validated['period_code'],
+                'day_number' => $validated['day_number'],
+                'period_number' => $validated['period_number'],
                 'classroom_id' => $cst->classroom_id,
                 'teacher_id' => $cst->teacher_id,
                 'cst_id' => $validated['cst_id'],
@@ -221,7 +233,11 @@ class ScheduleController extends Controller
 
             if ($conflicts['exists']) {
                 $conflictingSchedule = $conflicts['conflict'];
-                $dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
+                $dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+                
+                // Adjust index safely
+                $dayIndex = ($conflictingSchedule->day_number - 1);
+                $dayName = $dayNames[$dayIndex] ?? 'Day ' . $conflictingSchedule->day_number;
 
                 $message = $conflicts['type'] === 'teacher'
                     ? sprintf(
@@ -229,13 +245,13 @@ class ScheduleController extends Controller
                         $conflictingSchedule->cst->teacher->name,
                         $conflictingSchedule->cst->subject->name,
                         $conflictingSchedule->cst->classroom->name,
-                        $dayNames[$conflictingSchedule->day - 1],
+                        $dayName,
                         $conflictingSchedule->period_number
                     )
                     : sprintf(
                         'Classroom conflict: %s is already scheduled for %s at period %d in %s with %s',
                         $conflictingSchedule->cst->subject->name,
-                        $dayNames[$conflictingSchedule->day - 1],
+                        $dayName,
                         $conflictingSchedule->period_number,
                         $conflictingSchedule->cst->classroom->name,
                         $conflictingSchedule->cst->teacher->name
@@ -247,9 +263,6 @@ class ScheduleController extends Controller
                     'conflict' => $conflictingSchedule
                 ], 422);
             }
-
-            // Remove day and period_number from validated data since we're using period_code
-            unset($validated['day'], $validated['period_number']);
             
             $schedule->update($validated);
 
@@ -350,7 +363,8 @@ class ScheduleController extends Controller
     private function checkForConflicts($data)
     {
         \Log::info('Checking conflicts with:', [
-            'period_code' => $data['period_code'],
+            'day_number' => $data['day_number'],
+            'period_number' => $data['period_number'],
             'classroom_id' => $data['classroom_id'],
             'current_schedule_id' => $data['current_schedule_id'] ?? null
         ]);
@@ -359,14 +373,16 @@ class ScheduleController extends Controller
         $cst = ClassroomSubjectTeacher::find($data['cst_id']);
         $teacher_id = $cst->teacher_id;
 
-        // Check for classroom conflicts using period_code
-        $classroomConflict = Schedule::where('period_code', $data['period_code'])
+        // Check for classroom conflicts using day/period
+        $classroomConflict = Schedule::where('day_number', $data['day_number'])
+            ->where('period_number', $data['period_number'])
             ->whereHas('cst', function ($query) use ($data) {
                 $query->where('classroom_id', $data['classroom_id']);
             });
 
-        // Check for teacher conflicts using period_code
-        $teacherConflict = Schedule::where('period_code', $data['period_code'])
+        // Check for teacher conflicts using day/period
+        $teacherConflict = Schedule::where('day_number', $data['day_number'])
+            ->where('period_number', $data['period_number'])
             ->whereHas('cst', function ($query) use ($teacher_id) {
                 $query->where('teacher_id', $teacher_id);
             });
@@ -397,6 +413,164 @@ class ScheduleController extends Controller
         }
 
         return ['exists' => false];
+    }
+
+    /**
+     * Get slot availability information for conflict detection.
+     * Returns all teacher assignments for the given day/period across all classrooms.
+     */
+    public function getSlotAvailability(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'copy_id' => 'required|exists:schedule_copies,id',
+                'classroom_id' => 'required|exists:classrooms,id',
+                'day' => 'required|integer|min:1|max:7',
+                'period' => 'required|integer|min:1|max:12'
+            ]);
+
+            // Get all schedules for this day/period in this copy (all classrooms)
+            $existingAssignments = Schedule::where('copy_id', $validated['copy_id'])
+                ->where('day_number', $validated['day'])
+                ->where('period_number', $validated['period'])
+                ->whereNotNull('cst_id')
+                ->with(['cst.teacher', 'cst.subject', 'cst.classroom'])
+                ->get();
+
+            // Build a map of busy teachers: teacher_id => assignment info
+            $busyTeachers = [];
+            foreach ($existingAssignments as $schedule) {
+                if (!$schedule->cst || !$schedule->cst->teacher_id) {
+                    continue;
+                }
+                $teacherId = $schedule->cst->teacher_id;
+                $busyTeachers[$teacherId] = [
+                    'teacher_id' => $teacherId,
+                    'teacher_name' => $schedule->cst->teacher->name ?? 'Unknown',
+                    'assigned_to_classroom' => $schedule->cst->classroom->name ?? 'Unknown',
+                    'assigned_to_classroom_id' => $schedule->cst->classroom_id,
+                    'subject' => $schedule->cst->subject->name ?? 'Unknown',
+                    'schedule_id' => $schedule->id,
+                    'is_current_classroom' => $schedule->cst->classroom_id == $validated['classroom_id']
+                ];
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'busy_teachers' => $busyTeachers,
+                    'day' => $validated['day'],
+                    'period' => $validated['period'],
+                    'total_busy' => count($busyTeachers)
+                ]
+            ]);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get slot availability: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all teacher conflicts for a schedule copy.
+     * Returns teachers who are assigned to multiple classrooms at the same day/period.
+     */
+    public function getTeacherConflicts(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'copy_id' => 'required|exists:schedule_copies,id',
+                'classroom_id' => 'nullable|exists:classrooms,id'
+            ]);
+
+            // Get all schedules for this copy with CST relationships
+            $allSchedules = Schedule::where('copy_id', $validated['copy_id'])
+                ->whereNotNull('cst_id')
+                ->with(['cst.teacher', 'cst.subject', 'cst.classroom'])
+                ->get();
+
+            // Group schedules by day_number and period_number
+            $slotGroups = $allSchedules->groupBy(function ($schedule) {
+                return $schedule->day_number . '-' . $schedule->period_number;
+            });
+
+            // Find conflicts: same teacher in multiple classrooms at same time
+            $conflicts = [];
+            
+            foreach ($slotGroups as $slotKey => $schedulesInSlot) {
+                // Group by teacher_id within this slot
+                $teacherGroups = $schedulesInSlot->groupBy(function ($schedule) {
+                    return $schedule->cst?->teacher_id;
+                });
+
+                foreach ($teacherGroups as $teacherId => $teacherSchedules) {
+                    if (!$teacherId) continue;
+                    
+                    // If a teacher appears more than once in the same slot = conflict
+                    if ($teacherSchedules->count() > 1) {
+                        $first = $teacherSchedules->first();
+                        $dayNumber = $first->day_number;
+                        $periodNumber = $first->period_number;
+                        
+                        // Create list of all classrooms where this teacher is assigned
+                        $assignedClassrooms = $teacherSchedules->map(function ($s) {
+                            return [
+                                'schedule_id' => $s->id,
+                                'classroom_id' => $s->cst?->classroom_id,
+                                'classroom_name' => $s->cst?->classroom?->name ?? 'Unknown',
+                                'subject_name' => $s->cst?->subject?->name ?? 'Unknown',
+                                'cst_id' => $s->cst_id
+                            ];
+                        })->values()->toArray();
+
+                        // Mark each schedule as having a conflict
+                        foreach ($teacherSchedules as $schedule) {
+                            $conflicts[$schedule->id] = [
+                                'schedule_id' => $schedule->id,
+                                'teacher_id' => $teacherId,
+                                'teacher_name' => $schedule->cst?->teacher?->name ?? 'Unknown',
+                                'day_number' => $dayNumber,
+                                'period_number' => $periodNumber,
+                                'conflict_count' => $teacherSchedules->count(),
+                                'assigned_to' => $assignedClassrooms,
+                                'other_classrooms' => collect($assignedClassrooms)
+                                    ->filter(fn($c) => $c['schedule_id'] !== $schedule->id)
+                                    ->values()
+                                    ->toArray()
+                            ];
+                        }
+                    }
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'conflicts' => $conflicts,
+                    'total_conflicts' => count($conflicts)
+                ]
+            ]);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get teacher conflicts: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
 

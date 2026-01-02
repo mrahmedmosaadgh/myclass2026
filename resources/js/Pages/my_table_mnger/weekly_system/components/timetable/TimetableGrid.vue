@@ -35,6 +35,7 @@
       >
         <TimetableCell
           :schedule="getSchedule(day.value, period)"
+          :conflict-info="getConflictInfo(getSchedule(day.value, period))"
           @click="handleCellClick(day.value, period)"
           @edit="handleEdit"
           @clear="handleClear"
@@ -50,7 +51,8 @@ import TimetableCell from './TimetableCell.vue'
 
 const props = defineProps({
   schedules: { type: Array, default: () => [] },
-  periodTimes: { type: Object, default: () => ({}) }
+  periodTimes: { type: Object, default: () => ({}) },
+  teacherConflicts: { type: Object, default: () => ({}) }
 })
 
 const emit = defineEmits(['cell-click', 'edit', 'clear'])
@@ -93,6 +95,11 @@ const handleEdit = (schedule) => {
 
 const handleClear = (schedule) => {
   emit('clear', schedule)
+}
+
+const getConflictInfo = (schedule) => {
+  if (!schedule?.id) return null
+  return props.teacherConflicts[schedule.id] || null
 }
 </script>
 

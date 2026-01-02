@@ -267,6 +267,23 @@ class TeacherImportService
      */
     public function createOrUpdateTeacher(array $teacherData, int $schoolId): Teacher
     {
+        // Normalize empty values to null to prevent unique constraint violations
+        if (isset($teacherData['national_id']) && empty($teacherData['national_id'])) {
+            $teacherData['national_id'] = null;
+        }
+        
+        if (isset($teacherData['email']) && empty($teacherData['email'])) {
+            $teacherData['email'] = null;
+        }
+        
+        if (isset($teacherData['phone_number']) && empty($teacherData['phone_number'])) {
+            $teacherData['phone_number'] = null;
+        }
+        
+        if (isset($teacherData['whatsapp_number']) && empty($teacherData['whatsapp_number'])) {
+            $teacherData['whatsapp_number'] = null;
+        }
+
         // Try to find existing teacher by name and school (requirement 3.6)
         $teacher = Teacher::where('name', $teacherData['name'])
             ->where('school_id', $schoolId)
@@ -275,7 +292,7 @@ class TeacherImportService
         if ($teacher) {
             // Update existing teacher with new data if provided
             $updateData = array_filter($teacherData, function($value) {
-                return !empty($value);
+                return !empty($value) || $value === 0 || $value === '0'; // Allow 0 values but not empty strings
             });
             
             if (!empty($updateData)) {
@@ -397,7 +414,6 @@ class TeacherImportService
             }
         }
         
-        // Requirement 5.4: Create classroom_subject_teacher records with school and academic year
         // Requirement 5.5: Update existing assignments with new periods_per_week value
         $existing = ClassroomSubjectTeacher::where([
             'school_id' => $assignmentData['school_id'],
@@ -430,19 +446,46 @@ class TeacherImportService
             return $existing;
         }
         
-        // Create new assignment
-        $assignment = ClassroomSubjectTeacher::create($assignmentData);
-        
-        // Validate new assignment integrity (Requirement 8.5)
-        $integrityIssues = $assignment->validateAssignmentIntegrity();
-        if (!empty($integrityIssues)) {
-            Log::warning('New assignment created with integrity issues', [
-                'assignment_id' => $assignment->id,
-                'issues' => $integrityIssues
-            ]);
+        // Try to create the new assignment, but handle duplicate key constraint
+        try {
+            $assignment = ClassroomSubjectTeacher::create($assignmentData);
+            
+            // Validate new assignment integrity (Requirement 8.5)
+            $integrityIssues = $assignment->validateAssignmentIntegrity();
+            if (!empty($integrityIssues)) {
+                Log::warning('New assignment created with integrity issues', [
+                    'assignment_id' => $assignment->id,
+                    'issues' => $integrityIssues
+                ]);
+            }
+            
+            return $assignment;
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Check if the error is a duplicate entry error
+            if (str_contains($e->getMessage(), 'Duplicate entry') && str_contains($e->getMessage(), 'unique_assignment_idx')) {
+                // The record was created between our check and the create attempt
+                // Fetch the existing record and return it
+                $existing = ClassroomSubjectTeacher::where([
+                    'school_id' => $assignmentData['school_id'],
+                    'academic_year_id' => $assignmentData['academic_year_id'],
+                    'classroom_id' => $assignmentData['classroom_id'],
+                    'subject_id' => $assignmentData['subject_id'],
+                    'teacher_id' => $assignmentData['teacher_id']
+                ])->first();
+                
+                if ($existing) {
+                    // Update with the current periods per week value
+                    $existing->update(['classes_per_week' => (int) $periodsPerWeek]);
+                    return $existing;
+                } else {
+                    // This shouldn't happen, but if it does, re-throw the exception
+                    throw $e;
+                }
+            } else {
+                // If it's not a duplicate entry error, re-throw the exception
+                throw $e;
+            }
         }
-        
-        return $assignment;
     }
     
     /**

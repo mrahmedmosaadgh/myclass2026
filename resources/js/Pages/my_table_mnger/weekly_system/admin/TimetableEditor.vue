@@ -109,6 +109,7 @@
     <TimetableGrid
       v-else
       :schedules="schedules"
+      :teacher-conflicts="teacherConflicts"
       @cell-click="handleCellClick"
       @edit="handleEdit"
       @clear="handleClear"
@@ -128,6 +129,8 @@
       :loading-teachers="loadingTeachers"
       :loading-subjects="loadingSubjects"
       :saving="saving"
+      :slot-availability="slotAvailability"
+      :loading-availability="loadingAvailability"
       @submit="handleAssignSubmit"
       @filter-cst="handleFilterCST"
     />
@@ -152,6 +155,7 @@ const schedules = ref([])
 const cstOptions = ref([])
 const teachers = ref([])
 const subjects = ref([])
+const teacherConflicts = ref({})
 
 // Selected values
 const selectedClassroomId = ref(null)
@@ -168,6 +172,8 @@ const showAssignDialog = ref(false)
 const selectedSchedule = ref(null)
 const selectedDay = ref(null)
 const selectedPeriod = ref(null)
+const slotAvailability = ref(null)
+const loadingAvailability = ref(false)
 
 // Loading states
 const loadingCopies = ref(false)
@@ -232,11 +238,29 @@ const fetchSchedules = async () => {
     const result = response.data.data || response.data || []
     schedules.value = Array.isArray(result) ? result : []
     calculateStats()
+    // Fetch conflicts after loading schedules
+    await fetchTeacherConflicts()
   } catch (error) {
     console.error('Error fetching schedules:', error)
     $q.notify({ type: 'negative', message: 'Failed to load schedules' })
   } finally {
     loadingSchedules.value = false
+  }
+}
+
+const fetchTeacherConflicts = async () => {
+  if (!activeCopy.value) return
+  
+  try {
+    const response = await axios.get('/weekly-system/api/teacher-conflicts', {
+      params: {
+        copy_id: activeCopy.value.id
+      }
+    })
+    teacherConflicts.value = response.data.data?.conflicts || {}
+  } catch (error) {
+    console.error('Error fetching teacher conflicts:', error)
+    teacherConflicts.value = {}
   }
 }
 
@@ -316,10 +340,33 @@ const handleClassroomChange = async () => {
   // Watcher will handle data fetching
 }
 
-const handleCellClick = ({ day, period, schedule }) => {
+const handleCellClick = async ({ day, period, schedule }) => {
   selectedDay.value = day
   selectedPeriod.value = period
   selectedSchedule.value = schedule
+  
+  // Fetch availability information before opening dialog
+  if (activeCopy.value && selectedClassroomId.value) {
+    loadingAvailability.value = true
+    slotAvailability.value = null
+    try {
+      const response = await axios.get('/weekly-system/api/slot-availability', {
+        params: {
+          copy_id: activeCopy.value.id,
+          classroom_id: selectedClassroomId.value,
+          day: day,
+          period: period
+        }
+      })
+      slotAvailability.value = response.data.data
+    } catch (error) {
+      console.error('Error fetching slot availability:', error)
+      slotAvailability.value = null
+    } finally {
+      loadingAvailability.value = false
+    }
+  }
+  
   showAssignDialog.value = true
 }
 
@@ -349,9 +396,15 @@ const handleClear = async (schedule) => {
 const handleAssignSubmit = async (formData) => {
   saving.value = true
   try {
+    const payload = {
+      ...formData,
+      day: formData.day,
+      period_number: formData.period // Map period to period_number matching backend expectation
+    }
+
     if (formData.schedule_id) {
       // Update existing schedule
-      await axios.put(`/admin/schedules/${formData.schedule_id}`, formData)
+      await axios.put(`/admin/schedules/${formData.schedule_id}`, payload)
     } else {
       if (!activeCopy.value) {
         $q.notify({ type: 'negative', message: 'No active schedule copy found' })
@@ -359,11 +412,10 @@ const handleAssignSubmit = async (formData) => {
       }
       // Create new schedule
       await axios.post('/admin/schedules', {
-        ...formData,
+        ...payload,
         copy_id: activeCopy.value.id,
         school_id: activeCopy.value.school_id,
-        day_number: formData.day,
-        period_number: formData.period
+        day_number: formData.day
       })
     }
     
