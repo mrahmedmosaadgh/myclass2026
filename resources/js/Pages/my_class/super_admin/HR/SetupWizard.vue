@@ -6,7 +6,63 @@
             </h2>
         </template>
 
-        <div class="py-12">
+        <div class="py-6">
+            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                <!-- School Selector -->
+                <div class="q-mb-lg bg-indigo-50 p-4 rounded-lg border border-indigo-200">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <div class="text-subtitle1 text-indigo-900 q-mb-sm font-bold">Select School to Setup</div>
+                            <q-select
+                                v-model="selectedSchoolId"
+                                :options="hrSchools"
+                                option-value="id"
+                                option-label="name"
+                                label="Choose a School"
+                                outlined
+                                emit-value
+                                map-options
+                                bg-color="white"
+                                class="q-mb-sm"
+                                @update:model-value="switchSchoolContext"
+                            >
+                                <template v-slot:append>
+                                    <q-icon name="school" color="indigo" />
+                                </template>
+                            </q-select>
+                            <div class="text-caption text-indigo-700">
+                                Selecting a school will reload the wizard with that school's data.
+                            </div>
+                        </div>
+                        
+                        <div class="flex q-gutter-sm">
+                            <q-btn 
+                                label="Load Default Data" 
+                                icon="download_for_offline" 
+                                color="secondary"
+                                @click="loadDefaultData"
+                                :disable="currentStep !== 1 && !isExistingSetup"
+                            />
+                            <q-btn 
+                                label="Load & Add All Grades" 
+                                icon="playlist_add_check" 
+                                color="accent"
+                                @click="loadDefaultDataAndAddAllGrades"
+                                :disable="currentStep !== 1 && !isExistingSetup"
+                            />
+                            <q-btn 
+                                label="Add New School" 
+                                icon="add" 
+                                color="primary"
+                                @click="showAddSchoolDialog = true"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="py-6">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <q-card class="shadow-xl">
                     <q-card-section>
@@ -18,62 +74,7 @@
                             header-nav
                             @before-transition="validateCurrentStep"
                         >
-                            <!-- Step 1: HR Information (Profile) -->
-                            <q-step
-                                :name="1"
-                                title="HR Profile Setup"
-                                icon="business"
-                                :done="currentStep > 1"
-                            >
-                                <div class="q-gutter-md">
-                                    <q-banner class="bg-blue-1 text-blue-9 q-mb-md rounded-borders">
-                                        <template v-slot:avatar>
-                                            <q-icon name="account_circle" color="primary" />
-                                        </template>
-                                        You are currently logged in as <strong>{{ formData.step1.user_name }}</strong>. 
-                                        Below is your public HR profile information.
-                                    </q-banner>
-
-                                    <q-input
-                                        v-model="formData.step1.hr_name"
-                                        label="HR Public Name *"
-                                        outlined
-                                        :rules="[val => !!val || 'HR Name is required']"
-                                    />
-
-                                    <div class="row q-gutter-md">
-                                        <q-input
-                                            v-model="formData.step1.user_name"
-                                            label="Linked User Account"
-                                            outlined
-                                            readonly
-                                            class="col"
-                                            hint="Read-only"
-                                        />
-                                        <q-input
-                                            v-model="formData.step1.user_email"
-                                            label="Email Address"
-                                            outlined
-                                            readonly
-                                            class="col"
-                                            hint="Read-only"
-                                        />
-                                    </div>
-
-                                    <q-input
-                                        v-model="formData.step1.phone"
-                                        label="Phone"
-                                        outlined
-                                    />
-                                    <q-input
-                                        v-model="formData.step1.address"
-                                        label="Address"
-                                        outlined
-                                        type="textarea"
-                                        rows="3"
-                                    />
-                                </div>
-                            </q-step>
+ 
 
                             <!-- Step 2: School Information -->
                             <q-step
@@ -83,30 +84,6 @@
                                 :done="currentStep > 2"
                             >
                                 <div class="q-gutter-md">
-                                    <!-- School Selector -->
-                                    <div v-if="hrSchools && hrSchools.length > 0" class="q-mb-lg bg-indigo-50 p-4 rounded-lg border border-indigo-200">
-                                        <div class="text-subtitle1 text-indigo-900 q-mb-sm font-bold">Select School to Setup</div>
-                                        <q-select
-                                            v-model="selectedSchoolId"
-                                            :options="hrSchools"
-                                            option-value="id"
-                                            option-label="name"
-                                            label="Choose a School"
-                                            outlined
-                                            emit-value
-                                            map-options
-                                            dense
-                                            bg-color="white"
-                                            @update:model-value="switchSchoolContext"
-                                        >
-                                            <template v-slot:append>
-                                                <q-icon name="school" color="indigo" />
-                                            </template>
-                                        </q-select>
-                                        <div class="text-caption text-indigo-700 q-mt-xs">
-                                            Selecting a school will reload the wizard with that school's data.
-                                        </div>
-                                    </div>
 
                                     <div class="text-h6 q-mb-md">School Details</div>
 
@@ -366,6 +343,13 @@
                                         color="primary"
                                         @click="addClassroom"
                                     />
+                                    <q-btn
+                                        label="Add All Grades"
+                                        icon="playlist_add"
+                                        color="accent"
+                                        @click="addAllGrades"
+                                        class="q-ml-md"
+                                    />
                                 </div>
                             </q-step>
 
@@ -492,6 +476,51 @@
                 </q-card>
             </div>
         </div>
+        
+        <!-- Add School Dialog -->
+        <q-dialog v-model="showAddSchoolDialog" persistent>
+            <q-card style="min-width: 400px">
+                <q-card-section class="row items-center q-pb-none">
+                    <div class="text-h6">Add New School</div>
+                    <q-space />
+                    <q-btn icon="close" flat round dense v-close-popup />
+                </q-card-section>
+
+                <q-card-section>
+                    <q-input
+                        v-model="newSchoolData.name"
+                        label="School Name *"
+                        outlined
+                        :rules="[val => !!val || 'School name is required']"
+                        class="q-mb-md"
+                    />
+                    <q-input
+                        v-model="newSchoolData.name_ar"
+                        label="School Name (Arabic)"
+                        outlined
+                        class="q-mb-md"
+                    />
+                    <q-select
+                        v-model="newSchoolData.section"
+                        :options="sectionOptions"
+                        label="School Section"
+                        outlined
+                        emit-value
+                        map-options
+                    />
+                </q-card-section>
+
+                <q-card-actions align="right">
+                    <q-btn label="Cancel" color="grey" v-close-popup />
+                    <q-btn 
+                        label="Create School" 
+                        color="primary" 
+                        @click="createNewSchool"
+                        :loading="creatingSchool"
+                    />
+                </q-card-actions>
+            </q-card>
+        </q-dialog>
     </AppLayout>
 </template>
 
@@ -519,6 +548,7 @@ const selectedSchoolId = ref(props.existingSetup?.step2?.id || null);
 const currentStep = ref(props.existingSetup ? 2 : 1);
 const validating = ref(false);
 const submitting = ref(false);
+const showAddSchoolDialog = ref(false);
 
 const sectionOptions = [
     { label: 'Boys', value: 'boys' },
@@ -565,6 +595,15 @@ const formData = ref({
     },
 });
 
+// Data for the new school form
+const newSchoolData = ref({
+    name: '',
+    name_ar: '',
+    section: null,
+});
+
+const creatingSchool = ref(false);
+
 const availableGrades = computed(() => {
     const grades = [];
     formData.value.step3.stages.forEach((stage, stageIndex) => {
@@ -592,10 +631,7 @@ const switchSchoolContext = (schoolId) => {
             });
             // The select route redirects to dashboard usually, but we want to stay here?
             // If the backend redirects to dashboard, we might be forced there.
-            // Let's check MySchoolsController::selectSchool behavior.
-            // It `return redirect()->back();` or dashboard.
-            // If it returns back(), we are good.
-            // But we specifically want the Wizard to reload with new data.
+            // So we specifically want the Wizard to reload with new data.
             // So we might need to manually visit safely if the redirect isn't what we want.
             // Actually, if we use Inertia router.post, it follows redirects.
             // If we want to ensure we come back to Wizard, we might need to visit Wizard explicitly after.
@@ -609,6 +645,157 @@ const switchSchoolContext = (schoolId) => {
 const validateCurrentStep = async () => {
     validating.value = true;
     try {
+        // Client-side validation first
+        let isValid = true;
+        let validationErrors = [];
+
+        switch(currentStep.value) {
+            case 1: // HR Profile Setup
+                if (!formData.value.step1.hr_name?.trim()) {
+                    validationErrors.push('HR Name is required');
+                    isValid = false;
+                }
+                
+                // Check if either an existing user is selected or a new user is being created
+                const hasExistingUser = formData.value.step1.user_id;
+                const creatingNewUser = formData.value.step1.create_new_user;
+                
+                if (!hasExistingUser && !creatingNewUser) {
+                    validationErrors.push('Please select an existing user or choose to create a new user');
+                    isValid = false;
+                }
+                
+                // If creating a new user, validate the required fields
+                if (creatingNewUser) {
+                    if (!formData.value.step1.user_name?.trim()) {
+                        validationErrors.push('New user name is required when creating a new user');
+                        isValid = false;
+                    }
+                    if (!formData.value.step1.user_email?.trim()) {
+                        validationErrors.push('New user email is required when creating a new user');
+                        isValid = false;
+                    }
+                    // Only validate password if we're creating a new user
+                    if (!formData.value.step1.user_password?.trim()) {
+                        validationErrors.push('New user password is required when creating a new user');
+                        isValid = false;
+                    }
+                } else if (hasExistingUser && !formData.value.step1.user_id) {
+                    // If not creating new user, an existing user must be selected
+                    validationErrors.push('An existing user must be selected if not creating a new user');
+                    isValid = false;
+                }
+                break;
+                
+            case 2: // School Information
+                if (!formData.value.step2.name?.trim()) {
+                    validationErrors.push('School Name is required');
+                    isValid = false;
+                }
+                break;
+                
+            case 3: // Stages and Grades
+                if (formData.value.step3.stages.length === 0) {
+                    validationErrors.push('At least one stage is required');
+                    isValid = false;
+                } else {
+                    for (let i = 0; i < formData.value.step3.stages.length; i++) {
+                        const stage = formData.value.step3.stages[i];
+                        if (!stage.name?.trim()) {
+                            validationErrors.push(`Stage ${i+1} name is required`);
+                            isValid = false;
+                        }
+                        if (stage.grades.length === 0) {
+                            validationErrors.push(`Stage ${i+1} must have at least one grade`);
+                            isValid = false;
+                        } else {
+                            for (let j = 0; j < stage.grades.length; j++) {
+                                const grade = stage.grades[j];
+                                if (!grade.name?.trim()) {
+                                    validationErrors.push(`Grade ${j+1} in stage ${i+1} name is required`);
+                                    isValid = false;
+                                }
+                            }
+                        }
+                    }
+                }
+                break;
+                
+            case 4: // Subjects
+                if (formData.value.step4.subjects.length === 0) {
+                    validationErrors.push('At least one subject is required');
+                    isValid = false;
+                } else {
+                    for (let i = 0; i < formData.value.step4.subjects.length; i++) {
+                        const subject = formData.value.step4.subjects[i];
+                        if (!subject.name?.trim()) {
+                            validationErrors.push(`Subject ${i+1} name is required`);
+                            isValid = false;
+                        }
+                    }
+                }
+                break;
+                
+            case 5: // Classrooms
+                if (formData.value.step5.classrooms.length === 0) {
+                    validationErrors.push('At least one classroom is required');
+                    isValid = false;
+                } else {
+                    for (let i = 0; i < formData.value.step5.classrooms.length; i++) {
+                        const classroom = formData.value.step5.classrooms[i];
+                        if (!classroom.grade_id) {
+                            validationErrors.push(`Classroom ${i+1} grade selection is required`);
+                            isValid = false;
+                        }
+                        if (!classroom.sections || classroom.sections.length === 0) {
+                            validationErrors.push(`Classroom ${i+1} must have at least one section`);
+                            isValid = false;
+                        }
+                    }
+                }
+                break;
+                
+            case 6: // Academic Year
+                if (!formData.value.step6.academic_year_name?.trim()) {
+                    validationErrors.push('Academic year name is required');
+                    isValid = false;
+                }
+                if (!formData.value.step6.start_date) {
+                    validationErrors.push('Start date is required');
+                    isValid = false;
+                }
+                if (!formData.value.step6.end_date) {
+                    validationErrors.push('End date is required');
+                    isValid = false;
+                }
+                if (formData.value.step6.semesters.length === 0) {
+                    validationErrors.push('At least one semester is required');
+                    isValid = false;
+                } else {
+                    for (let i = 0; i < formData.value.step6.semesters.length; i++) {
+                        const semester = formData.value.step6.semesters[i];
+                        if (!semester.name?.trim()) {
+                            validationErrors.push(`Semester ${i+1} name is required`);
+                            isValid = false;
+                        }
+                    }
+                }
+                break;
+        }
+
+        // Show client-side validation errors if any
+        if (!isValid) {
+            validationErrors.forEach(error => {
+                $q.notify({
+                    type: 'negative',
+                    message: error,
+                    position: 'top'
+                });
+            });
+            return false;
+        }
+
+        // If client-side validation passes, check with server
         const stepData = formData.value[`step${currentStep.value}`];
         await axios.post(route('admin.hr.setup-wizard.validate-step'), {
             step: currentStep.value,
@@ -623,6 +810,7 @@ const validateCurrentStep = async () => {
                     $q.notify({
                         type: 'negative',
                         message: error,
+                        position: 'top'
                     });
                 });
             });
@@ -732,6 +920,40 @@ const addClassroom = () => {
     });
 };
 
+const addAllGrades = () => {
+    // Get all available grades
+    const allGrades = availableGrades.value;
+    
+    // Add each grade as a new classroom entry if it doesn't already exist
+    allGrades.forEach(grade => {
+        const existingClassroom = formData.value.step5.classrooms.find(classroom => 
+            classroom.grade_id === grade.id
+        );
+        
+        if (!existingClassroom) {
+            formData.value.step5.classrooms.push({
+                grade_id: grade.id,
+                sections: ['A', 'B', 'C', 'D', 'E'],
+                capacity: 30,
+            });
+        }
+    });
+    
+    if (allGrades.length === 0) {
+        $q.notify({
+            type: 'info',
+            message: 'Please add stages and grades first before adding all grades to classrooms',
+            position: 'top'
+        });
+    } else {
+        $q.notify({
+            type: 'positive',
+            message: `Added ${allGrades.length} grade classrooms`,
+            position: 'top'
+        });
+    }
+};
+
 const removeClassroom = (index) => {
     formData.value.step5.classrooms.splice(index, 1);
 };
@@ -750,4 +972,124 @@ const addSemester = () => {
 const removeSemester = (index) => {
     formData.value.step6.semesters.splice(index, 1);
 };
+
+// Function to create a new school
+const createNewSchool = async () => {
+    creatingSchool.value = true;
+    
+    try {
+        const response = await axios.post(route('admin.hr.my-schools.store'), {
+            name: newSchoolData.value.name,
+            name_ar: newSchoolData.value.name_ar,
+            section: newSchoolData.value.section,
+        });
+
+        // Add the new school to the list
+        props.hrSchools.push({
+            id: response.data.id,
+            name: newSchoolData.value.name,
+            name_ar: newSchoolData.value.name_ar,
+            section: newSchoolData.value.section,
+            is_active: true,
+            has_stages: false,
+            has_subjects: false,
+            has_classrooms: false,
+            can_delete: true
+        });
+
+        // Select the new school
+        selectedSchoolId.value = response.data.id;
+        
+        // Close the dialog and reset form
+        showAddSchoolDialog.value = false;
+        newSchoolData.value = {
+            name: '',
+            name_ar: '',
+            section: null,
+        };
+        
+        $q.notify({
+            type: 'positive',
+            message: 'School created successfully!',
+            position: 'top'
+        });
+        
+        // Switch to the newly created school context
+        switchSchoolContext(response.data.id);
+        
+    } catch (error) {
+        console.error('Error creating school:', error);
+        $q.notify({
+            type: 'negative',
+            message: error.response?.data?.message || 'Error creating school',
+            position: 'top'
+        });
+    } finally {
+        creatingSchool.value = false;
+    }
+};
+
+// Function to load default data into the form
+const loadDefaultData = async () => {
+    try {
+        const response = await axios.get(route('admin.hr.setup-wizard.default-data'));
+        const defaultData = response.data;
+        
+        // Load stages and grades
+        formData.value.step3.stages = JSON.parse(JSON.stringify(defaultData.stages));
+        
+        // Load subjects
+        formData.value.step4.subjects = JSON.parse(JSON.stringify(defaultData.subjects));
+        
+        // Load semesters for academic year step
+        formData.value.step6.semesters = JSON.parse(JSON.stringify(defaultData.semesters));
+        
+        $q.notify({
+            type: 'positive',
+            message: 'Default data loaded successfully!',
+            position: 'top'
+        });
+    } catch (error) {
+        console.error('Error loading default data:', error);
+        $q.notify({
+            type: 'negative',
+            message: error.response?.data?.message || 'Error loading default data',
+            position: 'top'
+        });
+    }
+};
+
+// Function to load default data and add all grades to classrooms
+const loadDefaultDataAndAddAllGrades = async () => {
+    try {
+        const response = await axios.get(route('admin.hr.setup-wizard.default-data'));
+        const defaultData = response.data;
+        
+        // Load stages and grades
+        formData.value.step3.stages = JSON.parse(JSON.stringify(defaultData.stages));
+        
+        // Load subjects
+        formData.value.step4.subjects = JSON.parse(JSON.stringify(defaultData.subjects));
+        
+        // Load semesters for academic year step
+        formData.value.step6.semesters = JSON.parse(JSON.stringify(defaultData.semesters));
+        
+        // Now add all grades to classrooms
+        addAllGrades();
+        
+        $q.notify({
+            type: 'positive',
+            message: 'Default data loaded and all grades added to classrooms!',
+            position: 'top'
+        });
+    } catch (error) {
+        console.error('Error loading default data:', error);
+        $q.notify({
+            type: 'negative',
+            message: error.response?.data?.message || 'Error loading default data',
+            position: 'top'
+        });
+    }
+};
+
 </script>

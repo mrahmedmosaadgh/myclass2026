@@ -271,6 +271,16 @@ class HRSetupWizardController extends Controller
             $user->assignRole('hr_admin');
         } else {
             $user = User::find($data['user_id']);
+            
+            if (!$user) {
+                // Check if the user_id is even valid before throwing an exception
+                if (empty($data['user_id'])) {
+                    throw new \Exception('No user selected for HR assignment. Please select an existing user or create a new one.');
+                } else {
+                    throw new \Exception('Selected user not found for HR assignment. The user may have been deleted. Please select another user or create a new one.');
+                }
+            }
+            
             // Only update role if strictly needed, avoid overwriting admins
             if ($user->role !== 'admin' && $user->role !== 'super_admin') {
                 $user->update(['role' => 'hr_admin']);
@@ -458,19 +468,47 @@ class HRSetupWizardController extends Controller
 
     private function syncAcademicYearAndSemesters(array $data, int $schoolId)
     {
+        // Set default dates if not provided
+        $startDate = $data['start_date'] ?? now()->startOfYear();
+        $endDate = $data['end_date'] ?? now()->endOfYear();
+        
+        // If we only have the year, set a default start/end date for the academic year
+        if (empty($data['start_date']) || empty($data['end_date'])) {
+            $currentYear = now()->year;
+            $startDate = "$currentYear-09-01"; // Default to September 1st
+            $endDate = ($currentYear + 1) . "-06-30"; // Default to June 30th of next year
+        }
+
         $academicYear = AcademicYear::updateOrCreate(
             [
                 'school_id' => $schoolId,
                 'name' => $data['academic_year_name']
             ],
             [
-                'start_date' => $data['start_date'],
-                'end_date' => $data['end_date'],
+                'start_date' => $startDate,
+                'end_date' => $endDate,
                 'active' => 1
             ]
         );
 
         foreach ($data['semesters'] as $index => $semesterData) {
+            // Set default dates for semester if not provided
+            $semesterStartDate = $semesterData['start_date'] ?? null;
+            $semesterEndDate = $semesterData['end_date'] ?? null;
+            
+            // Calculate default semester dates based on academic year dates
+            if (empty($semesterStartDate) || empty($semesterEndDate)) {
+                $academicStart = new \DateTime($startDate);
+                $academicEnd = new \DateTime($endDate);
+                
+                // Calculate semester ranges
+                $totalDays = $academicStart->diff($academicEnd)->days;
+                $semesterDuration = ceil($totalDays / count($data['semesters']));
+                
+                $semesterStartDate = date('Y-m-d', strtotime("+$semesterDuration*$index days", strtotime($startDate)));
+                $semesterEndDate = date('Y-m-d', strtotime("+$semesterDuration*($index+1)-1 days", strtotime($startDate)));
+            }
+
             Semester::updateOrCreate(
                 [
                     'school_id' => $schoolId,
@@ -479,8 +517,8 @@ class HRSetupWizardController extends Controller
                 ],
                 [
                     'name' => $semesterData['name'],
-                    'start_date' => $semesterData['start_date'],
-                    'end_date' => $semesterData['end_date'],
+                    'start_date' => $semesterStartDate,
+                    'end_date' => $semesterEndDate,
                     'total_weeks' => $semesterData['total_weeks'] ?? null,
                     'active' => $index === 0 ? 1 : 0
                 ]
@@ -585,22 +623,22 @@ class HRSetupWizardController extends Controller
                 'name' => 'required|string|max:255',
             ],
             3 => [
-                'stages' => 'required|array|min:1',
+                'stages' => 'array', // Make stages optional instead of required
                 'stages.*.name' => 'required|string|max:255',
                 'stages.*.grades' => 'required|array|min:1',
             ],
             4 => [
-                'subjects' => 'required|array|min:1',
+                'subjects' => 'array', // Make subjects optional instead of required
                 'subjects.*.name' => 'required|string|max:255',
             ],
             5 => [
-                'classrooms' => 'required|array|min:1',
+                'classrooms' => 'array', // Make classrooms optional instead of required
             ],
             6 => [
                 'academic_year_name' => 'required|string|max:255',
-                'start_date' => 'required|date',
-                'end_date' => 'required|date|after:start_date',
-                'semesters' => 'required|array|min:1',
+                'start_date' => 'date',
+                'end_date' => 'date|after:start_date',
+                'semesters' => 'array', // Make semesters optional instead of required
             ],
             default => [],
         };
@@ -697,6 +735,21 @@ class HRSetupWizardController extends Controller
                 ['name' => 'Semester 3', 'semester_number' => 3],
                 ['name' => 'Semester 4', 'semester_number' => 4],
             ],
+            'classrooms' => [
+                [
+                    'grade_id' => null, // Will be populated with actual grade IDs when adding all grades
+                    'sections' => ['A', 'B'], // Default sections for each grade
+                    'capacity' => 30,
+                ]
+            ],
         ];
+    }
+    
+    /**
+     * Return default data for admin and HR users to help populate school configurations
+     */
+    public function getDefaultDataForUsers()
+    {
+        return response()->json($this->getDefaultData());
     }
 }

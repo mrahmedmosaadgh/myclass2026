@@ -31,7 +31,7 @@ class DatabaseSeeder extends Seeder
             InitialHRAndSchoolSeeder::class,
             
             // Step 4: Create school structure (sections, stages, grades, subjects, etc.)
-            InitialSchoolStructureSeeder::class,
+            // InitialSchoolStructureSeeder::class,
         ]);
 
         $this->command->newLine();

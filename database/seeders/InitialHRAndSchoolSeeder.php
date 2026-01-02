@@ -29,6 +29,8 @@ class InitialHRAndSchoolSeeder extends Seeder
 
         // Assign hr_admin role
         $hrUser->assignRole('hr_admin');
+        $hrUser->assignRole('admin');
+  
 
         // Step 2: Create HR Record
         $hr = HR::create([

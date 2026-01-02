@@ -36,6 +36,8 @@ Route::middleware(['auth', 'verified', 'role:admin|hr_admin|super_admin'])->pref
         ->name('hr.setup-wizard.validate-step');
     Route::post('hr/setup-wizard', [App\Http\Controllers\HRSetupWizardController::class, 'store'])
         ->name('hr.setup-wizard.store');
+    Route::get('hr/setup-wizard/default-data', [App\Http\Controllers\HRSetupWizardController::class, 'getDefaultDataForUsers'])
+        ->name('hr.setup-wizard.default-data');
     Route::delete('hr/schools/{id}', [App\Http\Controllers\HRSetupWizardController::class, 'destroy'])
         ->name('hr.schools.destroy');
 
