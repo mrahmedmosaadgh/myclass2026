@@ -206,6 +206,27 @@ class Teacher extends Model
     }
 
     /**
+     * Normalize name for consistent formatting and duplicate detection
+     * 
+     * @param string $name Name to normalize
+     * @return string Normalized name
+     */
+    protected static function normalizeName(string $name): string
+    {
+        // Trim whitespace
+        $normalized = trim($name);
+        
+        // Replace multiple spaces with single space
+        $normalized = preg_replace('/\s+/', ' ', $normalized);
+        
+        // Convert to title case for consistency (e.g., "John Smith")
+        // This preserves proper capitalization while ensuring consistency
+        $normalized = mb_convert_case($normalized, MB_CASE_TITLE, 'UTF-8');
+        
+        return $normalized;
+    }
+
+    /**
      * Create or find user account for teacher
      *
      * @param Teacher $teacher
@@ -213,11 +234,17 @@ class Teacher extends Model
      */
     protected static function createOrFindUser(Teacher $teacher): User
     {
+        // Normalize the teacher name for consistent user account creation
+        $normalizedName = self::normalizeName($teacher->name);
+        
         // Use email if provided, otherwise use t_id as email (requirement 3.4)
         $email = !empty($teacher->email) ? $teacher->email : $teacher->t_id;
         
-        // Check if user already exists by email
-        $user = User::where('email', $email)->first();
+        // Check if user already exists by email OR by normalized name
+        // This prevents duplicate user accounts for the same person
+        $user = User::where('email', $email)
+            ->orWhereRaw('LOWER(TRIM(name)) = ?', [strtolower($normalizedName)])
+            ->first();
         
         if (!$user) {
             // Pre-hashed password for '12345678' to avoid repeated bcrypt calls during bulk imports
@@ -227,15 +254,20 @@ class Teacher extends Model
                 $defaultPasswordHash = bcrypt('12345678');
             }
             
-            // Create new user with default password (requirement 3.5)
+            // Create new user with normalized name (requirement 3.5)
             $user = User::create([
-                'name' => $teacher->name,
+                'name' => $normalizedName,
                 'email' => $email,
                 'role' => 'teacher', // Requirement 3.3
                 'password' => $defaultPasswordHash, // Default password (requirement 3.5)
                 'is_active' => true, // New teachers are active by default
                 'school_id' => $teacher->school_id // Associate with school
             ]);
+        } else {
+            // Update existing user name to normalized version if different
+            if ($user->name !== $normalizedName) {
+                $user->update(['name' => $normalizedName]);
+            }
         }
         
         return $user;

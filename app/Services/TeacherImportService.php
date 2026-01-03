@@ -219,11 +219,18 @@ class TeacherImportService
      */
     protected function processRow(array $row, int $schoolId, int $academicYearId, array &$results): void
     {
+        // Normalize incoming data for consistent duplicate detection
+        $teacherName = $this->normalizeName($row['teacher_name'] ?? '');
+        $teacherEmail = !empty($row['teacher_email']) ? $this->normalizeEmail($row['teacher_email']) : '';
+        $phoneNumber = !empty($row['phone']) ? $this->normalizePhone($row['phone']) : '';
+        $classroomName = $this->normalizeName($row['classroom'] ?? '');
+        $subjectName = $this->normalizeName($row['subject'] ?? '');
+        
         // Create or find teacher
         $teacher = $this->createOrUpdateTeacher([
-            'name' => trim($row['teacher_name']),
-            'email' => trim($row['teacher_email'] ?? ''),
-            'phone_number' => trim($row['phone'] ?? ''),
+            'name' => $teacherName,
+            'email' => $teacherEmail,
+            'phone_number' => $phoneNumber,
             'national_id' => trim($row['national_id'] ?? ''),
             'gender' => trim($row['gender'] ?? ''),
             'date_of_birth' => $row['date_of_birth'] ?? null,
@@ -234,10 +241,10 @@ class TeacherImportService
         }
         
         // Create or find classroom
-        $classroom = $this->createOrUpdateClassroom(trim($row['classroom']), $schoolId);
+        $classroom = $this->createOrUpdateClassroom($classroomName, $schoolId);
         
         // Create or find subject
-        $subject = $this->createOrUpdateSubject(trim($row['subject']), $schoolId);
+        $subject = $this->createOrUpdateSubject($subjectName, $schoolId);
         
         // Create or update assignment
         $assignmentData = [
@@ -284,9 +291,10 @@ class TeacherImportService
             $teacherData['whatsapp_number'] = null;
         }
 
-        // Try to find existing teacher by name and school (requirement 3.6)
-        $teacher = Teacher::where('name', $teacherData['name'])
-            ->where('school_id', $schoolId)
+        // Try to find existing teacher by name (case-insensitive) and school
+        // Using LOWER() for case-insensitive comparison
+        $teacher = Teacher::where('school_id', $schoolId)
+            ->whereRaw('LOWER(TRIM(name)) = ?', [strtolower(trim($teacherData['name']))])
             ->first();
         
         if ($teacher) {
@@ -360,17 +368,27 @@ class TeacherImportService
             ]);
         }
 
-        // Create or get classroom with required fields
-        return Classroom::firstOrCreate(
-            ['name' => $name, 'school_id' => $schoolId],
-            [
-                'name' => $name,
-                'school_id' => $schoolId,
-                'capacity' => 30,
-                'stage_id' => $stage->id,
-                'grade_id' => $grade->id,
-            ]
-        );
+        // Try to find existing classroom with case-insensitive lookup
+        $classroom = Classroom::where('school_id', $schoolId)
+            ->whereRaw('LOWER(TRIM(name)) = ?', [strtolower(trim($name))])
+            ->first();
+
+        if ($classroom) {
+            // Update the name to the normalized version if different
+            if ($classroom->name !== $name) {
+                $classroom->update(['name' => $name]);
+            }
+            return $classroom;
+        }
+
+        // Create new classroom with required fields
+        return Classroom::create([
+            'name' => $name,
+            'school_id' => $schoolId,
+            'capacity' => 30,
+            'stage_id' => $stage->id,
+            'grade_id' => $grade->id,
+        ]);
     }
     
     /**
@@ -382,12 +400,24 @@ class TeacherImportService
      */
     public function createOrUpdateSubject(string $name, int $schoolId): Subject
     {
-        // Requirement 4.2: Create subject if not exists, 4.3: Associate with school
-        // Requirement 4.4: Use existing record if already exists for the school
-        return Subject::firstOrCreate(
-            ['name' => $name, 'school_id' => $schoolId],
-            ['name' => $name, 'school_id' => $schoolId]
-        );
+        // Try to find existing subject with case-insensitive lookup
+        $subject = Subject::where('school_id', $schoolId)
+            ->whereRaw('LOWER(TRIM(name)) = ?', [strtolower(trim($name))])
+            ->first();
+
+        if ($subject) {
+            // Update the name to the normalized version if different
+            if ($subject->name !== $name) {
+                $subject->update(['name' => $name]);
+            }
+            return $subject;
+        }
+
+        // Create new subject
+        return Subject::create([
+            'name' => $name,
+            'school_id' => $schoolId
+        ]);
     }
     
     /**
@@ -822,5 +852,52 @@ class TeacherImportService
         }
 
         return $results;
+    }
+
+    /**
+     * Normalize name for consistent formatting and duplicate detection
+     * 
+     * @param string $name Name to normalize
+     * @return string Normalized name
+     */
+    protected function normalizeName(string $name): string
+    {
+        // Trim whitespace
+        $normalized = trim($name);
+        
+        // Replace multiple spaces with single space
+        $normalized = preg_replace('/\s+/', ' ', $normalized);
+        
+        // Convert to title case for consistency (e.g., "John Smith")
+        // This preserves proper capitalization while ensuring consistency
+        $normalized = mb_convert_case($normalized, MB_CASE_TITLE, 'UTF-8');
+        
+        return $normalized;
+    }
+
+    /**
+     * Normalize email for consistent formatting
+     * 
+     * @param string $email Email to normalize
+     * @return string Normalized email
+     */
+    protected function normalizeEmail(string $email): string
+    {
+        // Trim and convert to lowercase
+        return strtolower(trim($email));
+    }
+
+    /**
+     * Normalize phone number by removing non-numeric characters
+     * 
+     * @param string $phone Phone number to normalize
+     * @return string Normalized phone number
+     */
+    protected function normalizePhone(string $phone): string
+    {
+        // Remove all non-numeric characters
+        $normalized = preg_replace('/[^0-9+]/', '', trim($phone));
+        
+        return $normalized;
     }
 }

@@ -62,27 +62,29 @@ class Student extends Model
                 $student->s_id = $uniqueId;
             }
 
-
-
-
-
-
+            // Normalize the student name for consistent user account creation
+            $normalizedName = self::normalizeName($student->name);
 
             // Check if a user with the given email already exists
             $user = User::where('email', $student->s_id)->first();
             // $user = User::where('email', $student->email)->first();
 
             if (!$user) {
-                // Create a new user if not exists
+                // Create a new user with normalized name
                 $user = User::create([
-                    'name' => $student->name,
+                    'name' => $normalizedName,
                     'email' => $student->s_id,
-                    'role' =>  'parent' ,
+                    'role' => 'parent',
 
                     // 'email' => $student->email,
                     // 'password' => bcrypt(Str::random(10)), // Generate a random password
                     'password' => bcrypt('12345678'), // Generate a random password
                 ]);
+            } else {
+                // Update existing user name to normalized version if different
+                if ($user->name !== $normalizedName) {
+                    $user->update(['name' => $normalizedName]);
+                }
             }
 
             $student->user_id = $user->id;
@@ -107,7 +109,26 @@ class Student extends Model
         });
     }
 
-
+    /**
+     * Normalize name for consistent formatting and duplicate detection
+     * 
+     * @param string $name Name to normalize
+     * @return string Normalized name
+     */
+    protected static function normalizeName(string $name): string
+    {
+        // Trim whitespace
+        $normalized = trim($name);
+        
+        // Replace multiple spaces with single space
+        $normalized = preg_replace('/\s+/', ' ', $normalized);
+        
+        // Convert to title case for consistency (e.g., "Ahmed Ali")
+        // This preserves proper capitalization while ensuring consistency
+        $normalized = mb_convert_case($normalized, MB_CASE_TITLE, 'UTF-8');
+        
+        return $normalized;
+    }
 
 
 
