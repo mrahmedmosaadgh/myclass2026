@@ -72,6 +72,7 @@ return new class extends Migration
  
             $table->tinyInteger('period_number');
             $table->tinyInteger('day_number');
+            $table->tinyInteger('period_order')->nullable();
                 
 
                 // ->check('num > 0');
@@ -106,6 +107,7 @@ return new class extends Migration
             $table->index(['school_id' ]);
             // $table->index(['period_code']); // Commented out since period_code column is not created
             $table->index(['copy_id', 'active']);
+            $table->index(['copy_id', 'cst_id', 'period_order']);
             // $table->index(['teacher_id', 'day']);
 
             // Unique constraints
@@ -121,6 +123,3 @@ return new class extends Migration
         Schema::dropIfExists('schedules');
     }
 };
-
-
-
