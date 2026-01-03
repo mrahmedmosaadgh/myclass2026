@@ -94,9 +94,70 @@ class ScheduleController extends Controller
         $records = $query->orderBy('day_number')->orderBy('period_number')->get();
 
         if ($request->wantsJson()) {
+            // Get total possible slots (e.g., 5 days × 8 periods = 40 slots)
+            // We'll calculate this from the schedule structure
+            $totalPossibleSlots = 40; // Default assumption
+            
+            // Calculate classroom-specific statistics (current selection)
+            $assignedCount = $records->filter(function($schedule) {
+                return !is_null($schedule->cst_id) 
+                    && !is_null($schedule->day_number) 
+                    && !is_null($schedule->period_number);
+            })->count();
+            
+            $classroomStats = [
+                'total_slots' => $totalPossibleSlots,
+                'assigned_slots' => $assignedCount,
+                'unassigned_slots' => $totalPossibleSlots - $assignedCount,
+                'conflict_count' => 0 // Classroom-specific conflicts
+            ];
+            
+            // Calculate classroom-specific conflicts if classroom_id is provided
+            if ($request->has('classroom_id') && $request->has('copy_id')) {
+                $classroomStats['conflict_count'] = $this->calculateClassroomConflictCount(
+                    $request->copy_id, 
+                    $request->classroom_id
+                );
+            }
+            
+            // Calculate overall statistics (all classrooms in the copy)
+            $overallStats = null;
+            if ($request->has('copy_id')) {
+                $allSchedules = Schedule::where('copy_id', $request->copy_id)
+                    ->with(['cst', 'cst.classroom', 'cst.subject', 'cst.teacher'])
+                    ->get();
+                
+                // Count unique classrooms to calculate total possible slots
+                $classroomCount = Schedule::where('copy_id', $request->copy_id)
+                    ->whereHas('cst')
+                    ->with('cst.classroom')
+                    ->get()
+                    ->pluck('cst.classroom.id')
+                    ->unique()
+                    ->count();
+                
+                $totalOverallSlots = $classroomCount * $totalPossibleSlots;
+                
+                $overallAssignedCount = $allSchedules->filter(function($schedule) {
+                    return !is_null($schedule->cst_id) 
+                        && !is_null($schedule->day_number) 
+                        && !is_null($schedule->period_number);
+                })->count();
+                
+                $overallStats = [
+                    'total_slots' => $totalOverallSlots,
+                    'assigned_slots' => $overallAssignedCount,
+                    'unassigned_slots' => $totalOverallSlots - $overallAssignedCount,
+                    'conflict_count' => $this->calculateConflictCount($request->copy_id)
+                ];
+            }
+            
             return response()->json([
                 'success' => true,
-                'data' => $records
+                'data' => $records,
+                'stats' => $classroomStats, // Keep for backward compatibility
+                'classroom_stats' => $classroomStats,
+                'overall_stats' => $overallStats
             ]);
         }
 
@@ -492,8 +553,11 @@ class ScheduleController extends Controller
             ]);
 
             // Get all schedules for this copy with CST relationships
+            // Exclude schedules without proper day/period assignments
             $allSchedules = Schedule::where('copy_id', $validated['copy_id'])
                 ->whereNotNull('cst_id')
+                ->whereNotNull('day_number')
+                ->whereNotNull('period_number')
                 ->with(['cst.teacher', 'cst.subject', 'cst.classroom'])
                 ->get();
 
@@ -516,6 +580,15 @@ class ScheduleController extends Controller
                     
                     // If a teacher appears more than once in the same slot = conflict
                     if ($teacherSchedules->count() > 1) {
+                        // If classroom_id is requested, check if this conflict involves the requested classroom
+                        if (isset($validated['classroom_id'])) {
+                            $involvesClassroom = $teacherSchedules->contains(function ($s) use ($validated) {
+                                return $s->cst && $s->cst->classroom_id == $validated['classroom_id'];
+                            });
+                            
+                            if (!$involvesClassroom) continue;
+                        }
+
                         $first = $teacherSchedules->first();
                         $dayNumber = $first->day_number;
                         $periodNumber = $first->period_number;
@@ -524,28 +597,37 @@ class ScheduleController extends Controller
                         $assignedClassrooms = $teacherSchedules->map(function ($s) {
                             return [
                                 'schedule_id' => $s->id,
-                                'classroom_id' => $s->cst?->classroom_id,
-                                'classroom_name' => $s->cst?->classroom?->name ?? 'Unknown',
-                                'subject_name' => $s->cst?->subject?->name ?? 'Unknown',
+                                'classroom_id' => $s->cst ? $s->cst->classroom_id : null,
+                                'classroom_name' => $s->cst && $s->cst->classroom ? $s->cst->classroom->name : 'Unknown',
+                                'subject_name' => $s->cst && $s->cst->subject ? $s->cst->subject->name : 'Unknown',
                                 'cst_id' => $s->cst_id
                             ];
                         })->values()->toArray();
 
-                        // Mark each schedule as having a conflict
+                        // For the API response format expected by frontend
+                        // We want distinct CONFLICTS (one per teacher per slot), not one per schedule
+                        // Use a unique key for the conflict: teacher_id-day-period
+                        $conflictKey = $teacherId . '-' . $dayNumber . '-' . $periodNumber;
+                        
+                        $conflictData = [
+                            'teacher_id' => $teacherId,
+                            'teacher_name' => $first->cst && $first->cst->teacher ? $first->cst->teacher->name : 'Unknown',
+                            'day' => $dayNumber,
+                            'period' => $periodNumber,
+                            'classrooms' => $assignedClassrooms,
+                        ];
+                        
+                        $conflicts[$conflictKey] = $conflictData;
+                        
+                        // Also key by schedule_id for TimetableGrid cell display
                         foreach ($teacherSchedules as $schedule) {
-                            $conflicts[$schedule->id] = [
+                            $conflicts[$schedule->id] = array_merge($conflictData, [
                                 'schedule_id' => $schedule->id,
-                                'teacher_id' => $teacherId,
-                                'teacher_name' => $schedule->cst?->teacher?->name ?? 'Unknown',
-                                'day_number' => $dayNumber,
-                                'period_number' => $periodNumber,
-                                'conflict_count' => $teacherSchedules->count(),
-                                'assigned_to' => $assignedClassrooms,
                                 'other_classrooms' => collect($assignedClassrooms)
                                     ->filter(fn($c) => $c['schedule_id'] !== $schedule->id)
                                     ->values()
                                     ->toArray()
-                            ];
+                            ]);
                         }
                     }
                 }
@@ -555,7 +637,7 @@ class ScheduleController extends Controller
                 'success' => true,
                 'data' => [
                     'conflicts' => $conflicts,
-                    'total_conflicts' => count($conflicts)
+                    'total_conflicts' => count(array_filter($conflicts, fn($c) => !isset($c['schedule_id'])))
                 ]
             ]);
 
@@ -572,26 +654,109 @@ class ScheduleController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Calculate the number of unique conflicts for a schedule copy.
+     * A conflict occurs when the same teacher is assigned to multiple classrooms at the same day/period.
+     * 
+     * @param int $copyId The schedule copy ID
+     * @return int The number of unique conflicts
+     */
+    private function calculateConflictCount($copyId)
+    {
+        try {
+            // Get all schedules for this copy with CST relationships
+            // Exclude schedules without proper day/period assignments
+            $allSchedules = Schedule::where('copy_id', $copyId)
+                ->whereNotNull('cst_id')
+                ->whereNotNull('day_number')
+                ->whereNotNull('period_number')
+                ->with(['cst.teacher', 'cst.classroom'])
+                ->get();
+
+            // Group schedules by day_number and period_number
+            $slotGroups = $allSchedules->groupBy(function ($schedule) {
+                return $schedule->day_number . '-' . $schedule->period_number;
+            });
+
+            // Count conflicts: same teacher in multiple classrooms at same time
+            $conflictCount = 0;
+            
+            foreach ($slotGroups as $slotKey => $schedulesInSlot) {
+                // Group by teacher_id within this slot
+                $teacherGroups = $schedulesInSlot->groupBy(function ($schedule) {
+                    return $schedule->cst?->teacher_id;
+                });
+
+                foreach ($teacherGroups as $teacherId => $teacherSchedules) {
+                    if (!$teacherId) continue;
+                    
+                    // If a teacher appears more than once in the same slot = conflict
+                    if ($teacherSchedules->count() > 1) {
+                        // Count this as ONE conflict (not multiple)
+                        $conflictCount++;
+                    }
+                }
+            }
+
+            return $conflictCount;
+
+        } catch (\Exception $e) {
+            \Log::error('Error calculating conflict count: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Calculate the number of conflicts for a specific classroom.
+     * A conflict occurs when the same teacher is assigned to this classroom and another classroom at the same day/period.
+     * 
+     * @param int $copyId The schedule copy ID
+     * @param int $classroomId The classroom ID
+     * @return int The number of conflicts for this classroom
+     */
+    private function calculateClassroomConflictCount($copyId, $classroomId)
+    {
+        try {
+            // Get all schedules for this classroom
+            // Exclude schedules without proper day/period assignments
+            $classroomSchedules = Schedule::where('copy_id', $copyId)
+                ->whereNotNull('cst_id')
+                ->whereNotNull('day_number')
+                ->whereNotNull('period_number')
+                ->whereHas('cst', function($q) use ($classroomId) {
+                    $q->where('classroom_id', $classroomId);
+                })
+                ->with(['cst.teacher'])
+                ->get();
+
+            $conflictCount = 0;
+
+            foreach ($classroomSchedules as $schedule) {
+                if (!$schedule->cst || !$schedule->cst->teacher_id) continue;
+
+                // Check if this teacher is assigned elsewhere at the same time
+                $otherAssignments = Schedule::where('copy_id', $copyId)
+                    ->where('id', '!=', $schedule->id)
+                    ->where('day_number', $schedule->day_number)
+                    ->where('period_number', $schedule->period_number)
+                    ->whereNotNull('cst_id')
+                    ->whereHas('cst', function($q) use ($schedule, $classroomId) {
+                        $q->where('teacher_id', $schedule->cst->teacher_id)
+                          ->where('classroom_id', '!=', $classroomId);
+                    })
+                    ->count();
+
+                if ($otherAssignments > 0) {
+                    $conflictCount++;
+                }
+            }
+
+            return $conflictCount;
+
+        } catch (\Exception $e) {
+            \Log::error('Error calculating classroom conflict count: ' . $e->getMessage());
+            return 0;
+        }
+    }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

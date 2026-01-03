@@ -82,6 +82,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::post('/admin/schedules/update/{schedule}', [ScheduleController::class, 'update_day_period']);
     // Route::get('/admin/schedules/update_period/{schedule_id}', [ScheduleController::class, 'update_period']);
+    
+    // API route for schedule statistics (separate from resource route)
+    Route::get('/admin/schedule-data', [ScheduleController::class, 'getScheduleData'])->name('admin.schedule-data');
+    
     Route::get('/admin/schedules/{school_id}/{schedule_copy_id}', [ScheduleController::class, 'getScheduleData']);
 Route::post('/admin/schedule-copies/create-entries', [ScheduleCopyController::class, 'createScheduleEntries']);
     // Add new school routes

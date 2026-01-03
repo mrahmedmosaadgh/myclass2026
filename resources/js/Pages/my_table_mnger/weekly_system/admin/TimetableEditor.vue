@@ -74,14 +74,61 @@
         </div>
 
         <!-- Statistics -->
-        <div class="col-auto">
-          <div v-if="stats" class="row q-gutter-sm">
-            <q-chip dense icon="check_circle" color="green-2" text-color="green-9">
-              {{ stats.assigned_slots }} assigned
-            </q-chip>
-            <q-chip dense icon="radio_button_unchecked" color="grey-3" text-color="grey-8">
-              {{ stats.empty_slots }} empty
-            </q-chip>
+        <div class="col-12">
+          <!-- Overall Statistics -->
+          <div v-if="overallStats" class="q-mb-sm">
+            <div class="text-caption text-grey-7 q-mb-xs">Overall (All Classrooms)</div>
+            <div class="row q-gutter-sm">
+              <q-chip dense icon="apps" color="blue-2" text-color="blue-9" size="sm">
+                {{ overallStats.total_slots }} total
+              </q-chip>
+              <q-chip dense icon="check_circle" color="green-2" text-color="green-9" size="sm">
+                {{ overallStats.assigned_slots }} assigned
+              </q-chip>
+              <q-chip dense icon="radio_button_unchecked" color="grey-3" text-color="grey-8" size="sm">
+                {{ overallStats.unassigned_slots }} empty
+              </q-chip>
+              <q-chip 
+                v-if="overallStats.conflict_count > 0" 
+                dense 
+                icon="warning" 
+                color="orange-2" 
+                text-color="orange-9"
+                size="sm"
+                clickable
+                @click="showConflictDetails('overall')"
+              >
+                {{ overallStats.conflict_count }} conflicts
+              </q-chip>
+            </div>
+          </div>
+          
+          <!-- Current Classroom Statistics -->
+          <div v-if="classroomStats">
+            <div class="text-caption text-grey-7 q-mb-xs">Current Classroom</div>
+            <div class="row q-gutter-sm">
+              <q-chip dense icon="apps" color="blue-2" text-color="blue-9" size="sm">
+                {{ classroomStats.total_slots }} total
+              </q-chip>
+              <q-chip dense icon="check_circle" color="green-2" text-color="green-9" size="sm">
+                {{ classroomStats.assigned_slots }} assigned
+              </q-chip>
+              <q-chip dense icon="radio_button_unchecked" color="grey-3" text-color="grey-8" size="sm">
+                {{ classroomStats.unassigned_slots }} empty
+              </q-chip>
+              <q-chip 
+                v-if="classroomStats.conflict_count > 0" 
+                dense 
+                icon="warning" 
+                color="orange-2" 
+                text-color="orange-9"
+                size="sm"
+                clickable
+                @click="showConflictDetails('classroom')"
+              >
+                {{ classroomStats.conflict_count }} conflicts
+              </q-chip>
+            </div>
           </div>
         </div>
       </div>
@@ -134,6 +181,44 @@
       @submit="handleAssignSubmit"
       @filter-cst="handleFilterCST"
     />
+
+    <!-- Conflict Details Dialog -->
+    <q-dialog v-model="showConflictDialog" position="right">
+      <q-card style="width: 500px; max-width: 80vw">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">Conflict Details</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+
+        <q-card-section>
+          <div v-if="loadingConflictDetails" class="text-center q-pa-md">
+            <q-spinner color="primary" size="3em" />
+          </div>
+          <div v-else-if="conflictDetails.length === 0" class="text-center text-grey-7 q-pa-md">
+            No conflicts found
+          </div>
+          <q-list v-else separator>
+            <q-item v-for="(conflict, index) in conflictDetails" :key="index">
+              <q-item-section>
+                <q-item-label class="text-weight-medium">
+                  {{ conflict.teacher_name }}
+                </q-item-label>
+                <q-item-label caption>
+                  {{ conflict.day_name }} - Period {{ conflict.period_number }}
+                </q-item-label>
+                <q-item-label caption class="text-orange-9">
+                  Assigned to: {{ conflict.classrooms.join(', ') }}
+                </q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <q-badge color="orange" :label="conflict.classrooms.length + ' classes'" />
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 
@@ -185,7 +270,15 @@ const loadingSubjects = ref(false)
 const saving = ref(false)
 
 // Statistics
-const stats = ref(null)
+const stats = ref(null) // Keep for backward compatibility
+const classroomStats = ref(null)
+const overallStats = ref(null)
+
+// Conflict Details Dialog
+const showConflictDialog = ref(false)
+const loadingConflictDetails = ref(false)
+const conflictDetails = ref([])
+const conflictType = ref('overall') // 'overall' or 'classroom'
 
 // Methods
 const fetchScheduleCopies = async () => {
@@ -237,7 +330,24 @@ const fetchSchedules = async () => {
     })
     const result = response.data.data || response.data || []
     schedules.value = Array.isArray(result) ? result : []
-    calculateStats()
+    
+    // Use backend-provided statistics
+    if (response.data.classroom_stats) {
+      classroomStats.value = response.data.classroom_stats
+    }
+    if (response.data.overall_stats) {
+      overallStats.value = response.data.overall_stats
+    }
+    // Backward compatibility
+    if (response.data.stats) {
+      stats.value = response.data.stats
+    }
+    
+    // Fallback to frontend calculation if no backend stats
+    if (!classroomStats.value && !overallStats.value) {
+      calculateStats()
+    }
+    
     // Fetch conflicts after loading schedules
     await fetchTeacherConflicts()
   } catch (error) {
@@ -319,20 +429,30 @@ const fetchSubjects = async () => {
 }
 
 const calculateStats = () => {
+  // Fallback calculation only if backend doesn't provide stats
   if (!Array.isArray(schedules.value) || schedules.value.length === 0) {
     stats.value = {
       total_slots: 0,
       assigned_slots: 0,
-      empty_slots: 0
+      unassigned_slots: 0,
+      conflict_count: 0
     }
     return
   }
+  
+  // Count assigned: must have cst_id AND day_number AND period_number
+  const assigned = schedules.value.filter(s => 
+    s && s.cst_id && s.day_number != null && s.period_number != null
+  ).length
+  
   const total = schedules.value.length
-  const assigned = schedules.value.filter(s => s && s.cst_id).length
+  const conflicts = Object.keys(teacherConflicts.value || {}).length
+  
   stats.value = {
     total_slots: total,
     assigned_slots: assigned,
-    empty_slots: total - assigned
+    unassigned_slots: total - assigned,
+    conflict_count: conflicts
   }
 }
 
@@ -434,7 +554,57 @@ const handleFilterCST = (searchTerm) => {
   // Could implement server-side filtering here if needed
 }
 
-// Watchers
+// Show conflict details dialog (Added via update)
+const showConflictDetails = async (type) => {
+  conflictType.value = type
+  showConflictDialog.value = true
+  loadingConflictDetails.value = true
+  conflictDetails.value = []
+
+  try {
+    const params = {
+      copy_id: activeCopy.value?.id
+    }
+    
+    if (type === 'classroom' && selectedClassroomId.value) {
+      params.classroom_id = selectedClassroomId.value
+    }
+
+    const response = await axios.get('/weekly-system/api/teacher-conflicts', { params })
+    
+    if (response.data.success && response.data.data) {
+      const conflicts = response.data.data.conflicts || []
+      
+      // Transform conflicts into display format
+      // The API returns an object where keys are either unique conflict keys (teacher-day-period)
+      // or schedule IDs. We only want the unique ones (without schedule_id property)
+      const conflictsList = Array.isArray(conflicts) ? conflicts : Object.values(conflicts)
+      
+      // Filter out duplicates: only show unique conflicts that don't have schedule_id
+      // (schedule_id keyed entries are for cell display, not for the dialog)
+      const uniqueConflicts = conflictsList.filter(c => !c.schedule_id)
+      
+      conflictDetails.value = uniqueConflicts.map(conflict => ({
+        teacher_name: conflict.teacher_name,
+        day_name: getDayName(conflict.day),
+        period_number: conflict.period,
+        classrooms: conflict.classrooms.map(c => c.classroom_name)
+      }))
+    }
+  } catch (error) {
+    console.error('Error fetching conflict details:', error)
+    $q.notify({ type: 'negative', message: 'Failed to load conflict details' })
+  } finally {
+    loadingConflictDetails.value = false
+  }
+}
+
+// Helper to get day name
+const getDayName = (dayNumber) => {
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+  return days[dayNumber - 1] || `Day ${dayNumber}`
+}
+
 watch(activeCopy, async (newVal) => {
   if (!newVal) return
   selectedClassroomId.value = null

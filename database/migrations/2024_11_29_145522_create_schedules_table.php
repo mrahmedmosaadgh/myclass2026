@@ -70,8 +70,8 @@ return new class extends Migration
             // $table->unsignedTinyInteger('period_code')
             //     ->nullable();
  
-            $table->tinyInteger('period_number');
-            $table->tinyInteger('day_number');
+            $table->tinyInteger('period_number')->nullable();
+            $table->tinyInteger('day_number')->nullable();
             $table->tinyInteger('period_order')->nullable();
                 
 
