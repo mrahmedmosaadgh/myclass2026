@@ -68,7 +68,7 @@ class WeeklySystemController extends Controller
             'week_number' => 'required|integer|min:1',
             'semester_number' => 'required|integer|min:1|max:2'
         ]);
-
+ 
         try {
             $copy = ScheduleCopy::findOrFail($request->copy_id);
             
@@ -435,8 +435,10 @@ class WeeklySystemController extends Controller
         $createdCount = 0;
         $skippedCount = 0;
 
-        foreach ($request->schedule_ids as $scheduleId) {
-            $exists = WeeklyPlan::where('schedule_id', $scheduleId)
+        $schedules = Schedule::whereIn('id', $request->schedule_ids)->get();
+
+        foreach ($schedules as $schedule) {
+            $exists = WeeklyPlan::where('schedule_id', $schedule->id)
                 ->where('week_number', $request->week_number)
                 ->where('academic_year_id', $request->academic_year_id)
                 ->where('semester_number', $request->semester_number)
@@ -444,7 +446,8 @@ class WeeklySystemController extends Controller
 
             if (!$exists) {
                 WeeklyPlan::create([
-                    'schedule_id' => $scheduleId,
+                    'schedule_id' => $schedule->id,
+                    'copy_id' => $schedule->copy_id,
                     'week_number' => $request->week_number,
                     'academic_year_id' => $request->academic_year_id,
                     'semester_number' => $request->semester_number,

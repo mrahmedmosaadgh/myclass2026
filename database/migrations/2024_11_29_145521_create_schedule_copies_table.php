@@ -19,7 +19,7 @@ return new class extends Migration
             // Basic information
             $table->string('name', 50);
             $table->string('description')->nullable();
-            $table->tinyInteger('active')->default(1);
+            // $table->tinyInteger('active')->default(1);
 
             // Copy details
             $table->date('copy_date')->nullable();

@@ -24,7 +24,24 @@ return new class extends Migration
             $table->unsignedBigInteger('schedule_copy_id')->nullable();
             // $table->string('address');
             $table->json('data')->nullable();
+<<<<<<< HEAD
+            $table->foreignId('academic_year_id')->nullable()->constrained('academic_years')->onDelete('set null');
+            $table->foreignId('semester_id')->nullable()->constrained('semesters')->onDelete('set null');
+            $table->foreignId('schedule_copy_id')->nullable()->constrained('schedule_copies')->onDelete('set null');
+            $table->foreignId('resolved_by')->nullable()->constrained('users')->onDelete('set null');
+            $table->timestamp('resolved_at')->nullable();
+            $table->json('weekly_settings')->nullable();
             $table->json('weekly_plan_settings')->nullable();
+=======
+
+
+            $table->foreignId('academic_year_id')->nullable()->constrained('academic_years')->onDelete('set null');
+            $table->foreignId('semester_id')->nullable()->constrained('semesters')->onDelete('set null');
+            $table->foreignId('schedule_copy_id')->nullable()->constrained('schedule_copies')->onDelete('set null');
+            $table->foreignId('resolved_by')->nullable()->constrained('users')->onDelete('set null');
+            $table->timestamp('resolved_at')->nullable();
+            $table->json('weekly_settings')->nullable();
+>>>>>>> 9597a23fe1c37df1f2eb5ca66e658e48107e8066
             $table->timestamps();
         });
     }

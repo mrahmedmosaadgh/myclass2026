@@ -12,6 +12,8 @@ class School extends Model
     protected $fillable = [
         'name',
         'name_ar',
+        'section',
+        'section_ar',
         'h_r_id',
         'data',
         'is_active',
@@ -19,12 +21,21 @@ class School extends Model
         'semester_id',
         'schedule_copy_id',
         'weekly_plan_settings',
+        'resolved_by',
+        'resolved_at',
+        'week_number',
+        'locked',
+        'weekly_settings'
     ];
 
     protected $casts = [
         'data' => 'array',
         'weekly_plan_settings' => 'array',
+        'weekly_settings' => 'array',
         'is_active' => 'boolean',
+        'week_number' => 'integer',
+        'locked' => 'boolean',
+        'resolved_at' => 'datetime',
     ];
 
     public function hr()
@@ -67,7 +78,6 @@ class School extends Model
         return $this->hasMany(Subject::class);
     }
 
- 
     public function academic_years()
     {
         return $this->hasMany(AcademicYear::class);
@@ -87,5 +97,19 @@ class School extends Model
     {
         return $this->belongsTo(ScheduleCopy::class, 'schedule_copy_id');
     }
+    
+    public function scheduleCopies()
+    {
+        return $this->hasMany(ScheduleCopy::class);
+    }
+    
+    public function users()
+    {
+        return $this->belongsToMany(User::class);
+    }
+    
+    public function resolver()
+    {
+        return $this->belongsTo(User::class, 'resolved_by');
+    }
 }
-
