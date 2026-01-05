@@ -4,11 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Schedule extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
 
     protected $fillable = [
         'copy_id',
@@ -30,7 +29,28 @@ class Schedule extends Model
         'active' => 'boolean',
     ];
 
-    protected $appends = ['teacher_id', 'subject_id', 'classroom_id', 'grade_id', 'day'];
+    protected $appends = ['teacher_id', 'subject_id', 'classroom_id', 'grade_id', 'day', 'status'];
+    
+    /**
+     * Get schedule readiness status
+     * UNPLACED: No day/period assigned yet
+     * PLACED: Has day/period but not active
+     * READY: Fully configured and active (eligible for weekly plans)
+     * 
+     * Note: period_order is optional and only affects UI display order
+     */
+    public function getStatusAttribute()
+    {
+        if (!$this->day_number || !$this->period_number) {
+            return 'UNPLACED';
+        }
+        
+        if (!$this->active) {
+            return 'PLACED';
+        }
+        
+        return 'READY';
+    }
 
     public function getTeacherIdAttribute()
     {

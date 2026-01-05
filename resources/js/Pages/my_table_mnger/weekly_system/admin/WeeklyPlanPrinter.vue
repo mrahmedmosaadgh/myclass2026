@@ -90,7 +90,7 @@
           <thead>
             <tr>
               <th style="width: 80px;">Day</th>
-              <th style="width: 60px;">Period</th>
+              <th style="width: 60px;">P</th>
               <th style="width: 120px;">Subject</th>
               <th>Classwork</th>
               <th>Homework</th>
@@ -98,7 +98,7 @@
           </thead>
           <tbody>
             <tr v-for="(plan, index) in classroom.plans" :key="index">
-              <td class="text-center">{{ getDayName(plan.schedule?.day) }}</td>
+              <td class="text-center">{{ getDayName(plan.schedule?.day) }}1111</td>
               <td class="text-center">{{ plan.schedule?.period_number }}</td>
               <td>{{ plan.schedule?.cst?.subject_name }}</td>
               <td class="content-cell" v-html="plan.cw || '-'"></td>

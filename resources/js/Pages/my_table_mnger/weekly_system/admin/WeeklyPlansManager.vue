@@ -37,12 +37,19 @@
 
       <q-tab-panels v-model="tab" animated>
         <!-- TAB 1: GENERATE & SYNC -->
-        <q-tab-panel name="sync" class="q-pa-none">
-          <WeeklyPlanSync 
-            :initial-copy-id="selectedCopyId" 
-            :initial-week="weekNumber"
-            @refreshed="refreshStats"
+        <q-tab-panel name="sync" class="q-pa-md">
+          <WeeklyPlanSyncDashboard 
+            v-if="selectedCopyId && selectedAcademicYearId"
+            :copy-id="selectedCopyId" 
+            :week-number="weekNumber"
+            :academic-year-id="selectedAcademicYearId"
+            :semester-number="semesterNumber"
           />
+          <q-card v-else flat bordered class="text-center q-pa-xl">
+            <q-icon name="info" size="64px" color="grey-5" />
+            <p class="text-h6 text-grey-7 q-mt-md">Please configure Active Schedule Copy</p>
+            <p class="text-grey-6">Go to Timetable Editor to activate a schedule copy first.</p>
+          </q-card>
         </q-tab-panel>
 
         <!-- TAB 2: MONITOR PROGRESS -->
@@ -77,7 +84,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import WeeklyPlanMenu from '@/Pages/my_table_mnger/weekly_system/WeeklyPlanMenu.vue'
-import WeeklyPlanSync from '@/Pages/my_table_mnger/weekly_system/admin/WeeklyPlanSync.vue'
+import WeeklyPlanSyncDashboard from '@/Pages/my_table_mnger/weekly_system/components/weekly-plans/WeeklyPlanSyncDashboard.vue'
 import WeeklyPlanStats from '@/Pages/my_table_mnger/weekly_system/admin/WeeklyPlanStats.vue'
 import WeeklyPlanPrinter from '@/Pages/my_table_mnger/weekly_system/admin/WeeklyPlanPrinter.vue'
 import WeeklyPlanClassroomView from '@/Pages/my_table_mnger/weekly_system/admin/WeeklyPlanClassroomView.vue'
@@ -86,7 +93,9 @@ import WeeklyPlanClassroomView from '@/Pages/my_table_mnger/weekly_system/admin/
 const tab = ref('sync')
 
 // Shared state (passed as initial props)
-const selectedCopyId = ref(null)
+const selectedCopyId = ref(4) // TODO: Get from active schedule copy
+const selectedAcademicYearId = ref(1) // TODO: Get from active academic year  
+const semesterNumber = ref(1) // TODO: Get from current semester
 const weekNumber = ref(1)
 const statsRef = ref(null)
 

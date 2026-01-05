@@ -103,5 +103,21 @@ Route::middleware(['auth', 'verified'])->prefix('weekly-system')->name('weekly-s
         // Get all teacher conflicts for the grid display
         Route::get('/teacher-conflicts', [\App\Http\Controllers\ScheduleController::class, 'getTeacherConflicts'])
             ->name('api.teacher-conflicts');
+
+        // AI Import endpoints
+        Route::post('/ai-import/validate', [\App\Http\Controllers\ScheduleController::class, 'validateAIImport'])
+            ->name('api.ai-import.validate');
+        Route::post('/ai-import/apply', [\App\Http\Controllers\ScheduleController::class, 'applyAIImport'])
+            ->name('api.ai-import.apply');
+        Route::post('/ai-import/update', [\App\Http\Controllers\ScheduleController::class, 'applyAIUpdate'])
+            ->name('api.ai-import.update');
+
+        // Sync analysis dashboard
+        Route::get('/sync-analysis', [WeeklySystemController::class, 'getSyncAnalysis'])
+            ->name('api.sync-analysis');
+
+        // Batch create weekly plans
+        Route::post('/weekly-plans/batch-create', [WeeklySystemController::class, 'batchCreate'])
+            ->name('api.batch-create');
     });
 });

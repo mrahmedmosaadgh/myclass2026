@@ -101,7 +101,7 @@ return new class extends Migration
 
             // Audit timestamps
             $table->timestamps();
-            $table->softDeletes();
+            // $table->softDeletes();
 
             // Indexes for better performance
             $table->index(['school_id' ]);

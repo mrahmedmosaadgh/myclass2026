@@ -101,14 +101,19 @@ class ScheduleCopyController extends Controller
         }
     }
 
-    public function index()
+    public function index(Request $request)
     {
         $schoolId = auth()->user()->schoolId();
-        
+
         $query = ScheduleCopy::with(['school', 'academicYear', 'semester', 'createdBy']);
 
         if ($schoolId) {
             $query->where('school_id', $schoolId);
+        }
+
+        // Filter by status if provided
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
         }
 
         $records = $query->orderBy('created_at', 'desc')

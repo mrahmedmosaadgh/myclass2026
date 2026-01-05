@@ -759,4 +759,357 @@ class ScheduleController extends Controller
             return 0;
         }
     }
+
+    /**
+     * Validate AI-generated import JSON
+     * Validates structure, required fields, and business rules
+     */
+    public function validateAIImport(Request $request)
+    {
+        try {
+            $errors = [];
+            $data = $request->input('data');
+
+            // Parse JSON if string
+            if (is_string($data)) {
+                try {
+                    $data = json_decode($data, true);
+                    if (json_last_error() !== JSON_ERROR_NONE) {
+                        return response()->json([
+                            'success' => false,
+                            'errors' => ['Invalid JSON format: ' . json_last_error_msg()]
+                        ], 422);
+                    }
+                } catch (\Exception $e) {
+                    return response()->json([
+                        'success' => false,
+                        'errors' => ['Invalid JSON format']
+                    ], 422);
+                }
+            }
+
+            // Validate required top-level fields
+            if (!isset($data['classroom_id'])) {
+                $errors[] = 'Missing required field: classroom_id';
+            }
+            if (!isset($data['entries']) || !is_array($data['entries'])) {
+                $errors[] = 'Missing or invalid field: entries (must be an array)';
+            }
+
+            // If basic structure is invalid, return early
+            if (!empty($errors)) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => array_slice($errors, 0, 5)
+                ], 422);
+            }
+
+            // Validate entries
+            $allowedDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
+            $seenSlots = [];
+
+            foreach ($data['entries'] as $index => $entry) {
+                $entryErrors = [];
+
+                // Required fields
+                if (!isset($entry['day'])) {
+                    $entryErrors[] = "Entry #{$index}: Missing required field 'day'";
+                }
+                if (!isset($entry['period'])) {
+                    $entryErrors[] = "Entry #{$index}: Missing required field 'period'";
+                }
+                if (!isset($entry['subject'])) {
+                    $entryErrors[] = "Entry #{$index}: Missing required field 'subject'";
+                }
+
+                // Validate day
+                if (isset($entry['day']) && !in_array($entry['day'], $allowedDays)) {
+                    $entryErrors[] = "Entry #{$index}: Invalid day '{$entry['day']}'. Must be one of: " . implode(', ', $allowedDays);
+                }
+
+                // Validate period
+                if (isset($entry['period'])) {
+                    if (!is_numeric($entry['period']) || $entry['period'] < 1 || $entry['period'] > 12) {
+                        $entryErrors[] = "Entry #{$index}: Period must be between 1 and 12";
+                    }
+                }
+
+                // Check for duplicates
+                if (isset($entry['day']) && isset($entry['period'])) {
+                    $slotKey = $entry['day'] . '-' . $entry['period'];
+                    if (isset($seenSlots[$slotKey])) {
+                        $entryErrors[] = "Entry #{$index}: Duplicate slot ({$entry['day']}, period {$entry['period']})";
+                    }
+                    $seenSlots[$slotKey] = true;
+                }
+
+                $errors = array_merge($errors, $entryErrors);
+
+                // Limit to first 5 errors for better UX
+                if (count($errors) >= 5) {
+                    break;
+                }
+            }
+
+            if (!empty($errors)) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => array_slice($errors, 0, 5),
+                    'total_errors' => count($errors)
+                ], 422);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Validation passed',
+                'summary' => [
+                    'total_entries' => count($data['entries']),
+                    'classroom_id' => $data['classroom_id']
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Apply AI import - Replace entire week for classroom
+     */
+    public function applyAIImport(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'data' => 'required',
+                'copy_id' => 'required|exists:schedule_copies,id'
+            ]);
+
+            $data = $validated['data'];
+            if (is_string($data)) {
+                $data = json_decode($data, true);
+            }
+
+            $copyId = $validated['copy_id'];
+            $classroomId = $data['classroom_id'];
+
+            // Get school_id from copy
+            $copy = ScheduleCopy::find($copyId);
+            $schoolId = $copy->school_id;
+
+            // Delete existing schedules for this classroom in this copy
+            // Force delete existing schedules for this classroom in this copy to prevent soft-delete conflicts
+            Schedule::where('copy_id', $copyId)
+                ->whereHas('cst', function($q) use ($classroomId) {
+                    $q->where('classroom_id', $classroomId);
+                })
+                ->forceDelete();
+
+            $dayMap = [
+                'Sunday' => 1,
+                'Monday' => 2,
+                'Tuesday' => 3,
+                'Wednesday' => 4,
+                'Thursday' => 5,
+                'Friday' => 6,
+                'Saturday' => 7
+            ];
+
+            $created = [];
+            $failed = [];
+
+            foreach ($data['entries'] as $index => $entry) {
+                try {
+                    // Find CST by subject name and classroom
+                    $cst = ClassroomSubjectTeacher::where('classroom_id', $classroomId)
+                        ->whereHas('subject', function($q) use ($entry) {
+                            $q->whereRaw('LOWER(name) = ?', [strtolower($entry['subject'])]);
+                        })
+                        ->first();
+
+                    if (!$cst) {
+                        $failed[] = [
+                            'index' => $index,
+                            'reason' => "Subject '{$entry['subject']}' not found for classroom",
+                            'entry' => $entry
+                        ];
+                        continue;
+                    }
+
+                    $schedule = Schedule::create([
+                        'copy_id' => $copyId,
+                        'school_id' => $schoolId,
+                        'cst_id' => $cst->id,
+                        'day_number' => $dayMap[$entry['day']],
+                        'period_number' => $entry['period'],
+                        'notes' => $entry['notes'] ?? null,
+                        'active' => true
+                    ]);
+
+                    $created[] = [
+                        'day' => $entry['day'],
+                        'period' => $entry['period'],
+                        'subject' => $entry['subject']
+                    ];
+
+                } catch (\Exception $e) {
+                    $failed[] = [
+                        'index' => $index,
+                        'reason' => $e->getMessage(),
+                        'entry' => $entry
+                    ];
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Import completed',
+                'summary' => [
+                    'created' => count($created),
+                    'failed' => count($failed),
+                    'total' => count($data['entries'])
+                ],
+                'created' => $created,
+                'failed' => $failed
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Import failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Apply AI update - Merge by day+period
+     */
+    public function applyAIUpdate(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'data' => 'required',
+                'copy_id' => 'required|exists:schedule_copies,id'
+            ]);
+
+            $data = $validated['data'];
+            if (is_string($data)) {
+                $data = json_decode($data, true);
+            }
+
+            $copyId = $validated['copy_id'];
+            $classroomId = $data['classroom_id'];
+
+            // Get school_id from copy
+            $copy = ScheduleCopy::find($copyId);
+            $schoolId = $copy->school_id;
+
+            $dayMap = [
+                'Sunday' => 1,
+                'Monday' => 2,
+                'Tuesday' => 3,
+                'Wednesday' => 4,
+                'Thursday' => 5,
+                'Friday' => 6,
+                'Saturday' => 7
+            ];
+
+            $updated = [];
+            $created = [];
+            $failed = [];
+
+            foreach ($data['entries'] as $index => $entry) {
+                try {
+                    $dayNumber = $dayMap[$entry['day']];
+                    $periodNumber = $entry['period'];
+
+                    // Find CST by subject name and classroom (case-insensitive)
+                    $cst = ClassroomSubjectTeacher::where('classroom_id', $classroomId)
+                        ->whereHas('subject', function($q) use ($entry) {
+                            $q->whereRaw('LOWER(name) = ?', [strtolower($entry['subject'])]);
+                        })
+                        ->first();
+
+                    if (!$cst) {
+                        $failed[] = [
+                            'index' => $index,
+                            'reason' => "Subject '{$entry['subject']}' not found for classroom",
+                            'entry' => $entry
+                        ];
+                        continue;
+                    }
+
+                    // Find existing schedule for this day/period/classroom
+                    $existingSchedule = Schedule::where('copy_id', $copyId)
+                        ->where('day_number', $dayNumber)
+                        ->where('period_number', $periodNumber)
+                        ->whereHas('cst', function($q) use ($classroomId) {
+                            $q->where('classroom_id', $classroomId);
+                        })
+                        ->first();
+
+                    if ($existingSchedule) {
+                        // Update existing
+                        $existingSchedule->update([
+                            'cst_id' => $cst->id,
+                            'notes' => $entry['notes'] ?? $existingSchedule->notes,
+                        ]);
+
+                        $updated[] = [
+                            'day' => $entry['day'],
+                            'period' => $entry['period'],
+                            'subject' => $entry['subject']
+                        ];
+                    } else {
+                        // Create new
+                        Schedule::create([
+                            'copy_id' => $copyId,
+                            'school_id' => $schoolId,
+                            'cst_id' => $cst->id,
+                            'day_number' => $dayNumber,
+                            'period_number' => $periodNumber,
+                            'notes' => $entry['notes'] ?? null,
+                            'active' => true
+                        ]);
+
+                        $created[] = [
+                            'day' => $entry['day'],
+                            'period' => $entry['period'],
+                            'subject' => $entry['subject']
+                        ];
+                    }
+
+                } catch (\Exception $e) {
+                    $failed[] = [
+                        'index' => $index,
+                        'reason' => $e->getMessage(),
+                        'entry' => $entry
+                    ];
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Update completed',
+                'summary' => [
+                    'updated' => count($updated),
+                    'created' => count($created),
+                    'failed' => count($failed),
+                    'total' => count($data['entries'])
+                ],
+                'updated' => $updated,
+                'created' => $created,
+                'failed' => $failed
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Update failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
+

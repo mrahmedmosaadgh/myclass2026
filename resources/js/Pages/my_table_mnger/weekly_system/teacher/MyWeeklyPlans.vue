@@ -88,7 +88,7 @@
         <!-- Preview & Print Buttons -->
         <div class="col-12 col-sm-6 col-md-auto q-gutter-sm">
           <q-btn
-            v-if="selectedClassrooms.length > 0"
+            v-if="selectedClassrooms?.length > 0"
             color="primary"
             label="Preview & Print"
             icon="print"
@@ -126,7 +126,7 @@
           name="by-classroom" 
           label="By Classroom" 
           icon="meeting_room"
-          :disable="selectedClassrooms.length === 0"
+          :disable="!selectedClassrooms || selectedClassrooms.length === 0"
         />
       </q-tabs>
     </q-card>
@@ -316,7 +316,7 @@
       </div>
 
       <!-- No selected classrooms -->
-      <div v-if="selectedClassrooms.length === 0" class="text-center q-pa-xl">
+      <div v-if="!selectedClassrooms || selectedClassrooms.length === 0" class="text-center q-pa-xl">
         <q-icon name="meeting_room" size="64px" color="grey-5" />
         <p class="text-h6 text-grey-7 q-mt-md">No classrooms selected</p>
         <p class="text-grey-6">Select classrooms from the filter above to view by classroom</p>

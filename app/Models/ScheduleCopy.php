@@ -27,6 +27,26 @@ class ScheduleCopy extends Model
         'last_modified_by'
     ];
 
+    
+    protected static function boot()
+    {
+        parent::boot();
+        
+        // Enforce only one active copy per school/year/semester
+        static::saving(function ($copy) {
+            if ($copy->active && $copy->status === 'active') {
+                // Deactivate other active copies for the same school/year/semester
+                self::where('school_id', $copy->school_id)
+                    ->where('academic_year_id', $copy->academic_year_id)
+                    ->where('semester_id', $copy->semester_id)
+                    ->where('active', true)
+                    ->where('status', 'active')
+                    ->where('id', '!=', $copy->id)
+                    ->update(['active' => false, 'status' => 'archived']);
+            }
+        });
+    }
+
     protected $casts = [
         'active' => 'boolean',
         'metadata' => 'array',

@@ -36,7 +36,7 @@ return new class extends Migration
             $table->timestamps();
             
             // Composite index for efficient querying
-            // $table->unique(['academic_year_id', 'semester_number', 'week_number'], 'weekly_plans_unique_composite');
+            $table->unique(['schedule_id', 'academic_year_id', 'semester_number', 'week_number'], 'weekly_plan_unique');
         });
     }
 

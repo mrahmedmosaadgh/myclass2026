@@ -25,7 +25,7 @@ return new class extends Migration
             $table->date('copy_date')->nullable();
             $table->foreignId('academic_year_id')->constrained('academic_years')->onDelete('cascade');
             $table->foreignId('semester_id')->nullable()->constrained('semesters')->onDelete('cascade');
-            $table->tinyInteger('week_number')->nullable();
+     
 
             // Status tracking
             $table->enum('status', ['draft', 'pending', 'active', 'archived'])->default('draft');

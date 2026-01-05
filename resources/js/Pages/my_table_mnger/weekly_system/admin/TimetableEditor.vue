@@ -73,6 +73,22 @@
           </q-select>
         </div>
 
+        <!-- AI Import Button -->
+        <div class="col-12 col-sm-auto">
+          <q-btn
+            color="secondary"
+            icon="psychology"
+            label="Generate via AI"
+            outline
+            :disable="!activeCopy || !selectedClassroomId"
+            @click="showAIImportDialog = true"
+          >
+            <q-tooltip v-if="!activeCopy || !selectedClassroomId">
+              Select a classroom first
+            </q-tooltip>
+          </q-btn>
+        </div>
+
         <!-- Statistics -->
         <div class="col-12">
           <!-- Overall Statistics -->
@@ -219,6 +235,16 @@
         </q-card-section>
       </q-card>
     </q-dialog>
+
+    <!-- AI Import Dialog -->
+    <AIImportDialog
+      v-model="showAIImportDialog"
+      :classroom-id="selectedClassroomId"
+      :classroom-name="selectedClassroomName"
+      :subjects="subjects"
+      :copy-id="activeCopy?.id"
+      @applied="handleAIImportApplied"
+    />
   </div>
 </template>
 
@@ -230,6 +256,7 @@ import TimetableGrid from '../components/timetable/TimetableGrid.vue'
 import CSTAssignDialog from '../components/timetable/CSTAssignDialog.vue'
 import StatusBadge from '../components/shared/StatusBadge.vue'
 import WeeklyPlanMenu from '../WeeklyPlanMenu.vue'
+import AIImportDialog from '../components/timetable/AIImportDialog.vue'
 
 const $q = useQuasar()
 
@@ -279,6 +306,7 @@ const showConflictDialog = ref(false)
 const loadingConflictDetails = ref(false)
 const conflictDetails = ref([])
 const conflictType = ref('overall') // 'overall' or 'classroom'
+const showAIImportDialog = ref(false)
 
 // Methods
 const fetchScheduleCopies = async () => {
@@ -603,6 +631,18 @@ const showConflictDetails = async (type) => {
 const getDayName = (dayNumber) => {
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
   return days[dayNumber - 1] || `Day ${dayNumber}`
+}
+
+// Handle AI Import completion
+const handleAIImportApplied = async () => {
+  // Do not close dialog automatically
+  schedules.value = [] // clear to force reactivity
+  await fetchSchedules()
+  $q.notify({ 
+    type: 'positive', 
+    message: 'AI import completed successfully! Timetable refreshed.',
+    position: 'top'
+  })
 }
 
 watch(activeCopy, async (newVal) => {

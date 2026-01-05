@@ -98,12 +98,13 @@ class WeeklySystemController extends Controller
     public function getMySchedule(Request $request): JsonResponse
     {
         $teacherId = $this->getTeacherId();
-        
+
         if (!$teacherId) {
             return response()->json([
                 'success' => false,
-                'message' => 'No teacher profile found for this user'
-            ], 404);
+                'message' => 'Access denied. This endpoint is only available for users with a teacher profile.',
+                'error_type' => 'no_teacher_profile'
+            ], 403);
         }
 
         $schedules = Schedule::with(['cst.subject', 'cst.classroom', 'cst.teacher', 'copy'])
@@ -133,12 +134,13 @@ class WeeklySystemController extends Controller
         ]);
 
         $teacherId = $this->getTeacherId();
-        
+
         if (!$teacherId) {
             return response()->json([
                 'success' => false,
-                'message' => 'No teacher profile found for this user'
-            ], 404);
+                'message' => 'Access denied. This endpoint is only available for users with a teacher profile.',
+                'error_type' => 'no_teacher_profile'
+            ], 403);
         }
 
         $plans = WeeklyPlan::with(['schedule.cst.subject', 'schedule.cst.classroom', 'schedule.cst.teacher'])
@@ -162,6 +164,7 @@ class WeeklySystemController extends Controller
     {
         $request->validate([
             'teacher_id' => 'nullable|integer|exists:teachers,id',
+            'classroom_id' => 'nullable|integer|exists:classrooms,id',
             'week_number' => 'required|integer|min:1',
             'academic_year_id' => 'required|integer|exists:academic_years,id',
             'semester_number' => 'required|integer|min:1|max:2'
@@ -176,6 +179,13 @@ class WeeklySystemController extends Controller
         if ($request->has('teacher_id')) {
             $query->whereHas('schedule.cst', function ($q) use ($request) {
                 $q->where('teacher_id', $request->teacher_id);
+            });
+        }
+
+        // Filter by classroom if provided
+        if ($request->has('classroom_id')) {
+            $query->whereHas('schedule.cst', function ($q) use ($request) {
+                $q->where('classroom_id', $request->classroom_id);
             });
         }
 
@@ -280,6 +290,181 @@ class WeeklySystemController extends Controller
              'success' => true,
              'data' => $result,
              'message' => $result['message'] ?? 'Week synced successfully'
+        ]);
+    }
+
+    /**
+     * Get sync analysis - shows alignment between schedules and weekly plans
+     */
+    public function getSyncAnalysis(Request $request): JsonResponse
+    {
+        $request->validate([
+            'copy_id' => 'required|integer|exists:schedule_copies,id',
+            'week_number' => 'required|integer|min:1',
+            'academic_year_id' => 'required|integer|exists:academic_years,id',
+            'semester_number' => 'required|integer|min:1|max:2'
+        ]);
+
+        $copyId = $request->copy_id;
+        $weekNumber = $request->week_number;
+        $academicYearId = $request->academic_year_id;
+        $semesterNumber = $request->semester_number;
+
+        // Get all schedules that are placed on the timetable (have day + period)
+        // Note: period_order is only for UI display, not a requirement for weekly plans
+        $schedules = Schedule::with(['cst.subject', 'cst.classroom', 'cst.teacher'])
+            ->where('copy_id', $copyId)
+            ->whereNotNull('day_number')
+            ->whereNotNull('period_number')
+            ->where('active', true)
+            ->orderBy('day_number')
+            ->orderBy('period_number')
+            ->get();
+
+        // Get existing weekly plans
+        $existingPlans = WeeklyPlan::where('week_number', $weekNumber)
+            ->where('academic_year_id', $academicYearId)
+            ->where('semester_number', $semesterNumber)
+            ->whereIn('schedule_id', $schedules->pluck('id'))
+            ->pluck('schedule_id')
+            ->toArray();
+
+        // Aggregate by classroom
+        $classroomData = [];
+        $totalSlots = 0;
+        $totalComplete = 0;
+        $totalMissing = 0;
+
+        foreach ($schedules->groupBy('cst.classroom_id') as $classroomId => $classroomSchedules) {
+            $classroom = $classroomSchedules->first()->cst->classroom;
+            
+            $complete = 0;
+            $missing = 0;
+            $dayBreakdown = [];
+
+            // Group by day
+            foreach ($classroomSchedules->groupBy('day_number') as $dayNumber => $daySchedules) {
+                $dayComplete = 0;
+                $dayMissing = 0;
+                $missingPeriods = [];
+
+                foreach ($daySchedules as $schedule) {
+                    if (in_array($schedule->id, $existingPlans)) {
+                        $dayComplete++;
+                        $complete++;
+                    } else {
+                        $dayMissing++;
+                        $missing++;
+                        $missingPeriods[] = [
+                            'id' => $schedule->id,
+                            'period' => $schedule->period_number,
+                            'subject' => $schedule->cst->subject->name ?? 'Unknown',
+                            'teacher' => $schedule->cst->teacher->name ?? 'Unknown'
+                        ];
+                    }
+                }
+
+                $dayBreakdown[] = [
+                    'day' => $this->getDayName($dayNumber),
+                    'day_number' => $dayNumber,
+                    'total' => count($daySchedules),
+                    'complete' => $dayComplete,
+                    'missing' => $dayMissing,
+                    'missing_periods' => $missingPeriods
+                ];
+            }
+
+            $classroomTotal = count($classroomSchedules);
+            $classroomData[] = [
+                'id' => $classroomId,
+                'name' => $classroom->name ?? "Classroom {$classroomId}",
+                'total_slots' => $classroomTotal,
+                'complete' => $complete,
+                'missing' => $missing,
+                'percentage' => $classroomTotal > 0 ? round(($complete / $classroomTotal) * 100) : 0,
+                'days' => $dayBreakdown
+            ];
+
+            $totalSlots += $classroomTotal;
+            $totalComplete += $complete;
+            $totalMissing += $missing;
+        }
+
+        return response()->json([
+            'success' => true,
+            'summary' => [
+                'total_slots' => $totalSlots,
+                'complete' => $totalComplete,
+                'missing' => $totalMissing,
+                'percentage' => $totalSlots > 0 ? round(($totalComplete / $totalSlots) * 100) : 0
+            ],
+            'classrooms' => $classroomData
+        ]);
+    }
+
+    /**
+     * Helper to get day name
+     */
+    private function getDayName($dayNumber): string
+    {
+        $days = [
+            1 => 'Sunday',
+            2 => 'Monday',
+            3 => 'Tuesday',
+            4 => 'Wednesday',
+            5 => 'Thursday',
+            6 => 'Friday',
+            7 => 'Saturday'
+        ];
+
+        return $days[$dayNumber] ?? 'Unknown';
+    }
+    /**
+     * Batch create weekly plans for specific schedule IDs
+     */
+    public function batchCreate(Request $request): JsonResponse
+    {
+        $request->validate([
+            'schedule_ids' => 'required|array',
+            'schedule_ids.*' => 'integer|exists:schedules,id',
+            'week_number' => 'required|integer|min:1',
+            'academic_year_id' => 'required|integer|exists:academic_years,id',
+            'semester_number' => 'required|integer|min:1|max:2'
+        ]);
+
+        $createdCount = 0;
+        $skippedCount = 0;
+
+        foreach ($request->schedule_ids as $scheduleId) {
+            $exists = WeeklyPlan::where('schedule_id', $scheduleId)
+                ->where('week_number', $request->week_number)
+                ->where('academic_year_id', $request->academic_year_id)
+                ->where('semester_number', $request->semester_number)
+                ->exists();
+
+            if (!$exists) {
+                WeeklyPlan::create([
+                    'schedule_id' => $scheduleId,
+                    'week_number' => $request->week_number,
+                    'academic_year_id' => $request->academic_year_id,
+                    'semester_number' => $request->semester_number,
+                    'cw' => '',
+                    'hw' => '',
+                    'notes' => ''
+                ]);
+                $createdCount++;
+            } else {
+                $skippedCount++;
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Successfully created {$createdCount} plans ({$skippedCount} already existed)",
+            'data' => [
+                'created' => $createdCount,
+                'skipped' => $skippedCount
+            ]
         ]);
     }
 }
