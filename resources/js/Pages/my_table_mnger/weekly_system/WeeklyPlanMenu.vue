@@ -1,6 +1,9 @@
 <template>
+  <!-- Main School Data Component - should be at the top of the weekly plan system -->
+  <MainSchoolData />
+
   <q-card flat bordered class="q-mb-md bg-white">
-    <div class="row items-center q-px-md">
+    <div class="row items-center q-px-md"> 
       <div class="text-h6 q-mr-lg text-primary text-weight-bold">Weekly Plan</div>
       <q-separator vertical inset class="q-mr-md" />
       
@@ -54,6 +57,9 @@
 import { computed, ref } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import WeeklySystemGuide from './components/WeeklySystemGuide.vue';
+import MainSchoolData from './components/MainSchoolData.vue'; // Import the component from the shared components directory
+// According to the specification, this component is shared across the weekly system
+// but currently located in the admin section
 
 const showGuide = ref(false);
 

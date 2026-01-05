@@ -1,5 +1,7 @@
 <template>
   <Head title="Weekly Plans Manager" />
+  
+  
   <div class="q-pa-md">
     <WeeklyPlanMenu />
     

@@ -19,9 +19,12 @@ return new class extends Migration
             $table->string('section')->nullable();
             $table->string('section_ar')->nullable();
             $table->boolean('is_active')->default(true);
-            
+            $table->unsignedBigInteger('academic_year_id')->nullable();
+            $table->unsignedBigInteger('semester_id')->nullable();
+            $table->unsignedBigInteger('schedule_copy_id')->nullable();
             // $table->string('address');
             $table->json('data')->nullable();
+            $table->json('weekly_plan_settings')->nullable();
             $table->timestamps();
         });
     }

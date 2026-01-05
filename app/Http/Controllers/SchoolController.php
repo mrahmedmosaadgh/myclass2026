@@ -105,16 +105,17 @@ class SchoolController extends Controller
         $status = $school->is_active ? 'activated' : 'deactivated';
         return redirect()->back()->with('success', "School has been $status");
     }
-public function getSubjects($schoolId)
-{
-    $school = School::find($schoolId);
-    if (!$school) {
-        return response()->json(['error' => 'School not found'], 404);
-    }
+    
+    public function getSubjects($schoolId)
+    {
+        $school = School::find($schoolId);
+        if (!$school) {
+            return response()->json(['error' => 'School not found'], 404);
+        }
 
-    $subjects = $school->subjects; // Assuming a relationship exists
-    return response()->json($subjects);
-}
+        $subjects = $school->subjects; // Assuming a relationship exists
+        return response()->json($subjects);
+    }
 
     /**
      * Get all schools for API dropdowns
@@ -134,11 +135,58 @@ public function getSubjects($schoolId)
             'data' => $query->orderBy('name')->get()
         ]);
     }
-    // public function getSubjects($schoolId)
-    // {
-    //     return Subject::where('school_id', $schoolId)
-    //         ->select('id', 'name')
-    //         ->get();
-    // }
-}
+    
+    /**
+     * Get a single school by ID for API
+     */
+    public function apiShow($id)
+    {
+        $school = School::with([
+            'activeAcademicYear:id,name',
+            'activeSemester:id,name', 
+            'activeScheduleCopy:id,name'
+        ])->find($id);
+        
+        if (!$school) {
+            return response()->json([
+                'success' => false,
+                'message' => 'School not found'
+            ], 404);
+        }
 
+        return response()->json([
+            'success' => true,
+            'data' => $school
+        ]);
+    }
+    
+    /**
+     * Update a school via API
+     */
+    public function apiUpdate(Request $request, $id)
+    {
+        $school = School::find($id);
+        
+        if (!$school) {
+            return response()->json([
+                'success' => false,
+                'message' => 'School not found'
+            ], 404);
+        }
+
+        $validated = $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'academic_year_id' => 'nullable|exists:academic_years,id',
+            'semester_id' => 'nullable|exists:semesters,id',
+            'schedule_copy_id' => 'nullable|exists:schedule_copies,id',
+        ]);
+
+        $school->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'School updated successfully',
+            'data' => $school
+        ]);
+    }
+}

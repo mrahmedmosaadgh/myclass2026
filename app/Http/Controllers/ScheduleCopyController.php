@@ -32,7 +32,7 @@ class ScheduleCopyController extends Controller
         where('academic_year_id', $academicYearId)
             // ->orderBy('active', 'DESC')
             ->orderBy('created_at', 'DESC')
-            ->get(['id', 'name', 'description', 'active']);
+            ->get(['id', 'name', 'description', 'status']);
     }
 
     /**
@@ -120,6 +120,28 @@ class ScheduleCopyController extends Controller
             ->paginate(40);
 
         return response()->json($records);
+    }
+
+    // New API method to get schedule copies for a specific school
+    public function apiIndex(Request $request)
+    {
+        $schoolId = $request->query('school_id');
+        
+        $query = ScheduleCopy::select('id', 'name', 'description', 'status', 'created_at');
+
+        if ($schoolId) {
+            $query->where('school_id', $schoolId);
+        } else {
+            // If no school_id provided, try to get the authenticated user's school
+            $userSchoolId = auth()->user()->schoolId();
+            if ($userSchoolId) {
+                $query->where('school_id', $userSchoolId);
+            }
+        }
+
+        $scheduleCopies = $query->orderBy('created_at', 'DESC')->get();
+
+        return response()->json($scheduleCopies);
     }
 
     public function store(Request $request)

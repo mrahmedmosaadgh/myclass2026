@@ -9,6 +9,8 @@ use App\Models\Teacher;
 use App\Models\ClassroomSubjectTeacher;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\Log;
 
 class SchoolBrowserController extends Controller
 {
@@ -204,7 +206,11 @@ class SchoolBrowserController extends Controller
                         $query->select('id', 'name', 'email', 'phone_number', 'school_id')
                             ->whereNull('deleted_at')
                             ->orderBy('name');
-                    }
+                    },
+                    // Include the academic year, semester, and schedule copy relationships
+                    'activeAcademicYear:id,name',
+                    'activeSemester:id,name',
+                    'activeScheduleCopy:id,name'
                 ])->findOrFail($schoolId);
             } catch (ModelNotFoundException $e) {
                 return response()->json([
@@ -292,6 +298,13 @@ class SchoolBrowserController extends Controller
                 'school' => [
                     'id' => $school->id,
                     'name' => $school->name,
+                    'academic_year_id' => $school->academic_year_id,
+                    'semester_id' => $school->semester_id,
+                    'schedule_copy_id' => $school->schedule_copy_id,
+                    // Include the related data
+                    'academic_year' => $school->activeAcademicYear,
+                    'semester' => $school->activeSemester,
+                    'schedule_copy' => $school->activeScheduleCopy,
                 ],
                 'stats' => $stats,
                 'hierarchy' => $classroomHierarchy,

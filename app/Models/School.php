@@ -9,10 +9,21 @@ class School extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'name_ar', 'h_r_id', 'data', 'is_active'];
+    protected $fillable = [
+        'name',
+        'name_ar',
+        'h_r_id',
+        'data',
+        'is_active',
+        'academic_year_id',
+        'semester_id',
+        'schedule_copy_id',
+        'weekly_plan_settings',
+    ];
 
     protected $casts = [
         'data' => 'array',
+        'weekly_plan_settings' => 'array',
         'is_active' => 'boolean',
     ];
 
@@ -60,6 +71,21 @@ class School extends Model
     public function academic_years()
     {
         return $this->hasMany(AcademicYear::class);
+    }
+
+    public function activeAcademicYear()
+    {
+        return $this->belongsTo(AcademicYear::class, 'academic_year_id');
+    }
+
+    public function activeSemester()
+    {
+        return $this->belongsTo(Semester::class, 'semester_id');
+    }
+
+    public function activeScheduleCopy()
+    {
+        return $this->belongsTo(ScheduleCopy::class, 'schedule_copy_id');
     }
 }
 

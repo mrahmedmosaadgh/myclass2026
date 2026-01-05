@@ -10,35 +10,6 @@
         </div>
       </div>
 
-      <!-- School Selector -->
-      <q-card flat bordered class="q-mb-md">
-        <q-card-section>
-          <div class="row q-col-gutter-md items-center">
-            <div class="col-12 col-md-6">
-              <q-select
-                v-model="selectedSchool"
-                :options="schools"
-                option-value="id"
-                option-label="name"
-                label="Select School"
-                outlined
-                dense
-                emit-value
-                map-options
-                @update:model-value="loadSchoolData"
-                :loading="loadingSchools"
-              >
-                <template v-slot:prepend>
-                  <q-icon name="school" color="primary" />
-                </template>
-              </q-select>
-            </div>
-            <div class="col-12 col-md-6" v-if="schoolData">
-              <div class="text-h6 text-primary">{{ schoolData.school.name }}</div>
-            </div>
-          </div>
-        </q-card-section>
-      </q-card>
 
       <!-- Loading State -->
       <div v-if="loading" class="row justify-center q-my-xl">
@@ -46,7 +17,7 @@
       </div>
 
       <!-- Content Tabs -->
-      <div v-else-if="schoolData">
+      <div v-else-if="schoolDataStore.hasAllContext && schoolData">
         <q-tabs
           v-model="activeTab"
           dense
@@ -65,15 +36,22 @@
 
         <q-tab-panels v-model="activeTab" animated>
           <q-tab-panel name="overview">
-            <SchoolOverview :stats="schoolData.stats" :subjects="schoolData.subjects" :teachers="schoolData.teachers" />
+            <SchoolOverview 
+              :stats="schoolData.stats || {}" 
+              :subjects="schoolData.subjects || []" 
+              :teachers="schoolData.teachers || []" 
+            />
           </q-tab-panel>
 
           <q-tab-panel name="classrooms">
-            <ClassroomHierarchy :hierarchy="schoolData.hierarchy" :assignments="schoolData.assignments" />
+            <ClassroomHierarchy 
+              :hierarchy="schoolData.hierarchy || []" 
+              :assignments="schoolData.assignments || []" 
+            />
           </q-tab-panel>
 
           <q-tab-panel name="assignments">
-            <AssignmentsTable :assignments="schoolData.assignments" />
+            <AssignmentsTable :assignments="schoolData.assignments || []" />
           </q-tab-panel>
         </q-tab-panels>
       </div>
@@ -81,15 +59,16 @@
       <!-- Empty State -->
       <q-card v-else flat bordered class="q-pa-xl text-center">
         <q-icon name="school" size="80px" color="grey-5" />
-        <div class="text-h6 text-grey-7 q-mt-md">Select a school to view details</div>
-        <div class="text-body2 text-grey-6">Choose a school from the dropdown above to browse its structure</div>
+        <div class="text-h6 text-grey-7 q-mt-md">Select a school and configure its settings</div>
+        <div class="text-body2 text-grey-6">Choose a school from the dropdown above and set academic year, semester, and schedule copy</div>
       </q-card>
     </div>
  
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
+import { useSchoolDataStore } from '@/Stores/schoolData';
 import { useQuasar } from 'quasar';
 import axios from 'axios';
  
@@ -99,35 +78,16 @@ import ClassroomHierarchy from './components/ClassroomHierarchy.vue';
 import AssignmentsTable from './components/AssignmentsTable.vue';
 
 const $q = useQuasar();
+const schoolDataStore = useSchoolDataStore(); // Use the store
 
 // State
-const schools = ref([]);
-const selectedSchool = ref(null);
 const schoolData = ref(null);
 const loading = ref(false);
-const loadingSchools = ref(false);
 const activeTab = ref('overview');
-
-// Load schools list
-const loadSchools = async () => {
-  loadingSchools.value = true;
-  try {
-    const response = await axios.get(route('weekly-system.api.school-data'));
-    schools.value = response.data.schools;
-  } catch (error) {
-    $q.notify({
-      type: 'negative',
-      message: 'Failed to load schools',
-      caption: error.response?.data?.message || error.message
-    });
-  } finally {
-    loadingSchools.value = false;
-  }
-};
 
 // Load school data
 const loadSchoolData = async () => {
-  if (!selectedSchool.value) {
+  if (!schoolDataStore.schoolId) {
     schoolData.value = null;
     return;
   }
@@ -135,7 +95,7 @@ const loadSchoolData = async () => {
   loading.value = true;
   try {
     const response = await axios.get(route('weekly-system.api.school-data'), {
-      params: { school_id: selectedSchool.value }
+      params: { school_id: schoolDataStore.schoolId }
     });
     schoolData.value = response.data;
   } catch (error) {
@@ -149,9 +109,22 @@ const loadSchoolData = async () => {
   }
 };
 
+// Watch for changes in school context to reload data
+watch(
+  () => schoolDataStore.hasAllContext, 
+  async (hasContext) => {
+    if (hasContext) {
+      await loadSchoolData();
+    } else {
+      schoolData.value = null;
+    }
+  },
+  { immediate: true }
+);
+
 // Initialize
 onMounted(() => {
-  loadSchools();
+  // The MainSchoolData component handles initialization
 });
 </script>
 

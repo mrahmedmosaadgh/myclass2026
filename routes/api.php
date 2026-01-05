@@ -39,9 +39,14 @@ Route::middleware(['auth:sanctum','web'])->get('/academic-years', [App\Http\Cont
 
 // Schools API
 Route::middleware(['auth:sanctum','web'])->get('/schools', [App\Http\Controllers\SchoolController::class, 'apiIndex']);
+Route::middleware(['auth:sanctum','web'])->get('/schools/{id}', [App\Http\Controllers\SchoolController::class, 'apiShow']);
+Route::middleware(['auth:sanctum','web'])->put('/schools/{id}', [App\Http\Controllers\SchoolController::class, 'apiUpdate']);
 
 // Semesters API
 Route::middleware(['auth:sanctum','web'])->get('/semesters', [App\Http\Controllers\SemesterController::class, 'apiIndex']);
+
+// Schedule Copies API
+Route::middleware(['auth:sanctum','web'])->get('/schedule-copies', [App\Http\Controllers\ScheduleCopyController::class, 'apiIndex']);
 
 // Classroom Subject Teachers API
 Route::middleware(['auth:sanctum','web'])->get('/classroom-subject-teachers/my-assignments', [App\Http\Controllers\ClassroomSubjectTeacherController::class, 'myAssignments']);
