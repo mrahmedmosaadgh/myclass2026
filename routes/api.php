@@ -2,12 +2,8 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\CourseManagement\LessonPlanTemplateController;
-
-use App\Http\Controllers\BehaviorController;
-use App\Http\Controllers\BehaviorIncidentController;
-use App\Http\Controllers\StudentBehaviorController;
-use App\Http\Controllers\ClassroomRecordController;
+use App\Http\Controllers\SchoolController;
+use App\Http\Controllers\ContextController;
 
 /*
 |--------------------------------------------------------------------------
@@ -20,9 +16,18 @@ use App\Http\Controllers\ClassroomRecordController;
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+Route::middleware(['auth:sanctum','web'])->get('/user', function (Request $request) {
     return $request->user();
 });
+
+Route::middleware(['auth:sanctum','web'])->get('/schools', [App\Http\Controllers\SchoolController::class, 'apiIndex']);
+Route::middleware(['auth:sanctum','web'])->get('/schools/{school}/subjects', [App\Http\Controllers\SchoolController::class, 'getSubjects']);
+
+// Context API routes
+Route::middleware(['auth:sanctum','web'])->get('/context', [ContextController::class, 'getCurrentContext']);
+Route::middleware(['auth:sanctum','web'])->post('/context/update-all', [ContextController::class, 'updateAllSchoolsContext']);
+Route::middleware(['auth:sanctum','web'])->put('/context/school/{school}', [ContextController::class, 'setActiveSchool']);
+Route::middleware(['auth:sanctum','web'])->patch('/context/school/{school}', [ContextController::class, 'updateContext']);
 
 // Debug endpoint to test authentication
 Route::middleware(['auth:sanctum','web'])->get('/auth-test', function (Request $request) {
