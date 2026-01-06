@@ -16,6 +16,19 @@ use Inertia\Inertia;
 |
 */
 
+// =====================================================================
+// TEACHER ROUTES (outside the weekly-system group to have direct access)
+// =====================================================================
+
+// Teacher's Weekly Plans Editor (available at /teacher/my-weekly-plans)
+Route::middleware(['auth', 'verified'])->get('/teacher/my-weekly-plans', function () {
+    return Inertia::render('my_table_mnger/weekly_system/teacher/SimpleWeeklyPlans');
+})->name('teacher.my-weekly-plans');
+
+// =====================================================================
+// WEEKLY SYSTEM ROUTES (admin and teacher routes under /weekly-system)
+// =====================================================================
+
 Route::middleware(['auth', 'verified'])->prefix('weekly-system')->name('weekly-system.')->group(function () {
     
     // =====================================================================

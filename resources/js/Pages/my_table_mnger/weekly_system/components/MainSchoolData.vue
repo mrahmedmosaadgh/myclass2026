@@ -1,4 +1,4 @@
-<template>schoolDataStore.schoolId:{{ schoolDataStore.schoolId }}
+<template> 
   <q-card flat bordered class="q-mb-md bg-grey-1">
     <q-card-section class="q-pa-md">
       <div class="row items-center no-wrap">
