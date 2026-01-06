@@ -1,0 +1,142 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Weekly Plans - Print</title>
+  <style>
+    @page { size: A4 portrait; margin: 12mm; }
+    html, body { margin: 0; padding: 0; }
+    body { font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans','Liberation Sans',sans-serif; color:#000; }
+    .print-header{ text-align:center; margin: 0 auto 8mm; max-width: 186mm; }
+    .print-header h1{ font-size: 18pt; margin: 0 0 3mm; }
+    .meta{ font-size:10pt; }
+    table{ width:100%; max-width:186mm; margin:0 auto; border-collapse:collapse; table-layout:auto; }
+    th,td{ border:1px solid #ddd; font-size:10pt; padding:4px 6px; vertical-align:top; }
+    thead th{ background:#f0f0f0; }
+    /* Classroom: minimal width; allow wrapping to keep it narrow */
+    td:nth-child(1), th:nth-child(1){ width:1%; }
+    td:nth-child(2), th:nth-child(2){ width:18mm; }
+    td:nth-child(3), th:nth-child(3){ width:18mm; }
+    /* no explicit width for column 4 so it takes remaining space */
+    .subject-sub{ font-size:9pt; color:#444; }
+    td div { white-space: pre-wrap; word-break: break-word; }
+    thead{ display: table-header-group; }
+    tfoot{ display: table-footer-group; }
+  </style>
+</head>
+<body>
+  <div class="print-header">
+    <h1>Weekly Plans</h1>
+    <div class="meta" id="meta-week"></div>
+    <div class="meta" id="meta-printed"></div>
+  </div>
+  <div id="tables">
+    <div style="text-align:center;">Loading...</div>
+  </div>
+  <script>
+    (function(){
+      const params = new URLSearchParams(location.search);
+      const week = parseInt(params.get('week')||'0',10);
+      const semester = parseInt(params.get('semester')||'0',10);
+      const day = params.get('day');
+      const classroom = params.get('classroom');
+      const subject = params.get('subject');
+      const grade = params.get('grade');
+      const group = params.get('group');
+      const dayNames = {1:'Sunday',2:'Monday',3:'Tuesday',4:'Wednesday',5:'Thursday',6:'Friday',7:'Saturday'};
+      const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+      document.getElementById('meta-week').textContent = `Week ${week||'-'} • Semester ${semester||'-'}`;
+      document.getElementById('meta-printed').textContent = 'Printed: ' + new Date().toLocaleString();
+      fetch(`/weekly-system/api/teacher/my-weekly-plans?week_number=${encodeURIComponent(week)}&semester_number=${encodeURIComponent(semester)}`)
+        .then(r=>r.json())
+        .then(data=>{
+          const arr = Array.isArray(data?.data) ? data.data : (Array.isArray(data)?data:[]);
+          const rows = arr.filter(p=>{
+            if(day && String(p?.schedule?.day)!==String(day)) return false;
+            if(classroom && String(p?.schedule?.cst?.classroom?.id)!==String(classroom)) return false;
+            if(subject && String(p?.schedule?.cst?.subject?.id)!==String(subject)) return false;
+            if(grade && String(p?.schedule?.grade_id)!==String(grade)) return false;
+            return true;
+          }).sort((a,b)=>{
+            const da=(a?.schedule?.day||0)-(b?.schedule?.day||0);
+            if(da!==0) return da;
+            const pa=(a?.schedule?.period_number||0)-(b?.schedule?.period_number||0);
+            if(pa!==0) return pa;
+            return (a?.id||0)-(b?.id||0);
+          });
+          const container = document.getElementById('tables');
+          container.innerHTML = '';
+          const buildTable = (tableRows, title) => {
+            if (title) {
+              const h = document.createElement('div');
+              h.className = 'meta';
+              h.style.textAlign = 'center';
+              h.style.margin = '0 auto 4mm';
+              h.style.maxWidth = '186mm';
+              h.style.fontWeight = '600';
+              h.textContent = title;
+              container.appendChild(h);
+            }
+            const table = document.createElement('table');
+            const thead = document.createElement('thead');
+            thead.innerHTML = '<tr><th>Classroom</th><th>Day</th><th>Period</th><th>Weekly Plan (CW, HW, Notes)</th></tr>';
+            table.appendChild(thead);
+            const tbody = document.createElement('tbody');
+            if (!tableRows.length) {
+              const tr = document.createElement('tr');
+              tr.innerHTML = '<td colspan="4">No data</td>';
+              tbody.appendChild(tr);
+            } else {
+              tableRows.forEach(p=>{
+                const classroomName = esc(p?.schedule?.cst?.classroom?.name||'-');
+                const subjectName = esc(p?.schedule?.cst?.subject?.name||'-');
+                const dayLabel = esc(dayNames[p?.schedule?.day]||`Day ${p?.schedule?.day??'-'}`);
+                const period = esc(p?.schedule?.period_number??'-');
+                const order = esc(p?.schedule?.period_order??'-');
+                const cw = esc(p?.cw||'-');
+                const hw = esc(p?.hw||'-');
+                const notes = esc(p?.notes||'-');
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${classroomName}<div class=\"subject-sub\">${subjectName} (${order})</div></td>`+
+                               `<td>${dayLabel}</td><td>${period}</td>`+
+                               `<td><div><strong>CW:</strong> ${cw}</div><div><strong>HW:</strong> ${hw}</div><div><strong>Notes:</strong> ${notes}</div></td>`;
+                tbody.appendChild(tr);
+              })
+            }
+            table.appendChild(tbody);
+            container.appendChild(table);
+          }
+
+          if (group === 'classroom') {
+            const map = new Map();
+            for (const p of rows) {
+              const id = p?.schedule?.cst?.classroom?.id ?? 'unknown';
+              const name = p?.schedule?.cst?.classroom?.name ?? 'Unknown classroom';
+              if (!map.has(id)) map.set(id, { id, name, rows: [] });
+              map.get(id).rows.push(p);
+            }
+            const groups = Array.from(map.values()).sort((a,b)=> String(a.name).localeCompare(String(b.name)));
+            if (!groups.length) {
+              const div = document.createElement('div');
+              div.style.textAlign = 'center';
+              div.textContent = 'No data';
+              container.appendChild(div);
+            } else {
+              groups.forEach(g => buildTable(g.rows, `Classroom: ${g.name}`));
+            }
+          } else {
+            buildTable(rows, '');
+          }
+          setTimeout(()=>window.print(), 100);
+        })
+        .catch(err=>{
+          const container = document.getElementById('tables');
+          container.innerHTML = '<div style="text-align:center;">Failed to load data</div>';
+          console.error('Print load failed', err);
+        });
+    })();
+  </script>
+</body>
+</html>
+

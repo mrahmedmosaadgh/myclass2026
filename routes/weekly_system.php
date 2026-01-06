@@ -92,6 +92,20 @@ Route::middleware(['auth', 'verified'])->prefix('weekly-system')->name('weekly-s
         // Get teacher's weekly plans for a specific week
         Route::get('/teacher/my-weekly-plans', [WeeklySystemController::class, 'getMyWeeklyPlans'])
             ->name('api.my-weekly-plans');
+
+            // Copy teacher weekly plans (old immediate copy)
+            Route::post('/teacher/copy-plans-classrooms', [WeeklySystemController::class, 'copyPlansClassrooms'])
+                ->name('api.teacher-copy-plans');
+
+            // New staged copy: preview then commit
+            Route::post('/teacher/copy-plans-classrooms/preview', [WeeklySystemController::class, 'previewCopyPlansClassrooms'])
+                ->name('api.teacher-copy-plans.preview');
+            Route::post('/teacher/copy-plans-classrooms/commit', [WeeklySystemController::class, 'commitCopyPlansClassrooms'])
+                ->name('api.teacher-copy-plans.commit');
+
+            // Update schedule period_order (inline edit from table)
+            Route::put('/schedules/{schedule}/period-order', [WeeklySystemController::class, 'updateSchedulePeriodOrder'])
+                ->name('api.schedules.update-period-order');
         
         // Get weekly plans (admin can filter by teacher_id)
         Route::get('/weekly-plans', [WeeklySystemController::class, 'getWeeklyPlans'])
