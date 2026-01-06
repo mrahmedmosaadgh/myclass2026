@@ -11,6 +11,7 @@
       <q-btn color="primary" dense unelevated icon="content_copy" label="Copy" @click="openCopyDialog" />
       <q-btn :color="groupByClassroom ? 'primary' : 'grey-7'" :outline="!groupByClassroom" dense icon="table_rows" label="Group by classroom" @click="groupByClassroom = !groupByClassroom" />
       <q-btn color="primary" dense unelevated icon="print" label="Print" @click="printMainTable" />
+      <!-- <q-btn color="secondary" dense unelevated icon="picture_as_pdf" label="Save PDF" @click="saveAsPdf" /> -->
       <q-toggle v-model="periodOrderEdit" label="Period Order edit" color="primary" class="q-ml-md" />
     </div>
 
@@ -19,7 +20,7 @@
     <q-table v-if="!groupByClassroom"
       flat bordered
       :rows="filteredRows"
-      :columns="columns"
+      :columns="visibleColumns"
       row-key="id"
       :pagination="{ rowsPerPage: 10 }"
     >
@@ -130,9 +131,9 @@
             <td>{{ dayName(p?.schedule?.day) }}</td>
             <td>{{ p?.schedule?.period_number ?? '-' }}</td>
             <td>
-              <div><strong>CW:</strong> {{ p?.cw || '-' }}</div>
-              <div><strong>HW:</strong> {{ p?.hw || '-' }}</div>
-              <div><strong>Notes:</strong> {{ p?.notes || '-' }}</div>
+              <div><strong>CW:</strong> <span v-html="linkifyText(p?.cw || '-')"></span></div>
+              <div><strong>HW:</strong> <span v-html="linkifyText(p?.hw || '-')"></span></div>
+              <div><strong>Notes:</strong> <span v-html="linkifyText(p?.notes || '-')"></span></div>
             </td>
           </tr>
         </tbody>
@@ -248,6 +249,7 @@ const clearFilters = () => { filters.day = filters.classroom = filters.grade = f
 const columns = [
   { name: 'dayName', label: 'Day', field: 'dayName', align: 'left', sortable: true },
   { name: 'period', label: 'Period', field: row => row.schedule?.period_number ?? '-', align: 'left', sortable: true },
+  { name: 'periodOrder', label: 'Period Order', field: row => row.schedule?.period_order ?? '-', align: 'left', sortable: true },
   { name: 'classroom', label: 'Classroom', field: row => row.schedule?.cst?.classroom?.name ?? '-', align: 'left', sortable: true, style: 'width: 1%;', headerStyle: 'width: 1%;' },
   { name: 'grade', label: 'Grade', field: row => gradeLabel(row.schedule?.grade_id), align: 'left' },
   { name: 'subject', label: 'Subject', field: row => row.schedule?.cst?.subject?.name ?? '-', align: 'left', sortable: true },
@@ -257,6 +259,11 @@ const columns = [
   { name: 'status', label: 'Status', field: 'status', align: 'left' },
   { name: 'actions', label: 'Actions', field: row => row.id, align: 'right' }
 ]
+
+// Show Period Order column only when editing is enabled
+const visibleColumns = computed(() => (
+  periodOrderEdit.value ? columns : columns.filter(c => c.name !== 'periodOrder')
+))
 
 const uniqueBy = (arr, key) => {
   const seen = new Set();
@@ -435,6 +442,42 @@ const onUpdatePeriodOrder = async (row) => {
     .replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 
+  const escapeAttr = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+
+  // Convert [label](url) and bare URLs to clickable anchors, escaping other text
+  const linkifyText = (text) => {
+    const str = String(text ?? '')
+    const mdRe = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g
+    const urlRe = /(https?:\/\/[^\s]+)/g
+    const processSegment = (seg) => {
+      let out = ''
+      let last = 0
+      let m
+      while ((m = urlRe.exec(seg)) !== null) {
+        out += escapeHtml(seg.slice(last, m.index))
+        const url = m[1]
+        const safeUrl = escapeAttr(url)
+        const label = escapeHtml(url)
+        out += `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${label}</a>`
+        last = urlRe.lastIndex
+      }
+      out += escapeHtml(seg.slice(last))
+      return out
+    }
+    let result = ''
+    let last = 0
+    let m
+    while ((m = mdRe.exec(str)) !== null) {
+      result += processSegment(str.slice(last, m.index))
+      const label = escapeHtml(m[1])
+      const safeUrl = escapeAttr(m[2])
+      result += `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${label}</a>`
+      last = mdRe.lastIndex
+    }
+    result += processSegment(str.slice(last))
+    return result || '-'
+  }
+
   const printMainTable = () => {
     const q = new URLSearchParams({
       week: String(weekNumber.value ?? ''),
@@ -445,6 +488,22 @@ const onUpdatePeriodOrder = async (row) => {
       grade: filters.grade != null ? String(filters.grade) : ''
     })
     if (groupByClassroom.value) q.set('group','classroom')
+    window.open(`/weekly-plans-print.html?${q.toString()}`, '_blank', 'noopener,noreferrer')
+  }
+
+  const saveAsPdf = () => {
+    const q = new URLSearchParams({
+      week: String(weekNumber.value ?? ''),
+      semester: String(semesterNumber.value ?? ''),
+      day: filters.day != null ? String(filters.day) : '',
+      classroom: filters.classroom != null ? String(filters.classroom) : '',
+      subject: filters.subject != null ? String(filters.subject) : '',
+      grade: filters.grade != null ? String(filters.grade) : ''
+    })
+    if (groupByClassroom.value) q.set('group','classroom')
+    // Open the dedicated print page; browser's dialog lets user choose "Save as PDF"
+    // Document title is set dynamically for a meaningful default filename
+    q.set('pdf', '1')
     window.open(`/weekly-plans-print.html?${q.toString()}`, '_blank', 'noopener,noreferrer')
   }
 </script>
@@ -478,6 +537,9 @@ const onUpdatePeriodOrder = async (row) => {
   /* no explicit width for column 4 so it expands */
   #plans-table-print .print-only .subject-sub { font-size: 9pt; color: #444; }
   #plans-table-print .print-only td div { white-space: pre-wrap; word-break: break-word; }
+  /* make links look like real links and remain clickable in PDF */
+  #plans-table-print .print-only a,
+  #plans-table-print .print-only a:visited { color: #0645AD; text-decoration: underline; }
 }
 
 /* default screen behavior */
