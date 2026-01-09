@@ -29,6 +29,8 @@ Once the feature or bug fix is finished and verified:
 
 ---
 
+ create the required history file in docs/history with the correct timestamped name and title, then stage, commit with the specified message format, and push to your current branch.
+
 ## 📝 3. History File Guidelines
 - Always place files in `docs/history/`.
 - Use a new file for major features, or append to the daily file for smaller fixes.

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\LessonController;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::middleware(['auth', 'verified'])->group(function () {
     // Lesson management UI
@@ -24,3 +25,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->name('api.lessons.reorder');
     });
 });
+
+Route::get('/drawing-demo', function () {
+    return Inertia::render('my_table_mnger/reward_sys/drawing/DrawingMain');
+})->name('drawing.demo');

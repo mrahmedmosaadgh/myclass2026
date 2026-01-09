@@ -139,15 +139,16 @@ Route::middleware([
 
     // Teacher Import Routes
     Route::get('teachers/import', [\App\Http\Controllers\TeacherImportController::class, 'index'])
-        ->name('teachers.import');
+        ->name('myteachers.import');
     Route::get('teachers/import/schools', [\App\Http\Controllers\TeacherImportController::class, 'getSchools'])
-        ->name('teachers.import.schools');
+        ->name('myteachers.import.schools');
     Route::get('teachers/import/academic-year/{schoolId}', [\App\Http\Controllers\TeacherImportController::class, 'getActiveAcademicYear'])
-        ->name('teachers.import.academic-year');
+        ->name('myteachers.import.academic-year');
     Route::post('teachers/import/validate', [\App\Http\Controllers\TeacherImportController::class, 'validateImport'])
-        ->name('teachers.import.validate');
+        ->name('myteachers.import.validate');
     Route::post('teachers/import/process', [\App\Http\Controllers\TeacherImportController::class, 'processImport'])
-        ->name('teachers.import.process');
+        ->name('myteachers.import.process');
+    
 
     // Admin Menu Management
     Route::middleware(['permission:manage-menus'])->group(function () {
@@ -509,7 +510,7 @@ Route::middleware([
         // Main question bank listing
         Route::get('/', function () {
             return Inertia::render('QuestionManagement/QuestionBank');
-        })->name('index');
+        })->name('index1');
         
         // Create new question
         Route::get('/create', function () {
