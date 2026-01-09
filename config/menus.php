@@ -15,6 +15,9 @@ return [
         'reports',
         'settings',
         'developer',
+        'super-system',
+        'system-admin',
+        'school-admin',
     ],
 
     /**

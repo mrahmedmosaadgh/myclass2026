@@ -38,12 +38,16 @@ export const useNavigationStore = defineStore('navigation', {
     },
 
     actions: {
-        async fetchMenu() {
+        async fetchMenu(role = null, isV2 = false) {
             if (this.isLoading) return;
             this.isLoading = true;
 
             try {
-                const response = await axios.get('/api/navigation/menu');
+                const params = {};
+                if (role) params.role = role;
+                if (isV2) params.v2 = 'true';
+
+                const response = await axios.get('/api/navigation/menu', { params });
                 this.menuItems = response.data.data;
                 this.menuVersion = response.data.version;
             } catch (error) {

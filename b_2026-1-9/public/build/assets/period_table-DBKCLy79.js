@@ -1,0 +1,1 @@
+import{M as e,J as r}from"./vendor-BLQ8yBzx.js";const s={__name:"period_table",props:{periods:{type:Array,required:!0}},emits:["update-periods"],setup(i,{emit:t}){return(p,o)=>(r(),e("div",null," hiiiiiii "))}};export{s as default};

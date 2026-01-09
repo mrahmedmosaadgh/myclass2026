@@ -18,12 +18,18 @@ class Menu extends Model
         'is_feature_flag',
         'feature_flag_key',
         'meta',
+        'v2_component',
+        'requires_context',
+        'role_specific',
+        'v2_enabled',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
         'is_feature_flag' => 'boolean',
         'meta' => 'array',
+        'requires_context' => 'boolean',
+        'v2_enabled' => 'boolean',
     ];
 
     /**
