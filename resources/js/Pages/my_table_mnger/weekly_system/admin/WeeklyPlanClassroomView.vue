@@ -10,7 +10,7 @@
             :options="classrooms"
             option-value="id"
             option-label="name"
-            label="Filter Classrooms"
+            :label="t('weeklyPlans.filterClassrooms')"
             outlined
             dense
             multiple
@@ -22,7 +22,7 @@
             <template v-slot:before-options>
               <q-item clickable @click="toggleAllClassrooms">
                 <q-item-section>
-                  <q-item-label>{{ allSelected ? 'Deselect All' : 'Select All' }}</q-item-label>
+                  <q-item-label>{{ allSelected ? t('weeklyPlans.deselectAll') : t('weeklyPlans.selectAll') }}</q-item-label>
                 </q-item-section>
               </q-item>
             </template>
@@ -34,7 +34,7 @@
           <q-select
             v-model="selectedDays"
             :options="dayOptions"
-            label="Filter by Day"
+            :label="t('weeklyPlans.filterByDay')"
             outlined
             dense
             multiple
@@ -55,8 +55,8 @@
     <!-- Empty State -->
     <q-card v-else-if="!classroomPlans.length" flat bordered class="text-center q-pa-xl">
       <q-icon name="meeting_room" size="64px" color="grey-5" />
-      <p class="text-h6 text-grey-7 q-mt-md">No data available</p>
-      <p class="text-grey-6">Select classrooms to view weekly plans</p>
+      <p class="text-h6 text-grey-7 q-mt-md">{{ t('weeklyPlans.noDataAvailable') }}</p>
+      <p class="text-grey-6">{{ t('weeklyPlans.selectClassroomsToView') }}</p>
     </q-card>
 
     <!-- Classroom View -->
@@ -74,7 +74,7 @@
               {{ classroom.name }}
               <q-chip 
                 dense 
-                :label="`${classroom.plans.length} classes`"
+                :label="`${classroom.plans.length} ${t('weeklyPlans.classes')}`"
                 text-color="white" />
               <q-space />
 
@@ -87,7 +87,7 @@
                 @click.stop="printClassroomPdf(classroom)"
                 :disable="!classroom.plans || !classroom.plans.length"
               >
-                <q-tooltip>Save as PDF</q-tooltip>
+                <q-tooltip>{{ t('weeklyPlans.savePdf') }}</q-tooltip>
               </q-btn>
 
               <q-btn
@@ -99,7 +99,7 @@
                 @click.stop="printClassroom(classroom)"
                 :disable="!classroom.plans || !classroom.plans.length"
               >
-                <q-tooltip>Print this classroom</q-tooltip>
+                <q-tooltip>{{ t('weeklyPlans.print') }}</q-tooltip>
               </q-btn>
             </h5>
           </div>
@@ -116,7 +116,7 @@
                 <div class="day-info">
                   <div class="day-name">{{ dayGroup.dayName }}</div>
                   <div class="day-meta">
-                    <span>Week {{ store.weekNumber }}</span>
+                    <span>{{ t('weeklyPlans.week') }} {{ store.weekNumber }}</span>
                     <span class="separator">•</span>
                     <span>{{ getDayDate(dayGroup.dayNumber) }}</span>
                   </div>
@@ -196,9 +196,11 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import { useWeeklyPlansStore } from '@/Stores/useWeeklyPlansStore'
 
+const { t, locale } = useI18n()
 const store = useWeeklyPlansStore()
 const $q = useQuasar()
 
@@ -216,26 +218,21 @@ const defaultPagination = ref({
   rowsPerPage: 0 // 0 means show all rows
 })
 
-const days = {
-  1: 'Sunday',
-  2: 'Monday',
-  3: 'Tuesday',
-  4: 'Wednesday',
-  5: 'Thursday'
-}
+const dayOptions = computed(() => [
+  { label: t('weeklyPlans.shortDays.1'), value: 1 },
+  { label: t('weeklyPlans.shortDays.2'), value: 2 },
+  { label: t('weeklyPlans.shortDays.3'), value: 3 },
+  { label: t('weeklyPlans.shortDays.4'), value: 4 },
+  { label: t('weeklyPlans.shortDays.5'), value: 5 }
+])
 
-const dayOptions = Object.entries(days).map(([value, label]) => ({
-  label,
-  value: parseInt(value)
-}))
-
-const tableColumns = [
-  { name: 'period', label: 'Period', field: 'schedule.period_number', align: 'center' },
-  { name: 'subject', label: 'Subject', field: 'schedule.cst.subject_name', align: 'left' },
-  { name: 'cw', label: 'Classwork (CW)', field: 'cw', align: 'left' },
-  { name: 'hw', label: 'Homework (HW)', field: 'hw', align: 'left' },
-  { name: 'notes', label: 'Notes', field: 'notes', align: 'left' }
-]
+const tableColumns = computed(() => [
+  { name: 'period', label: t('weeklyPlans.period'), field: 'schedule.period_number', align: 'center' },
+  { name: 'subject', label: t('weeklyPlans.subject'), field: 'schedule.cst.subject_name', align: 'left' },
+  { name: 'cw', label: t('weeklyPlans.classwork'), field: 'cw', align: 'left' },
+  { name: 'hw', label: t('weeklyPlans.homework'), field: 'hw', align: 'left' },
+  { name: 'notes', label: t('weeklyPlans.notes'), field: 'notes', align: 'left' }
+])
 
 const allSelected = computed(() => {
   return classrooms.value.length > 0 && selectedClassrooms.value.length === classrooms.value.length
@@ -322,7 +319,7 @@ const groupPlansByDay = (plans) => {
     if (!byDay[dayNum]) {
       byDay[dayNum] = {
         dayNumber: dayNum,
-        dayName: days[dayNum] || `Day ${dayNum}`,
+        dayName: t(`weeklyPlans.shortDays.${dayNum}`) || `Day ${dayNum}`,
         plans: []
       }
     }
@@ -399,7 +396,8 @@ const printClassroom = (classroom) => {
   // Modern, Parent-Friendly Design
   const styles = `
     @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap');
-    body { font-family: 'Nunito', 'Segoe UI', sans-serif; color: #374151; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
+    body { font-family: 'Nunito', 'Tajawal', 'Segoe UI', sans-serif; color: #374151; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .page { max-width: 210mm; margin: 0 auto; padding: 15mm; }
     
     .header-box { 
@@ -490,10 +488,10 @@ const printClassroom = (classroom) => {
   `
 
   let content = `
-    <div class="page">
+    <div class="page" dir="${locale.value === 'ar' ? 'rtl' : 'ltr'}">
       <div class="header-box">
-        <div class="header-title">Weekly Learning Plan - ${classroom.name}</div>
-        <div class="header-meta">Week ${store.weekNumber} • Semester ${store.semesterNumber} • ${new Date().toLocaleDateString('en-US', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'})}</div>
+        <div class="header-title">${t('weeklyPlans.weeklyLearningPlan')} - ${classroom.name}</div>
+        <div class="header-meta">${t('weeklyPlans.week')} ${store.weekNumber} • ${t('weeklyPlans.semester')} ${store.semesterNumber} • ${new Date().toLocaleDateString(locale.value, {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'})}</div>
       </div>
   `
 
@@ -507,10 +505,10 @@ const printClassroom = (classroom) => {
         <table>
           <thead>
             <tr>
-              <th class="period-col">Per</th>
-              <th class="subject-col">Subject</th>
-              <th class="cw-col">Classwork</th>
-              <th class="hw-col">Homework</th>
+              <th class="period-col">${t('weeklyPlans.period')}</th>
+              <th class="subject-col">${t('weeklyPlans.subject')}</th>
+              <th class="cw-col">${t('weeklyPlans.classwork')}</th>
+              <th class="hw-col">${t('weeklyPlans.homework')}</th>
             </tr>
           </thead>
           <tbody>
@@ -564,7 +562,8 @@ const printClassroomPdf = (classroom) => {
   // Nunito might need time to load in html2pdf... relying on safe font fallback if needed, but trying Google Fonts import.
   const styles = `
     @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap');
-    body { font-family: 'Nunito', 'Segoe UI', sans-serif; color: #374151; }
+    @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
+    body { font-family: 'Nunito', 'Tajawal', 'Segoe UI', sans-serif; color: #374151; }
     .page { width: 100%; padding: 20px; box-sizing: border-box; }
     
     .header-box { 
@@ -636,10 +635,10 @@ const printClassroomPdf = (classroom) => {
 
   // Similar content construction but optimized for PDF size
   let content = `
-    <div class="page">
+    <div class="page" dir="${locale.value === 'ar' ? 'rtl' : 'ltr'}">
       <div class="header-box">
-        <div class="header-title">Weekly Learning Plan</div>
-        <div class="header-meta">${classroom.name} • Week ${store.weekNumber} • Semester ${store.semesterNumber}</div>
+        <div class="header-title">${t('weeklyPlans.weeklyLearningPlan')}</div>
+        <div class="header-meta">${classroom.name} • ${t('weeklyPlans.week')} ${store.weekNumber} • ${t('weeklyPlans.semester')} ${store.semesterNumber}</div>
       </div>
   `
 
@@ -650,7 +649,7 @@ const printClassroomPdf = (classroom) => {
           <div class="day-pill">${dg.dayName}</div>
         </div>
         <table>
-          <thead><tr><th class="period-col">Per</th><th class="subject-col">Subject</th><th>Classwork</th><th>Homework</th></tr></thead>
+          <thead><tr><th class="period-col">${t('weeklyPlans.period')}</th><th class="subject-col">${t('weeklyPlans.subject')}</th><th>${t('weeklyPlans.classwork')}</th><th>${t('weeklyPlans.homework')}</th></tr></thead>
           <tbody>
     `
     dg.plans.forEach(plan => {

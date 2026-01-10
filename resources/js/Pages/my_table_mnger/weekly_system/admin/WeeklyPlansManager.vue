@@ -10,10 +10,10 @@
       <div class="col">
         <h4 class="q-ma-none text-weight-bold">
           <q-icon name="view_week" class="q-mr-sm" color="primary" />
-          Weekly Plans Management
+          {{ t('weeklyPlans.managementTitle') }}
         </h4>
         <p class="text-grey-7 q-mb-none">
-          Generate, monitor and print weekly plans for teachers
+          {{ t('weeklyPlans.managementDesc') }}
         </p>
       </div>
     </div>
@@ -32,9 +32,9 @@
         align="left"
         narrow-indicator
       >
-        <q-tab name="sync" icon="sync" label="1- Generate & Sync" />
-        <q-tab name="monitor" icon="analytics" label="2- Monitor Progress" />
-        <q-tab name="classroom" icon="meeting_room" label="3- By Classroom" />
+        <q-tab name="sync" icon="sync" :label="'1- ' + t('weeklyPlans.generateSync')" />
+        <q-tab name="monitor" icon="analytics" :label="'2- ' + t('weeklyPlans.monitorProgress')" />
+        <q-tab name="classroom" icon="meeting_room" :label="'3- ' + t('weeklyPlans.byClassroom')" />
       </q-tabs>
 
       <q-separator />
@@ -51,8 +51,8 @@
           />
           <q-card v-else flat bordered class="text-center q-pa-xl">
             <q-icon name="info" size="64px" color="grey-5" />
-            <p class="text-h6 text-grey-7 q-mt-md">Please configure Active Schedule Copy</p>
-            <p class="text-grey-6">Select a schedule copy from the filter bar above.</p>
+            <p class="text-h6 text-grey-7 q-mt-md">{{ t('weeklyPlans.configureSchedule') }}</p>
+            <p class="text-grey-6">{{ t('weeklyPlans.selectScheduleHint') }}</p>
           </q-card>
         </q-tab-panel>
 
@@ -75,6 +75,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import WeeklyPlanMenu from '@/Pages/my_table_mnger/weekly_system/WeeklyPlanMenu.vue'
 import WeeklyPlanSyncDashboard from '@/Pages/my_table_mnger/weekly_system/components/weekly-plans/WeeklyPlanSyncDashboard.vue'
 import WeeklyPlanStats from '@/Pages/my_table_mnger/weekly_system/admin/WeeklyPlanStats.vue'
@@ -83,6 +84,7 @@ import WeeklyPlansFilterBar from './components/WeeklyPlansFilterBar.vue'
 import { useWeeklyPlansStore } from '@/Stores/useWeeklyPlansStore'
 
 // Tab state
+const { t } = useI18n()
 const tab = ref('sync')
 const store = useWeeklyPlansStore()
 const statsRef = ref(null)

@@ -2,17 +2,17 @@
   <div>
     <!-- Filters -->
     <div class="row q-gutter-sm q-mb-md items-end">
-      <q-select v-model="filters.day" :options="dayOptions" dense outlined clearable emit-value map-options label="Day" style="min-width: 160px" />
-      <q-select v-model="filters.classroom" :options="classroomOptions" dense outlined clearable emit-value map-options label="Classroom" style="min-width: 200px" />
-      <q-select v-model="filters.grade" :options="gradeOptions" dense outlined clearable emit-value map-options label="Grade" style="min-width: 160px" />
-      <q-select v-model="filters.subject" :options="subjectOptions" dense outlined clearable emit-value map-options label="Subject" style="min-width: 200px" />
-      <q-btn flat dense icon="refresh" color="primary" @click="clearFilters" label="Clear" />
+      <q-select v-model="filters.day" :options="dayOptions" dense outlined clearable emit-value map-options :label="t('weeklyPlans.teacher.filters.day')" style="min-width: 160px" />
+      <q-select v-model="filters.classroom" :options="classroomOptions" dense outlined clearable emit-value map-options :label="t('weeklyPlans.teacher.filters.classroom')" style="min-width: 200px" />
+      <q-select v-model="filters.grade" :options="gradeOptions" dense outlined clearable emit-value map-options :label="t('weeklyPlans.teacher.filters.grade')" style="min-width: 160px" />
+      <q-select v-model="filters.subject" :options="subjectOptions" dense outlined clearable emit-value map-options :label="t('weeklyPlans.teacher.filters.subject')" style="min-width: 200px" />
+      <q-btn flat dense icon="refresh" color="primary" @click="clearFilters" :label="t('weeklyPlans.teacher.filters.clear')" />
       <q-space />
-      <q-btn color="primary" dense unelevated icon="content_copy" label="Copy" @click="openCopyDialog" />
-      <q-btn :color="groupByClassroom ? 'primary' : 'grey-7'" :outline="!groupByClassroom" dense icon="table_rows" label="Group by classroom" @click="groupByClassroom = !groupByClassroom" />
-      <q-btn color="primary" dense unelevated icon="print" label="Print" @click="printMainTable" />
+      <q-btn color="primary" dense unelevated icon="content_copy" :label="t('weeklyPlans.copy')" @click="openCopyDialog" />
+      <q-btn :color="groupByClassroom ? 'primary' : 'grey-7'" :outline="!groupByClassroom" dense icon="table_rows" :label="t('weeklyPlans.groupByClassroom')" @click="groupByClassroom = !groupByClassroom" />
+      <q-btn color="primary" dense unelevated icon="print" :label="t('weeklyPlans.print')" @click="printMainTable" />
       <!-- <q-btn color="secondary" dense unelevated icon="picture_as_pdf" label="Save PDF" @click="saveAsPdf" /> -->
-      <q-toggle v-model="periodOrderEdit" label="Period Order edit" color="primary" class="q-ml-md" />
+      <q-toggle v-model="periodOrderEdit" :label="t('weeklyPlans.periodOrderEdit')" color="primary" class="q-ml-md" />
     </div>
 
     <div id="plans-table-print">
@@ -72,14 +72,14 @@
     <!-- Grouped by classroom view -->
     <div v-else>
       <div v-for="g in groupedByClassroom" :key="g.id" class="q-mb-xl">
-        <div class="text-h6 text-center q-mb-sm">Classroom: {{ g.name }}</div>
+        <div class="text-h6 text-center q-mb-sm">{{ t('weeklyPlans.teacher.filters.classroom') }}: {{ g.name }}</div>
         <q-markup-table dense flat bordered>
           <thead>
             <tr>
-              <th>Day</th>
-              <th>Period</th>
-              <th>Period Order</th>
-              <th>Weekly Plan (CW, HW, Notes)</th>
+              <th>{{ t('weeklyPlans.teacher.filters.day') }}</th>
+              <th>{{ t('weeklyPlans.period') }}</th>
+              <th>{{ t('weeklyPlans.periodOrder') }}</th>
+              <th>{{ t('weeklyPlans.weeklyLearningPlan') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -89,8 +89,8 @@
               <td>{{ p?.schedule?.period_order ?? '-' }}</td>
               <td>
                 <div><strong>CW:</strong> {{ p?.cw || '-' }}</div>
-                <div><strong>HW:</strong> {{ p?.hw || '-' }}</div>
-                <div><strong>Notes:</strong> {{ p?.notes || '-' }}</div>
+                <div><strong>{{ t('weeklyPlans.teacher.hwLabel') }}</strong> {{ p?.hw || '-' }}</div>
+                <div><strong>{{ t('weeklyPlans.teacher.notesLabel') }}</strong> {{ p?.notes || '-' }}</div>
               </td>
             </tr>
           </tbody>
@@ -102,24 +102,24 @@
     <!-- Print-only condensed table -->
     <div class="print-only">
       <div class="print-header">
-        <h1>Weekly Plans</h1>
-        <div class="meta">Week {{ weekNumber }} • Semester {{ semesterNumber }}</div>
+        <h1>{{ t('weeklyPlans.teacher.myWeeklyPlans') }}</h1>
+        <div class="meta">{{ t('weeklyPlans.week') }} {{ weekNumber }} • {{ t('weeklyPlans.semester') }} {{ semesterNumber }}</div>
         <div class="meta">
-          Filters:
-          <span>Day: {{ filters.day ? dayName(filters.day) : 'All' }}</span>
-          | <span>Classroom: {{ filters.classroom ? (classroomOptions.find(o=>o.value===filters.classroom)?.label || filters.classroom) : 'All' }}</span>
-          | <span>Subject: {{ filters.subject ? (subjectOptions.find(o=>o.value===filters.subject)?.label || filters.subject) : 'All' }}</span>
-          | <span>Grade: {{ filters.grade ? gradeLabel(filters.grade) : 'All' }}</span>
+          {{ t('weeklyPlans.teacher.tableView') }}:
+          <span>{{ t('weeklyPlans.teacher.filters.day') }}: {{ filters.day ? dayName(filters.day) : t('common.all') || 'All' }}</span>
+          | <span>{{ t('weeklyPlans.teacher.filters.classroom') }}: {{ filters.classroom ? (classroomOptions.find(o=>o.value===filters.classroom)?.label || filters.classroom) : t('common.all') || 'All' }}</span>
+          | <span>{{ t('weeklyPlans.teacher.filters.subject') }}: {{ filters.subject ? (subjectOptions.find(o=>o.value===filters.subject)?.label || filters.subject) : t('common.all') || 'All' }}</span>
+          | <span>{{ t('weeklyPlans.teacher.filters.grade') }}: {{ filters.grade ? gradeLabel(filters.grade) : t('common.all') || 'All' }}</span>
         </div>
-        <div class="meta">Printed: {{ printTimestamp }}</div>
+        <div class="meta">{{ t('weeklyPlans.teacher.generated') }} {{ printTimestamp }}</div>
       </div>
       <q-markup-table flat bordered dense>
         <thead>
           <tr>
-            <th>Classroom</th>
-            <th>Day</th>
-            <th>Period</th>
-            <th>Weekly Plan (CW, HW, Notes)</th>
+            <th>{{ t('weeklyPlans.teacher.filters.classroom') }}</th>
+            <th>{{ t('weeklyPlans.teacher.filters.day') }}</th>
+            <th>{{ t('weeklyPlans.period') }}</th>
+            <th>{{ t('weeklyPlans.weeklyLearningPlan') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -131,9 +131,9 @@
             <td>{{ dayName(p?.schedule?.day) }}</td>
             <td>{{ p?.schedule?.period_number ?? '-' }}</td>
             <td>
-              <div><strong>CW:</strong> <span v-html="linkifyText(p?.cw || '-')"></span></div>
-              <div><strong>HW:</strong> <span v-html="linkifyText(p?.hw || '-')"></span></div>
-              <div><strong>Notes:</strong> <span v-html="linkifyText(p?.notes || '-')"></span></div>
+               <div><strong>CW:</strong> <span v-html="linkifyText(p?.cw || '-')"></span></div>
+              <div><strong>{{ t('weeklyPlans.teacher.hwLabel') }}</strong> <span v-html="linkifyText(p?.hw || '-')"></span></div>
+              <div><strong>{{ t('weeklyPlans.teacher.notesLabel') }}</strong> <span v-html="linkifyText(p?.notes || '-')"></span></div>
             </td>
           </tr>
         </tbody>
@@ -145,26 +145,26 @@
     <q-dialog v-model="showCopyDialog">
       <q-card style="min-width: 520px; max-width: 90vw">
         <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">Copy plans to other classrooms</div>
+          <div class="text-h6">{{ t('weeklyPlans.copyPlansTitle') }}</div>
           <q-space />
           <q-btn icon="close" flat round dense v-close-popup />
         </q-card-section>
         <q-separator />
         <q-card-section>
           <div class="q-gutter-md">
-            <q-select v-model="copyFrom" :options="classroomOptions" emit-value map-options outlined label="From classroom" :disable="classroomOptions.length===0" />
-            <q-select v-model="copySubject" :options="copySubjectOptions" emit-value map-options outlined label="Subject" :disable="!copyFrom || copySubjectOptions.length===0" />
-            <q-select v-model="copyTo" :options="toClassroomOptions" use-chips multiple emit-value map-options outlined label="To classrooms" :disable="!copyFrom || toClassroomOptions.length===0" />
-            <div class="text-caption text-grey-7">Week {{ weekNumber }} • Semester {{ semesterNumber }}</div>
+            <q-select v-model="copyFrom" :options="classroomOptions" emit-value map-options outlined :label="t('weeklyPlans.teacher.fromClassroom')" :disable="classroomOptions.length===0" />
+            <q-select v-model="copySubject" :options="copySubjectOptions" emit-value map-options outlined :label="t('weeklyPlans.teacher.filters.subject')" :disable="!copyFrom || copySubjectOptions.length===0" />
+            <q-select v-model="copyTo" :options="toClassroomOptions" use-chips multiple emit-value map-options outlined :label="t('weeklyPlans.teacher.toClassrooms')" :disable="!copyFrom || toClassroomOptions.length===0" />
+            <div class="text-caption text-grey-7">{{ t('weeklyPlans.week') }} {{ weekNumber }} • {{ t('weeklyPlans.semester') }} {{ semesterNumber }}</div>
           </div>
         </q-card-section>
         <!-- Preview Section -->
         <q-separator />
         <q-card-section v-if="copyPreview">
-          <div class="text-subtitle2 q-mb-sm">Source records</div>
+          <div class="text-subtitle2 q-mb-sm">{{ t('weeklyPlans.sourceRecords') }}</div>
           <q-markup-table dense flat bordered>
             <thead>
-              <tr><th>Day</th><th>Period Order</th><th>CW</th><th>HW</th><th>Notes</th></tr>
+              <tr><th>{{ t('weeklyPlans.teacher.filters.day') }}</th><th>{{ t('weeklyPlans.teacher.periodOrder') }}</th><th>CW</th><th>{{ t('weeklyPlans.teacher.hwLabel') }}</th><th>{{ t('weeklyPlans.teacher.notesLabel') }}</th></tr>
             </thead>
             <tbody>
               <tr v-for="s in copyPreview.source" :key="s.weekly_plan_id">
@@ -177,20 +177,20 @@
             </tbody>
           </q-markup-table>
 
-          <div class="q-mt-md text-subtitle2">Targets</div>
+          <div class="q-mt-md text-subtitle2">{{ t('weeklyPlans.targets') }}</div>
           <div v-for="t in copyPreview.targets" :key="t.to_classroom_id" class="q-mt-sm">
-            <div class="text-caption text-grey-7 q-mb-xs">Classroom #{{ t.to_classroom_id }}</div>
+            <div class="text-caption text-grey-7 q-mb-xs">{{ t('weeklyPlans.teacher.filters.classroom') }} #{{ t.to_classroom_id }}</div>
             <q-markup-table dense flat bordered>
               <thead>
                 <tr>
-                  <th>Src Day</th>
-                  <th>Src Order</th>
-                  <th>Target Order</th>
-                  <th>Orders Match?</th>
-                  <th>Will Update?</th>
-                  <th>Target CW</th>
-                  <th>Target HW</th>
-                  <th>Target Notes</th>
+                  <th>{{ t('weeklyPlans.teacher.srcDay') }}</th>
+                  <th>{{ t('weeklyPlans.teacher.srcOrder') }}</th>
+                  <th>{{ t('weeklyPlans.teacher.targetOrder') }}</th>
+                  <th>{{ t('weeklyPlans.teacher.ordersMatch') }}</th>
+                  <th>{{ t('weeklyPlans.teacher.willUpdate') }}</th>
+                  <th>{{ t('weeklyPlans.teacher.filters.classroom') }} CW</th>
+                  <th>{{ t('weeklyPlans.teacher.filters.classroom') }} HW</th>
+                  <th>{{ t('weeklyPlans.teacher.filters.classroom') }} {{ t('weeklyPlans.teacher.notesLabel') }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -203,11 +203,11 @@
                                    ? (m.source_period_order === m.target_period_order ? 'text-positive' : 'text-negative')
                                    : 'text-grey-7'">
                       {{ (m.source_period_order != null && m.target_period_order != null)
-                          ? (m.source_period_order === m.target_period_order ? 'Yes' : 'No')
+                          ? (m.source_period_order === m.target_period_order ? t('weeklyPlans.yes') : t('weeklyPlans.no'))
                           : '-' }}
                     </span>
                   </td>
-                  <td>{{ m.has_target_plan ? 'Yes' : 'No (skipped)' }}</td>
+                  <td>{{ m.has_target_plan ? t('weeklyPlans.yes') : `${t('weeklyPlans.no')} (${t('weeklyPlans.skipped')})` }}</td>
                   <td style="max-width: 220px">{{ m.target_cw ?? '-' }}</td>
                   <td style="max-width: 220px">{{ m.target_hw ?? '-' }}</td>
                   <td style="max-width: 220px">{{ m.target_notes ?? '-' }}</td>
@@ -218,9 +218,9 @@
         </q-card-section>
         <q-separator />
         <q-card-actions align="right">
-          <q-btn flat label="Cancel" v-close-popup />
-          <q-btn v-if="!copyPreview" color="primary" :loading="previewing" :disable="!canSubmitCopy" label="Preview" @click="submitPreview" />
-          <q-btn v-else color="primary" :loading="committing" :disable="!(copyPreview?.operations?.length)" label="Save" @click="submitCommit" />
+          <q-btn flat :label="t('weeklyPlans.cancel')" v-close-popup />
+          <q-btn v-if="!copyPreview" color="primary" :loading="previewing" :disable="!canSubmitCopy" :label="t('weeklyPlans.preview')" @click="submitPreview" />
+          <q-btn v-else color="primary" :loading="committing" :disable="!(copyPreview?.operations?.length)" :label="t('weeklyPlans.save')" @click="submitCommit" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -229,7 +229,13 @@
 
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import axios from 'axios'
+
+const { t, locale } = useI18n()
+
+// RTL Support
+const textAlign = computed(() => locale.value === 'ar' ? 'right' : 'left')
 
 const props = defineProps({
   plans: { type: Array, default: () => [] },
@@ -238,31 +244,30 @@ const props = defineProps({
 })
 const emit = defineEmits(['edit', 'copied'])
 
-const dayMap = { 1: 'Sunday', 2: 'Monday', 3: 'Tuesday', 4: 'Wednesday', 5: 'Thursday', 6: 'Friday', 7: 'Saturday' }
-const dayName = (d) => dayMap[d] || `Day ${d ?? '-'}`
-const gradeLabel = (g) => (g ? `Grade ${g}` : '-')
+const dayName = (d) => d ? (t(`weeklyPlans.fullDays.${d}`) || `Day ${d}`) : '-'
+const gradeLabel = (g) => (g ? `${t('weeklyPlans.teacher.filters.grade')} ${g}` : '-')
 
 const filters = reactive({ day: null, classroom: null, grade: null, subject: null })
 const clearFilters = () => { filters.day = filters.classroom = filters.grade = filters.subject = null }
   const groupByClassroom = ref(false)
 
-const columns = [
-  { name: 'dayName', label: 'Day', field: 'dayName', align: 'left', sortable: true },
-  { name: 'period', label: 'Period', field: row => row.schedule?.period_number ?? '-', align: 'left', sortable: true },
-  { name: 'periodOrder', label: 'Period Order', field: row => row.schedule?.period_order ?? '-', align: 'left', sortable: true },
-  { name: 'classroom', label: 'Classroom', field: row => row.schedule?.cst?.classroom?.name ?? '-', align: 'left', sortable: true, style: 'width: 1%;', headerStyle: 'width: 1%;' },
-  { name: 'grade', label: 'Grade', field: row => gradeLabel(row.schedule?.grade_id), align: 'left' },
-  { name: 'subject', label: 'Subject', field: row => row.schedule?.cst?.subject?.name ?? '-', align: 'left', sortable: true },
-  { name: 'cw', label: 'CW', field: 'cw', align: 'left' },
-  { name: 'hw', label: 'HW', field: 'hw', align: 'left' },
-  { name: 'notes', label: 'Notes', field: 'notes', align: 'left' },
-  { name: 'status', label: 'Status', field: 'status', align: 'left' },
-  { name: 'actions', label: 'Actions', field: row => row.id, align: 'right' }
-]
+const columns = computed(() => [
+  { name: 'dayName', label: t('weeklyPlans.teacher.filters.day'), field: 'dayName', align: textAlign.value, sortable: true },
+  { name: 'period', label: t('weeklyPlans.period'), field: row => row.schedule?.period_number ?? '-', align: 'center', sortable: true },
+  { name: 'periodOrder', label: t('weeklyPlans.teacher.periodOrder'), field: row => row.schedule?.period_order ?? '-', align: 'center', sortable: true },
+  { name: 'classroom', label: t('weeklyPlans.teacher.filters.classroom'), field: row => row.schedule?.cst?.classroom?.name ?? '-', align: textAlign.value, sortable: true, style: 'width: 1%;', headerStyle: 'width: 1%;' },
+  { name: 'grade', label: t('weeklyPlans.teacher.filters.grade'), field: row => gradeLabel(row.schedule?.grade_id), align: textAlign.value },
+  { name: 'subject', label: t('weeklyPlans.teacher.filters.subject'), field: row => row.schedule?.cst?.subject?.name ?? '-', align: textAlign.value, sortable: true },
+  { name: 'cw', label: 'CW', field: 'cw', align: textAlign.value },
+  { name: 'hw', label: 'HW', field: 'hw', align: textAlign.value },
+  { name: 'notes', label: t('weeklyPlans.teacher.notesLabel'), field: 'notes', align: textAlign.value },
+  { name: 'status', label: t('weeklyPlans.status'), field: 'status', align: textAlign.value },
+  { name: 'actions', label: t('weeklyPlans.previewAndPrint'), field: row => row.id, align: 'right' }
+])
 
 // Show Period Order column only when editing is enabled
 const visibleColumns = computed(() => (
-  periodOrderEdit.value ? columns : columns.filter(c => c.name !== 'periodOrder')
+  periodOrderEdit.value ? columns.value : columns.value.filter(c => c.name !== 'periodOrder')
 ))
 
 const uniqueBy = (arr, key) => {
@@ -325,7 +330,7 @@ const filteredRows = computed(() =>
   })
 
 const statusColor = (s) => ({ empty: 'grey', partial: 'amber', completed: 'green' }[s] || 'primary')
-const statusLabel = (s) => ({ empty: 'Empty', partial: 'Partial', completed: 'Completed' }[s] || (s || '-'))
+const statusLabel = (s) => ({ empty: t('weeklyPlans.empty'), partial: t('weeklyPlans.partial'), completed: t('weeklyPlans.completed') }[s] || (s || '-'))
 
 const onEdit = (row) => emit('edit', row)
 

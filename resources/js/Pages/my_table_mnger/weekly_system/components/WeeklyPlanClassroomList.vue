@@ -13,7 +13,7 @@
             {{ classroom.name }}
             <q-chip 
               dense 
-              :label="`${classroom.plans.length} classes`"
+              :label="`${classroom.plans.length} ${t('weeklyPlans.classes')}`"
               text-color="white"
             />
           </h5>
@@ -72,7 +72,7 @@
               <div v-if="inlineEditMode" class="inline-edit-cell-vertical">
                 <div class="editor-header">
                   <q-icon name="school" size="xs" color="blue" />
-                  <span class="text-caption text-weight-medium q-ml-xs">Classwork</span>
+                  <span class="text-caption text-weight-medium q-ml-xs">{{ t('weeklyPlans.classwork') }}</span>
                   <q-btn
                     v-if="copiedData?.cw"
                     icon="content_paste"
@@ -82,7 +82,7 @@
                     color="primary"
                     @click="pasteField(props.row.data, 'cw')"
                   >
-                    <q-tooltip>Paste CW</q-tooltip>
+                    <q-tooltip>{{ t('weeklyPlans.teacher.pasteCw') }}</q-tooltip>
                   </q-btn>
                 </div>
                 <q-editor
@@ -109,7 +109,7 @@
               <div v-if="inlineEditMode" class="inline-edit-cell-vertical">
                 <div class="editor-header">
                   <q-icon name="home_work" size="xs" color="orange" />
-                  <span class="text-caption text-weight-medium q-ml-xs">Homework</span>
+                  <span class="text-caption text-weight-medium q-ml-xs">{{ t('weeklyPlans.homework') }}</span>
                   <q-btn
                     v-if="copiedData?.hw"
                     icon="content_paste"
@@ -119,7 +119,7 @@
                     color="primary"
                     @click="pasteField(props.row.data, 'hw')"
                   >
-                    <q-tooltip>Paste HW</q-tooltip>
+                    <q-tooltip>{{ t('weeklyPlans.teacher.pasteHw') }}</q-tooltip>
                   </q-btn>
                 </div>
                 <q-editor
@@ -146,7 +146,7 @@
               <div v-if="inlineEditMode" class="inline-edit-cell-vertical">
                 <div class="editor-header">
                   <q-icon name="note" size="xs" color="grey" />
-                  <span class="text-caption text-weight-medium q-ml-xs">Notes</span>
+                  <span class="text-caption text-weight-medium q-ml-xs">{{ t('weeklyPlans.notes') }}</span>
                   <q-btn
                     v-if="copiedData?.notes"
                     icon="content_paste"
@@ -156,7 +156,7 @@
                     color="primary"
                     @click="pasteField(props.row.data, 'notes')"
                   >
-                    <q-tooltip>Paste Notes</q-tooltip>
+                    <q-tooltip>{{ t('weeklyPlans.teacher.pasteNotes') }}</q-tooltip>
                   </q-btn>
                 </div>
                 <q-editor
@@ -181,8 +181,8 @@
     <!-- No plans state -->
     <div v-if="!classroomPlans || classroomPlans.length === 0" class="text-center q-pa-xl">
       <q-icon name="meeting_room" size="64px" color="grey-5" />
-      <p class="text-h6 text-grey-7 q-mt-md">No classrooms to display</p>
-      <p class="text-grey-6">Plans will appear here based on your selection</p>
+      <p class="text-h6 text-grey-7 q-mt-md">{{ t('weeklyPlans.teacher.noClassrooms') }}</p>
+      <p class="text-grey-6">{{ t('weeklyPlans.teacher.selectToView') }}</p>
     </div>
 
     <!-- Mobile Print Dialog -->
@@ -194,18 +194,18 @@
         <!-- Sticky Header -->
         <q-toolbar class="mobile-print-header   sticky-top">
           <q-toolbar-title class="text-center  ">
-            <div class="text-h2 y-12">{{ classroomPlans[0]?.name || 'Weekly Plans' }}</div>
-            <div class="text-h6 text-grey-7">Week {{ weekNumber }} - Semester {{ semesterNumber }}</div>
+            <div class="text-h2 y-12">{{ classroomPlans[0]?.name || t('weeklyPlans.weeklyLearningPlan') }}</div>
+            <div class="text-h6 text-grey-7">{{ t('weeklyPlans.week') }} {{ weekNumber }} - {{ t('weeklyPlans.semester') }} {{ semesterNumber }}</div>
           </q-toolbar-title>
    <div class="no-print  ">
           <q-btn icon="picture_as_pdf" class="mx-12" flat round dense @click="downloadPDF" color="red-7">
-            <q-tooltip>Download PDF</q-tooltip>
+            <q-tooltip>{{ t('weeklyPlans.teacher.downloadPdf') }}</q-tooltip>
           </q-btn>
           <q-btn icon="print" class="mx-12  " flat round dense @click="printMobile">
-            <q-tooltip>Print</q-tooltip>
+            <q-tooltip>{{ t('weeklyPlans.print') }}</q-tooltip>
           </q-btn>
           <q-btn icon="close" flat round dense @click="showMobilePrint = false">
-            <q-tooltip>Close</q-tooltip>
+            <q-tooltip>{{ t('common.close') || t('weeklyPlans.close') || 'Close' }}</q-tooltip>
           </q-btn>
       </div>
         </q-toolbar>
@@ -220,17 +220,17 @@
           >
             <!-- Day Title -->
             <div class="day-title">
-              Week {{ weekNumber }} - {{ dayGroup.dayName }}
+              {{ t('weeklyPlans.week') }} {{ weekNumber }} - {{ dayGroup.dayName }}
             </div>
 
             <!-- Day Table -->
             <table class="mobile-day-table">
               <thead>
                 <tr>
-                  <th class="period-col">Period</th>
-                  <th class="subject-col">Subject</th>
-                  <th class="cw-col">CW</th>
-                  <th class="hw-notes-col">HW / Notes</th>
+                  <th class="period-col">{{ t('weeklyPlans.period') }}</th>
+                  <th class="subject-col">{{ t('weeklyPlans.subject') }}</th>
+                  <th class="cw-col">{{ t('weeklyPlans.classwork') }}</th>
+                  <th class="hw-notes-col">{{ t('weeklyPlans.homework') }} / {{ t('weeklyPlans.notes') }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -257,7 +257,7 @@
                     <div v-if="plan.hw" class="content-section">
                       <div class="content-label">
                         <q-icon name="home_work" size="xs" color="orange" />
-                        <span>HW:</span>
+                        <span>{{ t('weeklyPlans.teacher.hwLabel') }}</span>
                       </div>
                       <div class="content-text" v-html="plan.hw"></div>
                     </div>
@@ -266,7 +266,7 @@
                     <div v-if="plan.notes" class="content-section">
                       <div class="content-label">
                         <q-icon name="note" size="xs" color="grey-7" />
-                        <span>Notes:</span>
+                        <span>{{ t('weeklyPlans.teacher.notesLabel') }}</span>
                       </div>
                       <div class="content-text" v-html="plan.notes"></div>
                     </div>
@@ -288,7 +288,10 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import StatusBadge from './shared/StatusBadge.vue'
+
+const { t } = useI18n()
 
 const props = defineProps({
   plans: {
@@ -368,7 +371,7 @@ const mobilePlansByDay = computed(() => {
     if (!byDay[dayNum]) {
       byDay[dayNum] = {
         dayNumber: dayNum,
-        dayName: props.days[dayNum] || `Day ${dayNum}`,
+        dayName: props.days[dayNum] || t(`weeklyPlans.fullDays.${dayNum}`) || `Day ${dayNum}`,
         plans: []
       }
     }
@@ -383,15 +386,15 @@ const mobilePlansByDay = computed(() => {
   return Object.values(byDay).sort((a, b) => a.dayNumber - b.dayNumber)
 })
 
-const tableColumns = [
-  { name: 'day', label: 'Day', field: row => props.days[row.data.schedule?.day] || 'N/A', align: 'left' },
-  { name: 'period', label: 'Period', field: row => row.data.schedule?.period_number, align: 'center' },
-  { name: 'subject', label: 'Subject', field: row => row.data.schedule?.cst?.subject_name, align: 'left' },
-  { name: 'status', label: 'Status', field: row => row.data.status, align: 'left' },
-  { name: 'cw', label: 'Classwork (CW)', field: row => row.data.cw, align: 'left' },
-  { name: 'hw', label: 'Homework (HW)', field: row => row.data.hw, align: 'left' },
-  { name: 'notes', label: 'Notes', field: row => row.data.notes, align: 'left' }
-]
+const tableColumns = computed(() => [
+  { name: 'day', label: t('weeklyPlans.day'), field: row => props.days[row.data.schedule?.day] || t(`weeklyPlans.fullDays.${row.data.schedule?.day}`) || 'N/A', align: 'left' },
+  { name: 'period', label: t('weeklyPlans.period'), field: row => row.data.schedule?.period_number, align: 'center' },
+  { name: 'subject', label: t('weeklyPlans.subject'), field: row => row.data.schedule?.cst?.subject_name, align: 'left' },
+  { name: 'status', label: t('weeklyPlans.status'), field: row => row.data.status, align: 'left' },
+  { name: 'cw', label: t('weeklyPlans.classwork'), field: row => row.data.cw, align: 'left' },
+  { name: 'hw', label: t('weeklyPlans.homework'), field: row => row.data.hw, align: 'left' },
+  { name: 'notes', label: t('weeklyPlans.notes'), field: row => row.data.notes, align: 'left' }
+])
 
 // Methods
 const openMobilePrint = () => {

@@ -192,17 +192,17 @@ const getDefaultIcon = (icon) => {
   <div class="flex items-center">
     <!-- Menu Button -->
     <q-btn
-      flat
+  
       round
       :icon="sidebarOpen ? 'close' : 'menu'"
       @click="toggleSidebar"
-      class="q-ml-sm fixed top-0 right-0"
+      class="q-ml-sm fixed top-0 right-0 z-50 scale-150 m-8 bg-red-400"
     />
  
 <!-- userRoles:{{ userRoles }} -->
 
     <!-- User Menu -->
-    <q-btn-dropdown flat class="q-ml-md" :label="user.name">
+    <q-btn-dropdown flat class="q-ml-md my-8 mx-12" :label="user.name">
       <q-list>
         <InertiaLinkWrapper :href="safeRoute('profile.show')">
           <q-item clickable v-close-popup tag="div">

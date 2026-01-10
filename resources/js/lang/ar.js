@@ -41,7 +41,16 @@ export default {
         pages: 'الصفحات',
         users: 'المستخدمين',
         documents: 'المستندات',
-        allRightsReserved: 'جميع الحقوق محفوظة'
+        allRightsReserved: 'جميع الحقوق محفوظة',
+        status: {
+            draft: 'مسودة',
+            pending: 'قيد الانتظار',
+            active: 'نشط',
+            archived: 'مؤرشف',
+            empty: 'فارغ',
+            partial: 'جزئي',
+            completed: 'مكتمل'
+        }
     },
     permissions: {
         dashboard: 'لوحة الصلاحيات',
@@ -91,7 +100,7 @@ export default {
         progress: 'السؤال {current} من {total}',
         complete: '{percentage}٪ مكتمل',
         questionNumber: 'السؤال {number}',
-        
+
         // الإجراءات
         submit: 'إرسال الإجابة',
         next: 'السؤال التالي',
@@ -100,7 +109,7 @@ export default {
         review: 'مراجعة الإجابات',
         startQuiz: 'بدء الاختبار',
         retakeQuiz: 'إعادة الاختبار',
-        
+
         // التعليقات
         correct: 'صحيح!',
         incorrect: 'خطأ',
@@ -109,7 +118,7 @@ export default {
         rationale: 'السبب:',
         correctAnswer: 'الإجابة الصحيحة:',
         yourAnswer: 'إجابتك:',
-        
+
         // النتائج
         results: {
             title: 'نتائج الاختبار',
@@ -125,7 +134,7 @@ export default {
             unanswered: 'غير مجاب',
             reviewAnswers: 'راجع إجاباتك'
         },
-        
+
         // أنواع الأسئلة
         questionTypes: {
             multipleChoice: 'اختيار من متعدد',
@@ -135,7 +144,7 @@ export default {
             shortAnswer: 'إجابة قصيرة',
             essay: 'مقال'
         },
-        
+
         // الخيارات
         options: {
             optionA: 'الخيار أ',
@@ -147,7 +156,7 @@ export default {
             false: 'خطأ',
             selectAll: 'اختر كل ما ينطبق'
         },
-        
+
         // رسائل الحالة
         status: {
             loading: 'جاري تحميل الاختبار...',
@@ -157,7 +166,7 @@ export default {
             unanswered: 'لم تتم الإجابة',
             current: 'السؤال الحالي'
         },
-        
+
         // الأخطاء
         errors: {
             loadFailed: 'فشل تحميل الاختبار. يرجى المحاولة مرة أخرى.',
@@ -176,7 +185,7 @@ export default {
             unknownError: 'خطأ',
             unexpectedError: 'حدث خطأ غير متوقع'
         },
-        
+
         // التحقق
         validation: {
             required: 'هذا الحقل مطلوب',
@@ -184,7 +193,7 @@ export default {
             maxLength: 'يجب ألا تتجاوز الإجابة {max} حرفًا',
             selectAtLeastOne: 'يرجى اختيار خيار واحد على الأقل'
         },
-        
+
         // التكوين
         config: {
             reviewMode: 'وضع المراجعة',
@@ -196,7 +205,7 @@ export default {
             enabled: 'مفعّل',
             disabled: 'معطّل'
         },
-        
+
         // الوقت
         time: {
             seconds: '{count} ثانية | {count} ثانية',
@@ -206,7 +215,7 @@ export default {
             expired: 'انتهى الوقت',
             warning: 'فقط {time} متبقي!'
         },
-        
+
         // إمكانية الوصول
         a11y: {
             quizRegion: 'تقييم الاختبار',
@@ -223,7 +232,7 @@ export default {
             announceProgress: 'السؤال {current} من {total}',
             announceComplete: 'اكتمل الاختبار. حصلت على {percentage}٪'
         },
-        
+
         // النموذج
         form: {
             createQuestion: 'إنشاء سؤال',
@@ -248,7 +257,7 @@ export default {
             estimatedTime: 'الوقت المقدر (بالثواني)',
             status: 'الحالة'
         },
-        
+
         // الاستيراد
         import: {
             title: 'استيراد الأسئلة',
@@ -273,6 +282,155 @@ export default {
             retry: 'إعادة المحاولة',
             retrying: 'جاري إعادة المحاولة...',
             dismiss: 'إغلاق'
+        }
+    },
+    weeklyPlans: {
+        generateSync: 'توليد وتزامن',
+        monitorProgress: 'مراقبة التقدم',
+        byClassroom: 'حسب الفصل',
+        selectWeek: 'اختر الأسبوع',
+        currentWeek: 'الأسبوع الحالي',
+        lastWeek: 'الأسبوع الماضي',
+        nextWeek: 'الأسبوع القادم',
+        syncSource: 'مصدر المزامنة',
+        activeSchedule: 'الجدول النشط',
+        semester: 'الفصل الدراسي',
+        academicYear: 'العام الدراسي',
+        batchSync: 'توليد دفعة / مزامنة',
+        syncWeeklyPlans: 'مزامنة الخطط الأسبوعية',
+        status: 'الحالة',
+        progressOverview: 'نظرة عامة على التقدم',
+        completed: 'مكتمل',
+        partial: 'جزئي',
+        empty: 'فارغ',
+        noTeacherData: 'لا توجد بيانات تقدم للمعلمين لهذا الأسبوع',
+        generateFirst: 'قم بتوليد الخطط أولاً لبدء تتبع الإكمال',
+        filterClassrooms: 'تصفية الفصول',
+        selectAll: 'تحديد الكل',
+        deselectAll: 'إلغاء تحديد الكل',
+        filterByDay: 'تصفية حسب اليوم',
+        noDataAvailable: 'لا توجد بيانات متاحة',
+        selectClassroomsToView: 'اختر الفصول لعرض الخطط الأسبوعية',
+        savePdf: 'حفظ كملف PDF',
+        print: 'طباعة',
+        period: 'ح',
+        subject: 'المادة',
+        classwork: 'العمل الصفي',
+        homework: 'الواجب المنزلي',
+        notes: 'ملاحظات',
+        day: 'اليوم',
+        classroom: 'الفصل',
+        teacher: 'المعلم',
+        week: 'الأسبوع',
+        generated: 'تم الإنشاء',
+        weeklyLearningPlan: 'الخطة الدراسية الأسبوعية',
+        noPlansToPrint: 'لا توجد خطط للطباعة لهذا الفصل',
+        noPlansToSave: 'لا توجد خطط للحفظ لهذا الفصل',
+        popupBlocked: 'تم حظر النافذة المنبثقة: اسمح بالنوافذ لحفظ/طباعة الملف',
+        classes: 'حصص',
+        unknown: 'غير معروف',
+        managementTitle: 'إدارة الخطط الأسبوعية',
+        managementDesc: 'توليد ومراقبة وطباعة الخطط الأسبوعية للمعلمين',
+        configureSchedule: 'يرجى تكوين نسخة الجدول النشطة',
+        selectScheduleHint: 'اختر نسخة جدول من شريط التصفية أعلاه.',
+        totalSlots: 'إجمالي الحصص',
+        missing: 'مفقود',
+        progress: 'التقدم',
+        syncAll: 'مزامنة جميع الخطط المفقودة',
+        viewByDay: 'عرض حسب اليوم',
+        syncPreview: 'معاينة المزامنة',
+        allSynced: 'تمت مزامنة جميع الخطط الأسبوعية!',
+        noMissingPlans: 'لا توجد خطط مفقودة لهذا الأسبوع.',
+        selectMissingPlans: 'اختر الخطط المفقودة التي تريد إنشاؤها',
+        createPlans: 'إنشاء {count} خطة',
+        shortDays: {
+            1: 'أحد',
+            2: 'إثنين',
+            3: 'ثلاثاء',
+            4: 'أربعاء',
+            5: 'خميس',
+            6: 'جمعة',
+            7: 'سبت'
+        },
+        fullDays: {
+            1: 'الأحد',
+            2: 'الاثنين',
+            3: 'الثلاثاء',
+            4: 'الأربعاء',
+            5: 'الخميس',
+            6: 'الجمعة',
+            7: 'السبت'
+        },
+        teacherWeeklyPlans: "خطط {name} الأسبوعية",
+        teacher: {
+            myWeeklyPlans: 'خططي الأسبوعية',
+            fillInContent: 'املأ الواجبات المدرسية والمنزلية لكل فصل',
+            previewAndPrint: 'معاينة وطباعة',
+            mobilePrint: 'طباعة للجوال',
+            downloadPdf: 'تحميل PDF',
+            inlineEditMode: 'وضع التعديل السريع',
+            noPlans: 'لا توجد خطط لهذا الأسبوع',
+            waitAdminGen: 'ستظهر الخطط بمجرد إنشائها من قبل الإدارة',
+            cwFilled: 'تم ملء الصفي',
+            hwFilled: 'تم ملء المنزلي',
+            copy: 'نسخ المحتوى',
+            paste: 'لصق البيانات',
+            cancelCopy: 'إلغاء النسخ',
+            pasteCw: 'لصق الصفي',
+            pasteHw: 'لصق المنزلي',
+            pasteNotes: 'لصق الملاحظات',
+            noClassrooms: 'لا توجد فصول لعرضها',
+            selectToView: 'ستظهر الخطط هنا بناءً على اختيارك',
+            hwLabel: 'الواجب:',
+            notesLabel: 'ملاحظات:',
+            generated: 'تم الإنشاء:',
+            tableView: 'جدول',
+            filters: {
+                day: 'اليوم',
+                classroom: 'الفصل',
+                grade: 'الصف',
+                subject: 'المادة',
+                clear: 'مسح'
+            },
+            copy: 'نسخ',
+            groupByClassroom: 'تجميع حسب الفصل',
+            periodOrderEdit: 'تعديل ترتيب الحصص',
+            periodOrder: 'ترتيب الحصة',
+            grade: 'الصف',
+            copyPlansTitle: 'نسخ الخطط إلى فصول أخرى',
+            fromClassroom: 'من فصل',
+            toClassrooms: 'إلى فصول',
+            sourceRecords: 'السجلات المصدر',
+            targets: 'الأهداف',
+            srcDay: 'يوم المصدر',
+            srcOrder: 'ترتيب المصدر',
+            targetOrder: 'ترتيب الهدف',
+            ordersMatch: 'تطابق الترتيب؟',
+            willUpdate: 'سيتم التحديث؟',
+            yes: 'نعم',
+            no: 'لا',
+            skipped: 'تم التخطي',
+            preview: 'معاينة',
+            save: 'حفظ',
+            cancel: 'إلغاء',
+            editPlan: 'تعديل الخطة الأسبوعية',
+            insertLink: 'إدراج رابط',
+            paste: 'لصق',
+            clear: 'مسح',
+            clearAllTooltip: 'مسح الواجب والملاحظات والعمل الصفي',
+            linkDialog: {
+                title: 'إدراج رابط',
+                urlLabel: 'الرابط (https://...)',
+                textLabel: 'نص العرض (اختياري)',
+                insert: 'إدراج',
+                cancel: 'إلغاء'
+            },
+            notifications: {
+                copied: 'تم النسخ إلى الحافظة',
+                copyFailed: 'فشل النسخ. تحقق من أذونات المتصفح.',
+                pasteFailed: 'فشل اللصق. تحقق من أذونات المتصفح.',
+                enterUrl: 'يرجى إدخال رابط'
+            }
         }
     }
 };

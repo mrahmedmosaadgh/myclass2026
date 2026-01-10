@@ -2,7 +2,7 @@
   <q-dialog v-model="showDialog" persistent>
     <q-card style="min-width: 600px">
       <q-card-section>
-        <div class="text-h6">Edit Weekly Plan</div>
+        <div class="text-h6">{{ t('weeklyPlans.editPlan') }}</div>
       </q-card-section>
 
       <q-card-section>
@@ -14,7 +14,7 @@
                 v-model.number="planData.schedule.period_order"
                 type="number"
                 min="1"
-                label="Period Order"
+                :label="t('weeklyPlans.periodOrder')"
                 dense
                 outlined
               />
@@ -25,15 +25,15 @@
           <div>
             <q-input
               v-model="planData.cw"
-              label="Classwork (CW)"
+              :label="t('weeklyPlans.classwork')"
               type="textarea"
               :rows="4"
             />
             <div class="row items-center q-gutter-sm q-mt-xs">
-              <q-btn dense flat icon="link" label="Insert Link" @click="openLinkDialog('cw')" />
-              <q-btn dense flat icon="content_copy" label="Copy" @click="copyField('cw')" />
-              <q-btn dense flat icon="content_paste" label="Paste" @click="pasteField('cw')" />
-              <q-btn dense flat icon="clear" label="Clear" @click="clearField('cw')" />
+              <q-btn dense flat icon="link" :label="t('weeklyPlans.insertLink')" @click="openLinkDialog('cw')" />
+              <q-btn dense flat icon="content_copy" :label="t('weeklyPlans.copy')" @click="copyField('cw')" />
+              <q-btn dense flat icon="content_paste" :label="t('weeklyPlans.paste')" @click="pasteField('cw')" />
+              <q-btn dense flat icon="clear" :label="t('weeklyPlans.clear')" @click="clearField('cw')" />
             </div>
           </div>
 
@@ -41,15 +41,15 @@
           <div>
             <q-input
               v-model="planData.hw"
-              label="Homework (HW)"
+              :label="t('weeklyPlans.homework')"
               type="textarea"
               :rows="4"
             />
             <div class="row items-center q-gutter-sm q-mt-xs">
-              <q-btn dense flat icon="link" label="Insert Link" @click="openLinkDialog('hw')" />
-              <q-btn dense flat icon="content_copy" label="Copy" @click="copyField('hw')" />
-              <q-btn dense flat icon="content_paste" label="Paste" @click="pasteField('hw')" />
-              <q-btn dense flat icon="clear" label="Clear" @click="clearField('hw')" />
+              <q-btn dense flat icon="link" :label="t('weeklyPlans.insertLink')" @click="openLinkDialog('hw')" />
+              <q-btn dense flat icon="content_copy" :label="t('weeklyPlans.copy')" @click="copyField('hw')" />
+              <q-btn dense flat icon="content_paste" :label="t('weeklyPlans.paste')" @click="pasteField('hw')" />
+              <q-btn dense flat icon="clear" :label="t('weeklyPlans.clear')" @click="clearField('hw')" />
             </div>
           </div>
 
@@ -57,15 +57,15 @@
           <div>
             <q-input
               v-model="planData.notes"
-              label="Notes"
+              :label="t('weeklyPlans.notes')"
               type="textarea"
               :rows="4"
             />
             <div class="row items-center q-gutter-sm q-mt-xs">
-              <q-btn dense flat icon="link" label="Insert Link" @click="openLinkDialog('notes')" />
-              <q-btn dense flat icon="content_copy" label="Copy" @click="copyField('notes')" />
-              <q-btn dense flat icon="content_paste" label="Paste" @click="pasteField('notes')" />
-              <q-btn dense flat icon="clear" label="Clear" @click="clearField('notes')" />
+              <q-btn dense flat icon="link" :label="t('weeklyPlans.insertLink')" @click="openLinkDialog('notes')" />
+              <q-btn dense flat icon="content_copy" :label="t('weeklyPlans.copy')" @click="copyField('notes')" />
+              <q-btn dense flat icon="content_paste" :label="t('weeklyPlans.paste')" @click="pasteField('notes')" />
+              <q-btn dense flat icon="clear" :label="t('weeklyPlans.clear')" @click="clearField('notes')" />
             </div>
           </div>
         </div>
@@ -74,44 +74,44 @@
       <!-- Live Preview (auto-links URLs, safe-escaped) -->
       <q-separator />
       <q-card-section>
-        <div class="text-subtitle2 q-mb-sm">Preview</div>
+        <div class="text-subtitle2 q-mb-sm">{{ t('weeklyPlans.preview') }}</div>
         <div class="q-gutter-md">
           <div>
             <div class="text-caption text-grey-7">CW</div>
             <div class="q-pa-sm preview-content" v-html="previewCw"></div>
           </div>
           <div>
-            <div class="text-caption text-grey-7">HW</div>
+            <div class="text-caption text-grey-7">{{ t('weeklyPlans.teacher.hwLabel') }}</div>
             <div class="q-pa-sm preview-content" v-html="previewHw"></div>
           </div>
           <div>
-            <div class="text-caption text-grey-7">Notes</div>
+            <div class="text-caption text-grey-7">{{ t('weeklyPlans.teacher.notesLabel') }}</div>
             <div class="q-pa-sm preview-content" v-html="previewNotes"></div>
           </div>
         </div>
       </q-card-section>
 
       <q-card-section align="right">
-    <q-btn flat label="Clear" color="negative" @click="clearAll" class="q-mr-sm">
-      <q-tooltip>Clear CW, HW and Notes</q-tooltip>
+    <q-btn flat :label="t('weeklyPlans.clear')" color="negative" @click="clearAll" class="q-mr-sm">
+      <q-tooltip>{{ t('weeklyPlans.clearAllTooltip') }}</q-tooltip>
     </q-btn>
-        <q-btn flat label="Cancel" @click="$emit('close')" color="primary" v-close-popup />
-        <q-btn flat label="Save" @click="$emit('submit', planData)" color="primary" :loading="saving" />
+        <q-btn flat :label="t('weeklyPlans.cancel')" @click="$emit('close')" color="primary" v-close-popup />
+        <q-btn flat :label="t('weeklyPlans.save')" @click="$emit('submit', planData)" color="primary" :loading="saving" />
       </q-card-section>
 
       <!-- Insert Link Dialog -->
       <q-dialog v-model="linkDialog">
         <q-card style="min-width: 420px">
           <q-card-section>
-            <div class="text-h6">Insert Link</div>
+            <div class="text-h6">{{ t('weeklyPlans.linkDialog.title') }}</div>
           </q-card-section>
           <q-card-section class="q-gutter-md">
-            <q-input v-model="linkUrl" label="URL (https://...)" type="url" />
-            <q-input v-model="linkText" label="Display text (optional)" />
+            <q-input v-model="linkUrl" :label="t('weeklyPlans.linkDialog.urlLabel')" type="url" />
+            <q-input v-model="linkText" :label="t('weeklyPlans.linkDialog.textLabel')" />
           </q-card-section>
           <q-card-actions align="right">
-            <q-btn flat label="Cancel" v-close-popup />
-            <q-btn flat label="Insert" color="primary" @click="insertLink" />
+            <q-btn flat :label="t('weeklyPlans.linkDialog.cancel')" v-close-popup />
+            <q-btn flat :label="t('weeklyPlans.linkDialog.insert')" color="primary" @click="insertLink" />
           </q-card-actions>
         </q-card>
       </q-dialog>
@@ -122,6 +122,7 @@
 <script setup>
 import { ref, watch, computed } from 'vue';
 import { useQuasar } from 'quasar';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps({
   modelValue: {
@@ -140,6 +141,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'submit', 'close']);
 const $q = useQuasar();
+const { t } = useI18n();
 
 // Reactive reference for dialog visibility
 const showDialog = ref(props.modelValue);
@@ -189,9 +191,9 @@ const clearField = (field) => {
 const copyField = async (field) => {
   try {
     await navigator.clipboard.writeText(planData.value?.[field] ?? '');
-    $q.notify({ type: 'positive', message: 'Copied to clipboard' });
+    $q.notify({ type: 'positive', message: t('weeklyPlans.notifications.copied') });
   } catch (e) {
-    $q.notify({ type: 'negative', message: 'Copy failed. Check browser permissions.' });
+    $q.notify({ type: 'negative', message: t('weeklyPlans.notifications.copyFailed') });
   }
 };
 
@@ -200,7 +202,7 @@ const pasteField = async (field) => {
     const text = await navigator.clipboard.readText();
     planData.value[field] = text;
   } catch (e) {
-    $q.notify({ type: 'negative', message: 'Paste failed. Check browser permissions.' });
+    $q.notify({ type: 'negative', message: t('weeklyPlans.notifications.pasteFailed') });
   }
 };
 
@@ -221,7 +223,7 @@ const insertLink = () => {
   const url = (linkUrl.value || '').trim();
   const txt = (linkText.value || '').trim();
   if (!url) {
-    $q.notify({ type: 'warning', message: 'Please enter a URL' });
+    $q.notify({ type: 'warning', message: t('weeklyPlans.notifications.enterUrl') });
     return;
   }
   // Use Markdown link when display text provided, otherwise raw URL

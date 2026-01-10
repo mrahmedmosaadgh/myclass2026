@@ -41,7 +41,16 @@ export default {
         pages: 'Pages',
         users: 'Users',
         documents: 'Documents',
-        allRightsReserved: 'All rights reserved'
+        allRightsReserved: 'All rights reserved',
+        status: {
+            draft: 'Draft',
+            pending: 'Pending',
+            active: 'Active',
+            archived: 'Archived',
+            empty: 'Empty',
+            partial: 'Partial',
+            completed: 'Completed'
+        }
     },
     permissions: {
         dashboard: 'Permissions Dashboard',
@@ -91,7 +100,7 @@ export default {
         progress: 'Question {current} of {total}',
         complete: '{percentage}% Complete',
         questionNumber: 'Question {number}',
-        
+
         // Actions
         submit: 'Submit Answer',
         next: 'Next Question',
@@ -100,7 +109,7 @@ export default {
         review: 'Review Answers',
         startQuiz: 'Start Quiz',
         retakeQuiz: 'Retake Quiz',
-        
+
         // Feedback
         correct: 'Correct!',
         incorrect: 'Incorrect',
@@ -109,7 +118,7 @@ export default {
         rationale: 'Rationale:',
         correctAnswer: 'Correct Answer:',
         yourAnswer: 'Your Answer:',
-        
+
         // Results
         results: {
             title: 'Quiz Results',
@@ -125,7 +134,7 @@ export default {
             unanswered: 'Unanswered',
             reviewAnswers: 'Review Your Answers'
         },
-        
+
         // Question types
         questionTypes: {
             multipleChoice: 'Multiple Choice',
@@ -135,7 +144,7 @@ export default {
             shortAnswer: 'Short Answer',
             essay: 'Essay'
         },
-        
+
         // Options
         options: {
             optionA: 'Option A',
@@ -147,7 +156,7 @@ export default {
             false: 'False',
             selectAll: 'Select all that apply'
         },
-        
+
         // Status messages
         status: {
             loading: 'Loading quiz...',
@@ -157,7 +166,7 @@ export default {
             unanswered: 'Not answered',
             current: 'Current question'
         },
-        
+
         // Errors
         errors: {
             loadFailed: 'Failed to load quiz. Please try again.',
@@ -176,7 +185,7 @@ export default {
             unknownError: 'Error',
             unexpectedError: 'An unexpected error occurred'
         },
-        
+
         // Validation
         validation: {
             required: 'This field is required',
@@ -184,7 +193,7 @@ export default {
             maxLength: 'Answer must not exceed {max} characters',
             selectAtLeastOne: 'Please select at least one option'
         },
-        
+
         // Configuration
         config: {
             reviewMode: 'Review Mode',
@@ -196,7 +205,7 @@ export default {
             enabled: 'Enabled',
             disabled: 'Disabled'
         },
-        
+
         // Time
         time: {
             seconds: '{count} second | {count} seconds',
@@ -206,7 +215,7 @@ export default {
             expired: 'Time expired',
             warning: 'Only {time} remaining!'
         },
-        
+
         // Accessibility
         a11y: {
             quizRegion: 'Quiz Assessment',
@@ -223,7 +232,7 @@ export default {
             announceProgress: 'Question {current} of {total}',
             announceComplete: 'Quiz completed. You scored {percentage}%'
         },
-        
+
         // Form
         form: {
             createQuestion: 'Create Question',
@@ -248,7 +257,7 @@ export default {
             estimatedTime: 'Estimated Time (seconds)',
             status: 'Status'
         },
-        
+
         // Import
         import: {
             title: 'Import Questions',
@@ -273,6 +282,155 @@ export default {
             retry: 'Retry',
             retrying: 'Retrying...',
             dismiss: 'Dismiss'
+        }
+    },
+    weeklyPlans: {
+        generateSync: 'Generate & Sync',
+        monitorProgress: 'Monitor Progress',
+        byClassroom: 'By Classroom',
+        selectWeek: 'Select Week',
+        currentWeek: 'Current Week',
+        lastWeek: 'Last Week',
+        nextWeek: 'Next Week',
+        syncSource: 'Sync Source',
+        activeSchedule: 'Active Schedule',
+        semester: 'Semester',
+        academicYear: 'Academic Year',
+        batchSync: 'Batch Sync / Generate',
+        syncWeeklyPlans: 'Sync Weekly Plans',
+        status: 'Status',
+        progressOverview: 'Progress Overview',
+        completed: 'Completed',
+        partial: 'Partial',
+        empty: 'Empty',
+        noTeacherData: 'No teacher progress data for this week',
+        generateFirst: 'Generate plans first to start tracking completion',
+        filterClassrooms: 'Filter Classrooms',
+        selectAll: 'Select All',
+        deselectAll: 'Deselect All',
+        filterByDay: 'Filter by Day',
+        noDataAvailable: 'No data available',
+        selectClassroomsToView: 'Select classrooms to view weekly plans',
+        savePdf: 'Save as PDF',
+        print: 'Print',
+        period: 'Period',
+        subject: 'Subject',
+        classwork: 'Classwork (CW)',
+        homework: 'Homework (HW)',
+        notes: 'Notes',
+        day: 'Day',
+        classroom: 'Classroom',
+        teacher: 'Teacher',
+        week: 'Week',
+        generated: 'Generated',
+        weeklyLearningPlan: 'Weekly Learning Plan',
+        noPlansToPrint: 'No plans to print for this classroom',
+        noPlansToSave: 'No plans to save for this classroom',
+        popupBlocked: 'Popup blocked: allow popups to print/save',
+        classes: 'classes',
+        unknown: 'Unknown',
+        managementTitle: 'Weekly Plans Management',
+        managementDesc: 'Generate, monitor and print weekly plans for teachers',
+        configureSchedule: 'Please configure Active Schedule Copy',
+        selectScheduleHint: 'Select a schedule copy from the filter bar above.',
+        totalSlots: 'Total Slots',
+        missing: 'Missing',
+        progress: 'Progress',
+        syncAll: 'Sync All Missing Plans',
+        viewByDay: 'View by Day',
+        syncPreview: 'Sync Preview',
+        allSynced: 'All Weekly Plans Synced!',
+        noMissingPlans: 'No missing plans for this week.',
+        selectMissingPlans: 'Select the missing plans you want to create',
+        createPlans: 'Create {count} Plans',
+        shortDays: {
+            1: 'Sun',
+            2: 'Mon',
+            3: 'Tue',
+            4: 'Wed',
+            5: 'Thu',
+            6: 'Fri',
+            7: 'Sat'
+        },
+        fullDays: {
+            1: 'Sunday',
+            2: 'Monday',
+            3: 'Tuesday',
+            4: 'Wednesday',
+            5: 'Thursday',
+            6: 'Friday',
+            7: 'Saturday'
+        },
+        teacherWeeklyPlans: "{name}'s Weekly Plans",
+        teacher: {
+            myWeeklyPlans: 'My Weekly Plans',
+            fillInContent: 'Fill in your classwork and homework for each class',
+            previewAndPrint: 'Preview & Print',
+            mobilePrint: 'Mobile Print',
+            downloadPdf: 'Download PDF',
+            inlineEditMode: 'Inline Edit Mode',
+            noPlans: 'No plans for this week',
+            waitAdminGen: 'Plans will appear once generated by admin',
+            cwFilled: 'CW filled',
+            hwFilled: 'HW filled',
+            copy: 'Copy CW, HW & Notes',
+            paste: 'Paste Data',
+            cancelCopy: 'Cancel Copy',
+            pasteCw: 'Paste CW',
+            pasteHw: 'Paste HW',
+            pasteNotes: 'Paste Notes',
+            noClassrooms: 'No classrooms to display',
+            selectToView: 'Plans will appear here based on your selection',
+            hwLabel: 'HW:',
+            notesLabel: 'Notes:',
+            generated: 'Generated:',
+            tableView: 'Table View',
+            filters: {
+                day: 'Day',
+                classroom: 'Classroom',
+                grade: 'Grade',
+                subject: 'Subject',
+                clear: 'Clear'
+            },
+            copy: 'Copy',
+            groupByClassroom: 'Group by classroom',
+            periodOrderEdit: 'Period Order edit',
+            periodOrder: 'Period Order',
+            grade: 'Grade',
+            copyPlansTitle: 'Copy plans to other classrooms',
+            fromClassroom: 'From classroom',
+            toClassrooms: 'To classrooms',
+            sourceRecords: 'Source records',
+            targets: 'Targets',
+            srcDay: 'Src Day',
+            srcOrder: 'Src Order',
+            targetOrder: 'Target Order',
+            ordersMatch: 'Orders Match?',
+            willUpdate: 'Will Update?',
+            yes: 'Yes',
+            no: 'No',
+            skipped: 'skipped',
+            preview: 'Preview',
+            save: 'Save',
+            cancel: 'Cancel',
+            editPlan: 'Edit Weekly Plan',
+            insertLink: 'Insert Link',
+            paste: 'Paste',
+            clear: 'Clear',
+            clearAllTooltip: 'Clear CW, HW and Notes',
+            linkDialog: {
+                title: 'Insert Link',
+                urlLabel: 'URL (https://...)',
+                textLabel: 'Display text (optional)',
+                insert: 'Insert',
+                cancel: 'Cancel'
+            },
+            notifications: {
+                copied: 'Copied to clipboard',
+                copyFailed: 'Copy failed. Check browser permissions.',
+                pasteFailed: 'Paste failed. Check browser permissions.',
+                enterUrl: 'Please enter a URL'
+            }
         }
     }
 };

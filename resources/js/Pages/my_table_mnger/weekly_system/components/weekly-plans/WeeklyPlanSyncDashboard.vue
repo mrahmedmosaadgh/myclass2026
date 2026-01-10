@@ -17,7 +17,7 @@
                 <q-icon name="grid_on" size="32px" />
               </div>
               <div class="stat-value text-h4">{{ analysis?.summary?.total_slots || 0 }}</div>
-              <div class="stat-label text-grey-7">Total Slots</div>
+              <div class="stat-label text-grey-7">{{ t('weeklyPlans.totalSlots') }}</div>
             </q-card-section>
           </q-card>
         </div>
@@ -30,7 +30,7 @@
                 <q-icon name="check_circle" size="32px" />
               </div>
               <div class="stat-value text-h4 text-positive">{{ analysis?.summary?.complete || 0 }}</div>
-              <div class="stat-label text-grey-7">Complete</div>
+              <div class="stat-label text-grey-7">{{ t('weeklyPlans.completed') }}</div>
             </q-card-section>
           </q-card>
         </div>
@@ -43,7 +43,7 @@
                 <q-icon name="error" size="32px" />
               </div>
               <div class="stat-value text-h4 text-warning">{{ analysis?.summary?.missing || 0 }}</div>
-              <div class="stat-label text-grey-7">Missing</div>
+              <div class="stat-label text-grey-7">{{ t('weeklyPlans.missing') }}</div>
             </q-card-section>
           </q-card>
         </div>
@@ -56,7 +56,7 @@
                 <q-icon name="trending_up" size="32px" />
               </div>
               <div class="stat-value text-h4 text-primary">{{ analysis?.summary?.percentage || 0 }}%</div>
-              <div class="stat-label text-grey-7">Progress</div>
+              <div class="stat-label text-grey-7">{{ t('weeklyPlans.progress') }}</div>
             </q-card-section>
           </q-card>
         </div>
@@ -69,7 +69,7 @@
             v-if="analysis?.summary?.missing > 0"
             color="primary"
             icon="sync"
-            label="Sync All Missing Plans"
+            :label="t('weeklyPlans.syncAll')"
             :loading="syncing"
             @click="syncAll"
             unelevated
@@ -114,7 +114,7 @@
               <q-expansion-item
                 v-if="classroom.days?.length"
                 icon="calendar_today"
-                label="View by Day"
+                :label="t('weeklyPlans.viewByDay')"
                 dense
                 header-class="text-primary"
               >
@@ -144,7 +144,7 @@
                 v-if="classroom.missing > 0"
                 color="primary"
                 icon="sync"
-                :label="`Sync ${classroom.missing} Missing`"
+                :label="`${t('weeklyPlans.syncWeeklyPlans')} (${classroom.missing})`"
                 @click="syncClassroom(classroom.id)"
                 outline
                 class="full-width q-mt-md"
@@ -159,8 +159,8 @@
       <q-dialog v-model="previewDialog" full-width>
         <q-card>
           <q-card-section>
-            <div class="text-h6">Sync Preview - {{ getDialogTitle() }}</div>
-            <div class="text-caption text-grey-7">Select the missing plans you want to create</div>
+            <div class="text-h6">{{ t('weeklyPlans.syncPreview') }} - {{ getDialogTitle() }}</div>
+            <div class="text-caption text-grey-7">{{ t('weeklyPlans.selectMissingPlans') }}</div>
           </q-card-section>
 
           <q-card-section class="q-pa-none">
@@ -187,11 +187,11 @@
           </q-card-section>
 
           <q-card-actions align="right" class="q-pa-md">
-            <q-btn flat label="Cancel" color="primary" v-close-popup />
+            <q-btn flat :label="t('common.cancel')" color="primary" v-close-popup />
             <q-btn 
               unelevated 
               color="primary" 
-              :label="`Create ${selectedItems.length} Plans`" 
+              :label="t('weeklyPlans.createPlans', { count: selectedItems.length })" 
               :disable="selectedItems.length === 0"
               :loading="syncing"
               @click="confirmSync"
@@ -203,19 +203,21 @@
       <!-- Empty State -->
       <q-card v-if="!analysis?.classrooms?.length" flat bordered class="text-center q-pa-xl q-mt-lg">
         <q-icon name="check_circle" size="64px" color="positive" />
-        <p class="text-h6 text-grey-7 q-mt-md">All Weekly Plans Synced!</p>
-        <p class="text-grey-6">No missing plans for this week.</p>
+        <p class="text-h6 text-grey-7 q-mt-md">{{ t('weeklyPlans.allSynced') }}</p>
+        <p class="text-grey-6">{{ t('weeklyPlans.noMissingPlans') }}</p>
       </q-card>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import { useWeeklyPlansStore } from '@/Stores/useWeeklyPlansStore'
 
+const { t } = useI18n()
 const store = useWeeklyPlansStore()
 const $q = useQuasar()
 const loading = ref(false)
@@ -228,13 +230,17 @@ const previewItems = ref([])
 const selectedItems = ref([])
 const previewSource = ref('all') // 'all' or classroomId
 
-const previewColumns = [
-  { name: 'day', label: 'Day', field: 'day', align: 'left', sortable: true },
-  { name: 'period', label: 'Period', field: 'period', align: 'center', sortable: true },
-  { name: 'subject', label: 'Subject', field: 'subject', align: 'left', sortable: true },
-  { name: 'teacher', label: 'Teacher', field: 'teacher', align: 'left', sortable: true },
-  { name: 'status', label: 'Status', field: 'status', align: 'center' }
-]
+const textAlign = computed(() => {
+  return t('code') === 'ar' ? 'right' : 'left'
+})
+
+const previewColumns = computed(() => [
+  { name: 'day', label: t('weeklyPlans.day'), field: 'day', align: textAlign.value, sortable: true },
+  { name: 'period', label: t('weeklyPlans.period'), field: 'period', align: 'center', sortable: true },
+  { name: 'subject', label: t('weeklyPlans.subject'), field: 'subject', align: textAlign.value, sortable: true },
+  { name: 'teacher', label: t('weeklyPlans.teacher'), field: 'teacher', align: textAlign.value, sortable: true },
+  { name: 'status', label: t('weeklyPlans.status'), field: 'status', align: 'center' }
+])
 
 // Fetch analysis
 const fetchAnalysis = async () => {

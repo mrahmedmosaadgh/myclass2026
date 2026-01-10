@@ -38,7 +38,7 @@
       dense
       color="primary"
       icon="today"
-      label="Current"
+      :label="t('weeklyPlans.currentWeek')"
       @click="goToCurrentWeek"
     />
   </div>
@@ -46,6 +46,9 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps({
   modelValue: { type: Number, default: 1 },
@@ -62,7 +65,7 @@ const weekNumber = computed({
 
 const weekOptions = computed(() => {
   return Array.from({ length: props.maxWeeks }, (_, i) => ({
-    label: `Week ${i + 1}`,
+    label: `${t('weeklyPlans.week')} ${i + 1}`,
     value: i + 1
   }))
 })

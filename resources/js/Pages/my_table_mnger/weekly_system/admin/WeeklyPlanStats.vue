@@ -4,17 +4,17 @@
     <q-card flat bordered class="q-pa-md q-mb-lg">
       <div class="row items-center justify-between">
          <div class="text-subtitle1 text-grey-8">
-            Progress Overview
+            {{ t('weeklyPlans.progressOverview') }}
          </div>
          <div class="row q-gutter-sm">
             <q-chip dense color="green-2" text-color="green-9" icon="check_circle">
-              {{ summaryStats.completed }} done
+              {{ summaryStats.completed }} {{ t('weeklyPlans.completed') }}
             </q-chip>
             <q-chip dense color="amber-2" text-color="amber-9" icon="timelapse">
-              {{ summaryStats.partial }} partial
+              {{ summaryStats.partial }} {{ t('weeklyPlans.partial') }}
             </q-chip>
             <q-chip dense color="red-1" text-color="red-8" icon="hourglass_empty">
-              {{ summaryStats.empty }} empty
+              {{ summaryStats.empty }} {{ t('weeklyPlans.empty') }}
             </q-chip>
          </div>
       </div>
@@ -28,8 +28,8 @@
     <!-- Empty State -->
     <q-card v-else-if="!teacherStats.length" flat bordered class="text-center q-pa-xl">
       <q-icon name="playlist_add" size="64px" color="grey-5" />
-      <p class="text-h6 text-grey-7 q-mt-md">No teacher progress data for this week</p>
-      <p class="text-grey-6">Generate plans first to start tracking completion</p>
+      <p class="text-h6 text-grey-7 q-mt-md">{{ t('weeklyPlans.noTeacherData') }}</p>
+      <p class="text-grey-6">{{ t('weeklyPlans.generateFirst') }}</p>
     </q-card>
 
     <!-- Teacher Completion List -->
@@ -46,7 +46,7 @@
     <q-dialog v-model="showTeacherDialog" maximized>
       <q-card>
         <q-card-section class="row items-center">
-          <div class="text-h6">{{ selectedTeacher?.teacher_name }}'s Weekly Plans</div>
+          <div class="text-h6">{{ t('weeklyPlans.teacherWeeklyPlans', { name: selectedTeacher?.teacher_name }) }}</div>
           <q-space />
           <q-btn icon="close" flat round dense v-close-popup />
         </q-card-section>
@@ -86,11 +86,13 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import CompletionProgressBar from '../components/weekly-plans/CompletionProgressBar.vue'
 import StatusBadge from '../components/shared/StatusBadge.vue'
 import { useWeeklyPlansStore } from '@/Stores/useWeeklyPlansStore'
 
+const { t } = useI18n()
 const store = useWeeklyPlansStore()
 const $q = useQuasar()
 
@@ -107,15 +109,19 @@ const planPagination = ref({
 const showTeacherDialog = ref(false)
 const selectedTeacher = ref(null)
 
-const planColumns = [
-  { name: 'day', label: 'Day', field: row => row.schedule?.day, format: val => getDayName(val), sortable: true, align: 'left' },
-  { name: 'period', label: 'Period', field: row => row.schedule?.period_number, sortable: true, align: 'center' },
-  { name: 'subject', label: 'Subject', field: row => row.schedule?.cst?.subject_name, sortable: true, align: 'left' },
-  { name: 'classroom', label: 'Classroom', field: row => row.schedule?.cst?.classroom_name, sortable: true, align: 'left' },
-  { name: 'status', label: 'Status', field: 'status', sortable: true, align: 'center' },
-  { name: 'cw', label: 'Classwork', field: 'cw', sortable: true, align: 'left' },
-  { name: 'hw', label: 'Homework', field: 'hw', sortable: true, align: 'left' }
-]
+const textAlign = computed(() => {
+  return t('code') === 'ar' ? 'right' : 'left'
+})
+
+const planColumns = computed(() => [
+  { name: 'day', label: t('weeklyPlans.day'), field: row => row.schedule?.day, format: val => getDayName(val), sortable: true, align: textAlign.value },
+  { name: 'period', label: t('weeklyPlans.period'), field: row => row.schedule?.period_number, sortable: true, align: 'center' },
+  { name: 'subject', label: t('weeklyPlans.subject'), field: row => row.schedule?.cst?.subject_name, sortable: true, align: textAlign.value },
+  { name: 'classroom', label: t('weeklyPlans.classroom'), field: row => row.schedule?.cst?.classroom_name, sortable: true, align: textAlign.value },
+  { name: 'status', label: t('weeklyPlans.status'), field: 'status', sortable: true, align: 'center' },
+  { name: 'cw', label: t('weeklyPlans.classwork'), field: 'cw', sortable: true, align: textAlign.value },
+  { name: 'hw', label: t('weeklyPlans.homework'), field: 'hw', sortable: true, align: textAlign.value }
+])
 
 const summaryStats = computed(() => {
   return {
@@ -126,8 +132,7 @@ const summaryStats = computed(() => {
 })
 
 const getDayName = (dayNum) => {
-  const days = ['', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu']
-  return days[dayNum] || dayNum
+  return t(`weeklyPlans.shortDays.${dayNum}`) || dayNum
 }
 
 const fetchTeacherStats = async () => {

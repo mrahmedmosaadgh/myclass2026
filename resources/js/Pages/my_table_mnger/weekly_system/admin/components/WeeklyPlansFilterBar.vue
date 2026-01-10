@@ -5,7 +5,7 @@
         
         <!-- Week Selector (Only remaining filter) -->
         <div class="col-12 col-sm-6 col-md-4">
-          <div class="text-caption text-grey-8 q-mb-xs font-medium">Week Selection</div>
+          <div class="text-caption text-grey-8 q-mb-xs font-medium">{{ t('weeklyPlans.selectWeek') }}</div>
           <WeekSelector
             :model-value="store.weekNumber"
             :max-weeks="store.maxWeeks"
@@ -21,9 +21,11 @@
 
 <script setup>
 import { onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useWeeklyPlansStore } from '@/Stores/useWeeklyPlansStore'
 import WeekSelector from '@/Pages/my_table_mnger/weekly_system/components/weekly-plans/WeekSelector.vue'
 
+const { t } = useI18n()
 const store = useWeeklyPlansStore()
 
 onMounted(() => {

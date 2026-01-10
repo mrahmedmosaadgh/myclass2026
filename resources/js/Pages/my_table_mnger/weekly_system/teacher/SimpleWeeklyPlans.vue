@@ -6,10 +6,10 @@
             <div class="col">
                 <h4 class="q-ma-none text-weight-bold">
                     <q-icon name="edit_note" class="q-mr-sm" color="primary" />
-                    My Weekly Plans
+                    {{ t('weeklyPlans.teacher.myWeeklyPlans') }}
                 </h4>
                 <p class="text-grey-7 q-mb-none">
-                    Fill in your classwork and homework for each class
+                    {{ t('weeklyPlans.teacher.fillInContent') }}
                 </p>
             </div>
    
@@ -71,7 +71,7 @@
 
         <!-- View Switcher -->
         <q-tabs v-model="activeTab" dense class="text-primary q-mb-sm">
-          <q-tab name="table" icon="table_chart" label="Table" />
+          <q-tab name="table" icon="table_chart" :label="t('weeklyPlans.teacher.tableView')" />
         </q-tabs>
         <q-separator class="q-mb-md" />
 
@@ -320,11 +320,14 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
+import { useI18n } from 'vue-i18n';
 import axios from "axios";
 import WeekSelector from "@/Pages/my_table_mnger/weekly_system/components/weekly-plans/WeekSelector.vue";
 import WeeklyPlanEditor from "@/Pages/my_table_mnger/weekly_system/teacher/WeeklyPlanEditor.vue";
   import StatusBadge from "@/Pages/my_table_mnger/weekly_system/components/shared/StatusBadge.vue";
   import WeeklyPlansTable from "@/Pages/my_table_mnger/weekly_system/teacher/WeeklyPlansTable.vue";
+
+const { t } = useI18n();
 
 // Define reactive properties
 const editMode = ref(false);
@@ -341,13 +344,13 @@ const showEditor = ref(false);
   const activeTab = ref('table');
 
 // Day name mapping (aligns with backend schedule day numbering)
-const dayNames = {
-    1: "Sunday",
-    2: "Monday",
-    3: "Tuesday",
-    4: "Wednesday",
-    5: "Thursday",
-};
+const dayNames = computed(() => ({
+    1: t('weeklyPlans.fullDays.1'),
+    2: t('weeklyPlans.fullDays.2'),
+    3: t('weeklyPlans.fullDays.3'),
+    4: t('weeklyPlans.fullDays.4'),
+    5: t('weeklyPlans.fullDays.5'),
+}));
 
 // Function to load weekly plans from the backend (real API)
 async function loadWeeklyPlans() {
@@ -375,7 +378,7 @@ async function loadWeeklyPlans() {
             if (!grouped[dayNum]) {
                 grouped[dayNum] = {
                     dayNumber: dayNum,
-                    dayName: dayNames[dayNum] || `Day ${dayNum}`,
+                    dayName: dayNames.value[dayNum] || `Day ${dayNum}`,
                     plans: [],
                 };
             }
@@ -563,8 +566,8 @@ const progressColor = computed(() => {
 }
 
 .day-section {
-    border-left: 4px solid #1976d2;
-    padding-left: 16px;
+    border-inline-start: 4px solid #1976d2;
+    padding-inline-start: 16px;
 }
 
 .plan-card {
@@ -580,7 +583,7 @@ const progressColor = computed(() => {
 }
 
 .copied {
-    border-left: 4px solid #1976d2;
+    border-inline-start: 4px solid #1976d2;
 }
 
 .plan-header {
