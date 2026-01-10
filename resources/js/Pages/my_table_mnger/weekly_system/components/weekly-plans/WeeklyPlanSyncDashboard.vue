@@ -214,26 +214,9 @@
 import { ref, onMounted, watch } from 'vue'
 import { useQuasar } from 'quasar'
 import axios from 'axios'
+import { useWeeklyPlansStore } from '@/Stores/useWeeklyPlansStore'
 
-const props = defineProps({
-  copyId: {
-    type: Number,
-    required: true
-  },
-  weekNumber: {
-    type: Number,
-    required: true
-  },
-  academicYearId: {
-    type: Number,
-    required: true
-  },
-  semesterNumber: {
-    type: Number,
-    required: true
-  }
-})
-
+const store = useWeeklyPlansStore()
 const $q = useQuasar()
 const loading = ref(false)
 const syncing = ref(false)
@@ -255,14 +238,16 @@ const previewColumns = [
 
 // Fetch analysis
 const fetchAnalysis = async () => {
+  if (!store.selectedCopyId) return
+
   loading.value = true
   try {
     const response = await axios.get('/weekly-system/api/sync-analysis', {
       params: {
-        copy_id: props.copyId,
-        week_number: props.weekNumber,
-        academic_year_id: props.academicYearId,
-        semester_number: props.semesterNumber
+        copy_id: store.selectedCopyId,
+        week_number: store.weekNumber,
+        academic_year_id: store.selectedAcademicYearId,
+        semester_number: store.semesterNumber
       }
     })
     
@@ -291,25 +276,27 @@ const syncAll = () => {
   previewItems.value = []
   
   // Aggregate all missing items
-  analysis.value.classrooms.forEach(classroom => {
-    if (classroom.days) {
-      classroom.days.forEach(day => {
-        if (day.missing_periods?.length > 0) {
-          day.missing_periods.forEach(item => {
-            previewItems.value.push({
-              id: item.id, // schedule_id
-              day: day.day,
-              period: item.period,
-              subject: item.subject,
-              teacher: item.teacher,
-              status: 'missing',
-              classroom_name: classroom.name
+  if (analysis.value?.classrooms) {
+    analysis.value.classrooms.forEach(classroom => {
+      if (classroom.days) {
+        classroom.days.forEach(day => {
+          if (day.missing_periods?.length > 0) {
+            day.missing_periods.forEach(item => {
+              previewItems.value.push({
+                id: item.id, // schedule_id
+                day: day.day,
+                period: item.period,
+                subject: item.subject,
+                teacher: item.teacher,
+                status: 'missing',
+                classroom_name: classroom.name
+              })
             })
-          })
-        }
-      })
-    }
-  })
+          }
+        })
+      }
+    })
+  }
   
   selectedItems.value = [...previewItems.value]
   previewDialog.value = true
@@ -320,7 +307,7 @@ const syncClassroom = (classroomId) => {
   previewSource.value = classroomId
   previewItems.value = []
   
-  const classroom = analysis.value.classrooms.find(c => c.id === classroomId)
+  const classroom = analysis.value?.classrooms?.find(c => c.id === classroomId)
   if (classroom && classroom.days) {
     classroom.days.forEach(day => {
       if (day.missing_periods?.length > 0) {
@@ -354,26 +341,13 @@ const getDialogTitle = () => {
 const confirmSync = async () => {
   syncing.value = true
   try {
-    // If selecting specific items, we need a new endpoint OR logic to sync specific items
-    // For now, since backend mostly supports 'sync week' logic, we might need a batch create endpoint
-    // But wait! The 'sync-week' endpoint logic in WeeklyPlanService usually iterates and creates what's missing.
-    // If we want selective sync, we need a new endpoint that accepts schedule_ids.
-    
-    // Let's assume for now we MUST sync all selected. 
-    // I need to enable "Batch Sync" in the backend or reuse logic.
-    // Quick win: create a loop here? No, better one batch request.
-    
-    // Since I don't have a 'batch sync by IDs' endpoint yet, and user asked for "Check boxes related",
-    // I need to implement a batch sync endpoint or use an existing one slightly modified.
-    // Let's implement a 'batch-create' endpoint call.
-    
     const scheduleIds = selectedItems.value.map(item => item.id)
     
     const response = await axios.post('/weekly-system/api/weekly-plans/batch-create', {
         schedule_ids: scheduleIds,
-        week_number: props.weekNumber,
-        academic_year_id: props.academicYearId,
-        semester_number: props.semesterNumber
+        week_number: store.weekNumber,
+        academic_year_id: store.selectedAcademicYearId,
+        semester_number: store.semesterNumber
     })
     
     $q.notify({
@@ -394,10 +368,10 @@ const confirmSync = async () => {
   }
 }
 
-// Watch for prop changes
-watch(() => [props.copyId, props.weekNumber, props.academicYearId, props.semesterNumber], () => {
+// Watch for store changes
+watch(() => [store.selectedCopyId, store.weekNumber, store.semesterNumber], () => {
   fetchAnalysis()
-})
+}, { deep: true })
 
 onMounted(() => {
   fetchAnalysis()

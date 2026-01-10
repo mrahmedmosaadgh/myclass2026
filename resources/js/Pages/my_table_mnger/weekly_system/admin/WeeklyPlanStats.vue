@@ -1,31 +1,12 @@
 <template>
   <div class="q-pa-md">
-    <!-- Controls Row (Sync with main state if needed, but here it can be independent) -->
+    <!-- Summary Stats Only (Filters moved to parent) -->
     <q-card flat bordered class="q-pa-md q-mb-lg">
-      <div class="row q-gutter-md items-end">
-        <div class="col-12 col-sm-4">
-           <q-select
-            v-model="selectedCopyId"
-            :options="activeCopies"
-            option-value="id"
-            option-label="name"
-            label="Filter by Schedule"
-            outlined
-            dense
-            emit-value
-            map-options
-            :loading="loadingCopies"
-          />
-        </div>
-        <div class="col-12 col-sm-3">
-          <WeekSelector
-            v-model="weekNumber"
-            :max-weeks="maxWeeks"
-            :current-week="currentWeek"
-          />
-        </div>
-        <div class="col-auto q-ml-auto">
-          <div class="row q-gutter-sm">
+      <div class="row items-center justify-between">
+         <div class="text-subtitle1 text-grey-8">
+            Progress Overview
+         </div>
+         <div class="row q-gutter-sm">
             <q-chip dense color="green-2" text-color="green-9" icon="check_circle">
               {{ summaryStats.completed }} done
             </q-chip>
@@ -35,8 +16,7 @@
             <q-chip dense color="red-1" text-color="red-8" icon="hourglass_empty">
               {{ summaryStats.empty }} empty
             </q-chip>
-          </div>
-        </div>
+         </div>
       </div>
     </q-card>
 
@@ -107,27 +87,17 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useQuasar } from 'quasar'
 import axios from 'axios'
-import WeekSelector from '../components/weekly-plans/WeekSelector.vue'
 import CompletionProgressBar from '../components/weekly-plans/CompletionProgressBar.vue'
 import StatusBadge from '../components/shared/StatusBadge.vue'
+import { useWeeklyPlansStore } from '@/Stores/useWeeklyPlansStore'
 
-const props = defineProps({
-  initialWeek: Number,
-  initialCopyId: [Number, String]
-})
-
+const store = useWeeklyPlansStore()
 const $q = useQuasar()
 
 // Data
 const teacherStats = ref([])
 const teacherPlans = ref([])
-const activeCopies = ref([])
-const selectedCopyId = ref(props.initialCopyId)
-const weekNumber = ref(props.initialWeek || 1)
-const maxWeeks = ref(18)
-const currentWeek = ref(1)
 const loading = ref(false)
-const loadingCopies = ref(false)
 
 const planPagination = ref({
   rowsPerPage: 50
@@ -160,34 +130,16 @@ const getDayName = (dayNum) => {
   return days[dayNum] || dayNum
 }
 
-const fetchActiveCopies = async () => {
-  loadingCopies.value = true
-  try {
-    const response = await axios.get('/admin/schedule-copies', {
-      params: { status: 'active' }
-    })
-    activeCopies.value = (response.data.data || response.data || []).filter(c => c.status === 'active')
-    if (activeCopies.value.length && !selectedCopyId.value) {
-      selectedCopyId.value = activeCopies.value[0].id
-    }
-  } catch (error) {
-    console.error('Error fetching copies:', error)
-  } finally {
-    loadingCopies.value = false
-  }
-}
-
 const fetchTeacherStats = async () => {
-  if (!selectedCopyId.value) return
+  if (!store.selectedCopyId) return
   
   loading.value = true
   try {
-    const copy = activeCopies.value.find(c => c.id === selectedCopyId.value)
     const response = await axios.get('/weekly-system/api/weekly-plans/teacher-stats', {
       params: {
-        week_number: weekNumber.value,
-        academic_year_id: copy?.academic_year_id,
-        semester_number: 1 // Default to 1 or you can add semester selector
+        week_number: store.weekNumber,
+        academic_year_id: store.selectedAcademicYearId,
+        semester_number: store.semesterNumber
       }
     })
     teacherStats.value = response.data.data || response.data || []
@@ -204,13 +156,12 @@ const viewTeacherPlans = async (teacher) => {
   showTeacherDialog.value = true
   
   try {
-    const copy = activeCopies.value.find(c => c.id === selectedCopyId.value)
     const response = await axios.get('/weekly-system/api/weekly-plans', {
       params: {
         teacher_id: teacher.teacher_id,
-        week_number: weekNumber.value,
-        academic_year_id: copy?.academic_year_id,
-        semester_number: 1
+        week_number: store.weekNumber,
+        academic_year_id: store.selectedAcademicYearId,
+        semester_number: store.semesterNumber
       }
     })
     teacherPlans.value = (response.data.data || response.data || []).map(plan => ({
@@ -230,18 +181,11 @@ const getStatus = (plan) => {
   return 'partial'
 }
 
-watch([selectedCopyId, weekNumber], () => {
+watch(() => [store.selectedCopyId, store.weekNumber, store.semesterNumber], () => {
   fetchTeacherStats()
-})
+}, { deep: true })
 
-onMounted(async () => {
-  const now = new Date()
-  const startOfYear = new Date(now.getFullYear(), 0, 1)
-  currentWeek.value = Math.ceil(((now - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7)
-  if (!props.initialWeek) {
-    weekNumber.value = currentWeek.value > maxWeeks.value ? 1 : currentWeek.value
-  }
-  await fetchActiveCopies()
+onMounted(() => {
   fetchTeacherStats()
 })
 

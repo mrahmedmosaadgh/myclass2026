@@ -3,44 +3,6 @@
     <!-- Controls -->
     <q-card flat bordered class="q-pa-md q-mb-lg">
       <div class="row q-gutter-md items-end">
-        <!-- Schedule Copy -->
-        <div class="col-12 col-sm-4">
-          <q-select
-            v-model="selectedCopyId"
-            :options="activeCopies"
-            option-value="id"
-            option-label="name"
-            label="Active Schedule"
-            outlined
-            dense
-            emit-value
-            map-options
-            :loading="loadingCopies"
-          />
-        </div>
-
-        <!-- Week Selector -->
-        <div class="col-12 col-sm-3">
-          <WeekSelector
-            v-model="weekNumber"
-            :max-weeks="maxWeeks"
-            :current-week="currentWeek"
-          />
-        </div>
-
-        <!-- Semester -->
-        <div class="col-12 col-sm-2">
-          <q-select
-            v-model="semesterNumber"
-            :options="[{ label: 'Semester 1', value: 1 }, { label: 'Semester 2', value: 2 }]"
-            label="Semester"
-            outlined
-            dense
-            emit-value
-            map-options
-          />
-        </div>
-
         <!-- Classroom Selector (Multiple) -->
         <div class="col-12 col-sm-6">
           <q-select
@@ -48,7 +10,7 @@
             :options="classrooms"
             option-value="id"
             option-label="name"
-            label="Select Classrooms"
+            label="Filter Classrooms"
             outlined
             dense
             multiple
@@ -154,7 +116,7 @@
                 <div class="day-info">
                   <div class="day-name">{{ dayGroup.dayName }}</div>
                   <div class="day-meta">
-                    <span>Week {{ weekNumber }}</span>
+                    <span>Week {{ store.weekNumber }}</span>
                     <span class="separator">•</span>
                     <span>{{ getDayDate(dayGroup.dayNumber) }}</span>
                   </div>
@@ -202,10 +164,7 @@
                 <!-- Classwork Column -->
                 <template #body-cell-cw="props">
                   <q-td :props="props" class="content-preview">
-                    <div v-if="props.row.cw" class="text-info">
-                      <q-icon name="school" size="xs" /> 
-                      <span class="q-ml-xs">{{ truncateText(props.row.cw, 30) }}</span>
-                    </div>
+                    <div v-if="props.row.cw" class="text-info ellipsis-2-lines" v-html="props.row.cw"></div>
                     <span v-else class="text-grey-5">-</span>
                   </q-td>
                 </template>
@@ -213,10 +172,7 @@
                 <!-- Homework Column -->
                 <template #body-cell-hw="props">
                   <q-td :props="props" class="content-preview">
-                    <div v-if="props.row.hw" class="text-warning">
-                      <q-icon name="home_work" size="xs" /> 
-                      <span class="q-ml-xs">{{ truncateText(props.row.hw, 30) }}</span>
-                    </div>
+                    <div v-if="props.row.hw" class="text-warning ellipsis-2-lines" v-html="props.row.hw"></div>
                     <span v-else class="text-grey-5">-</span>
                   </q-td>
                 </template>
@@ -224,9 +180,7 @@
                 <!-- Notes Column -->
                 <template #body-cell-notes="props">
                   <q-td :props="props" class="content-preview">
-                    <span v-if="props.row.notes" class="text-info">
-                      {{ truncateText(props.row.notes, 20) }}
-                    </span>
+                    <div v-if="props.row.notes" class="text-info ellipsis-2-lines" v-html="props.row.notes"></div>
                     <span v-else class="text-grey-5">-</span>
                   </q-td>
                 </template>
@@ -243,28 +197,18 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useQuasar } from 'quasar'
 import axios from 'axios'
-import WeekSelector from '@/Pages/my_table_mnger/weekly_system/components/weekly-plans/WeekSelector.vue'
+import { useWeeklyPlansStore } from '@/Stores/useWeeklyPlansStore'
 
-const props = defineProps({
-  initialWeek: Number,
-  initialCopyId: [Number, String]
-})
-
+const store = useWeeklyPlansStore()
 const $q = useQuasar()
 
 // Data
-const activeCopies = ref([])
 const classrooms = ref([])
 const selectedClassrooms = ref([])
 const selectedDays = ref([])
-const selectedCopyId = ref(props.initialCopyId)
-const weekNumber = ref(props.initialWeek || 1)
-const semesterNumber = ref(1)
-const maxWeeks = ref(18)
-const currentWeek = ref(1)
+// Store manages: selectedCopyId, weekNumber, semesterNumber, maxWeeks, currentWeek
 const allPlans = ref([])
 const loading = ref(false)
-const loadingCopies = ref(false)
 const loadingClassrooms = ref(false)
 
 // Default pagination to show all records
@@ -352,7 +296,6 @@ const getDayDate = (dayNumber) => {
   // Calculate the date for a given day in the current week
   // Assuming week starts on Sunday (day 1)
   const currentYear = new Date().getFullYear()
-  const currentMonth = new Date().getMonth()
   
   // Find the first Sunday of the year
   let firstDay = new Date(currentYear, 0, 1)
@@ -361,7 +304,7 @@ const getDayDate = (dayNumber) => {
   
   // Calculate the start of the target week
   const weekStartDate = new Date(firstSunday)
-  weekStartDate.setDate(firstSunday.getDate() + (weekNumber.value - 1) * 7)
+  weekStartDate.setDate(firstSunday.getDate() + (store.weekNumber - 1) * 7)
   
   // Calculate the target day date
   const targetDate = new Date(weekStartDate)
@@ -394,32 +337,12 @@ const groupPlansByDay = (plans) => {
   return Object.values(byDay).sort((a, b) => a.dayNumber - b.dayNumber)
 }
 
-const fetchActiveCopies = async () => {
-  loadingCopies.value = true
-  try {
-    const response = await axios.get('/admin/schedule-copies', {
-      params: { status: 'active' }
-    })
-    activeCopies.value = (response.data.data || response.data || []).filter(c => c.status === 'active')
-    if (activeCopies.value.length && !selectedCopyId.value) {
-      selectedCopyId.value = activeCopies.value[0].id
-    }
-  } catch (error) {
-    console.error('Error fetching copies:', error)
-  } finally {
-    loadingCopies.value = false
-  }
-}
-
 const fetchClassrooms = async () => {
-  if (!selectedCopyId.value) return
+  if (!store.selectedSchoolId) return
   
-  const copy = activeCopies.value.find(c => c.id === selectedCopyId.value)
-  if (!copy) return
-
   loadingClassrooms.value = true
   try {
-    const response = await axios.get(`/api/classrooms?school_id=${copy.school_id}`)
+    const response = await axios.get(`/api/classrooms?school_id=${store.selectedSchoolId}`)
     classrooms.value = response.data.data || response.data || []
   } catch (error) {
     console.error('Error fetching classrooms:', error)
@@ -436,16 +359,13 @@ const fetchPlans = async () => {
 
   loading.value = true
   try {
-    const copy = activeCopies.value.find(c => c.id === selectedCopyId.value)
-    if (!copy) return
-
     const promises = selectedClassrooms.value.map(classroomId =>
       axios.get('/weekly-system/api/weekly-plans', {
         params: {
           classroom_id: classroomId,
-          week_number: weekNumber.value,
-          semester_number: semesterNumber.value,
-          academic_year_id: copy.academic_year_id
+          week_number: store.weekNumber,
+          semester_number: store.semesterNumber,
+          academic_year_id: store.selectedAcademicYearId
         }
       }).then(response => ({
         classroom_id: classroomId,
@@ -476,44 +396,146 @@ const printClassroom = (classroom) => {
 
   const dayGroups = groupPlansByDay(classroom.plans)
 
+  // Modern, Parent-Friendly Design
   const styles = `
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333; }
-    .page { width: 210mm; padding: 12mm; box-sizing: border-box; }
-    .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
-    .title { font-size: 20px; color: #1976d2; font-weight:700 }
-    .meta { font-size: 12px; color:#666 }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-    th, td { border: 1px solid #ddd; padding: 8px; vertical-align: top; }
-    th { background: #f5f5f5; color: #1976d2; font-weight:600; }
-    .period { width: 70px; text-align: center; font-weight:700 }
-    .subject { width: 120px }
-    .subject-badge { display:inline-block; padding:6px 10px; border-radius:6px; font-weight:700 }
-    .teacher { font-size: 12px; color:#666; font-style:italic; margin-top:6px }
-    .day-header { background:#1976d2; color:white; padding:8px; font-weight:700; margin-top:12px }
-    @media print { @page { size:A4; margin:10mm } }
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap');
+    body { font-family: 'Nunito', 'Segoe UI', sans-serif; color: #374151; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .page { max-width: 210mm; margin: 0 auto; padding: 15mm; }
+    
+    .header-box { 
+      background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); 
+      color: white; 
+      padding: 20px; 
+      border-radius: 12px;
+      margin-bottom: 25px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    .header-title { font-size: 24px; font-weight: 800; margin: 0; letter-spacing: -0.5px; }
+    .header-meta { margin-top: 8px; font-size: 14px; opacity: 0.9; font-weight: 500; }
+    
+    .day-container { margin-bottom: 25px; page-break-inside: avoid; }
+    .day-header { 
+      display: flex; 
+      align-items: center; 
+      margin-bottom: 1px; /* connected to table */
+    }
+    .day-pill {
+      background: #4f46e5;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 12px 12px 0 0;
+      font-weight: 700;
+      font-size: 15px;
+      display: inline-block;
+    }
+    .date-label {
+      color: #6b7280;
+      font-size: 13px;
+      margin-left: 12px;
+      font-weight: 600;
+    }
+
+    table { width: 100%; border-collapse: collapse; border-radius: 0 8px 8px 8px; overflow: hidden; border: 1px solid #e5e7eb; }
+    th { 
+      background: #f3f4f6; 
+      color: #374151; 
+      font-weight: 700; 
+      padding: 10px 12px; 
+      text-align: left; 
+      font-size: 13px;
+      border-bottom: 2px solid #e5e7eb;
+    }
+    td { 
+      padding: 10px 12px; 
+      border-bottom: 1px solid #e5e7eb; 
+      font-size: 13px; 
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:nth-child(even) { background-color: #f9fafb; }
+    
+    .period-col { width: 60px; text-align: center; color: #6b7280; font-weight: 700; }
+    .subject-col { width: 180px; }
+    .cw-col { width: 35%; }
+    .hw-col { width: 35%; }
+    
+    .subject-badge { 
+      display: inline-block; 
+      padding: 4px 10px; 
+      border-radius: 6px; 
+      font-weight: 700; 
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+    .teacher-name { color: #6b7280; font-size: 12px; font-style: italic; display: flex; align-items: center; gap: 4px; }
+    
+    .label-tag {
+      display: inline-block;
+      font-size: 10px;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      margin-right: 6px;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .cw-tag { background: #dbeafe; color: #1e40af; }
+    .hw-tag { background: #fef3c7; color: #92400e; }
+    
+    @media print { 
+      @page { margin: 10mm; } 
+      body { -webkit-print-color-adjust: exact; }
+    }
   `
 
-  let content = `<div class="page"><div class="header"><div class="title">Weekly Plans - ${classroom.name}</div><div class="meta">Week ${weekNumber.value} • Semester ${semesterNumber.value} • Generated ${new Date().toLocaleString()}</div></div>`
+  let content = `
+    <div class="page">
+      <div class="header-box">
+        <div class="header-title">Weekly Learning Plan - ${classroom.name}</div>
+        <div class="header-meta">Week ${store.weekNumber} • Semester ${store.semesterNumber} • ${new Date().toLocaleDateString('en-US', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'})}</div>
+      </div>
+  `
 
   dayGroups.forEach(dg => {
-    content += `<div class="day-header">${dg.dayName} - ${getDayDate(dg.dayNumber)}</div>`
-    content += `<table><thead><tr><th class="period">Period</th><th class="subject">Subject</th><th>Classwork (CW)</th><th>Homework (HW)</th></tr></thead><tbody>`
+    content += `
+      <div class="day-container">
+        <div class="day-header">
+          <div class="day-pill">${dg.dayName}</div>
+          <div class="date-label">${getDayDate(dg.dayNumber)}</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th class="period-col">Per</th>
+              <th class="subject-col">Subject</th>
+              <th class="cw-col">Classwork</th>
+              <th class="hw-col">Homework</th>
+            </tr>
+          </thead>
+          <tbody>
+    `
     dg.plans.forEach(plan => {
       const subj = plan.schedule?.cst?.subject_name || '-' 
       const subjBg = plan.schedule?.cst?.c_bg || '#e0e0e0'
       const subjColor = plan.schedule?.cst?.c_text || '#111'
-      const teacher = plan.schedule?.cst?.teacher_name || '-'
-      const cw = plan.cw ? plan.cw.replace(/\n/g, '<br/>') : '-'
-      const hw = plan.hw ? plan.hw.replace(/\n/g, '<br/>') : '-'
+      const teacher = plan.schedule?.cst?.teacher_name || ''
+      const cw = plan.cw ? plan.cw : '-'
+      const hw = plan.hw ? plan.hw : '-'
 
-      content += `<tr>`
-      content += `<td class="period">P${plan.schedule?.period_number || ''}</td>`
-      content += `<td class="subject"><div class="subject-badge" style="background:${subjBg}; color:${subjColor}">${subj}</div><div class="teacher">${teacher}</div></td>`
-      content += `<td>${cw}</td>`
-      content += `<td>${hw}</td>`
-      content += `</tr>`
+      content += `
+        <tr>
+          <td class="period-col">${plan.schedule?.period_number || ''}</td>
+          <td class="subject-col">
+            <div class="subject-badge" style="background:${subjBg}; color:${subjColor}">${subj}</div>
+            ${teacher ? `<div class="teacher-name">👤 ${teacher}</div>` : ''}
+          </td>
+          <td>${cw !== '-' ? `<span class="label-tag cw-tag">CW</span>`+cw : '<span style="color:#9ca3af">-</span>'}</td>
+          <td>${hw !== '-' ? `<span class="label-tag hw-tag">HW</span>`+hw : '<span style="color:#9ca3af">-</span>'}</td>
+        </tr>
+      `
     })
-    content += `</tbody></table>`
+    content += `</tbody></table></div>`
   })
 
   content += `</div>`
@@ -524,12 +546,12 @@ const printClassroom = (classroom) => {
     return
   }
 
-  win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Print - ${classroom.name}</title><style>${styles}</style></head><body>${content}</body></html>`)
+  win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Plan - ${classroom.name}</title><style>${styles}</style></head><body>${content}</body></html>`)
   win.document.close()
-  win.onload = () => { setTimeout(() => { win.print(); win.close(); }, 200) }
+  win.onload = () => { setTimeout(() => { win.print(); win.close(); }, 500) }
 }
 
-// Save as PDF using html2pdf (loaded from CDN inside new window)
+// Save as PDF (reusing the same improved design)
 const printClassroomPdf = (classroom) => {
   if (!classroom || !classroom.plans || !classroom.plans.length) {
     $q.notify({ type: 'warning', message: 'No plans to save for this classroom' })
@@ -538,50 +560,129 @@ const printClassroomPdf = (classroom) => {
 
   const dayGroups = groupPlansByDay(classroom.plans)
 
+  // Use same styles as print, maybe slightly adjusted for PDF rendering limits if needed
+  // Nunito might need time to load in html2pdf... relying on safe font fallback if needed, but trying Google Fonts import.
   const styles = `
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333; }
-    .page { width: 210mm; padding: 12mm; box-sizing: border-box; }
-    .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
-    .title { font-size: 20px; color: #1976d2; font-weight:700 }
-    .meta { font-size: 12px; color:#666 }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-    th, td { border: 1px solid #ddd; padding: 8px; vertical-align: top; }
-    th { background: #f5f5f5; color: #1976d2; font-weight:600; }
-    .period { width: 70px; text-align: center; font-weight:700 }
-    .subject { width: 220px }
-    .subject-badge { display:inline-block; padding:6px 10px; border-radius:6px; font-weight:700 }
-    .teacher { font-size: 12px; color:#666; font-style:italic; margin-top:6px }
-    .day-header { background:#1976d2; color:white; padding:8px; font-weight:700; margin-top:12px }
-    @media print { @page { size:A4; margin:10mm } }
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap');
+    body { font-family: 'Nunito', 'Segoe UI', sans-serif; color: #374151; }
+    .page { width: 100%; padding: 20px; box-sizing: border-box; }
+    
+    .header-box { 
+      background: #4f46e5; 
+      color: white; 
+      padding: 20px; 
+      border-radius: 12px;
+      margin-bottom: 25px;
+    }
+    .header-title { font-size: 24px; font-weight: 800; margin: 0; }
+    .header-meta { margin-top: 8px; font-size: 14px; opacity: 0.9; }
+    
+    .day-container { margin-bottom: 20px; page-break-inside: avoid; }
+    .day-header { 
+      display: flex; 
+      align-items: center; 
+      margin-bottom: 0px;
+    }
+    .day-pill {
+      background: #4f46e5;
+      color: white;
+      padding: 6px 14px;
+      border-radius: 12px 12px 0 0;
+      font-weight: 700;
+      font-size: 14px;
+      display: inline-block;
+    }
+
+    table { width: 100%; border-collapse: collapse; border: 1px solid #e5e7eb; border-radius: 0 8px 8px 8px; overflow: hidden; }
+    th { 
+      background: #f3f4f6; 
+      color: #374151; 
+      font-weight: 700; 
+      padding: 8px 10px; 
+      text-align: left; 
+      font-size: 12px;
+      border-bottom: 2px solid #e5e7eb;
+    }
+    td { 
+      padding: 8px 10px; 
+      border-bottom: 1px solid #e5e7eb; 
+      font-size: 12px; 
+      vertical-align: top;
+    }
+    tr:nth-child(even) { background-color: #f9fafb; }
+    
+    .period-col { width: 50px; text-align: center; color: #6b7280; font-weight: 700; }
+    .subject-col { width: 160px; }
+    
+    .subject-badge { 
+      display: inline-block; 
+      padding: 3px 8px; 
+      border-radius: 4px; 
+      font-weight: 700; 
+      font-size: 11px;
+    }
+    .teacher-name { color: #6b7280; font-size: 11px; font-style: italic; margin-top: 2px; }
+    
+    .label-tag {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 4px;
+      border-radius: 3px;
+      margin-right: 4px;
+    }
+    .cw-tag { background: #dbeafe; color: #1e40af; }
+    .hw-tag { background: #fef3c7; color: #92400e; }
   `
 
-  let content = `<div class="page"><div class="header"><div class="title">Weekly Plans - ${classroom.name}</div><div class="meta">Week ${weekNumber.value} • Semester ${semesterNumber.value} • Generated ${new Date().toLocaleString()}</div></div>`
+  // Similar content construction but optimized for PDF size
+  let content = `
+    <div class="page">
+      <div class="header-box">
+        <div class="header-title">Weekly Learning Plan</div>
+        <div class="header-meta">${classroom.name} • Week ${store.weekNumber} • Semester ${store.semesterNumber}</div>
+      </div>
+  `
 
   dayGroups.forEach(dg => {
-    content += `<div class="day-header">${dg.dayName} - ${getDayDate(dg.dayNumber)}</div>`
-    content += `<table><thead><tr><th class="period">Period</th><th class="subject">Subject</th><th>Classwork (CW)</th><th>Homework (HW)</th></tr></thead><tbody>`
+    content += `
+      <div class="day-container">
+        <div class="day-header">
+          <div class="day-pill">${dg.dayName}</div>
+        </div>
+        <table>
+          <thead><tr><th class="period-col">Per</th><th class="subject-col">Subject</th><th>Classwork</th><th>Homework</th></tr></thead>
+          <tbody>
+    `
     dg.plans.forEach(plan => {
       const subj = plan.schedule?.cst?.subject_name || '-' 
       const subjBg = plan.schedule?.cst?.c_bg || '#e0e0e0'
       const subjColor = plan.schedule?.cst?.c_text || '#111'
-      const teacher = plan.schedule?.cst?.teacher_name || '-'
-      const cw = plan.cw ? plan.cw.replace(/\n/g, '<br/>') : '-'
-      const hw = plan.hw ? plan.hw.replace(/\n/g, '<br/>') : '-'
+      const teacher = plan.schedule?.cst?.teacher_name || ''
+      
+      // For PDF, we remove complex HTML that might break it, sticking to breaks
+      // But we can try basic formatting
+      const cw = plan.cw || '-'
+      const hw = plan.hw || '-'
 
-      content += `<tr>`
-      content += `<td class="period">P${plan.schedule?.period_number || ''}</td>`
-      content += `<td class="subject"><div class="subject-badge" style="background:${subjBg}; color:${subjColor}">${subj}</div><div class="teacher">${teacher}</div></td>`
-      content += `<td>${cw}</td>`
-      content += `<td>${hw}</td>`
-      content += `</tr>`
+      content += `
+        <tr>
+          <td class="period-col">${plan.schedule?.period_number || ''}</td>
+          <td class="subject-col">
+            <div class="subject-badge" style="background:${subjBg}; color:${subjColor}">${subj}</div>
+            ${teacher ? `<div class="teacher-name">${teacher}</div>` : ''}
+          </td>
+          <td>${cw !== '-' ? `<span class="label-tag cw-tag">CW</span>`+cw : '-'}</td>
+          <td>${hw !== '-' ? `<span class="label-tag hw-tag">HW</span>`+hw : '-'}</td>
+        </tr>
+      `
     })
-    content += `</tbody></table>`
+    content += `</tbody></table></div>`
   })
 
   content += `</div>`
 
   const cdn = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js'
-  const filename = `WeeklyPlans - ${String(classroom.name).replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_\-\.]/g, '')} - Week_${weekNumber.value}.pdf`
+  const filename = `WeeklyPlans_${String(classroom.name).replace(/\s+/g, '_')}_Week${store.weekNumber}.pdf`
 
   const win = window.open('', '_blank')
   if (!win) {
@@ -589,36 +690,32 @@ const printClassroomPdf = (classroom) => {
     return
   }
 
-  // Build a document that loads html2pdf and triggers save
   const script = `
-    var opt = { margin:0.5, filename: '${filename}', image:{type:'jpeg', quality:0.98}, html2canvas:{scale:2}, jsPDF:{unit:'in', format:'a4', orientation:'portrait'} };
-    function doSave(){ html2pdf().set(opt).from(document.body).save().then(function(){ setTimeout(function(){ window.close(); }, 800); }); }
+    var opt = { margin:0.3, filename: '${filename}', image:{type:'jpeg', quality:0.98}, html2canvas:{scale:2, useCORS:true}, jsPDF:{unit:'in', format:'a4', orientation:'portrait'} };
+    function doSave(){ html2pdf().set(opt).from(document.body).save().then(function(){ setTimeout(function(){ window.close(); }, 1000); }); }
     if (typeof html2pdf === 'undefined'){
       var s = document.createElement('script'); s.src = '${cdn}'; s.onload = doSave; document.head.appendChild(s);
     } else { doSave(); }
   `
 
-  win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>PDF - ${classroom.name}</title><style>${styles}</style></head><body>${content}<script>${script} <\/script></body></html>`)
+  win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>PDF</title><style>${styles}</style></head><body>${content}<script>${script} <\/script></body></html>`)
   win.document.close()
 }
 
-watch(selectedCopyId, () => {
+watch(() => store.selectedSchoolId, () => {
   fetchClassrooms()
   selectedClassrooms.value = []
 })
 
-watch([selectedClassrooms, weekNumber, semesterNumber], () => {
+watch(() => [selectedClassrooms.value, store.weekNumber, store.semesterNumber, store.selectedAcademicYearId], () => {
   fetchPlans()
-})
+}, { deep: true })
 
 onMounted(async () => {
-  const now = new Date()
-  const startOfYear = new Date(now.getFullYear(), 0, 1)
-  const week = Math.ceil(((now - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7)
-  currentWeek.value = week > maxWeeks.value ? 1 : week
-  weekNumber.value = props.initialWeek || currentWeek.value
-  
-  await fetchActiveCopies()
+  // Store initialization handled by MainSchoolData or Store itself
+  if (store.selectedSchoolId) {
+      fetchClassrooms()
+  }
 })
 </script>
 

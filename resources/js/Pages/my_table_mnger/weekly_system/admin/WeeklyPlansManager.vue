@@ -18,6 +18,9 @@
       </div>
     </div>
 
+    <!-- Shared Filters -->
+    <WeeklyPlansFilterBar />
+
     <!-- Tabs Container -->
     <q-card flat bordered class="overflow-hidden">
       <q-tabs
@@ -31,8 +34,7 @@
       >
         <q-tab name="sync" icon="sync" label="1- Generate & Sync" />
         <q-tab name="monitor" icon="analytics" label="2- Monitor Progress" />
-        <q-tab name="print" icon="print" label="3- Print Weekly" />
-        <q-tab name="classroom" icon="meeting_room" label="4- By Classroom" />
+        <q-tab name="classroom" icon="meeting_room" label="3- By Classroom" />
       </q-tabs>
 
       <q-separator />
@@ -41,16 +43,16 @@
         <!-- TAB 1: GENERATE & SYNC -->
         <q-tab-panel name="sync" class="q-pa-md">
           <WeeklyPlanSyncDashboard 
-            v-if="selectedCopyId && selectedAcademicYearId"
-            :copy-id="selectedCopyId" 
-            :week-number="weekNumber"
-            :academic-year-id="selectedAcademicYearId"
-            :semester-number="semesterNumber"
+            v-if="store.selectedCopyId && store.selectedAcademicYearId"
+            :copy-id="store.selectedCopyId" 
+            :week-number="store.weekNumber"
+            :academic-year-id="store.selectedAcademicYearId"
+            :semester-number="store.semesterNumber"
           />
           <q-card v-else flat bordered class="text-center q-pa-xl">
             <q-icon name="info" size="64px" color="grey-5" />
             <p class="text-h6 text-grey-7 q-mt-md">Please configure Active Schedule Copy</p>
-            <p class="text-grey-6">Go to Timetable Editor to activate a schedule copy first.</p>
+            <p class="text-grey-6">Select a schedule copy from the filter bar above.</p>
           </q-card>
         </q-tab-panel>
 
@@ -58,24 +60,12 @@
         <q-tab-panel name="monitor" class="q-pa-none">
           <WeeklyPlanStats 
             ref="statsRef"
-            :initial-copy-id="selectedCopyId" 
-            :initial-week="weekNumber" 
           />
         </q-tab-panel>
 
-        <!-- TAB 3: PRINT -->
-        <q-tab-panel name="print" class="q-pa-none">
-          <WeeklyPlanPrinter 
-            :initial-copy-id="selectedCopyId" 
-            :initial-week="weekNumber" 
-          />
-        </q-tab-panel>
-
-        <!-- TAB 4: BY CLASSROOM -->
+        <!-- TAB 3: BY CLASSROOM -->
         <q-tab-panel name="classroom" class="q-pa-none">
           <WeeklyPlanClassroomView 
-            :initial-copy-id="selectedCopyId" 
-            :initial-week="weekNumber" 
           />
         </q-tab-panel>
       </q-tab-panels>
@@ -84,21 +74,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import WeeklyPlanMenu from '@/Pages/my_table_mnger/weekly_system/WeeklyPlanMenu.vue'
 import WeeklyPlanSyncDashboard from '@/Pages/my_table_mnger/weekly_system/components/weekly-plans/WeeklyPlanSyncDashboard.vue'
 import WeeklyPlanStats from '@/Pages/my_table_mnger/weekly_system/admin/WeeklyPlanStats.vue'
-import WeeklyPlanPrinter from '@/Pages/my_table_mnger/weekly_system/admin/WeeklyPlanPrinter.vue'
 import WeeklyPlanClassroomView from '@/Pages/my_table_mnger/weekly_system/admin/WeeklyPlanClassroomView.vue'
+import WeeklyPlansFilterBar from './components/WeeklyPlansFilterBar.vue'
+import { useWeeklyPlansStore } from '@/Stores/useWeeklyPlansStore'
 
 // Tab state
 const tab = ref('sync')
-
-// Shared state (passed as initial props)
-const selectedCopyId = ref(4) // TODO: Get from active schedule copy
-const selectedAcademicYearId = ref(1) // TODO: Get from active academic year  
-const semesterNumber = ref(1) // TODO: Get from current semester
-const weekNumber = ref(1)
+const store = useWeeklyPlansStore()
 const statsRef = ref(null)
 
 const refreshStats = () => {
@@ -106,14 +92,6 @@ const refreshStats = () => {
         statsRef.value.refresh()
     }
 }
-
-onMounted(() => {
-    // Basic initialization if needed
-    const now = new Date()
-    const startOfYear = new Date(now.getFullYear(), 0, 1)
-    const currentWeek = Math.ceil(((now - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7)
-    weekNumber.value = currentWeek > 18 ? 1 : currentWeek
-})
 </script>
 
 <style scoped>
