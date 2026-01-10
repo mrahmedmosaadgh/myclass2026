@@ -1,1 +1,0 @@
-import{a as r}from"./app-C7rW1iCk.js";import{M as t,J as a,N as c}from"./vendor-BLQ8yBzx.js";import"./offline-D-M_H-zP.js";import"./i18n-D0hNWY36.js";import"./ui-04HvVE5c.js";const e={},s={class:"card"};function d(n,o){return a(),t("div",s,o[0]||(o[0]=[c("div",{class:"card2"},null,-1)]))}const l=r(e,[["render",d],["__scopeId","data-v-1fadcb10"]]);export{l as default};
