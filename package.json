@@ -65,6 +65,7 @@
         "file-saver": "^2.0.5",
         "firebase": "^11.6.0",
         "html2canvas": "^1.4.1",
+        "html2pdf.js": "^0.13.0",
         "jspdf": "^3.0.3",
         "katex": "^0.16.21",
         "laravel-echo": "^2.1.3",

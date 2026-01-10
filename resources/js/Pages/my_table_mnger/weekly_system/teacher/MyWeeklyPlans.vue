@@ -85,14 +85,37 @@
             map-options
           />
         </div>
+        <!-- Inline Edit Toggle -->
+        <div class="col-auto">
+          <q-toggle
+            v-model="inlineEditMode"
+            label="Inline Edit Mode"
+            color="primary"
+            icon="edit"
+          />
+        </div>
         <!-- Preview & Print Buttons -->
-        <div class="col-12 col-sm-6 col-md-auto q-gutter-sm">
+        <div class="col-12 col-sm-6 col-md-auto q-gutter-sm"
+            v-if="selectedClassrooms?.length > 0">
           <q-btn
-            v-if="selectedClassrooms?.length > 0"
             color="primary"
             label="Preview & Print"
             icon="print"
             @click="showPrintPreview = true"
+            outline
+          />
+          <q-btn
+            color="secondary"
+            label="Mobile Print"
+            icon="phone_iphone"
+            @click="classroomListRef?.openMobilePrint()"
+            outline
+          />
+          <q-btn
+            color="red-7"
+            label="Download PDF"
+            icon="picture_as_pdf"
+            @click="downloadPDF"
             outline
           />
         </div>
@@ -121,13 +144,13 @@
         indicator-color="primary"
         align="left"
       >
-        <q-tab name="by-day" label="By Day" icon="calendar_today" />
         <q-tab 
           name="by-classroom" 
           label="By Classroom" 
           icon="meeting_room"
           :disable="!selectedClassrooms || selectedClassrooms.length === 0"
         />
+        <q-tab name="by-day" label="By Day" icon="calendar_today" />
       </q-tabs>
     </q-card>
 
@@ -213,114 +236,18 @@
     </div>
 
     <!-- By Classroom View -->
-    <div v-show="viewTab === 'by-classroom'" class="classrooms-grid">
-      <div 
-        v-for="classroom in classroomPlans" 
-        :key="classroom.name"
-        class="classroom-card q-mb-lg"
-      >
-        <q-card flat bordered>
-          <!-- Classroom Header -->
-          <div class="classroom-header bg-primary text-white q-pa-md">
-            <h5 class="q-ma-none flex items-center q-gutter-sm">
-              <q-icon name="meeting_room" />
-              {{ classroom.name }}
-              <q-chip 
-                dense 
-                :label="`${classroom.plans.length} classes`"
-                text-color="white"
-              />
-            </h5>
-          </div>
-
-          <!-- Plans Table -->
-          <q-table
-            flat
-            bordered
-            :rows="classroom.plans"
-            :columns="classroomTableColumns"
-            row-key="id"
-            dense
-            class="classroom-table"
-            @row-click="(evt, row) => editPlan(row.data)"
-          >
-            <!-- Day Column -->
-            <template #body-cell-day="props">
-              <q-td :props="props">
-                <strong>{{ days[props.row.data.schedule?.day] || 'N/A' }}</strong>
-              </q-td>
-            </template>
-
-            <!-- Period Column -->
-            <template #body-cell-period="props">
-              <q-td :props="props" class="text-center">
-                <q-badge :label="`P${props.row.data.schedule?.period_number}`" />
-              </q-td>
-            </template>
-
-            <!-- Subject Column -->
-            <template #body-cell-subject="props">
-              <q-td :props="props">
-                <span 
-                  class="subject-badge"
-                  :style="{ 
-                    backgroundColor: props.row.data.schedule?.cst?.c_bg,
-                    color: props.row.data.schedule?.cst?.c_text
-                  }"
-                >
-                  {{ props.row.data.schedule?.cst?.subject_name }}
-                </span>
-              </q-td>
-            </template>
-
-            <!-- Status Column -->
-            <template #body-cell-status="props">
-              <q-td :props="props">
-                <StatusBadge :status="props.row.data.status" />
-              </q-td>
-            </template>
-
-            <!-- Classwork Column -->
-            <template #body-cell-cw="props">
-              <q-td :props="props" class="content-preview">
-                <div v-if="props.row.data.cw" class="text-info">
-                  <q-icon name="school" size="xs" /> 
-                  <span class="q-ml-xs">{{ truncateText(props.row.data.cw, 30) }}</span>
-                </div>
-                <span v-else class="text-grey-5">-</span>
-              </q-td>
-            </template>
-
-            <!-- Homework Column -->
-            <template #body-cell-hw="props">
-              <q-td :props="props" class="content-preview">
-                <div v-if="props.row.data.hw" class="text-warning">
-                  <q-icon name="home_work" size="xs" /> 
-                  <span class="q-ml-xs">{{ truncateText(props.row.data.hw, 30) }}</span>
-                </div>
-                <span v-else class="text-grey-5">-</span>
-              </q-td>
-            </template>
-
-            <!-- Notes Column -->
-            <template #body-cell-notes="props">
-              <q-td :props="props" class="content-preview">
-                <span v-if="props.row.data.notes" class="text-info">
-                  {{ truncateText(props.row.data.notes, 20) }}
-                </span>
-                <span v-else class="text-grey-5">-</span>
-              </q-td>
-            </template>
-          </q-table>
-        </q-card>
-      </div>
-
-      <!-- No selected classrooms -->
-      <div v-if="!selectedClassrooms || selectedClassrooms.length === 0" class="text-center q-pa-xl">
-        <q-icon name="meeting_room" size="64px" color="grey-5" />
-        <p class="text-h6 text-grey-7 q-mt-md">No classrooms selected</p>
-        <p class="text-grey-6">Select classrooms from the filter above to view by classroom</p>
-      </div>
+    <div v-show="viewTab === 'by-classroom'">
+      <WeeklyPlanClassroomList
+        ref="classroomListRef"
+        :plans="filteredPlans"
+        :days="days"
+        :inline-edit-mode="inlineEditMode"
+        :copied-data="copiedData"
+        :week-number="weekNumber"
+        :semester-number="semesterNumber"
+        @edit="editPlan"
+        @save="saveInlineEdit"
+      />
     </div>
 
     <!-- Edit Dialog -->
@@ -384,9 +311,9 @@
                   <td class="text-center">P{{ plan.schedule?.period_number }}</td>
                   <td>{{ plan.schedule?.cst?.subject_name }}</td>
                   <td>{{ plan.schedule?.cst?.classroom_name }}</td>
-                  <td class="content-cell">{{ plan.cw || '-' }}</td>
-                  <td class="content-cell">{{ plan.hw || '-' }}</td>
-                  <td class="content-cell">{{ plan.notes || '-' }}</td>
+                  <td class="content-cell" v-html="plan.cw || '-'"></td>
+                  <td class="content-cell" v-html="plan.hw || '-'"></td>
+                  <td class="content-cell" v-html="plan.notes || '-'"></td>
                 </tr>
               </tbody>
             </table>
@@ -401,6 +328,7 @@
         </div>
       </q-card>
     </q-dialog>
+
   </div>
 </template>
 
@@ -410,6 +338,7 @@ import { useQuasar } from 'quasar'
 import axios from 'axios'
 import WeekSelector from '../components/weekly-plans/WeekSelector.vue'
 import WeeklyPlanEditor from '../components/weekly-plans/WeeklyPlanEditor.vue'
+import WeeklyPlanClassroomList from '../components/WeeklyPlanClassroomList.vue'
 import StatusBadge from '../components/shared/StatusBadge.vue'
 import WeeklyPlanMenu from '../WeeklyPlanMenu.vue'
 
@@ -417,6 +346,7 @@ const $q = useQuasar()
 
 // Data
 const weeklyPlans = ref([])
+const classroomListRef = ref(null)
 const weekNumber = ref(1)
 const semesterNumber = ref(1)
 const maxWeeks = ref(18)
@@ -435,10 +365,20 @@ const showEditor = ref(false)
 const selectedPlan = ref(null)
 const saving = ref(false)
 const showPrintPreview = ref(false)
-const viewTab = ref('by-day')
+const viewTab = ref('by-classroom')
+const inlineEditMode = ref(false)
+const savingInline = ref({})
 
 // Loading
 const loading = ref(false)
+
+// Editor toolbar configuration
+const editorToolbar = [
+  ['bold', 'italic', 'underline'],
+  ['link'],
+  ['unordered', 'ordered'],
+  ['undo', 'redo']
+]
 
 const days = {
   1: 'Sunday',
@@ -509,50 +449,11 @@ const completionPercentage = computed(() => {
 })
 
 const progressColor = computed(() => {
-  const p = completionPercentage.value
-  if (p >= 80) return 'green'
-  if (p >= 50) return 'amber'
-  return 'red'
+  const percentage = completionPercentage.value
+  if (percentage === 100) return 'positive'
+  if (percentage >= 50) return 'warning'
+  return 'negative'
 })
-
-const classroomPlans = computed(() => {
-  const byClassroom = {}
-  
-  filteredPlans.value.forEach(plan => {
-    const classroomName = plan.schedule?.cst?.classroom_name
-    if (!byClassroom[classroomName]) {
-      byClassroom[classroomName] = {
-        name: classroomName,
-        plans: []
-      }
-    }
-    byClassroom[classroomName].plans.push({
-      id: plan.id,
-      data: plan
-    })
-  })
-
-  // Sort plans within each classroom by day and period
-  Object.values(byClassroom).forEach(classroom => {
-    classroom.plans.sort((a, b) => {
-      const dayDiff = (a.data.schedule?.day || 0) - (b.data.schedule?.day || 0)
-      if (dayDiff !== 0) return dayDiff
-      return (a.data.schedule?.period_number || 0) - (b.data.schedule?.period_number || 0)
-    })
-  })
-
-  return Object.values(byClassroom).sort((a, b) => a.name.localeCompare(b.name))
-})
-
-const classroomTableColumns = [
-  { name: 'day', label: 'Day', field: row => days[row.data.schedule?.day] || 'N/A', align: 'left' },
-  { name: 'period', label: 'Period', field: row => row.data.schedule?.period_number, align: 'center' },
-  { name: 'subject', label: 'Subject', field: row => row.data.schedule?.cst?.subject_name, align: 'left' },
-  { name: 'status', label: 'Status', field: row => row.data.status, align: 'left' },
-  { name: 'cw', label: 'Classwork (CW)', field: row => row.data.cw, align: 'left' },
-  { name: 'hw', label: 'Homework (HW)', field: row => row.data.hw, align: 'left' },
-  { name: 'notes', label: 'Notes', field: row => row.data.notes, align: 'left' }
-]
 
 // Methods
 const getStatus = (plan) => {
@@ -566,6 +467,17 @@ const getStatus = (plan) => {
 const truncateText = (text, length) => {
   if (!text) return ''
   return text.length > length ? text.substring(0, length) + '...' : text
+}
+
+const truncateHtml = (html, length) => {
+  if (!html) return ''
+  // Strip HTML tags for length calculation
+  const stripped = html.replace(/<[^>]*>/g, '')
+  if (stripped.length <= length) return html
+  
+  // Truncate and add ellipsis
+  const truncated = stripped.substring(0, length)
+  return truncated + '...'
 }
 
 const getPlanStyle = (plan) => {
@@ -666,6 +578,49 @@ const handleSave = async (formData) => {
   }
 }
 
+const saveInlineEdit = async (plan) => {
+  if (savingInline.value[plan.id]) return // Prevent duplicate saves
+  
+  savingInline.value[plan.id] = true
+  try {
+    await axios.put(`/weekly-system/api/weekly-plans/${plan.id}`, {
+      cw: plan.cw,
+      hw: plan.hw,
+      notes: plan.notes
+    })
+    
+    // Update status
+    plan.status = getStatus(plan)
+    
+    $q.notify({ 
+      type: 'positive', 
+      message: 'Saved!',
+      timeout: 1000,
+      position: 'top'
+    })
+  } catch (error) {
+    console.error('Error saving inline edit:', error)
+    $q.notify({ type: 'negative', message: 'Failed to save changes' })
+  } finally {
+    delete savingInline.value[plan.id]
+  }
+}
+
+const pasteField = async (plan, field) => {
+  if (!copiedData.value || !copiedData.value[field]) return
+  
+  plan[field] = copiedData.value[field]
+  await saveInlineEdit(plan)
+  
+  $q.notify({
+    message: `${field.toUpperCase()} pasted successfully!`,
+    color: 'positive',
+    icon: 'content_paste',
+    timeout: 1000,
+    position: 'top'
+  })
+}
+
 const printPreview = () => {
   const printArea = document.getElementById('print-area')
   if (!printArea) {
@@ -761,7 +716,36 @@ const printPreview = () => {
         .content-cell {
           max-width: 120px;
           white-space: pre-wrap;
+          line-height: 1.5;
         }
+        
+        .content-cell a {
+          color: #1976d2;
+          text-decoration: underline;
+        }
+        
+        .content-cell p {
+          margin: 4px 0;
+        }
+        
+        .content-cell ul,
+        .content-cell ol {
+          margin: 4px 0;
+          padding-left: 20px;
+        }
+        
+        .content-cell li {
+          margin: 2px 0;
+        }
+        
+        .content-cell strong {
+          font-weight: 600;
+        }
+        
+        .content-cell em {
+          font-style: italic;
+        }
+        
         
         .print-footer {
           margin-top: 20px;
@@ -801,6 +785,21 @@ const printPreview = () => {
       printWindow.print()
       printWindow.close()
     }, 250)
+  }
+}
+
+const printMobile = () => {
+  window.print()
+}
+
+const downloadPDF = () => {
+  // First open the mobile print dialog if not already open
+  if (classroomListRef.value) {
+    classroomListRef.value.openMobilePrint()
+    // Wait a bit for the dialog to render, then trigger PDF download
+    setTimeout(() => {
+      classroomListRef.value?.downloadPDF()
+    }, 300)
   }
 }
 
@@ -999,6 +998,34 @@ h4 {
   max-width: 120px;
   white-space: pre-wrap;
   word-break: break-word;
+  line-height: 1.5;
+}
+
+.content-cell :deep(a) {
+  color: #1976d2;
+  text-decoration: underline;
+}
+
+.content-cell :deep(p) {
+  margin: 4px 0;
+}
+
+.content-cell :deep(ul),
+.content-cell :deep(ol) {
+  margin: 4px 0;
+  padding-left: 20px;
+}
+
+.content-cell :deep(li) {
+  margin: 2px 0;
+}
+
+.content-cell :deep(strong) {
+  font-weight: 600;
+}
+
+.content-cell :deep(em) {
+  font-style: italic;
 }
 
 .print-footer {
@@ -1089,34 +1116,25 @@ h4 {
 
 .content-preview {
   font-size: 0.85rem;
-  max-width: 150px;
+  max-width: 300px;
   word-wrap: break-word;
   overflow-wrap: break-word;
 }
 
-.content-preview .text-info {
-  color: #0288d1;
+.html-content {
+  line-height: 1.4;
 }
 
-.content-preview .text-warning {
-  color: #ffa726;
+.html-content :deep(a) {
+  color: #1976d2;
+  text-decoration: underline;
 }
 
-.content-preview .text-grey-5 {
-  color: #bdbdbd;
-}
 
 @media (max-width: 768px) {
   .classroom-table {
     font-size: 0.8rem;
   }
-  
-  .classroom-header h5 {
-    font-size: 0.9rem;
-  }
-  
-  .content-preview {
-    max-width: 100px;
-  }
 }
+
 </style>
