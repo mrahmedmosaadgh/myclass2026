@@ -23,6 +23,7 @@ class V2MenuSeeder extends Seeder
                 'is_active' => true,
                 'role_specific' => 'SuperSystem',
                 'v2_enabled' => true,
+                'requires_context' => false,
             ]
         );
 
@@ -64,6 +65,7 @@ class V2MenuSeeder extends Seeder
                 'is_active' => true,
                 'role_specific' => 'SystemAdmin',
                 'v2_enabled' => true,
+                'requires_context' => false,
             ]
         );
 
@@ -76,13 +78,13 @@ class V2MenuSeeder extends Seeder
             ],
             [
                 'label' => 'Schools',
-                'route' => 'v2.school-admin.schools.index',
+                'route' => 'v2.system-admin.schools.index',
                 'icon' => 'school',
                 'order' => 2,
             ],
             [
                 'label' => 'Global Users',
-                'route' => 'v2.school-admin.users.index',
+                'route' => 'v2.system-admin.users.index',
                 'icon' => 'group',
                 'order' => 3,
             ],

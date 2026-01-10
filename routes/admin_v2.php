@@ -2,6 +2,10 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdminV2;
+use App\Http\Controllers\AdminV2\SuperSystem\DashboardController;
+use App\Http\Controllers\AdminV2\SuperSystem\ConfigController;
+use App\Http\Controllers\AdminV2\SuperSystem\JobsController;
+use App\Http\Controllers\AdminV2\SuperSystem\LogsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -18,11 +22,25 @@ Route::prefix('v2/super-system')
     ->middleware(['auth', 'role:SuperSystem'])
     ->name('v2.super-system.')
     ->group(function () {
-        // Placeholders until controllers are created
-        Route::get('/dashboard', function() { return 'SuperSystem Dashboard'; })->name('dashboard');
-        Route::get('/config', function() { return 'Configuration'; })->name('config');
-        Route::get('/jobs', function() { return 'Jobs Monitor'; })->name('jobs');
-        Route::get('/logs', function() { return 'Logs Viewer'; })->name('logs');
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        
+        // Configuration Management
+        Route::get('/config', [ConfigController::class, 'index'])->name('config');
+        Route::post('/config/clear-cache', [ConfigController::class, 'clearCache'])->name('config.clear-cache');
+        Route::post('/config/cache', [ConfigController::class, 'cacheConfig'])->name('config.cache');
+        Route::post('/config/maintenance', [ConfigController::class, 'toggleMaintenance'])->name('config.maintenance');
+        
+        // Jobs Monitor
+        Route::get('/jobs', [JobsController::class, 'index'])->name('jobs');
+        Route::post('/jobs/{id}/retry', [JobsController::class, 'retry'])->name('jobs.retry');
+        Route::post('/jobs/retry-all', [JobsController::class, 'retryAll'])->name('jobs.retry-all');
+        Route::delete('/jobs/{id}', [JobsController::class, 'forget'])->name('jobs.forget');
+        Route::delete('/jobs/flush', [JobsController::class, 'flush'])->name('jobs.flush');
+        
+        // Logs Viewer
+        Route::get('/logs', [LogsController::class, 'index'])->name('logs');
+        Route::get('/logs/download', [LogsController::class, 'download'])->name('logs.download');
+        Route::post('/logs/clear', [LogsController::class, 'clear'])->name('logs.clear');
     });
 
 // 2. SystemAdmin (Platform Management)
@@ -31,7 +49,14 @@ Route::prefix('v2/system-admin')
     ->name('v2.system-admin.')
     ->group(function () {
         Route::get('/dashboard', function() { return 'SystemAdmin Dashboard'; })->name('dashboard');
-        // Schools, Users, Roles resources will go here
+        
+        Route::prefix('schools')->name('schools.')->group(function () {
+             Route::get('/', function() { return 'Schools Index'; })->name('index');
+        });
+
+        Route::prefix('users')->name('users.')->group(function () {
+             Route::get('/', function() { return 'Users Index'; })->name('index');
+        });
     });
 
 // 3. SchoolAdmin (School Management)
@@ -51,6 +76,8 @@ Route::prefix('v2/school/{school_slug}/{school_id}/admin')
              Route::get('/teachers', function() { return 'Teachers Index'; })->name('teachers.index');
              Route::get('/students', function() { return 'Students Index'; })->name('students.index');
         });
+
+
     });
 
 // 4. Teacher

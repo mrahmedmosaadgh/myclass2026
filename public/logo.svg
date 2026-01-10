@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 50">
+    <rect width="200" height="50" fill="none"/>
+    <text x="10" y="35" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#4f46e5">MyClass</text>
+    <text x="135" y="35" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#333">LMS</text>
+    <path d="M5 25 Q 25 5, 45 25 T 85 25" stroke="#4f46e5" stroke-width="3" fill="none"/>
+</svg>

@@ -4,6 +4,31 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SchoolController;
 use App\Http\Controllers\ContextController;
+use App\Http\Controllers\CourseManagement\LessonPlanTemplateController;
+use App\Http\Controllers\BehaviorController;
+use App\Http\Controllers\StudentBehaviorController;
+use App\Http\Controllers\StudentBehaviorsMainController;
+use App\Http\Controllers\BehaviorIncidentController;
+use App\Http\Controllers\ClassroomRecordController;
+use App\Http\Controllers\AIController;
+use App\Http\Controllers\QuizController;
+use App\Http\Controllers\QuizAttemptController;
+use App\Http\Controllers\QuestionController;
+use App\Http\Controllers\QuestionTypeController;
+use App\Http\Controllers\GradeController;
+use App\Http\Controllers\SubjectController;
+use App\Http\Controllers\QuizSessionController;
+use App\Http\Controllers\Api\MyProjectTaskController;
+use App\Http\Controllers\ProjectTaskController;
+use App\Http\Controllers\Api\ClassroomLayoutController;
+use App\Http\Controllers\StudentController;
+use App\Http\Controllers\TeacherController;
+use App\Http\Controllers\AcademicYearController;
+use App\Http\Controllers\SemesterController;
+use App\Http\Controllers\ScheduleCopyController;
+use App\Http\Controllers\ClassroomSubjectTeacherController;
+use App\Http\Controllers\ClassroomController;
+use App\Http\Controllers\Api\NavigationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -73,7 +98,7 @@ Route::middleware(['auth:sanctum','web'])
 Route::prefix('course-management')->middleware(['auth:sanctum'])->group(function () {
     
     // Lesson Plan Templates
-    Route::apiResource('lesson-plan-templates', LessonPlanTemplateController::class);
+    Route::apiResource('lesson-plan-templates', App\Http\Controllers\CourseManagement\LessonPlanTemplateController::class);
     
 });
 
@@ -91,7 +116,7 @@ Route::middleware(['auth:sanctum','web'])->get('/project-tasks', [App\Http\Contr
 Route::middleware(['auth:sanctum','web'])->get('/project-task/{projectTask}', [App\Http\Controllers\ProjectTaskController::class, 'show']);
 // Public routes (if needed)
 Route::prefix('course-management')->group(function () {
-    Route::get('lesson-plan-templates/public', [LessonPlanTemplateController::class, 'index']);
+    Route::get('lesson-plan-templates/public', [App\Http\Controllers\CourseManagement\LessonPlanTemplateController::class, 'index']);
 });
  
 Route::middleware(['auth:sanctum','web'])->get('/schools/{school}/subjects', [App\Http\Controllers\SchoolController::class, 'getSubjects']);
