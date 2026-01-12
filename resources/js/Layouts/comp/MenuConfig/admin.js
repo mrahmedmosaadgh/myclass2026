@@ -231,11 +231,7 @@ export default [
         icon: 'date_range',
         to: '/admin/semester',
       },
-      {
-        title: 'Calendar',
-        icon: 'calendar_month',
-        to: '/admin/calendar',
-      },
+
       {
         title: 'Schedules',
         icon: 'schedule',

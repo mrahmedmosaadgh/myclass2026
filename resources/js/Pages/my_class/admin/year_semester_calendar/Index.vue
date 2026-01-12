@@ -3,7 +3,7 @@
   <Head title="Academic Calendar Management" />
 
   <div class="q-pa-lg">
-    <!-- Header -->
+    <!-- Header with Action Buttons -->
     <div class="q-mb-xl">
       <div class="row items-center q-mb-sm">
         <div class="col-auto">
@@ -12,12 +12,78 @@
         <div class="col">
           <h1 class="text-h3 text-weight-bold q-ma-none">Academic Calendar</h1>
         </div>
+        <div class="col-auto">
+          <div class="row q-gutter-sm">
+            <q-btn
+              color="primary"
+              icon="add"
+              label="New Academic Year"
+              @click="showYearDialog = true"
+              unelevated
+              size="md"
+            />
+            <q-btn
+              color="secondary"
+              icon="import_export"
+              label="Import/Export"
+              @click="showImportExportDialog = true"
+              unelevated
+              size="md"
+            />
+          </div>
+        </div>
       </div>
       <p class="text-grey-7 text-weight-medium q-ma-none">Manage academic years, semesters, and daily calendar records with precision.</p>
     </div>
 
-    <!-- Create Year Section -->
-    <YearForm />
+    <!-- New Academic Year Dialog -->
+    <q-dialog v-model="showYearDialog" persistent>
+      <q-card style="min-width: 600px">
+        <q-card-section class="bg-primary text-white">
+          <div class="text-h6">Create New Academic Year</div>
+        </q-card-section>
+
+        <q-card-section>
+          <YearForm @created="showYearDialog = false" />
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat label="Close" color="primary" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- Import/Export Dialog -->
+    <q-dialog v-model="showImportExportDialog" maximized>
+      <q-card>
+        <q-card-section class="bg-secondary text-white row items-center">
+          <div class="col">
+            <div class="text-h6">Import/Export Calendar Data</div>
+            <div class="text-caption">Upload Excel files to bulk import calendar records or export existing data</div>
+          </div>
+          <q-btn flat round dense icon="close" v-close-popup />
+        </q-card-section>
+
+        <q-card-section class="q-pa-lg">
+          <div class="q-mb-md">
+            <q-banner class="bg-blue-1 text-blue-9 rounded-borders">
+              <template v-slot:avatar>
+                <q-icon name="info" color="blue-9" />
+              </template>
+              <strong>Semester Column:</strong> Use semester numbers only (1, 2, 3, 4) instead of "Semester 1", "Semester 2", etc.
+            </q-banner>
+          </div>
+
+          <ExcelManager
+            :export-data="exportTemplateData"
+            export-file-name="calendar_data.xlsx"
+            initial-tab="import"
+            @imported-json="handleCalendarImport"
+            @exported="handleExported"
+          />
+        </q-card-section>
+      </q-card>
+    </q-dialog>
 
     <!-- Years & Semesters List -->
     <div v-if="academicYears.length > 0" class="q-gutter-y-xl">
@@ -130,14 +196,54 @@
 <script setup>
 import { ref } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
+import { useQuasar } from 'quasar';
+import axios from 'axios';
 import YearForm from './YearForm.vue';
 import SemesterCard from './SemesterCard.vue';
 import MissingDaysList from './MissingDaysList.vue';
 import CalendarPreview from './CalendarPreview.vue';
+import ExcelManager from '@/Components/import_excel_sys/ExcelManager.vue';
+
+const $q = useQuasar();
 
 const props = defineProps({
   academicYears: Array,
 });
+
+// Dialog states
+const showYearDialog = ref(false);
+const showImportExportDialog = ref(false);
+
+// Export template data
+const exportTemplateData = ref([
+  {
+    date: '2025-09-01',
+    semester: 1,
+    status: 1,
+    status_label: 'Work Day',
+    week_number: 1,
+    event: '',
+    notes: '',
+  },
+  {
+    date: '2025-09-02',
+    semester: 1,
+    status: 1,
+    status_label: 'Work Day',
+    week_number: 1,
+    event: '',
+    notes: '',
+  },
+  {
+    date: '2025-09-03',
+    semester: 1,
+    status: 0,
+    status_label: 'Day Off',
+    week_number: 1,
+    event: 'Weekend',
+    notes: '',
+  },
+]);
 
 const calculateTotalDays = (year) => {
   return year.semesters.reduce((acc, sem) => acc + sem.calendar_count, 0);
@@ -160,6 +266,69 @@ const previewCalendar = (year) => {
 const closeDialog = () => {
   showCalendarDialog.value = false;
   selectedYear.value = null;
+};
+
+// Import/Export handlers
+const downloadTemplate = async () => {
+  try {
+    const response = await axios.get(route('admin.academic_calendar.export_template'));
+    exportTemplateData.value = response.data;
+    $q.notify({
+      message: 'Template data loaded. Switch to Export tab to download.',
+      color: 'positive',
+      position: 'top',
+    });
+  } catch (error) {
+    $q.notify({
+      message: 'Failed to load template: ' + error.message,
+      color: 'negative',
+      position: 'top',
+    });
+  }
+};
+
+const handleCalendarImport = async (data) => {
+  try {
+    const response = await axios.post(route('admin.academic_calendar.import'), { data });
+    
+    const results = response.data.results;
+    const successCount = results.success?.length || 0;
+    const errorCount = results.errors?.length || 0;
+    
+    if (successCount > 0) {
+      $q.notify({
+        message: `Successfully imported ${successCount} calendar records.`,
+        color: 'positive',
+        position: 'top',
+      });
+    }
+    
+    if (errorCount > 0) {
+      $q.notify({
+        message: `${errorCount} errors occurred during import. Check console for details.`,
+        color: 'warning',
+        position: 'top',
+      });
+      console.log('Import errors:', results.errors);
+    }
+    
+    // Reload page to show updated data
+    router.reload({ preserveScroll: true });
+  } catch (error) {
+    $q.notify({
+      message: 'Import failed: ' + (error.response?.data?.message || error.message),
+      color: 'negative',
+      position: 'top',
+    });
+  }
+};
+
+const handleExported = (info) => {
+  $q.notify({
+    message: 'Calendar data exported successfully!',
+    color: 'positive',
+    position: 'top',
+  });
 };
 </script>
 

@@ -55,9 +55,17 @@ class StudentController extends Controller
             ->orderBy('name')
             ->paginate(40);
 
+        // Ensure schools array is never empty - fallback to all schools
+        $schools = $accessData['schools'] ?? [];
+        if (empty($schools)) {
+            $schools = \App\Models\School::orderBy('name')->get(['id', 'name'])->toArray();
+        }
+
         return Inertia::render('my_class/admin/Students/Index', [
             'records' => $students,
-            'schools' => $accessData['schools'] ?? [], // Ensure schools is always an array
+            'schools' => $schools,
+            'grades' => \App\Models\Grade::orderBy('name')->get(['id', 'name']),
+            'academicYears' => \App\Models\AcademicYear::orderBy('name')->get(['id', 'name']),
             'userRoles' => $accessData['userRoles'] ?? [],
             'permissions' => $accessData['permissions'] ?? []
         ]);
@@ -473,6 +481,230 @@ class StudentController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Student Promotion System
+     */
+    public function promoteStudents(Request $request)
+    {
+        $validated = $request->validate([
+            'source_grade_id' => 'required|exists:grades,id',
+            'target_grade_id' => 'required|exists:grades,id',
+            'academic_year_id' => 'required|exists:academic_years,id',
+            'classroom_mappings' => 'required|array',
+            'classroom_mappings.*.from_classroom_id' => 'required|exists:classrooms,id',
+            'classroom_mappings.*.to_classroom_id' => 'required|exists:classrooms,id',
+            'promotion_reason' => 'required|string|max:255',
+            'notes' => 'nullable|string',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $promoted = 0;
+            $errors = [];
+
+            foreach ($validated['classroom_mappings'] as $mapping) {
+                // Get students in source classroom
+                $students = Student::where('classroom_id', $mapping['from_classroom_id'])
+                    ->where('grade_id', $validated['source_grade_id'])
+                    ->get();
+
+                foreach ($students as $student) {
+                    try {
+                        $student->promoteToNextGrade(
+                            $validated['target_grade_id'],
+                            $mapping['to_classroom_id'],
+                            $validated['academic_year_id'],
+                            $validated['promotion_reason']
+                        );
+
+                        // Update the last history record with notes if provided
+                        if ($validated['notes']) {
+                            $student->classroomHistories()->first()->update([
+                                'notes' => $validated['notes']
+                            ]);
+                        }
+
+                        $promoted++;
+                    } catch (\Exception $e) {
+                        $errors[] = "Failed to promote {$student->name}: " . $e->getMessage();
+                    }
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Successfully promoted {$promoted} students",
+                'promoted_count' => $promoted,
+                'errors' => $errors
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Student promotion failed: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Promotion failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getPromotionPreview(Request $request)
+    {
+        $validated = $request->validate([
+            'source_grade_id' => 'required|exists:grades,id',
+            'target_grade_id' => 'required|exists:grades,id',
+            'classroom_mappings' => 'required|array',
+        ]);
+
+        $preview = [];
+        $warnings = [];
+
+        foreach ($validated['classroom_mappings'] as $mapping) {
+            $fromClassroom = Classroom::with('grade')->find($mapping['from_classroom_id']);
+            $toClassroom = Classroom::with('grade')->find($mapping['to_classroom_id']);
+
+            $students = Student::where('classroom_id', $mapping['from_classroom_id'])
+                ->where('grade_id', $validated['source_grade_id'])
+                ->get(['id', 'name', 'name_ar']);
+
+            // Check capacity
+            $currentCount = Student::where('classroom_id', $mapping['to_classroom_id'])->count();
+            $incomingCount = $students->count();
+            $totalAfter = $currentCount + $incomingCount;
+
+            // Assuming max capacity of 30 (you can make this configurable)
+            $capacity = 30;
+            if ($totalAfter > $capacity) {
+                $warnings[] = [
+                    'type' => 'overcapacity',
+                    'classroom' => $toClassroom->name,
+                    'message' => "Classroom {$toClassroom->name} will be over capacity ({$totalAfter}/{$capacity})"
+                ];
+            }
+
+            $preview[] = [
+                'from_classroom' => [
+                    'id' => $fromClassroom->id,
+                    'name' => $fromClassroom->name,
+                    'grade' => $fromClassroom->grade->name
+                ],
+                'to_classroom' => [
+                    'id' => $toClassroom->id,
+                    'name' => $toClassroom->name,
+                    'grade' => $toClassroom->grade->name,
+                    'current_count' => $currentCount,
+                    'capacity' => $capacity
+                ],
+                'students' => $students,
+                'student_count' => $students->count()
+            ];
+        }
+
+        return response()->json([
+            'preview' => $preview,
+            'warnings' => $warnings,
+            'total_students' => collect($preview)->sum('student_count')
+        ]);
+    }
+
+    public function getClassroomMappingSuggestions(Request $request)
+    {
+        $sourceGradeId = $request->input('source_grade_id');
+        $targetGradeId = $request->input('target_grade_id');
+
+        $sourceClassrooms = Classroom::where('grade_id', $sourceGradeId)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        $targetClassrooms = Classroom::where('grade_id', $targetGradeId)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        $suggestions = [];
+
+        foreach ($sourceClassrooms as $sourceClassroom) {
+            // Try to find matching classroom name
+            $sourceName = $this->normalizeClassroomName($sourceClassroom->name);
+            
+            $bestMatch = null;
+            $highestScore = 0;
+
+            foreach ($targetClassrooms as $targetClassroom) {
+                $targetName = $this->normalizeClassroomName($targetClassroom->name);
+                $score = $this->calculateNameSimilarity($sourceName, $targetName);
+
+                if ($score > $highestScore) {
+                    $highestScore = $score;
+                    $bestMatch = $targetClassroom;
+                }
+            }
+
+            $suggestions[] = [
+                'from_classroom_id' => $sourceClassroom->id,
+                'from_classroom_name' => $sourceClassroom->name,
+                'to_classroom_id' => $bestMatch?->id,
+                'to_classroom_name' => $bestMatch?->name,
+                'confidence' => $highestScore,
+                'auto_suggested' => $highestScore > 70
+            ];
+        }
+
+        return response()->json([
+            'suggestions' => $suggestions,
+            'unmapped_source' => $sourceClassrooms->whereNotIn('id', collect($suggestions)->pluck('from_classroom_id')),
+            'available_target' => $targetClassrooms
+        ]);
+    }
+
+    private function normalizeClassroomName($name)
+    {
+        // Remove common prefixes and suffixes
+        $normalized = preg_replace('/^(grade|class|room|صف)\s*/i', '', $name);
+        $normalized = preg_replace('/\s*(grade|class|room|صف)$/i', '', $normalized);
+        
+        // Extract letter/number pattern (e.g., "4A", "4-A", "4 A")
+        if (preg_match('/(\d+)\s*[-\s]*([A-Z])/i', $normalized, $matches)) {
+            return strtoupper($matches[2]); // Return just the letter
+        }
+        
+        return strtolower(trim($normalized));
+    }
+
+    private function calculateNameSimilarity($str1, $str2)
+    {
+        // If both are single letters and match, 100% confidence
+        if (strlen($str1) === 1 && strlen($str2) === 1) {
+            return $str1 === $str2 ? 100 : 0;
+        }
+
+        // Use Levenshtein distance for longer strings
+        $distance = levenshtein(strtolower($str1), strtolower($str2));
+        $maxLength = max(strlen($str1), strlen($str2));
+        
+        return $maxLength > 0 ? (1 - ($distance / $maxLength)) * 100 : 0;
+    }
+
+    public function getClassroomHistory(Student $student)
+    {
+        $history = $student->classroomHistories()
+            ->with(['fromClassroom', 'toClassroom', 'fromGrade', 'toGrade', 'academicYear', 'semester', 'changedBy'])
+            ->get();
+
+        return response()->json([
+            'student' => [
+                'id' => $student->id,
+                'name' => $student->name,
+                'current_classroom' => $student->classroom->name ?? null,
+                'current_grade' => $student->grade->name ?? null
+            ],
+            'history' => $history
+        ]);
     }
 }
 

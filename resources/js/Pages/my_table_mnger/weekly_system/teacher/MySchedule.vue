@@ -1,5 +1,5 @@
 <template>
-  <Head title="My Weekly Schedule" />
+  <Head :title="t('weeklySystem.mySchedule.title')" />
   <div class="q-pa-md">
     <WeeklyPlanMenu />
     <!-- Page Header -->
@@ -7,10 +7,10 @@
       <div class="col">
         <h4 class="q-ma-none text-weight-bold">
           <q-icon name="calendar_month" class="q-mr-sm" color="primary" />
-          My Schedule
+          {{ t('weeklySystem.mySchedule.title') }}
         </h4>
         <p class="text-grey-7 q-mb-none">
-          View your weekly teaching schedule
+          {{ t('weeklySystem.mySchedule.subtitle') }}
         </p>
       </div>
     </div>
@@ -23,8 +23,8 @@
     <!-- Empty State -->
     <q-card v-else-if="!schedules.length" flat bordered class="text-center q-pa-xl">
       <q-icon name="event_busy" size="64px" color="grey-5" />
-      <p class="text-h6 text-grey-7 q-mt-md">No schedule found</p>
-      <p class="text-grey-6">Your teaching schedule will appear here once assigned</p>
+      <p class="text-h6 text-grey-7 q-mt-md">{{ t('weeklySystem.schoolBrowser.noDataTitle') }}</p>
+      <p class="text-grey-6">{{ t('weeklySystem.mySchedule.emptyState') }}</p>
     </q-card>
 
     <!-- Teacher Timetable -->
@@ -33,7 +33,7 @@
       <div class="grid-row header-row">
         <div class="grid-cell period-header"></div>
         <div v-for="day in days" :key="day.value" class="grid-cell day-header">
-          {{ day.label }}
+          {{ t(`weeklyPlans.shortDays.${day.value}`) }}
         </div>
       </div>
 
@@ -50,14 +50,16 @@
             :style="getScheduleStyle(day.value, period)"
             @click="openWeeklyPlan(day.value, period)"
           >
-            <div class="subject-name">{{ getSchedule(day.value, period)?.cst?.subject_name }}</div>
-            <div class="classroom-name text-caption">
-              <q-icon name="meeting_room" size="xs" />
-              {{ getSchedule(day.value, period)?.cst?.classroom_name }}
+            <div class="card-content">
+              <div class="subject">{{ getSchedule(day.value, period).cst?.subject_name }}</div>
+              <div class="classroom">
+                <q-icon name="meeting_room" size="xs" />
+                {{ getSchedule(day.value, period).cst?.classroom_name }}
+              </div>
             </div>
           </div>
           <div v-else class="free-period text-caption text-grey-5">
-            Free
+            {{ t('weeklySystem.mySchedule.free') }}
           </div>
         </div>
       </div>
@@ -68,15 +70,15 @@
       <div class="row q-gutter-lg justify-center">
         <div class="text-center">
           <div class="text-h4 text-primary">{{ totalClasses }}</div>
-          <div class="text-caption text-grey-7">Total Classes</div>
+          <div class="text-caption text-grey-7">{{ t('weeklySystem.mySchedule.totalClasses') }}</div>
         </div>
         <div class="text-center">
           <div class="text-h4 text-secondary">{{ uniqueClassrooms }}</div>
-          <div class="text-caption text-grey-7">Classrooms</div>
+          <div class="text-caption text-grey-7">{{ t('weeklySystem.mySchedule.classrooms') }}</div>
         </div>
         <div class="text-center">
           <div class="text-h4 text-accent">{{ uniqueSubjects }}</div>
-          <div class="text-caption text-grey-7">Subjects</div>
+          <div class="text-caption text-grey-7">{{ t('weeklySystem.mySchedule.subjects') }}</div>
         </div>
       </div>
     </q-card>
@@ -85,24 +87,27 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useQuasar } from 'quasar'
 import { router } from '@inertiajs/vue3'
 import axios from 'axios'
 import WeeklyPlanMenu from '../WeeklyPlanMenu.vue'
 
+const { t } = useI18n()
 const $q = useQuasar()
 
 // Data
 const schedules = ref([])
 const loading = ref(false)
 
-const days = [
-  { value: 1, label: 'Sunday' },
-  { value: 2, label: 'Monday' },
-  { value: 3, label: 'Tuesday' },
-  { value: 4, label: 'Wednesday' },
-  { value: 5, label: 'Thursday' }
-]
+// Days of the week
+const days = computed(() => [
+  { value: 1, label: t('weeklyPlans.fullDays.1') },
+  { value: 2, label: t('weeklyPlans.fullDays.2') },
+  { value: 3, label: t('weeklyPlans.fullDays.3') },
+  { value: 4, label: t('weeklyPlans.fullDays.4') },
+  { value: 5, label: t('weeklyPlans.fullDays.5') }
+])
 
 const periods = [1, 2, 3, 4, 5, 6, 7, 8]
 
@@ -150,7 +155,7 @@ const fetchSchedule = async () => {
     schedules.value = response.data.data || response.data || []
   } catch (error) {
     console.error('Error fetching schedule:', error)
-    $q.notify({ type: 'negative', message: 'Failed to load your schedule' })
+    $q.notify({ type: 'negative', message: t('weeklySystem.notifications.loadFailed') })
   } finally {
     loading.value = false
   }

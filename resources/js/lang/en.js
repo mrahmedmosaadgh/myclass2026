@@ -1,4 +1,4 @@
-export default {
+ export default {
     documentation: {
         new: 'New Documentation',
         edit: 'Edit Documentation',
@@ -50,7 +50,42 @@ export default {
             empty: 'Empty',
             partial: 'Partial',
             completed: 'Completed'
-        }
+        },
+        aiGenerate: 'Generate via AI',
+        selectClassroomFirst: 'Select a classroom first',
+        noActiveSchedule: 'No active schedule copy found',
+        total: 'total',
+        allClassrooms: 'All Classrooms',
+        confirmDelete: 'Are you sure you want to delete',
+        actionCannotBeUndone: 'This action cannot be undone.',
+        activatedSuccessfully: 'Activated successfully',
+        archivedSuccessfully: 'Archived successfully',
+        createdSuccessfully: 'Created successfully',
+        updatedSuccessfully: 'Updated successfully',
+        deletedSuccessfully: 'Deleted successfully',
+        errors: {
+            fetchFailed: 'Failed to fetch data',
+            submitFailed: 'Failed to submit data',
+            activateFailed: 'Failed to activate',
+            archiveFailed: 'Failed to archive',
+            deleteFailed: 'Failed to delete'
+        },
+        assigned: 'Assigned',
+        conflicts: 'Conflicts',
+        noConflicts: 'No conflicts',
+        empty: 'Empty',
+        aiGenerate: 'Generate via AI',
+        selectClassroomFirst: 'Select a classroom first',
+        noActiveSchedule: 'No active schedule copy found',
+        total: 'total',
+        allClassrooms: 'All Classrooms',
+        confirmDelete: 'Are you sure you want to delete',
+        actionCannotBeUndone: 'This action cannot be undone.',
+        activatedSuccessfully: 'Activated successfully',
+        archivedSuccessfully: 'Archived successfully',
+        createdSuccessfully: 'Created successfully',
+        updatedSuccessfully: 'Updated successfully',
+        deletedSuccessfully: 'Deleted successfully',
     },
     permissions: {
         dashboard: 'Permissions Dashboard',
@@ -343,6 +378,8 @@ export default {
         noMissingPlans: 'No missing plans for this week.',
         selectMissingPlans: 'Select the missing plans you want to create',
         createPlans: 'Create {count} Plans',
+        allClassrooms: 'All Classrooms',
+        currentClassroom: 'Current Classroom',
         shortDays: {
             1: 'Sun',
             2: 'Mon',
@@ -431,6 +468,76 @@ export default {
                 pasteFailed: 'Paste failed. Check browser permissions.',
                 enterUrl: 'Please enter a URL'
             }
+        }
+    },
+    // Weekly system menu items and other components
+    weeklySystem: {
+        menu: {
+            schoolBrowser: 'School Browser',
+            manager: 'Manager',
+            scheduleCopies: 'Schedule Copies',
+            timetable: 'Timetable',
+            mySchedule: 'My Schedule',
+            myPlans: 'My Plans',
+        },
+        schoolBrowser: {
+            title: 'School Browser',
+            subtitle: 'Browse schools, classrooms, subjects, and teachers',
+            overviewTab: 'Overview',
+            classroomsTab: 'Classrooms',
+            assignmentsTab: 'Assignments',
+            selectSchool: 'Select a school and configure its settings',
+            selectSchoolHint: 'Choose a school from the dropdown above and set academic year, semester, and schedule copy',
+            noDataTitle: 'No Data Available',
+            noDataSubtitle: 'Please configure the school settings first',
+        },
+        scheduleCopies: {
+            title: 'Schedule Copies Management',
+            subtitle: 'Manage different versions of schedules',
+        },
+        timetableEditor: {
+            title: 'Timetable Editor',
+            subtitle: 'Edit and manage class schedules',
+            activateSchedule: 'Activate Schedule',
+            selectClassroom: 'Select Classroom',
+            chooseClassroom: 'Choose Classroom',
+            conflictDetails: 'Conflict Details',
+            assignedTo: 'Assigned to'
+        },
+        weeklyPlansManager: {
+            title: 'Weekly Plans Manager',
+            subtitle: 'Generate, monitor and print weekly plans for teachers',
+            activateSchedule: 'Activate Schedule',
+        },
+        mySchedule: {
+            title: 'My Schedule',
+            subtitle: 'View your personal teaching schedule',
+        },
+        myWeeklyPlans: {
+            title: 'My Weekly Plans',
+            subtitle: 'Fill in your weekly lesson plans',
+            tableView: 'Table View',
+            noClassroom: 'No classroom',
+            noSubject: 'No subject',
+            classwork: 'Classwork',
+            homework: 'Homework',
+            notes: 'Notes',
+            noClasswork: 'No classwork entered',
+            noHomework: 'No homework entered',
+            noNotes: 'No notes entered',
+            copied: 'Copied',
+            paste: 'Paste',
+            edit: 'Edit',
+            save: 'Save',
+            cancel: 'Cancel',
+            noPlans: 'No plans for this week',
+            selectWeek: 'Please select a week to view plans',
+        },
+        weekSelector: {
+            currentWeek: 'Current Week',
+            lastWeek: 'Last Week',
+            nextWeek: 'Next Week',
+            selectWeek: 'Select Week',
         }
     }
 };

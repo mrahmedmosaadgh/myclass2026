@@ -4,7 +4,7 @@
 
   <q-card flat bordered class="q-mb-md bg-white">
     <div class="row items-center q-px-md"> 
-      <div class="text-h6 q-mr-lg text-primary text-weight-bold">Weekly Plan</div>
+      <div class="text-h6 q-mr-lg text-primary text-weight-bold">{{ t('weeklyPlans.weeklyLearningPlan') }}</div>
       <q-separator vertical inset class="q-mr-md" />
       
       <q-tabs
@@ -26,7 +26,7 @@
            >
              <q-tab
                :name="item.route"
-               :label="item.label"
+               :label="t(item.labelKey)"
                :icon="item.icon"
                @click="slotProps?.navigate"
                :class="{ 'text-primary': slotProps?.isActive }"
@@ -45,7 +45,7 @@
         color="primary"
         @click="showGuide = true"
       >
-        <q-tooltip>Weekly System Guide</q-tooltip>
+        <q-tooltip>{{ t('weeklySystem.weeklyPlansManager.title') }}</q-tooltip>
       </q-btn>
     </div>
     
@@ -56,23 +56,25 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { Link } from '@inertiajs/vue3';
+import { useI18n } from 'vue-i18n';
 import WeeklySystemGuide from './components/WeeklySystemGuide.vue';
 import MainSchoolData from './components/MainSchoolData.vue'; // Import the component from the shared components directory
 // According to the specification, this component is shared across the weekly system
 // but currently located in the admin section
 
+const { t } = useI18n();
 const showGuide = ref(false);
 
 const menuItems = [
   // Admin Routes
-  { label: 'School Browser', route: 'weekly-system.school-browser', icon: 'school' },
-  { label: 'Manager', route: 'weekly-system.weekly-plans-manager', icon: 'dashboard' },
-  { label: 'Schedule Copies', route: 'weekly-system.schedule-copies.index', icon: 'content_copy' },
-  { label: 'Timetable', route: 'weekly-system.timetable-editor', icon: 'edit_calendar' },
+  { labelKey: 'weeklySystem.menu.schoolBrowser', route: 'weekly-system.school-browser', icon: 'school' },
+  { labelKey: 'weeklySystem.menu.manager', route: 'weekly-system.weekly-plans-manager', icon: 'dashboard' },
+  { labelKey: 'weeklySystem.menu.scheduleCopies', route: 'weekly-system.schedule-copies.index', icon: 'content_copy' },
+  { labelKey: 'weeklySystem.menu.timetable', route: 'weekly-system.timetable-editor', icon: 'edit_calendar' },
   
   // Teacher Routes
-  { label: 'My Schedule', route: 'weekly-system.my-schedule', icon: 'schedule' },
-  { label: 'My Plans', route: 'weekly-system.my-weekly-plans', icon: 'event_note' },
+  { labelKey: 'weeklySystem.menu.mySchedule', route: 'weekly-system.my-schedule', icon: 'schedule' },
+  { labelKey: 'weeklySystem.menu.myPlans', route: 'weekly-system.my-weekly-plans', icon: 'event_note' },
 ];
 
 const currentTab = computed(() => {

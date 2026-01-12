@@ -107,6 +107,29 @@ class Student extends Model
                 ]);
             }
         });
+
+        // Track classroom and grade changes
+        static::updating(function ($student) {
+            if ($student->isDirty('classroom_id') || $student->isDirty('grade_id')) {
+                $original = $student->getOriginal();
+                
+                // Only log if there was a previous classroom (not initial assignment)
+                if ($original['classroom_id']) {
+                    StudentClassroomHistory::create([
+                        'student_id' => $student->id,
+                        'from_classroom_id' => $original['classroom_id'],
+                        'to_classroom_id' => $student->classroom_id,
+                        'from_grade_id' => $original['grade_id'],
+                        'to_grade_id' => $student->grade_id,
+                        'academic_year_id' => $student->getActiveAcademicYearId(),
+                        'semester_id' => $student->getActiveSemesterId(),
+                        'changed_by_user_id' => auth()->id() ?? 1,
+                        'change_reason' => 'Manual update',
+                        'changed_at' => now(),
+                    ]);
+                }
+            }
+        });
     }
 
     /**
@@ -164,6 +187,11 @@ class Student extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
+
+    public function classroomHistories()
+    {
+        return $this->hasMany(StudentClassroomHistory::class)->orderBy('changed_at', 'desc');
+    }
     // Accessor methods
     public function getSchoolNameAttribute()
     {
@@ -214,6 +242,72 @@ class Student extends Model
         $count = count($parts);
         if ($count > 2) return implode(' ', array_slice($parts, 1, $count - 2));
         return '';
+    }
+
+    /**
+     * Helper methods for classroom management
+     */
+    public function changeClassroom($newClassroomId, $newGradeId, $reason, $notes = null)
+    {
+        $oldClassroomId = $this->classroom_id;
+        $oldGradeId = $this->grade_id;
+
+        $this->classroom_id = $newClassroomId;
+        $this->grade_id = $newGradeId;
+        $this->save();
+
+        // Log the change with custom reason
+        if ($oldClassroomId) {
+            StudentClassroomHistory::create([
+                'student_id' => $this->id,
+                'from_classroom_id' => $oldClassroomId,
+                'to_classroom_id' => $newClassroomId,
+                'from_grade_id' => $oldGradeId,
+                'to_grade_id' => $newGradeId,
+                'academic_year_id' => $this->getActiveAcademicYearId(),
+                'semester_id' => $this->getActiveSemesterId(),
+                'changed_by_user_id' => auth()->id() ?? 1,
+                'change_reason' => $reason,
+                'notes' => $notes,
+                'changed_at' => now(),
+            ]);
+        }
+
+        return $this;
+    }
+
+    public function promoteToNextGrade($targetGradeId, $targetClassroomId, $academicYearId, $reason = 'Year-end promotion')
+    {
+        return $this->changeClassroom($targetClassroomId, $targetGradeId, $reason);
+    }
+
+    protected function getActiveAcademicYearId()
+    {
+        // Get active academic year for the student's school
+        return $this->school->academic_year_id ?? null;
+    }
+
+    protected function getActiveSemesterId()
+    {
+        // Get active semester for the student's school
+        return $this->school->semester_id ?? null;
+    }
+
+    /**
+     * Query scopes
+     */
+    public function scopeSearch($query, $term)
+    {
+        return $query->where(function ($q) use ($term) {
+            $q->where('name', 'like', "%{$term}%")
+              ->orWhere('name_ar', 'like', "%{$term}%")
+              ->orWhere('s_id', 'like', "%{$term}%");
+        });
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->whereNull('deleted_at');
     }
 
 

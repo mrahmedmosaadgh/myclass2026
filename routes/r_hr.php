@@ -132,6 +132,16 @@ Route::post('/schedule-copies/{id}/execute-schedule-changes', [ScheduleCopyContr
         ->name('students.get-school-students');
     Route::post('students/import', [StudentController::class, 'import'])
         ->name('students.import');
+    
+    // Student Promotion Routes
+    Route::post('students/promote', [StudentController::class, 'promoteStudents'])
+        ->name('students.promote');
+    Route::post('students/promotion-preview', [StudentController::class, 'getPromotionPreview'])
+        ->name('students.promotion-preview');
+    Route::get('students/classroom-mapping-suggestions', [StudentController::class, 'getClassroomMappingSuggestions'])
+        ->name('students.classroom-mapping-suggestions');
+    Route::get('students/{student}/classroom-history', [StudentController::class, 'getClassroomHistory'])
+        ->name('students.classroom-history');
 
 
      Route::post('subject/import', [SubjectController::class, 'import'])

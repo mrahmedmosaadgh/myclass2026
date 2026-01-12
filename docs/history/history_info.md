@@ -29,7 +29,7 @@ Once the feature or bug fix is finished and verified:
 
 ---
 
- create the required history file in docs/history with the correct timestamped name and title, then stage, commit with the specified message format, and push to your current branch.
+
 
 ## 📝 3. History File Guidelines
 - Always place files in `docs/history/`.
@@ -86,3 +86,24 @@ If any changes involve database columns or tables:
 1.  **Backup Database**: ask me to manual database bacup.
  
 3.  **Migration Backup**: Backup the migration files specifically if requested.
+
+
+
+hp artisan config:cache
+php artisan route:cache
+php artisan view:cache
+php artisan optimize
+
+php artisan serve
+npm run dev
+npm run build
+php artisan migrate
+php artisan db:seed
+
+
+ create the required history file in docs/history with the correct timestamped name and title, then stage, commit with the specified message format, and push to your current branch.
+
+
+
+
+

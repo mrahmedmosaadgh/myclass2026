@@ -1,630 +1,1157 @@
 <template>
-    <Head title="Students" />
-        <div class="py-12">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-6">
-                    <div v-if="$page.props.flash?.success"
-                         class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-                        {{ $page.props.flash.success }}
-                    </div>
+  <div class="q-pa-md">
+    <!-- Header Section -->
+    <div class="row items-center q-mb-md">
+      <div class="col">
+        <div class="text-h4 text-weight-bold">
+          <q-icon name="school" class="q-mr-sm" />
+          Student Management
+        </div>
+        <div class="text-subtitle2 text-grey-7">
+          Manage students, classrooms, and promotions
+        </div>
+      </div>
+      <div class="col-auto">
+        <q-btn-group push>
+          <q-btn
+            color="primary"
+            icon="add"
+            label="Add Student"
+            @click="openStudentDialog()"
+            :disable="!canAddStudent"
+            unelevated
+          >
+            <q-tooltip v-if="!canAddStudent">
+              Please select School, Grade, and Classroom first
+            </q-tooltip>
+          </q-btn>
+          <q-btn
+            color="secondary"
+            icon="upgrade"
+            label="Promote Students"
+            @click="showPromotionDialog = true"
+            unelevated
+          />
+          <q-btn
+            color="info"
+            icon="upload_file"
+            label="Import"
+            @click="triggerImport"
+            :disable="!canAddStudent"
+            unelevated
+          >
+            <q-tooltip v-if="!canAddStudent">
+              Please select School, Grade, and Classroom first
+            </q-tooltip>
+          </q-btn>
+          <q-btn
+            color="positive"
+            icon="download"
+            label="Export"
+            @click="handleExport"
+            unelevated
+          />
+        </q-btn-group>
+      </div>
+    </div>
 
-                    <div class="flex justify-between items-center mb-6">
-                        <div class="flex space-x-2">
-                            <PrimaryButton @click="openModal()">
-                                Add New Student
-                            </PrimaryButton>
-                            <div class="mb-6">
-                                <SecondaryButton @click="showColumnManager = !showColumnManager">
-                                    Manage Import Columns
-                                </SecondaryButton>
+    <!-- Statistics Cards -->
+    <div class="row q-col-gutter-md q-mb-md">
+      <div class="col-12 col-md-3">
+        <q-card flat bordered>
+          <q-card-section class="bg-primary text-white">
+            <div class="text-h6">{{ totalStudents }}</div>
+            <div class="text-caption">Total Students</div>
+          </q-card-section>
+        </q-card>
+      </div>
+      <div class="col-12 col-md-3">
+        <q-card flat bordered>
+          <q-card-section class="bg-secondary text-white">
+            <div class="text-h6">{{ selectedSchoolStudents }}</div>
+            <div class="text-caption">In Selected School</div>
+          </q-card-section>
+        </q-card>
+      </div>
+      <div class="col-12 col-md-3">
+        <q-card flat bordered>
+          <q-card-section class="bg-positive text-white">
+            <div class="text-h6">{{ filteredCount }}</div>
+            <div class="text-caption">Filtered Results</div>
+          </q-card-section>
+        </q-card>
+      </div>
+      <div class="col-12 col-md-3">
+        <q-card flat bordered>
+          <q-card-section class="bg-info text-white">
+            <div class="text-h6">{{ selectedCount }}</div>
+            <div class="text-caption">Selected</div>
+          </q-card-section>
+        </q-card>
+      </div>
+    </div>
 
-                                <div   class="mt-4">
-                                    <ColumnManager
-
-                                        :show="showColumnManager"
-                                        v-model:columns="importColumns"
-                                        @close="showColumnManager = false"
-                                    />
-                                </div>
-                            </div>
-                            <ImportExcel
-                                @imported="refreshData"
-                                :validate-url="baseUrl + '/validate-import'"
-                                :import-url="baseUrl + '/import'"
-                                :undo-url="baseUrl + '/undo-import'"
-                                :columns="importColumns"
-                                button-text="Import Students"
-                                preview-title="Preview Student Data"
-                            />
-                            <SecondaryButton @click="handleExport('excel')">
-                                Export Excel
-                            </SecondaryButton>
-                            <SecondaryButton @click="handleExport('csv')">
-                                Export CSV
-                            </SecondaryButton>
-                        </div>
-                    </div>
-<button @click="first()">first</button>
-                    <StudentFilters
-                        :schools="localSchools"
-                        @filter-applied="handleFilterApplied"
-                    />
-
-                    <DataTable
-                        :columns="tableColumns"
-                        :items="items"
-                        :loading="false"
-                        @edit="openModal"
-                        @delete="deleteRecord"
-                    />
-
-                    <Pagination
-                        v-if="pagination"
-                        :links="pagination"
-                    />
-                </div>
+    <!-- Filters Section -->
+    <q-card flat bordered class="q-mb-md">
+      <q-card-section>
+        <div class="row items-center q-mb-sm">
+          <div class="col">
+            <div class="text-h6">
+              <q-icon name="filter_list" class="q-mr-sm" />
+              Filters
             </div>
+          </div>
+          <div class="col-auto">
+            <q-btn
+              flat
+              dense
+              icon="clear"
+              label="Clear All"
+              @click="clearFilters"
+              color="negative"
+            />
+          </div>
         </div>
 
-        <FormModal
-            :show="showModal"
-            :editing="editingData"
-            :fields="formFields"
-            title="Student"
-            @close="closeModal"
-            @submitted="handleSubmit"
-        >
-            <template #default>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Name Fields -->
-                    <div>
-                        <InputLabel for="name" value="Name" required />
-                        <TextInput
-                            id="name"
-                            v-model="form.name"
-                            type="text"
-                            class="mt-1 block w-full"
-                            :error="formErrors.name"
-                        />
-                        <InputError :message="formErrors.name" class="mt-1" />
-                    </div>
+        <div class="row q-col-gutter-md">
+          <div class="col-12 col-md-3">
+            <q-select
+              v-model="filters.school_id"
+              :options="schools"
+              option-value="id"
+              option-label="name"
+              label="School"
+              outlined
+              dense
+              clearable
+              emit-value
+              map-options
+              @update:model-value="onSchoolChange"
+            >
+              <template v-slot:prepend>
+                <q-icon name="business" />
+              </template>
+            </q-select>
+          </div>
 
-                    <div>
-                        <InputLabel for="name_ar" value="Arabic Name" />
-                        <TextInput
-                            id="name_ar"
-                            v-model="form.name_ar"
-                            type="text"
-                            class="mt-1 block w-full"
-                            :error="formErrors.name_ar"
-                        />
-                        <InputError :message="formErrors.name_ar" class="mt-1" />
-                    </div>
+          <div class="col-12 col-md-3">
+            <q-select
+              v-model="filters.stage_id"
+              :options="stages"
+              option-value="id"
+              option-label="name"
+              label="Stage"
+              outlined
+              dense
+              clearable
+              emit-value
+              map-options
+              :disable="!filters.school_id"
+              @update:model-value="onStageChange"
+            >
+              <template v-slot:prepend>
+                <q-icon name="layers" />
+              </template>
+            </q-select>
+          </div>
 
-                    <div>
-                        <InputLabel for="name_cute" value="Nickname" />
-                        <TextInput
-                            id="name_cute"
-                            v-model="form.name_cute"
-                            type="text"
-                            class="mt-1 block w-full"
-                            :error="formErrors.name_cute"
-                        />
-                        <InputError :message="formErrors.name_cute" class="mt-1" />
-                    </div>
+          <div class="col-12 col-md-3">
+            <q-select
+              v-model="filters.grade_id"
+              :options="grades"
+              option-value="id"
+              option-label="name"
+              label="Grade"
+              outlined
+              dense
+              clearable
+              emit-value
+              map-options
+              :disable="!filters.stage_id"
+              @update:model-value="onGradeChange"
+            >
+              <template v-slot:prepend>
+                <q-icon name="school" />
+              </template>
+            </q-select>
+          </div>
 
-                    <!-- School Selection -->
-                    <div>
-                        <InputLabel for="school_id" value="School" required />
-                        <select
-                            id="school_id"
-                            v-model="form.school_id"
-                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
-                            :class="{ 'border-red-500': formErrors.school_id }"
-                        >
-                            <option value="">Select School</option>
-                            <option v-for="school in localSchools" :key="school.id" :value="school.id">
-                                {{ school.name }}
-                            </option>
-                        </select>
-                        <InputError :message="formErrors.school_id" class="mt-1" />
-                    </div>
+          <div class="col-12 col-md-3">
+            <q-select
+              v-model="filters.classroom_id"
+              :options="classrooms"
+              option-value="id"
+              option-label="name"
+              label="Classroom"
+              outlined
+              dense
+              clearable
+              emit-value
+              map-options
+              :disable="!filters.grade_id"
+              @update:model-value="applyFilters"
+            >
+              <template v-slot:prepend>
+                <q-icon name="meeting_room" />
+              </template>
+            </q-select>
+          </div>
 
-                    <!-- Stage Selection -->
-                    <div>
-                        <InputLabel for="stage_id" value="Stage" required />
-                        <select
-                            id="stage_id"
-                            v-model="form.stage_id"
-                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
-                            :class="{ 'border-red-500': formErrors.stage_id }"
-                        >
-                            <option value="">Select Stage</option>
-                            <option v-for="stage in stages" :key="stage.id" :value="stage.id">
-                                {{ stage.name }}
-                            </option>
-                        </select>
-                        <InputError :message="formErrors.stage_id" class="mt-1" />
-                    </div>
+          <div class="col-12 col-md-6">
+            <q-input
+              v-model="filters.search"
+              label="Search by name or ID"
+              outlined
+              dense
+              clearable
+              @update:model-value="debouncedSearch"
+            >
+              <template v-slot:prepend>
+                <q-icon name="search" />
+              </template>
+            </q-input>
+          </div>
+        </div>
+      </q-card-section>
+    </q-card>
 
-                    <!-- Grade Selection -->
-                    <div>
-                        <InputLabel for="grade_id" value="Grade" required />
-                        <select
-                            id="grade_id"
-                            v-model="form.grade_id"
-                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
-                            :class="{ 'border-red-500': formErrors.grade_id }"
-                            :disabled="!form.stage_id"
-                        >
-                            <option value="">Select Grade</option>
-                            <option v-for="grade in grades" :key="grade.id" :value="grade.id">
-                                {{ grade.name }}
-                            </option>
-                        </select>
-                        <InputError :message="formErrors.grade_id" class="mt-1" />
-                    </div>
+    <!-- Data Table -->
+    <q-card flat bordered>
+      <q-table
+        :rows="students"
+        :columns="columns"
+        row-key="id"
+        :loading="loading"
+        :pagination="pagination"
+        @request="onRequest"
+        selection="multiple"
+        v-model:selected="selected"
+        flat
+        :rows-per-page-options="[10, 25, 50, 100]"
+      >
+        <template v-slot:top>
+          <div class="col-12">
+            <div class="text-h6">Students List</div>
+            <div v-if="selected.length > 0" class="text-caption text-grey-7">
+              {{ selected.length }} student(s) selected
+            </div>
+          </div>
+        </template>
 
-                    <!-- Classroom Selection -->
-                    <div>
-                        <InputLabel for="classroom_id" value="Classroom" required />
-                        <select
-                            id="classroom_id"
-                            v-model="form.classroom_id"
-                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
-                            :class="{ 'border-red-500': formErrors.classroom_id }"
-                            :disabled="!form.grade_id"
-                        >
-                            <option value="">Select Classroom</option>
-                            <option v-for="classroom in classrooms" :key="classroom.id" :value="classroom.id">
-                                {{ classroom.name }}
-                            </option>
-                        </select>
-                        <InputError :message="formErrors.classroom_id" class="mt-1" />
-                    </div>
+        <template v-slot:body-cell-avatar="props">
+          <q-td :props="props">
+            <q-avatar color="primary" text-color="white" size="md">
+              {{ getInitials(props.row.name) }}
+            </q-avatar>
+          </q-td>
+        </template>
 
-                    <!-- Notes -->
-                    <div class="col-span-full">
-                        <InputLabel for="notes" value="Notes" />
-                        <textarea
-                            id="notes"
-                            v-model="form.notes"
-                            rows="3"
-                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
-                            :class="{ 'border-red-500': formErrors.notes }"
-                        ></textarea>
-                        <InputError :message="formErrors.notes" class="mt-1" />
-                    </div>
-                </div>
+        <template v-slot:body-cell-name="props">
+          <q-td :props="props">
+            <div class="text-weight-bold">{{ props.row.name }}</div>
+            <div class="text-caption text-grey-7">{{ props.row.name_ar }}</div>
+          </q-td>
+        </template>
+
+        <template v-slot:body-cell-s_id="props">
+          <q-td :props="props">
+            <q-badge color="grey-7" outline>
+              {{ props.row.s_id }}
+            </q-badge>
+          </q-td>
+        </template>
+
+        <template v-slot:body-cell-school="props">
+          <q-td :props="props">
+            <div>{{ props.row.school?.name }}</div>
+          </q-td>
+        </template>
+
+        <template v-slot:body-cell-classroom="props">
+          <q-td :props="props">
+            <q-badge color="secondary">
+              {{ props.row.classroom?.name }}
+            </q-badge>
+          </q-td>
+        </template>
+
+        <template v-slot:body-cell-grade="props">
+          <q-td :props="props">
+            <div>{{ props.row.grade?.name }}</div>
+          </q-td>
+        </template>
+
+        <template v-slot:body-cell-actions="props">
+          <q-td :props="props">
+            <q-btn-group flat>
+              <q-btn
+                flat
+                dense
+                round
+                icon="edit"
+                color="primary"
+                @click="openStudentDialog(props.row)"
+              >
+                <q-tooltip>Edit</q-tooltip>
+              </q-btn>
+              <q-btn
+                flat
+                dense
+                round
+                icon="history"
+                color="info"
+                @click="viewHistory(props.row)"
+              >
+                <q-tooltip>View History</q-tooltip>
+              </q-btn>
+              <q-btn
+                flat
+                dense
+                round
+                icon="delete"
+                color="negative"
+                @click="deleteStudent(props.row)"
+              >
+                <q-tooltip>Delete</q-tooltip>
+              </q-btn>
+            </q-btn-group>
+          </q-td>
+        </template>
+
+        <template v-slot:no-data>
+          <div class="full-width row flex-center q-gutter-sm q-pa-lg">
+            <q-icon size="2em" name="sentiment_dissatisfied" />
+            <span>No students found. Try adjusting your filters.</span>
+          </div>
+        </template>
+      </q-table>
+    </q-card>
+
+    <!-- Bulk Actions Toolbar (appears when students selected) -->
+    <q-page-sticky position="bottom" :offset="[0, 18]" v-if="selected.length > 0">
+      <q-toolbar class="bg-primary text-white shadow-up-2">
+        <q-toolbar-title>
+          {{ selected.length }} student(s) selected
+        </q-toolbar-title>
+        <q-btn
+          flat
+          label="Change Classroom"
+          icon="meeting_room"
+          @click="bulkChangeClassroom"
+        />
+        <q-btn
+          flat
+          label="Export Selected"
+          icon="download"
+          @click="exportSelected"
+        />
+        <q-btn
+          flat
+          label="Delete Selected"
+          icon="delete"
+          @click="bulkDelete"
+        />
+        <q-btn
+          flat
+          round
+          dense
+          icon="close"
+          @click="selected = []"
+        />
+      </q-toolbar>
+    </q-page-sticky>
+
+    <!-- Student Form Dialog -->
+    <q-dialog v-model="showStudentDialog" persistent>
+      <q-card style="min-width: 600px">
+        <q-card-section class="bg-primary text-white">
+          <div class="text-h6">
+            {{ editingStudent ? 'Edit Student' : 'Add New Student' }}
+          </div>
+          <div v-if="!editingStudent" class="text-caption">
+            Adding to: {{ getSelectedContext() }}
+          </div>
+        </q-card-section>
+
+        <q-card-section>
+          <!-- Context Info Banner (for new students) -->
+          <q-banner v-if="!editingStudent" class="bg-info text-white q-mb-md" rounded>
+            <template v-slot:avatar>
+              <q-icon name="info" />
             </template>
-        </FormModal>
+            <div class="text-weight-bold">Selected Context:</div>
+            <div>{{ getSelectedSchoolName() }} → {{ getSelectedGradeName() }} → {{ getSelectedClassroomName() }}</div>
+          </q-banner>
+
+          <div class="row q-col-gutter-md">
+            <div class="col-12 col-md-6">
+              <q-input
+                v-model="studentForm.name"
+                label="Name *"
+                outlined
+                :rules="[val => !!val || 'Name is required']"
+              />
+            </div>
+            <div class="col-12 col-md-6">
+              <q-input
+                v-model="studentForm.name_ar"
+                label="Arabic Name"
+                outlined
+              />
+            </div>
+            <div class="col-12 col-md-6">
+              <q-input
+                v-model="studentForm.name_cute"
+                label="Nickname"
+                outlined
+              />
+            </div>
+            
+            <!-- Show these fields only when editing -->
+            <template v-if="editingStudent">
+              <div class="col-12 col-md-6">
+                <q-select
+                  v-model="studentForm.school_id"
+                  :options="schools"
+                  option-value="id"
+                  option-label="name"
+                  label="School *"
+                  outlined
+                  emit-value
+                  map-options
+                  :rules="[val => !!val || 'School is required']"
+                  @update:model-value="onFormSchoolChange"
+                />
+              </div>
+              <div class="col-12 col-md-6">
+                <q-select
+                  v-model="studentForm.stage_id"
+                  :options="formStages"
+                  option-value="id"
+                  option-label="name"
+                  label="Stage *"
+                  outlined
+                  emit-value
+                  map-options
+                  :disable="!studentForm.school_id"
+                  :rules="[val => !!val || 'Stage is required']"
+                  @update:model-value="onFormStageChange"
+                />
+              </div>
+              <div class="col-12 col-md-6">
+                <q-select
+                  v-model="studentForm.grade_id"
+                  :options="formGrades"
+                  option-value="id"
+                  option-label="name"
+                  label="Grade *"
+                  outlined
+                  emit-value
+                  map-options
+                  :disable="!studentForm.stage_id"
+                  :rules="[val => !!val || 'Grade is required']"
+                  @update:model-value="onFormGradeChange"
+                />
+              </div>
+              <div class="col-12">
+                <q-select
+                  v-model="studentForm.classroom_id"
+                  :options="formClassrooms"
+                  option-value="id"
+                  option-label="name"
+                  label="Classroom *"
+                  outlined
+                  emit-value
+                  map-options
+                  :disable="!studentForm.grade_id"
+                  :rules="[val => !!val || 'Classroom is required']"
+                />
+              </div>
+            </template>
+            <div class="col-12">
+              <q-input
+                v-model="studentForm.notes"
+                label="Notes"
+                outlined
+                type="textarea"
+                rows="3"
+              />
+            </div>
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" color="negative" v-close-popup />
+          <q-btn
+            unelevated
+            label="Save"
+            color="primary"
+            @click="saveStudent"
+            :loading="saving"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- Student Promotion Dialog -->
+    <StudentPromotionDialog
+      v-model="showPromotionDialog"
+      :grades="allGrades"
+      :academic-years="academicYears"
+      @promoted="onPromotionComplete"
+    />
+
+    <!-- Import Dialog -->
+    <q-dialog v-model="showImportDialog" persistent>
+      <q-card style="min-width: 700px; max-width: 90vw">
+        <q-card-section class="bg-info text-white">
+          <div class="text-h6">Import Students</div>
+          <div class="text-caption">
+            Importing to: {{ getSelectedContext() }}
+          </div>
+        </q-card-section>
+
+        <q-card-section v-if="!importPreviewData.length">
+          <q-file
+            v-model="importFile"
+            label="Select Excel file"
+            accept=".xlsx,.xls"
+            outlined
+            @update:model-value="handleFileUpload"
+          >
+            <template v-slot:prepend>
+              <q-icon name="attach_file" />
+            </template>
+          </q-file>
+          
+          <q-banner class="bg-grey-2 q-mt-md" rounded>
+            <template v-slot:avatar>
+              <q-icon name="info" color="info" />
+            </template>
+            <div class="text-caption">
+              <strong>Required columns:</strong> name<br>
+              <strong>Optional columns:</strong> name_ar, name_cute, notes
+            </div>
+          </q-banner>
+        </q-card-section>
+
+        <q-card-section v-else class="q-pt-none" style="max-height: 400px; overflow-y: auto">
+          <div class="text-subtitle2 q-mb-sm">Preview ({{ importPreviewData.length }} students)</div>
+          <q-table
+            :rows="importPreviewData"
+            :columns="importPreviewColumns"
+            row-key="index"
+            flat
+            dense
+            :pagination="{ rowsPerPage: 10 }"
+          />
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" color="negative" @click="closeImportDialog" />
+          <q-btn
+            v-if="importPreviewData.length"
+            unelevated
+            label="Import All"
+            color="primary"
+            @click="executeImport"
+            :loading="importing"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+
+  </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
-import { router, Head } from '@inertiajs/vue3';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import SecondaryButton from '@/Components/SecondaryButton.vue';
-import Pagination from '@/Components/Pagination.vue';
-import DataTable from './Common/DataTable.vue';
-import FormModal from './Common/FormModal.vue';
-import ImportExcel from './Common/ImportExcel.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import TextInput from '@/Components/TextInput.vue';
-import InputError from '@/Components/InputError.vue';
-import * as XLSX from 'xlsx';
-import StudentFilters from '@/Components/Students/StudentFilters.vue';
-import ColumnManager from './Common/ColumnManager.vue';
-import { exportToExcel as exportData } from '@/Utils/exportHelper';
-import { toast } from 'vue3-toastify';
-import { handleAxiosError } from '@/Utils/errorHandler';
-
-const formErrors = ref({});
-const submitting = ref(false);
-
-const showColumnManager = ref(false);
-const importColumns = ref([
-    { key: 's_id', label: 'ID', required: false, is_id: true },
-    { key: 'name', label: 'Name', required: true },
-    { key: 'name_ar', label: 'Arabic Name', required: true },
-    { key: 'school', label: 'School', required: true },
-    { key: 'classroom', label: 'Classroom', required: true },
-    { key: 'grade', label: 'Grade', required: true },
-    { key: 'stage', label: 'Stage', required: true }
-]);
-
-// Optional: Save column order to localStorage
-watch(importColumns, (newColumns) => {
-    localStorage.setItem('importColumnsOrder', JSON.stringify(newColumns));
-}, { deep: true });
-
-// Optional: Load saved column order on component mount
-onMounted(() => {
-    const savedColumns = localStorage.getItem('importColumnsOrder');
-    if (savedColumns) {
-        importColumns.value = JSON.parse(savedColumns);
-    }
-});
+import { ref, computed, onMounted } from 'vue'
+import { useQuasar } from 'quasar'
+import axios from 'axios'
+import * as XLSX from 'xlsx'
+import StudentPromotionDialog from './components/StudentPromotionDialog.vue'
 
 const props = defineProps({
-    records: {
-        type: Object,
-        required: true
-    },
-    schools: {
-        type: Array,
-        required: true,
-        default: () => []
-    },
-    userRoles: {
-        type: Array,
-        required: true,
-        default: () => []
-    },
-    permissions: {
-        type: Object,
-        required: true,
-        default: () => ({})
-    }
-});
+  records: Object,
+  schools: Array,
+  grades: Array,
+  academicYears: Array,
+  userRoles: Array,
+  permissions: Object
+})
 
-const baseUrl = '/admin/students';
-const showModal = ref(false);
-const editingData = ref(null);
-const form = ref({
-    name: '',
-    name_ar: '',
-    name_cute: '',
-    notes: '',
-    school_id: '',
-    stage_id: '',
-    grade_id: '',
-    classroom_id: ''
-});
+const $q = useQuasar()
 
-const tableColumns = [
-    { key: 's_id', label: 'ID' },
-    { key: 'name', label: 'Name' },
-    { key: 'name_ar', label: 'Arabic Name' },
-    { key: 'school.name', label: 'School' },
-    { key: 'classroom.name', label: 'Classroom' },
-    { key: 'grade.name', label: 'Grade' },
-    { key: 'stage.name', label: 'Stage' }
-];
+// State
+const loading = ref(false)
+const students = ref([])
+const selected = ref([])
+const showStudentDialog = ref(false)
+const showPromotionDialog = ref(false)
+const showImportDialog = ref(false)
+const editingStudent = ref(null)
+const saving = ref(false)
 
-const localRecords = ref(props.records);
-const localSchools = ref(props.schools);
-const localUserRoles = ref(props.userRoles);
-const localPermissions = ref(props.permissions);
+// Import state
+const importFile = ref(null)
+const importPreviewData = ref([])
+const importing = ref(false)
 
-const items = ref([]);
-const pagination = ref(null);
+const importPreviewColumns = [
+  { name: 'name', label: 'Name', field: 'name', align: 'left' },
+  { name: 'name_ar', label: 'Arabic Name', field: 'name_ar', align: 'left' },
+  { name: 'name_cute', label: 'Nickname', field: 'name_cute', align: 'left' },
+  { name: 'notes', label: 'Notes', field: 'notes', align: 'left' }
+]
 
-const modalTitle = computed(() => editingData.value ? 'Edit Student' : 'Add New Student');
-const first = ()=>{
-             selectedSchool.value   =1
-             selectedStage.value    =1
-             selectedGrade.value    =1
-             selectedClassroom.value=1
+// Filters
+const filters = ref({
+  school_id: null,
+  stage_id: null,
+  grade_id: null,
+  classroom_id: null,
+  search: ''
+})
 
+// Cascading data
+const stages = ref([])
+const grades = ref([])
+const classrooms = ref([])
+const allGrades = ref(props.grades || [])
+const academicYears = ref(props.academicYears || [])
 
+// Form data
+const formStages = ref([])
+const formGrades = ref([])
+const formClassrooms = ref([])
 
-    const filters = {
-        school_id: 1,
-        stage_id: 1,
-        grade_id: 1,
-        classroom_id: 1
-    };
-    handleFilterApplied(filters)
+const studentForm = ref({
+  name: '',
+  name_ar: '',
+  name_cute: '',
+  school_id: null,
+  stage_id: null,
+  grade_id: null,
+  classroom_id: null,
+  notes: ''
+})
 
+// Pagination
+const pagination = ref({
+  sortBy: 'name',
+  descending: false,
+  page: 1,
+  rowsPerPage: 25,
+  rowsNumber: 0
+})
 
-};
+// Table columns
+const columns = [
+  {
+    name: 'avatar',
+    label: '',
+    field: 'avatar',
+    align: 'center',
+    style: 'width: 60px'
+  },
+  {
+    name: 's_id',
+    label: 'ID',
+    field: 's_id',
+    align: 'left',
+    sortable: true
+  },
+  {
+    name: 'name',
+    label: 'Name',
+    field: 'name',
+    align: 'left',
+    sortable: true
+  },
+  {
+    name: 'school',
+    label: 'School',
+    field: row => row.school?.name,
+    align: 'left',
+    sortable: true
+  },
+  {
+    name: 'grade',
+    label: 'Grade',
+    field: row => row.grade?.name,
+    align: 'left',
+    sortable: true
+  },
+  {
+    name: 'classroom',
+    label: 'Classroom',
+    field: row => row.classroom?.name,
+    align: 'left',
+    sortable: true
+  },
+  {
+    name: 'actions',
+    label: 'Actions',
+    field: 'actions',
+    align: 'center'
+  }
+]
 
+// Computed
+const totalStudents = computed(() => pagination.value.rowsNumber || 0)
+const selectedSchoolStudents = computed(() => {
+  if (!filters.value.school_id) return 0
+  return students.value.filter(s => s.school_id === filters.value.school_id).length
+})
+const filteredCount = computed(() => students.value.length)
+const selectedCount = computed(() => selected.value.length)
 
-const openModal = (item = null) => {
-    formErrors.value = {};
+// Check if user can add student (must have school, grade, and classroom selected)
+const canAddStudent = computed(() => {
+  return filters.value.school_id && filters.value.grade_id && filters.value.classroom_id
+})
 
-    if (!selectedSchool.value) {
-        alert('Please select a school first');
-        return;
-    }
+// Helper methods to get selected names
+const getSelectedSchoolName = () => {
+  const school = props.schools.find(s => s.id === filters.value.school_id)
+  return school?.name || 'N/A'
+}
 
-    if (item) {
-        editingData.value = { ...item };  // Make a copy of the item
-    } else {
-        editingData.value = null;
-        form.value = {
-            name: '',
-            name_ar: '',
-            name_cute: '',
-            notes: '',
-            school_id: selectedSchool.value,
-            stage_id: selectedStage.value || '',
-            grade_id: selectedGrade.value || '',
-            classroom_id: ''
-        };
-    }
-    showModal.value = true;
-};
+const getSelectedGradeName = () => {
+  const grade = grades.value.find(g => g.id === filters.value.grade_id)
+  return grade?.name || 'N/A'
+}
 
-const closeModal = () => {
-    showModal.value = false;
-    editingData.value = null;
-    formErrors.value = {}; // Reset errors when closing modal
-};
+const getSelectedClassroomName = () => {
+  const classroom = classrooms.value.find(c => c.id === filters.value.classroom_id)
+  return classroom?.name || 'N/A'
+}
 
-const submitForm = async (formData1) => {
-    if (submitting.value) return;
+const getSelectedContext = () => {
+  return `${getSelectedSchoolName()} → ${getSelectedGradeName()} → ${getSelectedClassroomName()}`
+}
 
-    const formData = formData1.form;
-    submitting.value = true;
-    formErrors.value = {};
+// Methods
+const getInitials = (name) => {
+  if (!name) return '?'
+  const parts = name.split(' ')
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase()
+  }
+  return name.substring(0, 2).toUpperCase()
+}
 
-    const url = editingData.value ? `${baseUrl}/${editingData.value.id}` : baseUrl;
+const onSchoolChange = async () => {
+  filters.value.stage_id = null
+  filters.value.grade_id = null
+  filters.value.classroom_id = null
+  stages.value = []
+  grades.value = []
+  classrooms.value = []
 
-    const requestData = {
-        ...(editingData.value && { _method: 'PUT' }),
-        name: formData.name?.trim(),
-        name_ar: formData.name_ar?.trim(),
-        name_cute: formData.name_cute?.trim(),
-        notes: formData.notes?.trim(),
-        school_id: selectedSchool.value,
-        stage_id: selectedStage.value,
-        grade_id: selectedGrade.value,
-        classroom_id: selectedClassroom.value,
-    };
+  if (filters.value.school_id) {
+    await loadStages(filters.value.school_id)
+  }
+  applyFilters()
+}
 
-    // Validate required fields
-    const requiredFields = {
-        name: 'Name',
-        school_id: 'School',
-        stage_id: 'Stage',
-        grade_id: 'Grade',
-        classroom_id: 'Classroom'
-    };
+const onStageChange = async () => {
+  filters.value.grade_id = null
+  filters.value.classroom_id = null
+  grades.value = []
+  classrooms.value = []
 
-    const missingFields = Object.entries(requiredFields)
-        .filter(([key]) => !requestData[key])
-        .map(([, label]) => label);
+  if (filters.value.stage_id) {
+    await loadGrades(filters.value.stage_id)
+  }
+  applyFilters()
+}
 
-    if (missingFields.length > 0) {
-        formErrors.value = {
-            error: [`Please fill in the following required fields: ${missingFields.join(', ')}`]
-        };
-        submitting.value = false;
-        toast.error('Please fill in all required fields');
-        return;
-    }
+const onGradeChange = async () => {
+  filters.value.classroom_id = null
+  classrooms.value = []
 
-    try {
-        const response = await axios.post(url, requestData);
-
-        if (response.data.records) {
-            localRecords.value = response.data.records;
-            closeModal();
-            toast.success(editingData.value ? 'Student updated successfully' : 'Student created successfully');
-            return { success: true };
-        }
-    } catch (error) {
-        handleAxiosError(error, formErrors, {
-            logToConsole: true,
-            showToast: true,
-            customMessages: {
-                422: 'Please check the form for errors',
-                404: 'Student not found',
-                403: 'You do not have permission to perform this action',
-                default: 'Failed to save student'
-            }
-        });
-    } finally {
-        submitting.value = false;
-    }
-};
-
-const deleteRecord = async (item) => {
-    if (!confirm('Are you sure you want to delete this student?')) return;
-
-    try {
-        const response = await axios.delete(`${baseUrl}/${item.id}`);
-        localRecords.value = response.data.records;
-        toast.success('Student deleted successfully');
-    } catch (error) {
-        handleAxiosError(error, null, {
-            showToast: true,
-            customMessages: {
-                404: 'Student not found',
-                403: 'You do not have permission to delete this student',
-                default: 'Failed to delete student'
-            }
-        });
-    }
-};
-
-const refreshData = async () => {
-    try {
-        const response = await axios.get(baseUrl);
-        localRecords.value = response.data.records;
-        localSchools.value = response.data.schools;
-        localUserRoles.value = response.data.userRoles;
-        localPermissions.value = response.data.permissions;
-    } catch (error) {
-        console.error('Error refreshing data:', error);
-    }
-};
-
-const handleExport = (format = 'excel') => {
-    exportData({
-        items: items.value,
-        columns: tableColumns,
-        fileName: 'students',
-        sheetName: 'Students',
-        format: format // 'excel' or 'csv'
-    });
-};
-
-const formFields = [
-    {
-        name: 'name',
-        label: 'Name',
-        type: 'text',
-        required: true,
-        placeholder: 'Enter student name'
-    },
-    {
-        name: 'name_ar',
-        label: 'Arabic Name',
-        type: 'text',
-        required: false,
-        placeholder: 'Enter Arabic name'
-    },
-    {
-        name: 'name_cute',
-        label: 'Nickname',
-        type: 'text',
-        required: false,
-        placeholder: 'Enter nickname'
-    },
-    {
-        name: 'notes',
-        label: 'Notes',
-        type: 'textarea',
-        required: false,
-        placeholder: 'Enter any additional notes'
-    }
-];
-
-// Refs for filtering and data
-const stages = ref([]);
-const grades = ref([]);
-const classrooms = ref([]);
-const selectedSchool = ref('');
-const selectedStage = ref('');
-const selectedGrade = ref('');
-const selectedClassroom = ref('');
-
-// Methods for handling dropdowns and data loading
-const handleSchoolChange = async () => {
-    selectedStage.value = '';
-    selectedGrade.value = '';
-    stages.value = [];
-    grades.value = [];
-
-    if (selectedSchool.value) {
-        await loadStages(selectedSchool.value);
-    }
-    await filterData();
-};
-
-const handleStageChange =  () => {
-    console.log(props?.schools);
-
-    selectedGrade.value = '';
-    grades.value = [];
-
-    // if (selectedStage.value) {
-    //     await loadGrades(selectedStage.value);
-    // }
-      filterData();
-};
-
-const handleGradeChange = () => {
-    selectedClassroom.value = '';
-    classrooms.value = [];
-
-    if (selectedGrade.value) {
-        axios.get(`/admin/classrooms/by-grade/${selectedGrade.value}`)
-            .then(response => {
-                classrooms.value = response.data;
-            })
-            .catch(error => {
-                console.error('Error loading classrooms:', error);
-                classrooms.value = [];
-            });
-    }
-};
+  if (filters.value.grade_id) {
+    await loadClassrooms(filters.value.grade_id)
+  }
+  applyFilters()
+}
 
 const loadStages = async (schoolId) => {
-    try {
-        const response = await axios.get(`/admin/stages/by-school/${schoolId}`);
-        stages.value = response.data;
-    } catch (error) {
-        console.error('Error loading stages:', error);
-        stages.value = [];
-    }
-};
+  try {
+    const response = await axios.get(`/admin/stages/by-school/${schoolId}`)
+    stages.value = response.data
+  } catch (error) {
+    console.error('Error loading stages:', error)
+  }
+}
 
 const loadGrades = async (stageId) => {
-    try {
-        const response = await axios.get(`/admin/grades/by-stage/${stageId}`);
-        grades.value = response.data;
-    } catch (error) {
-        console.error('Error loading grades:', error);
-        grades.value = [];
-    }
-};
+  try {
+    const response = await axios.get(`/admin/grades/by-stage/${stageId}`)
+    grades.value = response.data
+  } catch (error) {
+    console.error('Error loading grades:', error)
+  }
+}
 
 const loadClassrooms = async (gradeId) => {
-    try {
-        const response = await axios.get(`/admin/classrooms/by-grade/${gradeId}`);
-        classrooms.value = response.data;
-    } catch (error) {
-        console.error('Error loading classrooms:', error);
-        classrooms.value = [];
-    }
-};
+  try {
+    const response = await axios.get(`/admin/classrooms/by-grade/${gradeId}`)
+    classrooms.value = response.data
+  } catch (error) {
+    console.error('Error loading classrooms:', error)
+  }
+}
 
-const filterData = async () => {
-    try {
-        const params = {
-            school_id: selectedSchool.value,
-            stage_id: selectedStage.value,
-            grade_id: selectedGrade.value
-        };
-
-        // const response = await axios.get(baseUrl, { params });
-        // localRecords.value = response.data.records;
-    } catch (error) {
-        console.error('Error filtering data:', error);
-    }
-};
-
-const handleFilterApplied = (filters) => {
-    console.log(    filters);
-
+const applyFilters = async () => {
+  loading.value = true
+  try {
     const params = {
-        school_id: filters.school_id || '',
-        stage_id: filters.stage_id || '',
-        grade_id: filters.grade_id || '',
-        classroom_id: filters.classroom_id || ''
-    };
-    selectedSchool.value = filters.school_id;
-    selectedStage.value = filters.stage_id;
-    selectedGrade.value = filters.grade_id;
-    selectedClassroom.value = filters.classroom_id;
-
-    axios.get(`${baseUrl}/filtered`, { params })
-        .then(response => {
-            if (response.data && response.data.records) {
-                items.value = response.data.records.data;
-                pagination.value = response.data.records.links;
-                localRecords.value = response.data.records;
-            }
-        })
-        .catch(error => {
-            console.error('Error applying filters:', error);
-            if (error.response?.data?.message) {
-                alert(error.response.data.message);
-            } else {
-                alert('An error occurred while filtering students');
-            }
-        });
-};
-
-onMounted(() => {
-    if (props.records) {
-        items.value = props.records.data || [];
-        pagination.value = props.records.links || null;
-        localRecords.value = props.records;
+      school_id: filters.value.school_id,
+      stage_id: filters.value.stage_id,
+      grade_id: filters.value.grade_id,
+      classroom_id: filters.value.classroom_id,
+      search: filters.value.search
     }
-});
+
+    const response = await axios.get('/admin/students/filtered', { params })
+    students.value = response.data.records.data || []
+    pagination.value.rowsNumber = response.data.records.total || 0
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to load students'
+    })
+  } finally {
+    loading.value = false
+  }
+}
+
+const clearFilters = () => {
+  filters.value = {
+    school_id: null,
+    stage_id: null,
+    grade_id: null,
+    classroom_id: null,
+    search: ''
+  }
+  stages.value = []
+  grades.value = []
+  classrooms.value = []
+  applyFilters()
+}
+
+let searchTimeout
+const debouncedSearch = () => {
+  clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
+    applyFilters()
+  }, 500)
+}
+
+const onRequest = (props) => {
+  // Handle pagination, sorting, etc.
+  applyFilters()
+}
+
+const openStudentDialog = (student = null) => {
+  if (student) {
+    editingStudent.value = student
+    studentForm.value = {
+      name: student.name,
+      name_ar: student.name_ar,
+      name_cute: student.name_cute,
+      school_id: student.school_id,
+      stage_id: student.stage_id,
+      grade_id: student.grade_id,
+      classroom_id: student.classroom_id,
+      notes: student.notes
+    }
+    // Load cascading data for form
+    if (student.school_id) onFormSchoolChange()
+    if (student.stage_id) onFormStageChange()
+    if (student.grade_id) onFormGradeChange()
+  } else {
+    // New student - pre-fill with selected filters
+    editingStudent.value = null
+    studentForm.value = {
+      name: '',
+      name_ar: '',
+      name_cute: '',
+      school_id: filters.value.school_id,
+      stage_id: filters.value.stage_id,
+      grade_id: filters.value.grade_id,
+      classroom_id: filters.value.classroom_id,
+      notes: ''
+    }
+  }
+  showStudentDialog.value = true
+}
+
+const onFormSchoolChange = async () => {
+  studentForm.value.stage_id = null
+  studentForm.value.grade_id = null
+  studentForm.value.classroom_id = null
+  
+  if (studentForm.value.school_id) {
+    const response = await axios.get(`/admin/stages/by-school/${studentForm.value.school_id}`)
+    formStages.value = response.data
+  }
+}
+
+const onFormStageChange = async () => {
+  studentForm.value.grade_id = null
+  studentForm.value.classroom_id = null
+  
+  if (studentForm.value.stage_id) {
+    const response = await axios.get(`/admin/grades/by-stage/${studentForm.value.stage_id}`)
+    formGrades.value = response.data
+  }
+}
+
+const onFormGradeChange = async () => {
+  studentForm.value.classroom_id = null
+  
+  if (studentForm.value.grade_id) {
+    const response = await axios.get(`/admin/classrooms/by-grade/${studentForm.value.grade_id}`)
+    formClassrooms.value = response.data
+  }
+}
+
+const saveStudent = async () => {
+  saving.value = true
+  try {
+    const url = editingStudent.value
+      ? `/admin/students/${editingStudent.value.id}`
+      : '/admin/students'
+
+    const data = {
+      ...studentForm.value,
+      ...(editingStudent.value && { _method: 'PUT' })
+    }
+
+    await axios.post(url, data)
+
+    $q.notify({
+      type: 'positive',
+      message: editingStudent.value ? 'Student updated successfully' : 'Student created successfully'
+    })
+
+    showStudentDialog.value = false
+    applyFilters()
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: error.response?.data?.message || 'Failed to save student'
+    })
+  } finally {
+    saving.value = false
+  }
+}
+
+const deleteStudent = async (student) => {
+  $q.dialog({
+    title: 'Confirm Delete',
+    message: `Are you sure you want to delete ${student.name}?`,
+    cancel: true,
+    persistent: true
+  }).onOk(async () => {
+    try {
+      await axios.delete(`/admin/students/${student.id}`)
+      $q.notify({
+        type: 'positive',
+        message: 'Student deleted successfully'
+      })
+      applyFilters()
+    } catch (error) {
+      $q.notify({
+        type: 'negative',
+        message: 'Failed to delete student'
+      })
+    }
+  })
+}
+
+const viewHistory = async (student) => {
+  try {
+    const response = await axios.get(`/admin/students/${student.id}/classroom-history`)
+    $q.dialog({
+      title: `Classroom History - ${student.name}`,
+      message: JSON.stringify(response.data.history, null, 2)
+    })
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to load history'
+    })
+  }
+}
+
+const handleExport = () => {
+  $q.notify({
+    type: 'info',
+    message: 'Export functionality coming soon!'
+  })
+}
+
+const bulkChangeClassroom = () => {
+  $q.notify({
+    type: 'info',
+    message: 'Bulk classroom change coming in Phase 4!'
+  })
+}
+
+const exportSelected = () => {
+  $q.notify({
+    type: 'info',
+    message: `Exporting ${selected.value.length} students...`
+  })
+}
+
+const bulkDelete = () => {
+  $q.dialog({
+    title: 'Confirm Bulk Delete',
+    message: `Are you sure you want to delete ${selected.value.length} students?`,
+    cancel: true,
+    persistent: true
+  }).onOk(() => {
+    $q.notify({
+      type: 'info',
+      message: 'Bulk delete coming soon!'
+    })
+  })
+}
+
+const onPromotionComplete = (result) => {
+  $q.notify({
+    type: 'positive',
+    message: `Successfully promoted ${result.promoted_count} students!`
+  })
+  applyFilters()
+}
+
+const triggerImport = () => {
+  if (!canAddStudent.value) {
+    $q.notify({
+      type: 'negative',
+      message: 'Please select School, Grade, and Classroom before importing'
+    })
+    return
+  }
+  showImportDialog.value = true
+}
+
+const handleFileUpload = async (file) => {
+  if (!file) return
+
+  try {
+    const data = await readExcelFile(file)
+    importPreviewData.value = data.map((row, index) => ({
+      index,
+      name: row.name || row.Name || '',
+      name_ar: row.name_ar || row['Arabic Name'] || '',
+      name_cute: row.name_cute || row.Nickname || '',
+      notes: row.notes || row.Notes || ''
+    }))
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: 'Error reading Excel file: ' + error.message
+    })
+  }
+}
+
+const readExcelFile = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result)
+        const workbook = XLSX.read(data, { type: 'array' })
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
+        const jsonData = XLSX.utils.sheet_to_json(firstSheet)
+        resolve(jsonData)
+      } catch (error) {
+        reject(error)
+      }
+    }
+    
+    reader.onerror = reject
+    reader.readAsArrayBuffer(file)
+  })
+}
+
+const executeImport = async () => {
+  importing.value = true
+  let successCount = 0
+  let errorCount = 0
+
+  try {
+    for (const row of importPreviewData.value) {
+      try {
+        const studentData = {
+          name: row.name,
+          name_ar: row.name_ar || '',
+          name_cute: row.name_cute || '',
+          school_id: filters.value.school_id,
+          stage_id: filters.value.stage_id,
+          grade_id: filters.value.grade_id,
+          classroom_id: filters.value.classroom_id,
+          notes: row.notes || ''
+        }
+
+        await axios.post('/admin/students', studentData)
+        successCount++
+      } catch (error) {
+        errorCount++
+        console.error('Import error:', error)
+      }
+    }
+
+    $q.notify({
+      type: successCount > 0 ? 'positive' : 'negative',
+      message: `Import complete: ${successCount} students added${errorCount > 0 ? `, ${errorCount} errors` : ''}`,
+      timeout: 3000
+    })
+
+    closeImportDialog()
+    await applyFilters()
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: 'Import failed: ' + (error.message || 'Unknown error')
+    })
+  } finally {
+    importing.value = false
+  }
+}
+
+const closeImportDialog = () => {
+  showImportDialog.value = false
+  importFile.value = null
+  importPreviewData.value = []
+}
+
+// Initialize
+onMounted(async () => {
+  if (props.records?.data) {
+    students.value = props.records.data
+    pagination.value.rowsNumber = props.records.total || 0
+  }
+  
+  // Auto-select first school if available
+  if (props.schools && props.schools.length > 0) {
+    filters.value.school_id = props.schools[0].id
+    await onSchoolChange()
+  }
+})
 </script>
+
+<style scoped>
+.shadow-up-2 {
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+}
+</style>

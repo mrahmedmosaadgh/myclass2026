@@ -1,5 +1,5 @@
 <template>
-  <Head title="Weekly Schedule Copies" />
+  <Head :title="t('weeklySystem.scheduleCopies.title')" />
   <div class="q-pa-md">
     <WeeklyPlanMenu />
     <!-- Page Header -->
@@ -7,17 +7,17 @@
       <div class="col">
         <h4 class="q-ma-none text-weight-bold">
           <q-icon name="content_copy" class="q-mr-sm" color="primary" />
-          Schedule Copies Management
+          {{ t('weeklySystem.scheduleCopies.title') }}
         </h4>
         <p class="text-grey-7 q-mb-none">
-          Create and manage schedule copies for different academic periods
+          {{ t('weeklySystem.scheduleCopies.subtitle') }}
         </p>
       </div>
       <div class="col-auto">
         <q-btn
           color="primary"
           icon="add"
-          label="New Schedule Copy"
+          :label="t('common.create')"
           @click="openCreateDialog"
         />
       </div>
@@ -44,9 +44,9 @@
     <!-- Empty State -->
     <q-card v-else-if="!filteredCopies.length" flat bordered class="text-center q-pa-xl">
       <q-icon name="folder_open" size="64px" color="grey-5" />
-      <p class="text-h6 text-grey-7 q-mt-md">No schedule copies found</p>
-      <p class="text-grey-6">Create your first schedule copy to get started</p>
-      <q-btn color="primary" icon="add" label="Create Schedule Copy" @click="openCreateDialog" class="q-mt-md" />
+      <p class="text-h6 text-grey-7 q-mt-md">{{ t('weeklySystem.schoolBrowser.noDataTitle') }}</p>
+      <p class="text-grey-6">{{ t('common.noResults') }}</p>
+      <q-btn color="primary" icon="add" :label="t('common.create')" @click="openCreateDialog" class="q-mt-md" />
     </q-card>
 
     <!-- Schedule Copies Grid -->
@@ -85,15 +85,15 @@
       <q-card style="min-width: 350px">
         <q-card-section class="row items-center">
           <q-icon name="warning" color="negative" size="md" class="q-mr-sm" />
-          <span class="text-h6">Delete Schedule Copy</span>
+          <span class="text-h6">{{ t('common.delete') }} {{ t('weeklySystem.scheduleCopies.title') }}</span>
         </q-card-section>
         <q-card-section>
-          Are you sure you want to delete "<strong>{{ deletingCopy?.name }}</strong>"?
-          This action cannot be undone.
+          {{ t('common.confirmDelete') }} "<strong>{{ deletingCopy?.name }}</strong>"?
+          {{ t('common.actionCannotBeUndone') }}
         </q-card-section>
         <q-card-actions align="right">
-          <q-btn flat label="Cancel" v-close-popup />
-          <q-btn flat label="Delete" color="negative" :loading="deleting" @click="confirmDelete" />
+          <q-btn flat :label="t('common.cancel')" v-close-popup />
+          <q-btn flat :label="t('common.delete')" color="negative" :loading="deleting" @click="confirmDelete" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -103,11 +103,14 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import ScheduleCopyCard from '../components/schedule-copies/ScheduleCopyCard.vue'
 import ScheduleCopyForm from '../components/schedule-copies/ScheduleCopyForm.vue'
 import ScheduleCopyFilters from '../components/schedule-copies/ScheduleCopyFilters.vue'
 import WeeklyPlanMenu from '../WeeklyPlanMenu.vue'
+
+const { t } = useI18n()
 
 const $q = useQuasar()
 
@@ -167,7 +170,7 @@ const fetchScheduleCopies = async () => {
     scheduleCopies.value = response.data.data || response.data || []
   } catch (error) {
     console.error('Error fetching schedule copies:', error)
-    $q.notify({ type: 'negative', message: 'Failed to load schedule copies' })
+    $q.notify({ type: 'negative', message: t('common.errors.fetchFailed') })
   } finally {
     loading.value = false
   }
@@ -224,7 +227,7 @@ const handleSubmit = async (formData) => {
   try {
     if (formData.isEdit) {
       await axios.put(`/admin/schedule-copies/${editingCopy.value.id}`, formData)
-      $q.notify({ type: 'positive', message: 'Schedule copy updated successfully' })
+      $q.notify({ type: 'positive', message: t('common.updatedSuccessfully') })
     } else {
       const response = await axios.post('/admin/schedule-copies', formData)
       
@@ -235,7 +238,7 @@ const handleSubmit = async (formData) => {
         })
         $q.notify({ type: 'positive', message: 'Schedule copy created with schedule slots' })
       } else {
-        $q.notify({ type: 'positive', message: 'Schedule copy created successfully' })
+        $q.notify({ type: 'positive', message: t('common.createdSuccessfully') })
       }
     }
     
@@ -243,7 +246,7 @@ const handleSubmit = async (formData) => {
     await fetchScheduleCopies()
   } catch (error) {
     console.error('Error saving schedule copy:', error)
-    $q.notify({ type: 'negative', message: error.response?.data?.message || 'Failed to save schedule copy' })
+    $q.notify({ type: 'negative', message: t('common.errors.submitFailed') })
   } finally {
     saving.value = false
   }
@@ -252,22 +255,22 @@ const handleSubmit = async (formData) => {
 const handleActivate = async (copy) => {
   try {
     await axios.put(`/admin/schedule-copies/${copy.id}`, { status: 'active' })
-    $q.notify({ type: 'positive', message: 'Schedule copy activated' })
+    $q.notify({ type: 'positive', message: t('common.activatedSuccessfully') })
     await fetchScheduleCopies()
   } catch (error) {
     console.error('Error activating:', error)
-    $q.notify({ type: 'negative', message: 'Failed to activate schedule copy' })
+    $q.notify({ type: 'negative', message: t('common.errors.activateFailed') })
   }
 }
 
 const handleArchive = async (copy) => {
   try {
     await axios.put(`/admin/schedule-copies/${copy.id}`, { status: 'archived' })
-    $q.notify({ type: 'info', message: 'Schedule copy archived' })
+    $q.notify({ type: 'info', message: t('common.archivedSuccessfully') })
     await fetchScheduleCopies()
   } catch (error) {
     console.error('Error archiving:', error)
-    $q.notify({ type: 'negative', message: 'Failed to archive schedule copy' })
+    $q.notify({ type: 'negative', message: t('common.errors.archiveFailed') })
   }
 }
 
@@ -280,12 +283,12 @@ const confirmDelete = async () => {
   deleting.value = true
   try {
     await axios.delete(`/admin/schedule-copies/${deletingCopy.value.id}`)
-    $q.notify({ type: 'positive', message: 'Schedule copy deleted' })
+    $q.notify({ type: 'positive', message: t('common.deletedSuccessfully') })
     showDeleteDialog.value = false
     await fetchScheduleCopies()
   } catch (error) {
     console.error('Error deleting:', error)
-    $q.notify({ type: 'negative', message: 'Failed to delete schedule copy' })
+    $q.notify({ type: 'negative', message: t('common.errors.deleteFailed') })
   } finally {
     deleting.value = false
   }

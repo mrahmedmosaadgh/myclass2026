@@ -11,8 +11,8 @@ export default {
     },
     // Common translations
     common: {
-        switchToDark: 'التبديل إلى الوضع الداكن',
-        switchToLight: 'التبديل إلى الوضع الفاتح',
+        switchToDark: 'التحويل إلى الوضع الداكن',
+        switchToLight: 'التحويل إلى الوضع الفاتح',
         chat: 'الدردشة',
         language: 'اللغة',
         english: 'الإنجليزية',
@@ -50,7 +50,31 @@ export default {
             empty: 'فارغ',
             partial: 'جزئي',
             completed: 'مكتمل'
-        }
+        },
+        aiGenerate: 'توليد عبر الذكاء الاصطناعي',
+        selectClassroomFirst: 'اختر فصلًا أولًا',
+        noActiveSchedule: 'لم يتم العثور على نسخة جدول نشطة',
+        total: 'الإجمالي',
+        allClassrooms: 'جميع الفصول',
+        confirmDelete: 'هل أنت متأكد أنك تريد حذف',
+        actionCannotBeUndone: 'لا يمكن التراجع عن هذا الإجراء.',
+        activatedSuccessfully: 'تم التنشيط بنجاح',
+        archivedSuccessfully: 'تم الأرشفة بنجاح',
+        createdSuccessfully: 'تم الإنشاء بنجاح',
+        updatedSuccessfully: 'تم التحديث بنجاح',
+        deletedSuccessfully: 'تم الحذف بنجاح',
+        errors: {
+            fetchFailed: 'فشل في جلب البيانات',
+            submitFailed: 'فشل في إرسال البيانات',
+            activateFailed: 'فشل في التنشيط',
+            archiveFailed: 'فشل في الأرشفة',
+            deleteFailed: 'فشل في الحذف'
+        },
+        assigned: 'مُعين',
+        conflicts: 'الصراعات',
+        noConflicts: 'لا توجد صراعات',
+        empty: 'فارغ',
+        aiGenerate: 'توليد عبر الذكاء الاصطناعي',
     },
     permissions: {
         dashboard: 'لوحة الصلاحيات',
@@ -342,7 +366,9 @@ export default {
         allSynced: 'تمت مزامنة جميع الخطط الأسبوعية!',
         noMissingPlans: 'لا توجد خطط مفقودة لهذا الأسبوع.',
         selectMissingPlans: 'اختر الخطط المفقودة التي تريد إنشاؤها',
-        createPlans: 'إنشاء {count} خطة',
+        createPlans: 'Create {count} Plans',
+        allClassrooms: 'جميع الفصول',
+        currentClassroom: 'الفصل الحالي',
         shortDays: {
             1: 'أحد',
             2: 'إثنين',
@@ -431,6 +457,75 @@ export default {
                 pasteFailed: 'فشل اللصق. تحقق من أذونات المتصفح.',
                 enterUrl: 'يرجى إدخال رابط'
             }
+        }
+    },
+    // Weekly system menu items and other components
+    weeklySystem: {
+        menu: {
+            schoolBrowser: 'متصفح المدرسة',
+            manager: 'المدير',
+            scheduleCopies: 'نسخ الجداول',
+            timetable: 'الجدول الزمني',
+            mySchedule: 'جدولي',
+            myPlans: 'خطتي',
+        },
+        schoolBrowser: {
+            title: 'متصفح المدرسة',
+            subtitle: 'تصفح المدارس والفصول والمواد والمعلمين',
+            overviewTab: 'نظرة عامة',
+            classroomsTab: 'الفصول',
+            assignmentsTab: 'المهام',
+            selectSchool: 'اختر مدرسة وقم بتكوين إعداداتها',
+            selectSchoolHint: 'اختر مدرسة من القائمة أعلاه وحدد العام الدراسي والفصل الدراسي ونسخة الجدول',
+            noDataTitle: 'لا توجد بيانات متاحة',
+            noDataSubtitle: 'يرجى تكوين إعدادات المدرسة أولاً',
+        },
+        scheduleCopies: {
+            title: 'إدارة نسخ الجداول',
+            subtitle: 'إدارة إصدارات مختلفة من الجداول',
+        },
+        timetableEditor: {
+            title: 'محرر الجدول الزمني',
+            subtitle: 'تحرير وإدارة جداول الفصول الدراسية',
+            activateSchedule: 'تفعيل الجدول',
+            selectClassroom: 'اختر الفصل',
+            chooseClassroom: 'اختر الفصل',
+            conflictDetails: 'تفاصيل الصراع',
+            assignedTo: 'مُعين إلى'
+        },
+        weeklyPlansManager: {
+            title: 'مدير الخطط الأسبوعية',
+            subtitle: 'توليد ومراقبة وطباعة الخطط الأسبوعية للمعلمين',
+        },
+        mySchedule: {
+            title: 'جدولي',
+            subtitle: 'عرض جدول التدريس الشخصي',
+        },
+        myWeeklyPlans: {
+            title: 'خطتي الأسبوعية',
+            subtitle: 'املأ خطط الدروس الأسبوعية الخاصة بك',
+            tableView: 'عرض الجدول',
+            noClassroom: 'لا يوجد فصل',
+            noSubject: 'لا يوجد مادة',
+            classwork: 'العمل الصفي',
+            homework: 'الواجب المنزلي',
+            notes: 'الملاحظات',
+            noClasswork: 'لا يوجد عمل صفي',
+            noHomework: 'لا يوجد واجب منزلي',
+            noNotes: 'لا توجد ملاحظات',
+            copied: 'تم النسخ',
+            paste: 'لصق',
+            edit: 'تعديل',
+            save: 'حفظ',
+            cancel: 'إلغاء',
+            noPlans: 'لا توجد خطط لهذا الأسبوع',
+            selectWeek: 'يرجى اختيار أسبوع لعرض الخطط',
+        },
+        weekSelector: {
+            currentWeek: 'الأسبوع الحالي',
+            lastWeek: 'الأسبوع الماضي',
+            nextWeek: 'الأسبوع القادم',
+            selectWeek: 'اختر الأسبوع',
         }
     }
 };

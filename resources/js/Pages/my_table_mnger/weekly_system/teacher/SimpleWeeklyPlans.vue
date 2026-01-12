@@ -1,18 +1,17 @@
 <template>
-    <Head title="My Weekly Plans" />
+    <Head :title="t('weeklySystem.myWeeklyPlans.title')" />
     <div class="q-pa-md">
         <!-- Page Header -->
         <div class="row items-center q-mb-lg">
             <div class="col">
                 <h4 class="q-ma-none text-weight-bold">
                     <q-icon name="edit_note" class="q-mr-sm" color="primary" />
-                    {{ t('weeklyPlans.teacher.myWeeklyPlans') }}
+                    {{ t('weeklySystem.myWeeklyPlans.title') }}
                 </h4>
                 <p class="text-grey-7 q-mb-none">
-                    {{ t('weeklyPlans.teacher.fillInContent') }}
+                    {{ t('weeklySystem.myWeeklyPlans.subtitle') }}
                 </p>
             </div>
-   
         </div>
 
         <!-- Controls -->
@@ -46,8 +45,6 @@
                     </div>
                 </div>
 
- 
-
                 <!-- Progress Summary -->
                 <div class="col-auto q-ml-auto">
                     <q-linear-progress
@@ -71,238 +68,226 @@
 
         <!-- View Switcher -->
         <q-tabs v-model="activeTab" dense class="text-primary q-mb-sm">
-          <q-tab name="table" icon="table_chart" :label="t('weeklyPlans.teacher.tableView')" />
+            <q-tab name="table" icon="table_chart" :label="t('weeklySystem.myWeeklyPlans.tableView')" />
         </q-tabs>
         <q-separator class="q-mb-md" />
 
         <q-tab-panels v-model="activeTab" animated>
-          <!--
             <!-- Weekly Plans Grid (Old View) -->
             <div class="weekly-plans-grid">
-            <div
-                v-for="plan in sortedPlansByDay"
-                :key="plan.dayNumber"
-                class="day-section q-mb-xl"
-            >
-                <h5 class="q-mb-md text-weight-bold">
-                    {{ plan.dayName }}
-                    <q-chip
-                        dense
-                        :color="progressColor"
-                        text-color="white"
-                        :label="plan.plans.length"
-                    />
-                </h5>
+                <div
+                    v-for="plan in sortedPlansByDay"
+                    :key="plan.dayNumber"
+                    class="day-section q-mb-xl"
+                >
+                    <h5 class="q-mb-md text-weight-bold">
+                        {{ getDayName(plan.dayNumber) }}
+                        <q-chip
+                            dense
+                            :color="progressColor"
+                            text-color="white"
+                            :label="plan.plans.length"
+                        />
+                    </h5>
 
-                <div class="plans-grid">
-                    <q-card
-                        v-for="item in plan.plans"
-                        :key="item.id"
-                        flat
-                        bordered
-                        class="plan-card q-mr-sm q-mb-sm"
-                        :class="{ copied: copyingPlanId === item.id }"
-                    >
-                        <!-- Plan Header -->
-                        <div
-                            class="plan-header row items-center q-px-md q-py-sm"
+                    <div class="plans-grid">
+                        <q-card
+                            v-for="item in plan.plans"
+                            :key="item.id"
+                            flat
+                            bordered
+                            class="plan-card q-mr-sm q-mb-sm"
+                            :class="{ copied: copyingPlanId === item.id }"
                         >
-                            <div class="col">
-                                <div class="text-subtitle2 text-weight-bold">
-                                    <q-icon
-                                        name="meeting_room"
-                                        size="sm"
-                                        color="primary"
-                                    />
-                                    <!-- Add null check for schedule and cst -->
-                                    {{
-                                        item.data?.schedule?.cst
-                                            ?.classroom_name ||
-                                        "No classroom assigned"
-                                    }}
+                            <!-- Plan Header -->
+                            <div
+                                class="plan-header row items-center q-px-md q-py-sm"
+                            >
+                                <div class="col">
+                                    <div class="text-subtitle2 text-weight-bold">
+                                        <q-icon
+                                            name="meeting_room"
+                                            size="sm"
+                                            color="primary"
+                                        />
+                                        <!-- Add null check for schedule and cst -->
+                                        {{
+                                            item.data?.schedule?.cst
+                                                ?.classroom_name ||
+                                            t('weeklySystem.myWeeklyPlans.noClassroom')
+                                        }}
+                                    </div>
+                                    <div class="text-caption">
+                                        <q-icon
+                                            name="school"
+                                            size="xs"
+                                            color="primary"
+                                        />
+                                        {{
+                                            item.data?.schedule?.cst
+                                                ?.subject_name ||
+                                            t('weeklySystem.myWeeklyPlans.noSubject')
+                                        }}
+                                    </div>
                                 </div>
-                                <div class="text-caption">
-                                    <q-icon
-                                        name="school"
-                                        size="xs"
-                                        color="primary"
+
+                                <div class="col-auto">
+                                    <StatusBadge
+                                        :status="item.data?.status || 'empty'"
                                     />
-                                    {{
-                                        item.data?.schedule?.cst
-                                            ?.subject_name ||
-                                        "No subject assigned"
-                                    }}
                                 </div>
                             </div>
 
-                            <div class="col-auto">
-                                <StatusBadge
-                                    :status="item.data?.status || 'empty'"
-                                />
-                            </div>
-                        </div>
-
-                        <!-- Plan Content -->
-                        <div class="plan-content q-px-md q-py-sm">
-                            <!-- Classwork -->
-                            <div class="plan-section q-mb-sm">
-                                <div class="plan-label">Classwork (CW)</div>
-                                <div
-                                    class="plan-content-text"
-                                    :class="{ empty: !item.data?.cw }"
-                                >
-                                    <q-icon
-                                        name="school"
-                                        size="xs"
-                                        color="primary"
-                                    />
-                                    <span v-if="item.data?.cw">{{
-                                        item.data.cw
-                                    }}</span>
-                                    <span v-else class="text-grey-5"
-                                        >No classwork added yet</span
+                            <!-- Plan Content -->
+                            <div class="plan-content q-px-md q-py-sm">
+                                <!-- Classwork -->
+                                <div class="plan-section q-mb-sm">
+                                    <div class="plan-label">{{ t('weeklySystem.myWeeklyPlans.classwork') }} (CW)</div>
+                                    <div
+                                        class="plan-content-text"
+                                        :class="{ empty: !item.data?.cw }"
                                     >
+                                        <q-icon
+                                            name="school"
+                                            size="xs"
+                                            color="primary"
+                                        />
+                                        <span v-if="item.data?.cw">{{
+                                            item.data.cw
+                                        }}</span>
+                                        <span v-else class="text-grey-5"
+                                            >{{ t('weeklySystem.myWeeklyPlans.noClasswork') }}</span
+                                        >
+                                    </div>
                                 </div>
-                            </div>
 
-                            <!-- Homework -->
-                            <div class="plan-section q-mb-sm">
-                                <div class="plan-label">Homework (HW)</div>
-                                <div
-                                    class="plan-content-text"
-                                    :class="{ empty: !item.data?.hw }"
-                                >
-                                    <q-icon
-                                        name="home_work"
-                                        size="xs"
-                                        color="amber"
-                                    />
-                                    <span v-if="item.data?.hw">{{
-                                        item.data.hw
-                                    }}</span>
-                                    <span v-else class="text-grey-5"
-                                        >No homework added yet</span
+                                <!-- Homework -->
+                                <div class="plan-section q-mb-sm">
+                                    <div class="plan-label">{{ t('weeklySystem.myWeeklyPlans.homework') }} (HW)</div>
+                                    <div
+                                        class="plan-content-text"
+                                        :class="{ empty: !item.data?.hw }"
                                     >
+                                        <q-icon
+                                            name="home_work"
+                                            size="xs"
+                                            color="amber"
+                                        />
+                                        <span v-if="item.data?.hw">{{
+                                            item.data.hw
+                                        }}</span>
+                                        <span v-else class="text-grey-5"
+                                            >{{ t('weeklySystem.myWeeklyPlans.noHomework') }}</span
+                                        >
+                                    </div>
                                 </div>
-                            </div>
 
-                            <!-- Notes -->
-                            <div class="plan-section">
-                                <div class="plan-label">Notes</div>
-                                <div
-                                    class="plan-content-text"
-                                    :class="{ empty: !item.data?.notes }"
-                                >
-                                    <q-icon
-                                        name="note"
-                                        size="xs"
-                                        color="secondary"
-                                    />
-                                    <span v-if="item.data?.notes">{{
-                                        item.data.notes
-                                    }}</span>
-                                    <span v-else class="text-grey-5"
-                                        >No notes added yet</span
+                                <!-- Notes -->
+                                <div class="plan-section">
+                                    <div class="plan-label">{{ t('weeklySystem.myWeeklyPlans.notes') }}</div>
+                                    <div
+                                        class="plan-content-text"
+                                        :class="{ empty: !item.data?.notes }"
                                     >
+                                        <q-icon
+                                            name="note"
+                                            size="xs"
+                                            color="secondary"
+                                        />
+                                        <span v-if="item.data?.notes">{{
+                                            item.data.notes
+                                        }}</span>
+                                        <span v-else class="text-grey-5"
+                                            >{{ t('weeklySystem.myWeeklyPlans.noNotes') }}</span
+                                        >
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Actions -->
-                        <div
-                            class="plan-actions row justify-end q-px-md q-py-sm"
-                        >
-                            <q-btn
-                                v-if="
-                                    !editMode &&
-                                    (!copiedData || copyingPlanId !== item.id)
-                                "
-                                icon="content_copy"
-                                size="sm"
-                                flat
-                                color="primary"
-                                @click="copyPlan(item, $event)"
-                                class="q-mr-sm"
+                            <!-- Actions -->
+                            <div
+                                class="plan-actions row justify-end q-px-md q-py-sm"
                             >
-                                <q-tooltip>Copied to clipboard</q-tooltip>
-                            </q-btn>
+                                <q-btn
+                                    v-if="
+                                        !editMode &&
+                                        (!copiedData || copyingPlanId !== item.id)
+                                    "
+                                    icon="content_copy"
+                                    size="sm"
+                                    flat
+                                    color="primary"
+                                    @click="copyPlan(item, $event)"
+                                    class="q-mr-sm"
+                                >
+                                    <q-tooltip>{{ t('weeklySystem.myWeeklyPlans.copied') }}</q-tooltip>
+                                </q-btn>
 
-                            <q-btn
-                                v-if="
-                                    !editMode &&
-                                    copiedData &&
-                                    copyingPlanId !== item.id
-                                "
-                                icon="content_paste"
-                                size="sm"
-                                flat
-                                color="primary"
-                                @click="pastePlan(item, $event)"
-                                class="q-mr-sm"
-                            >
-                                <q-tooltip>Paste copied data</q-tooltip>
-                            </q-btn>
+                                <q-btn
+                                    v-if="
+                                        !editMode &&
+                                        copiedData &&
+                                        copyingPlanId !== item.id
+                                    "
+                                    icon="content_paste"
+                                    size="sm"
+                                    flat
+                                    color="primary"
+                                    @click="pastePlan(item, $event)"
+                                    class="q-mr-sm"
+                                >
+                                    <q-tooltip>{{ t('weeklySystem.myWeeklyPlans.paste') }}</q-tooltip>
+                                </q-btn>
 
-                            <q-btn
-                                v-if="!editMode"
-                                icon="edit"
-                                size="sm"
-                                flat
-                                color="primary"
-                                @click="editPlan(item)"
-                            >
-                                <q-tooltip>Edit plan</q-tooltip>
-                            </q-btn>
+                                <q-btn
+                                    v-if="!editMode"
+                                    icon="edit"
+                                    size="sm"
+                                    flat
+                                    color="primary"
+                                    @click="editPlan(item)"
+                                >
+                                    <q-tooltip>{{ t('weeklySystem.myWeeklyPlans.edit') }}</q-tooltip>
+                                </q-btn>
 
-                            <!-- Save button shown in edit mode -->
-                            <q-btn
-                                v-if="editMode && item.isEditing"
-                                icon="save"
-                                size="sm"
-                                flat
-                                color="green"
-                                :loading="item.saving"
-                                @click="savePlanField(item, 'all')"
-                            >
-                                <q-tooltip>Save changes</q-tooltip>
-                            </q-btn>
+                                <!-- Save button shown in edit mode -->
+                                <q-btn
+                                    v-if="editMode && item.isEditing"
+                                    icon="save"
+                                    size="sm"
+                                    flat
+                                    color="green"
+                                    :loading="item.saving"
+                                    @click="savePlanField(item, 'all')"
+                                >
+                                    <q-tooltip>{{ t('weeklySystem.myWeeklyPlans.save') }}</q-tooltip>
+                                </q-btn>
 
-                            <!-- Cancel button shown in edit mode -->
-                            <q-btn
-                                v-if="editMode && item.isEditing"
-                                icon="cancel"
-                                size="sm"
-                                flat
-                                color="red"
-                                @click="revertPlan(item)"
-                            >
-                                <q-tooltip>Cancel</q-tooltip>
-                            </q-btn>
-                        </div>
-                    </q-card>
+                                <!-- Cancel button shown in edit mode -->
+                                <q-btn
+                                    v-if="editMode && item.isEditing"
+                                    icon="cancel"
+                                    size="sm"
+                                    flat
+                                    color="red"
+                                    @click="revertPlan(item)"
+                                >
+                                    <q-tooltip>{{ t('weeklySystem.myWeeklyPlans.cancel') }}</q-tooltip>
+                                </q-btn>
+                            </div>
+                        </q-card>
+                    </div>
                 </div>
             </div>
- </div>
+
             <!-- Empty State -->
             <div v-if="!weeklyPlans.length" class="text-center q-pa-xl">
                 <q-icon name="edit_note" size="64px" color="grey-5" />
-                <p class="text-h6 text-grey-7 q-mt-md">No weekly plans found</p>
+                <p class="text-h6 text-grey-7 q-mt-md">{{ t('weeklySystem.myWeeklyPlans.noPlans') }}</p>
                 <p class="text-grey-6">
-                    Please select a week and semester to view your weekly plans
+                    {{ t('weeklySystem.myWeeklyPlans.selectWeek') }}
                 </p>
             </div>
-          -->
-
-          <q-tab-panel name="table">
-            <!-- Weekly Plans Table (New View) -->
-            <WeeklyPlansTable
-              :plans="flatPlans"
-              :week-number="weekNumber"
-              :semester-number="semesterNumber"
-              @edit="openEditor"
-              @copied="loadWeeklyPlans"
-            />
-          </q-tab-panel>
         </q-tab-panels>
 
         <!-- Edit Dialog -->
@@ -324,8 +309,8 @@ import { useI18n } from 'vue-i18n';
 import axios from "axios";
 import WeekSelector from "@/Pages/my_table_mnger/weekly_system/components/weekly-plans/WeekSelector.vue";
 import WeeklyPlanEditor from "@/Pages/my_table_mnger/weekly_system/teacher/WeeklyPlanEditor.vue";
-  import StatusBadge from "@/Pages/my_table_mnger/weekly_system/components/shared/StatusBadge.vue";
-  import WeeklyPlansTable from "@/Pages/my_table_mnger/weekly_system/teacher/WeeklyPlansTable.vue";
+import StatusBadge from "@/Pages/my_table_mnger/weekly_system/components/shared/StatusBadge.vue";
+import WeeklyPlansTable from "@/Pages/my_table_mnger/weekly_system/teacher/WeeklyPlansTable.vue";
 
 const { t } = useI18n();
 
@@ -341,16 +326,15 @@ const copiedData = ref(null);
 const saving = ref(false);
 const selectedPlan = ref(null);
 const showEditor = ref(false);
-  const activeTab = ref('table');
+const activeTab = ref('table');
 
-// Day name mapping (aligns with backend schedule day numbering)
-const dayNames = computed(() => ({
-    1: t('weeklyPlans.fullDays.1'),
-    2: t('weeklyPlans.fullDays.2'),
-    3: t('weeklyPlans.fullDays.3'),
-    4: t('weeklyPlans.fullDays.4'),
-    5: t('weeklyPlans.fullDays.5'),
-}));
+// Function to get day name from translation
+const getDayName = (dayNumber) => {
+    const translationKey = `weeklyPlans.fullDays.${dayNumber}`;
+    const translated = t(translationKey);
+    // If translation not found, return default day name
+    return translated !== translationKey ? translated : `Day ${dayNumber}`;
+};
 
 // Function to load weekly plans from the backend (real API)
 async function loadWeeklyPlans() {
@@ -378,7 +362,7 @@ async function loadWeeklyPlans() {
             if (!grouped[dayNum]) {
                 grouped[dayNum] = {
                     dayNumber: dayNum,
-                    dayName: dayNames.value[dayNum] || `Day ${dayNum}`,
+                    dayName: getDayName(dayNum),
                     plans: [],
                 };
             }
@@ -479,85 +463,85 @@ const progressColor = computed(() => {
     return "positive";
 });
 
-  // Flatten plans for table view
-  const flatPlans = computed(() =>
+// Flatten plans for table view
+const flatPlans = computed(() =>
     weeklyPlans.value.flatMap((d) => d.plans.map((p) => p.data))
-  );
+);
 
-  // ============== Edit from Cards/Table (shared) ==============
-  const openEditor = (row) => {
+// ============== Edit from Cards/Table (shared) ==============
+const openEditor = (row) => {
     selectedPlan.value = row;
     if (selectedPlan.value) {
-      showEditor.value = true;
+        showEditor.value = true;
     }
-  };
+};
 
-  const editPlan = (item) => {
+const editPlan = (item) => {
     // item from cards view contains { id, data }
     selectedPlan.value = item?.data ?? null;
     if (selectedPlan.value) {
-      showEditor.value = true;
+        showEditor.value = true;
     }
-  };
+};
 
-  const handleSave = async (payload) => {
+const handleSave = async (payload) => {
     if (!selectedPlan.value?.id) return;
     try {
-      saving.value = true;
-      // 1) Update schedule.period_order if changed
-      const newOrder = Number(payload?.schedule?.period_order);
-      const oldOrder = Number(selectedPlan.value?.schedule?.period_order);
-      const scheduleId = selectedPlan.value?.schedule?.id;
-      if (scheduleId && Number.isFinite(newOrder) && newOrder > 0 && newOrder !== oldOrder) {
-        await axios.put(`/weekly-system/api/schedules/${scheduleId}/period-order`, {
-          period_order: newOrder
+        saving.value = true;
+        // 1) Update schedule.period_order if changed
+        const newOrder = Number(payload?.schedule?.period_order);
+        const oldOrder = Number(selectedPlan.value?.schedule?.period_order);
+        const scheduleId = selectedPlan.value?.schedule?.id;
+        if (scheduleId && Number.isFinite(newOrder) && newOrder > 0 && newOrder !== oldOrder) {
+            await axios.put(`/weekly-system/api/schedules/${scheduleId}/period-order`, {
+                period_order: newOrder
+            });
+        }
+        await axios.put(`/weekly-system/api/weekly-plans/${selectedPlan.value.id}`, {
+            cw: payload?.cw ?? '',
+            hw: payload?.hw ?? '',
+            notes: payload?.notes ?? ''
         });
-      }
-      await axios.put(`/weekly-system/api/weekly-plans/${selectedPlan.value.id}`, {
-        cw: payload?.cw ?? '',
-        hw: payload?.hw ?? '',
-        notes: payload?.notes ?? ''
-      });
-      showEditor.value = false;
-      await loadWeeklyPlans();
+        showEditor.value = false;
+        await loadWeeklyPlans();
     } catch (e) {
-      console.error('Failed to save weekly plan', e);
+        console.error('Failed to save weekly plan', e);
     } finally {
-      saving.value = false;
+        saving.value = false;
     }
-  };
+};
 
-  // Optional copy/paste helpers so buttons don't break
-  const copyPlan = (item) => {
+// Optional copy/paste helpers so buttons don't break
+const copyPlan = (item) => {
     copyingPlanId.value = item?.id ?? null;
     copiedData.value = {
-      cw: item?.data?.cw || '',
-      hw: item?.data?.hw || '',
-      notes: item?.data?.notes || ''
+        cw: item?.data?.cw || '',
+        hw: item?.data?.hw || '',
+        notes: item?.data?.notes || ''
     };
-  };
+};
 
-  const pastePlan = async (item) => {
+const pastePlan = async (item) => {
     if (!copiedData.value) return;
     selectedPlan.value = item?.data ?? null;
     if (!selectedPlan.value?.id) return;
     await handleSave({
-      cw: copiedData.value.cw,
-      hw: copiedData.value.hw,
-      notes: copiedData.value.notes
+        cw: copiedData.value.cw,
+        hw: copiedData.value.hw,
+        notes: copiedData.value.notes
     });
-  };
+};
 
-  const revertPlan = () => {
+const revertPlan = () => {
     // No-op placeholder for now
-  };
+};
 
-  const savePlanField = async (item) => {
+const savePlanField = async (item) => {
     // Save all fields for the given item
     if (!item?.data) return;
     selectedPlan.value = item.data;
     await handleSave(item.data);
-  };
+};
 </script>
 
 <style scoped>

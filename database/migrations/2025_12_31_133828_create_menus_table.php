@@ -24,7 +24,18 @@ return new class extends Migration
             $table->boolean('is_feature_flag')->default(false);
             $table->string('feature_flag_key')->nullable();
             $table->json('meta')->nullable()->comment('Additional metadata like badges, descriptions');
+            
+            // V2 specific fields
+            $table->string('v2_component')->nullable()->comment('Specific V2 component to render');
+            $table->boolean('requires_context')->default(false)->comment('Requires school/tenant context');
+            $table->string('role_specific')->nullable()->comment('Specific role this menu belongs to: SuperSystem, SystemAdmin, SchoolAdmin, Teacher, Student, Parent');
+            $table->boolean('v2_enabled')->default(false)->comment('Enable this menu in V2 system');
+            
             $table->timestamps();
+            
+            // Indexes for performance
+            $table->index('role_specific');
+            $table->index('v2_enabled');
         });
     }
 

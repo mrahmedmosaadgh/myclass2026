@@ -69,6 +69,8 @@
 <script setup>
 import { useForm } from '@inertiajs/vue3';
 
+const emit = defineEmits(['created']);
+
 const form = useForm({
   start_date: '',
   end_date: '',
@@ -95,6 +97,7 @@ const submit = () => {
   form.post(route('admin.academic_calendar.year.store'), {
     onSuccess: () => {
       form.reset();
+      emit('created');
     },
   });
 };

@@ -23,6 +23,7 @@ class Calendar extends Model
         'event',
         'event_academic',
         'week_number',
+        'day_number',
         'data'
     ];
 
@@ -38,7 +39,8 @@ class Calendar extends Model
         'day_name',
         'day_number',
         'week_of_semester',
-        'semester_number'
+        'semester_number',
+        'status_label'
     ];
 
     /**
@@ -139,6 +141,37 @@ class Calendar extends Model
 
         return Carbon::parse($this->date)
             ->diffInWeeks(Carbon::parse($this->semester->start_date)) + 1;
+    }
+
+    /**
+     * Get the status label (human-readable)
+     */
+    public function getStatusLabelAttribute()
+    {
+        return match ($this->status) {
+            0 => 'Day Off',
+            1 => 'Work Day',
+            2 => 'Activity',
+            3 => 'Test',
+            4 => 'Final Exam',
+            default => 'Unknown',
+        };
+    }
+
+    /**
+     * Scope: Filter by date range
+     */
+    public function scopeByDateRange($query, $startDate, $endDate)
+    {
+        return $query->whereBetween('date', [$startDate, $endDate]);
+    }
+
+    /**
+     * Scope: Filter by status
+     */
+    public function scopeByStatus($query, $status)
+    {
+        return $query->where('status', $status);
     }
 }
 

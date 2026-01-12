@@ -122,7 +122,7 @@ class YearSemesterCalendarController extends Controller
 
             while ($currentDate <= $endDate) {
                 $dayOfWeek = $currentDate->dayOfWeek; // 0 (Sun) to 6 (Sat)
-                $dayNumber = $dayOfWeek + 1;
+                $dayNumber = $currentDate->dayOfWeekIso; // 1 (Mon) to 7 (Sun)
 
                 $calendarData = [
                     'semester_id' => $semester->id,
@@ -240,5 +240,59 @@ class YearSemesterCalendarController extends Controller
             ->get();
 
         return response()->json($calendars);
+    }
+
+    public function bulkUpdateCalendar(Request $request)
+    {
+        $request->validate([
+            'calendar_ids' => 'required|array',
+            'calendar_ids.*' => 'exists:calendars,id',
+            'status' => 'nullable|integer|between:0,4',
+            'event' => 'nullable|string|max:255',
+            'clear_events' => 'nullable|boolean',
+        ]);
+
+        $user = auth()->user();
+        $schoolId = $user->schoolId();
+
+        $updateData = [];
+        if ($request->filled('status')) {
+            $updateData['status'] = $request->status;
+        }
+        if ($request->filled('event')) {
+            $updateData['event'] = $request->event;
+        }
+        if ($request->clear_events) {
+            $updateData['event'] = null;
+        }
+
+        $updated = Calendar::whereIn('id', $request->calendar_ids)
+            ->where('school_id', $schoolId)
+            ->update($updateData);
+
+        return redirect()->back()->with('success', "Updated {$updated} calendar records.");
+    }
+
+    public function getCalendarStats(AcademicYear $year)
+    {
+        $user = auth()->user();
+        $schoolId = $user->schoolId();
+
+        // Ensure year belongs to user's school
+        if ($year->school_id !== $schoolId) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $stats = [
+            'total_days' => Calendar::where('academic_year_id', $year->id)->count(),
+            'work_days' => Calendar::where('academic_year_id', $year->id)->where('status', 1)->count(),
+            'holidays' => Calendar::where('academic_year_id', $year->id)->where('status', 0)->count(),
+            'activity_days' => Calendar::where('academic_year_id', $year->id)->where('status', 2)->count(),
+            'test_days' => Calendar::where('academic_year_id', $year->id)->where('status', 3)->count(),
+            'final_exam_days' => Calendar::where('academic_year_id', $year->id)->where('status', 4)->count(),
+            'events_count' => Calendar::where('academic_year_id', $year->id)->whereNotNull('event')->count(),
+        ];
+
+        return response()->json($stats);
     }
 }

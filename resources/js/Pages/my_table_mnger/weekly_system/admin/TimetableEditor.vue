@@ -1,5 +1,5 @@
 <template>
-  <Head title="Timetable Editor" />
+  <Head :title="t('weeklySystem.timetableEditor.title')" />
   <div class="q-pa-md">
     <WeeklyPlanMenu />
     <!-- Page Header -->
@@ -7,10 +7,10 @@
       <div class="col">
         <h4 class="q-ma-none text-weight-bold">
           <q-icon name="grid_view" class="q-mr-sm" color="primary" />
-          Timetable Editor
+          {{ t('weeklySystem.timetableEditor.title') }}
         </h4>
         <p class="text-grey-7 q-mb-none">
-          Assign subjects and teachers to the schedule grid
+          {{ t('weeklySystem.timetableEditor.subtitle') }}
         </p>
       </div>
     </div>
@@ -38,7 +38,7 @@
           <q-banner v-else dense class="bg-red-1 text-red-9" rounded>
             <div class="row items-center no-wrap">
               <q-icon name="error" class="q-mr-sm" />
-              <div>No active schedule copy found</div>
+              <div>{{ t('common.noActiveSchedule') }}</div>
             </div>
           </q-banner>
         </div>
@@ -50,7 +50,7 @@
             :options="classrooms"
             option-value="id"
             option-label="name"
-            label="Classroom"
+            :label="t('weeklyPlans.classroom')"
             outlined
             dense
             emit-value
@@ -78,13 +78,13 @@
           <q-btn
             color="secondary"
             icon="psychology"
-            label="Generate via AI"
+            :label="t('common.aiGenerate')"
             outline
             :disable="!activeCopy || !selectedClassroomId"
             @click="showAIImportDialog = true"
           >
             <q-tooltip v-if="!activeCopy || !selectedClassroomId">
-              Select a classroom first
+              {{ t('common.selectClassroomFirst') }}
             </q-tooltip>
           </q-btn>
         </div>
@@ -93,16 +93,16 @@
         <div class="col-12">
           <!-- Overall Statistics -->
           <div v-if="overallStats" class="q-mb-sm">
-            <div class="text-caption text-grey-7 q-mb-xs">Overall (All Classrooms)</div>
+            <div class="text-caption text-grey-7 q-mb-xs">{{ t('weeklyPlans.totalSlots') }} ({{ t('weeklyPlans.allClassrooms') }})</div>
             <div class="row q-gutter-sm">
               <q-chip dense icon="apps" color="blue-2" text-color="blue-9" size="sm">
-                {{ overallStats.total_slots }} total
+                {{ overallStats.total_slots }} {{ t('common.total') }}
               </q-chip>
               <q-chip dense icon="check_circle" color="green-2" text-color="green-9" size="sm">
-                {{ overallStats.assigned_slots }} assigned
+                {{ overallStats.assigned_slots }} {{ t('common.assigned') }}
               </q-chip>
               <q-chip dense icon="radio_button_unchecked" color="grey-3" text-color="grey-8" size="sm">
-                {{ overallStats.unassigned_slots }} empty
+                {{ overallStats.unassigned_slots }} {{ t('common.empty') }}
               </q-chip>
               <q-chip 
                 v-if="overallStats.conflict_count > 0" 
@@ -114,23 +114,23 @@
                 clickable
                 @click="showConflictDetails('overall')"
               >
-                {{ overallStats.conflict_count }} conflicts
+                {{ overallStats.conflict_count }} {{ t('common.conflicts') }}
               </q-chip>
             </div>
           </div>
           
           <!-- Current Classroom Statistics -->
           <div v-if="classroomStats">
-            <div class="text-caption text-grey-7 q-mb-xs">Current Classroom</div>
+            <div class="text-caption text-grey-7 q-mb-xs">{{ t('weeklyPlans.totalSlots') }} ({{ t('weeklyPlans.currentClassroom') }})</div>
             <div class="row q-gutter-sm">
               <q-chip dense icon="apps" color="blue-2" text-color="blue-9" size="sm">
-                {{ classroomStats.total_slots }} total
+                {{ classroomStats.total_slots }} {{ t('common.total') }}
               </q-chip>
               <q-chip dense icon="check_circle" color="green-2" text-color="green-9" size="sm">
-                {{ classroomStats.assigned_slots }} assigned
+                {{ classroomStats.assigned_slots }} {{ t('common.assigned') }}
               </q-chip>
               <q-chip dense icon="radio_button_unchecked" color="grey-3" text-color="grey-8" size="sm">
-                {{ classroomStats.unassigned_slots }} empty
+                {{ classroomStats.unassigned_slots }} {{ t('common.empty') }}
               </q-chip>
               <q-chip 
                 v-if="classroomStats.conflict_count > 0" 
@@ -142,7 +142,7 @@
                 clickable
                 @click="showConflictDetails('classroom')"
               >
-                {{ classroomStats.conflict_count }} conflicts
+                {{ classroomStats.conflict_count }} {{ t('common.conflicts') }}
               </q-chip>
             </div>
           </div>
@@ -158,14 +158,14 @@
     <!-- Empty State -->
     <q-card v-else-if="!activeCopy" flat bordered class="text-center q-pa-xl">
       <q-icon name="error" size="64px" color="red-5" />
-      <p class="text-h6 text-grey-7 q-mt-md">No active schedule copy</p>
-      <p class="text-grey-6">Activate a schedule copy to view and edit the timetable</p>
+      <p class="text-h6 text-grey-7 q-mt-md">{{ t('common.noActiveSchedule') }}</p>
+      <p class="text-grey-6">{{ t('weeklySystem.timetableEditor.activateSchedule') }}</p>
     </q-card>
 
     <q-card v-else-if="!selectedClassroomId" flat bordered class="text-center q-pa-xl">
       <q-icon name="touch_app" size="64px" color="grey-5" />
-      <p class="text-h6 text-grey-7 q-mt-md">Select a classroom</p>
-      <p class="text-grey-6">Choose a classroom to view and edit the timetable</p>
+      <p class="text-h6 text-grey-7 q-mt-md">{{ t('weeklySystem.timetableEditor.selectClassroom') }}</p>
+      <p class="text-grey-6">{{ t('weeklySystem.timetableEditor.chooseClassroom') }}</p>
     </q-card>
 
     <!-- Timetable Grid -->
@@ -202,7 +202,7 @@
     <q-dialog v-model="showConflictDialog" position="right">
       <q-card style="width: 500px; max-width: 80vw">
         <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">Conflict Details</div>
+          <div class="text-h6">{{ t('weeklySystem.timetableEditor.conflictDetails') }}</div>
           <q-space />
           <q-btn icon="close" flat round dense v-close-popup />
         </q-card-section>
@@ -212,7 +212,7 @@
             <q-spinner color="primary" size="3em" />
           </div>
           <div v-else-if="conflictDetails.length === 0" class="text-center text-grey-7 q-pa-md">
-            No conflicts found
+            {{ t('common.noConflicts') }}
           </div>
           <q-list v-else separator>
             <q-item v-for="(conflict, index) in conflictDetails" :key="index">
@@ -224,7 +224,7 @@
                   {{ conflict.day_name }} - Period {{ conflict.period_number }}
                 </q-item-label>
                 <q-item-label caption class="text-orange-9">
-                  Assigned to: {{ conflict.classrooms.join(', ') }}
+                  {{ t('weeklySystem.timetableEditor.assignedTo') }}: {{ conflict.classrooms.join(', ') }}
                 </q-item-label>
               </q-item-section>
               <q-item-section side>
@@ -251,12 +251,15 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import TimetableGrid from '../components/timetable/TimetableGrid.vue'
 import CSTAssignDialog from '../components/timetable/CSTAssignDialog.vue'
 import StatusBadge from '../components/shared/StatusBadge.vue'
 import WeeklyPlanMenu from '../WeeklyPlanMenu.vue'
 import AIImportDialog from '../components/timetable/AIImportDialog.vue'
+
+const { t } = useI18n()
 
 const $q = useQuasar()
 

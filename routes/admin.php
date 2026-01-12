@@ -64,6 +64,15 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->group(fu
     Route::post('academic-calendar/semester/{semester}', [App\Http\Controllers\YearSemesterCalendarController::class, 'updateSemester'])->name('admin.academic_calendar.semester.update');
     Route::post('academic-calendar/semester/{semester}/generate', [App\Http\Controllers\YearSemesterCalendarController::class, 'generateCalendar'])->name('admin.academic_calendar.semester.generate');
     Route::get('academic-calendar/year/{year}/missing-days', [App\Http\Controllers\YearSemesterCalendarController::class, 'getMissingDays'])->name('admin.academic_calendar.year.missing_days');
+    
+    // Calendar Import/Export (JSON-based for ExcelManager)
+    Route::post('academic-calendar/import', [App\Http\Controllers\CalendarImportController::class, 'importCalendarData'])->name('admin.academic_calendar.import');
+    Route::get('academic-calendar/year/{year}/export', [App\Http\Controllers\CalendarImportController::class, 'exportCalendarData'])->name('admin.academic_calendar.export_data');
+    Route::get('academic-calendar/export-template', [App\Http\Controllers\CalendarImportController::class, 'getExportTemplate'])->name('admin.academic_calendar.export_template');
+    
+    // Calendar Bulk Operations
+    Route::post('academic-calendar/bulk-update', [App\Http\Controllers\YearSemesterCalendarController::class, 'bulkUpdateCalendar'])->name('admin.academic_calendar.bulk_update');
+    Route::get('academic-calendar/year/{year}/stats', [App\Http\Controllers\YearSemesterCalendarController::class, 'getCalendarStats'])->name('admin.academic_calendar.year.stats');
 
     // Teacher Import Routes
     Route::prefix('teachers')->name('teachers.')->group(function () {

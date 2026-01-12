@@ -16,9 +16,45 @@
     </q-card-section>
 
     <q-card-section v-if="previewData.length">
-      <div class="q-mb-md">
-        <h6 class="q-my-none">Preview Data</h6>
-        <p class="text-caption text-grey-6">Select rows and columns to import</p>
+      <div class="q-mb-md row items-center justify-between">
+        <div>
+          <h6 class="q-my-none">Preview Data</h6>
+          <p class="text-caption text-grey-6">Select rows and columns to import</p>
+        </div>
+        <div class="q-gutter-sm">
+          <q-btn-group outline>
+            <q-btn
+              outline
+              color="primary"
+              label="Select All"
+              icon="check_box"
+              @click="selectAll"
+              size="sm"
+            >
+              <q-tooltip>Select all rows</q-tooltip>
+            </q-btn>
+            <q-btn
+              outline
+              color="primary"
+              label="Deselect All"
+              icon="check_box_outline_blank"
+              @click="deselectAll"
+              size="sm"
+            >
+              <q-tooltip>Deselect all rows</q-tooltip>
+            </q-btn>
+            <q-btn
+              outline
+              color="primary"
+              label="Inverse"
+              icon="swap_vert"
+              @click="inverseSelection"
+              size="sm"
+            >
+              <q-tooltip>Invert current selection</q-tooltip>
+            </q-btn>
+          </q-btn-group>
+        </div>
       </div>
 
       <q-table
@@ -132,6 +168,20 @@ const dynamicColumns = computed(() => {
 watch(selectAllRows, (val) => {
   selectedRows.value = val ? [...previewData.value] : []
 })
+
+// Selection Methods
+const selectAll = () => {
+  selectedRows.value = [...previewData.value]
+}
+
+const deselectAll = () => {
+  selectedRows.value = []
+}
+
+const inverseSelection = () => {
+  const currentIds = new Set(selectedRows.value.map(r => r.__id))
+  selectedRows.value = previewData.value.filter(r => !currentIds.has(r.__id))
+}
 
 // Methods
 const handleFileUpload = () => {

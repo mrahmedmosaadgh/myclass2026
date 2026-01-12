@@ -1,35 +1,35 @@
 <template>
-  <div class="timetable-grid">
-    <!-- Header Row: Days -->
+  <div class="timetable-grid" :dir="$i18n.locale === 'ar' ? 'rtl' : 'ltr'">
+    <!-- Header Row: Periods -->
     <div class="grid-row header-row">
-      <div class="grid-cell period-header"></div>
+      <div class="grid-cell day-header"></div>
       <div
-        v-for="day in days"
-        :key="day.value"
-        class="grid-cell day-header"
+        v-for="period in periods"
+        :key="period"
+        class="grid-cell period-header"
       >
-        <span class="day-name">{{ day.label }}</span>
-        <span class="day-short">{{ day.short }}</span>
-      </div>
-    </div>
-
-    <!-- Period Rows -->
-    <div
-      v-for="period in periods"
-      :key="period"
-      class="grid-row"
-    >
-      <!-- Period Header -->
-      <div class="grid-cell period-header">
         <div class="period-number">{{ period }}</div>
         <div class="period-time text-caption text-grey-6">
           {{ getPeriodTime(period) }}
         </div>
       </div>
+    </div>
 
-      <!-- Day Cells -->
+    <!-- Day Rows -->
+    <div
+      v-for="day in days"
+      :key="day.value"
+      class="grid-row"
+    >
+      <!-- Day Header -->
+      <div class="grid-cell day-header">
+        <span class="day-name">{{ day.label }}</span>
+        <span class="day-short">{{ day.short }}</span>
+      </div>
+
+      <!-- Period Cells -->
       <div
-        v-for="day in days"
+        v-for="period in periods"
         :key="`${day.value}-${period}`"
         class="grid-cell schedule-cell"
       >
@@ -48,6 +48,9 @@
 <script setup>
 import { computed } from 'vue'
 import TimetableCell from './TimetableCell.vue'
+import { useI18n } from 'vue-i18n'
+
+const { t, locale } = useI18n()
 
 const props = defineProps({
   schedules: { type: Array, default: () => [] },
@@ -57,12 +60,15 @@ const props = defineProps({
 
 const emit = defineEmits(['cell-click', 'edit', 'clear'])
 
+// Using translation for day names
 const days = [
-  { value: 1, label: 'Sunday', short: 'Sun' },
-  { value: 2, label: 'Monday', short: 'Mon' },
-  { value: 3, label: 'Tuesday', short: 'Tue' },
-  { value: 4, label: 'Wednesday', short: 'Wed' },
-  { value: 5, label: 'Thursday', short: 'Thu' }
+  { value: 1, label: t('weeklyPlans.fullDays.1'), short: t('weeklyPlans.shortDays.1') },
+  { value: 2, label: t('weeklyPlans.fullDays.2'), short: t('weeklyPlans.shortDays.2') },
+  { value: 3, label: t('weeklyPlans.fullDays.3'), short: t('weeklyPlans.shortDays.3') },
+  { value: 4, label: t('weeklyPlans.fullDays.4'), short: t('weeklyPlans.shortDays.4') },
+  { value: 5, label: t('weeklyPlans.fullDays.5'), short: t('weeklyPlans.shortDays.5') },
+  { value: 6, label: t('weeklyPlans.fullDays.6'), short: t('weeklyPlans.shortDays.6') },
+  { value: 7, label: t('weeklyPlans.fullDays.7'), short: t('weeklyPlans.shortDays.7') }
 ]
 
 const periods = [1, 2, 3, 4, 5, 6, 7, 8]
@@ -110,14 +116,21 @@ const getConflictInfo = (schedule) => {
   gap: 2px;
   background: #f5f5f5;
   border-radius: 8px;
-  padding: 8px;
+  padding: 2px;
   overflow-x: auto;
+  direction: ltr;
+}
+
+.timetable-grid[dir="rtl"] {
+  direction: rtl;
 }
 
 .grid-row {
   display: grid;
-  grid-template-columns: 80px repeat(5, 1fr);
+  /* Changed to have periods as columns: 100px for day header + n periods */
+  grid-template-columns: 100px repeat(v-bind('periods.length'), 1fr);
   gap: 2px;
+  /* min-height: 80px; */
 }
 
 .header-row .grid-cell {
@@ -138,18 +151,24 @@ const getConflictInfo = (schedule) => {
 }
 
 .period-header {
-  background: #f0f0f0;
+  background: #e3f2fd;
   font-weight: 600;
+  min-width: 80px;
 }
 
 .period-number {
   font-size: 1.1rem;
   font-weight: bold;
-  color: var(--q-primary);
+  /* color: var(--q-primary); */
+  color: white;
+
 }
 
 .day-header {
+  background: #f0f0f0;
+  font-weight: 600;
   padding: 12px 8px;
+  min-width: 100px;
 }
 
 .day-name {
@@ -166,7 +185,7 @@ const getConflictInfo = (schedule) => {
 
 @media (max-width: 768px) {
   .grid-row {
-    grid-template-columns: 60px repeat(5, 1fr);
+    grid-template-columns: 80px repeat(v-bind('periods.length'), 1fr);
   }
 
   .day-name {
@@ -177,4 +196,10 @@ const getConflictInfo = (schedule) => {
     display: block;
   }
 }
+
+/* RTL specific styles */
+[dir="rtl"] .grid-row {
+  direction: rtl;
+}
 </style>
+```

@@ -5,8 +5,8 @@
       <!-- Header -->
       <div class="row items-center q-mb-md">
         <div class="col">
-          <div class="text-h4 text-weight-bold text-primary">School Browser</div>
-          <div class="text-subtitle2 text-grey-7">Browse schools, classrooms, subjects, and teachers</div>
+          <div class="text-h4 text-weight-bold text-primary">{{ t('weeklySystem.schoolBrowser.title') }}</div>
+          <div class="text-subtitle2 text-grey-7">{{ t('weeklySystem.schoolBrowser.subtitle') }}</div>
         </div>
       </div>
 
@@ -27,9 +27,9 @@
           align="left"
           narrow-indicator
         >
-          <q-tab name="overview" icon="dashboard" label="Overview" />
-          <q-tab name="classrooms" icon="class" label="Classrooms" />
-          <q-tab name="assignments" icon="assignment" label="Assignments" />
+          <q-tab name="overview" icon="dashboard" :label="t('weeklySystem.schoolBrowser.overviewTab')" />
+          <q-tab name="classrooms" icon="class" :label="t('weeklySystem.schoolBrowser.classroomsTab')" />
+          <q-tab name="assignments" icon="assignment" :label="t('weeklySystem.schoolBrowser.assignmentsTab')" />
         </q-tabs>
 
         <q-separator class="q-mb-md" />
@@ -59,8 +59,8 @@
       <!-- Empty State -->
       <q-card v-else flat bordered class="q-pa-xl text-center">
         <q-icon name="school" size="80px" color="grey-5" />
-        <div class="text-h6 text-grey-7 q-mt-md">Select a school and configure its settings</div>
-        <div class="text-body2 text-grey-6">Choose a school from the dropdown above and set academic year, semester, and schedule copy</div>
+        <div class="text-h6 text-grey-7 q-mt-md">{{ t('weeklySystem.schoolBrowser.selectSchool') }}</div>
+        <div class="text-body2 text-grey-6">{{ t('weeklySystem.schoolBrowser.selectSchoolHint') }}</div>
       </q-card>
     </div>
  
@@ -71,12 +71,14 @@ import { ref, onMounted, watch } from 'vue';
 import { useSchoolDataStore } from '@/Stores/schoolData';
 import { useQuasar } from 'quasar';
 import axios from 'axios';
+import { useI18n } from 'vue-i18n';
  
 import WeeklyPlanMenu from '@/Pages/my_table_mnger/weekly_system/WeeklyPlanMenu.vue';
 import SchoolOverview from './components/SchoolOverview.vue';
 import ClassroomHierarchy from './components/ClassroomHierarchy.vue';
 import AssignmentsTable from './components/AssignmentsTable.vue';
 
+const { t } = useI18n();
 const $q = useQuasar();
 const schoolDataStore = useSchoolDataStore(); // Use the store
 
