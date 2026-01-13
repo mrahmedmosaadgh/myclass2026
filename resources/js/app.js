@@ -25,7 +25,7 @@ if (offlineMode) {
             return NProgress;
         })
     ]);
-    
+
     // Lazy register service worker
     if ('serviceWorker' in navigator) {
         setTimeout(() => {
@@ -52,7 +52,7 @@ import { ZiggyVue } from 'ziggy-js';
 import { createI18n } from 'vue-i18n';
 import Vue3Toastify from 'vue3-toastify';
 // Import Quasar components normally (not lazy loaded)
-import { Quasar, Notify, Loading, Dialog, Dark } from 'quasar';
+import { Quasar, Notify, Loading, Dialog, Dark, QRadioGroup, QRadio } from 'quasar';
 import AppLayoutDefault from '@/Layouts/AppLayoutDefault.vue';
 import languageSwitcher from './plugins/languageSwitcher.js';
 // Lazy load heavy CSS
@@ -145,6 +145,10 @@ createInertiaApp({
                     Loading,
                     Dialog,
                     Dark // Add Dark plugin for dark mode
+                },
+                components: {
+                    QRadioGroup,
+                    QRadio
                 },
                 config: {
                     notify: {
