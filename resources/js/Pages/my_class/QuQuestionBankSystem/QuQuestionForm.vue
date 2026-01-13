@@ -155,6 +155,7 @@
 <script setup>
 import { ref, reactive, watch, computed } from 'vue';
 import { useForm } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
 
 const props = defineProps({
   subjects: Array,

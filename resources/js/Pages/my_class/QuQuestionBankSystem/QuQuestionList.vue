@@ -204,10 +204,8 @@
 <script setup>
 import { ref, reactive, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
 import QuQuestionDisplay from './QuComponents/QuQuestionDisplay.vue';
-
-// Get the route helper injected by Ziggy into the window object
-const route = window.route;
 
 const props = defineProps({
   questions: Object,
