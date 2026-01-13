@@ -25,11 +25,11 @@
     <!-- MCQ Options -->
     <div v-if="question.question_type === 'mcq'" class="q-gutter-sm">
       <q-radio
-        v-for="(text, key) in question.options"
-        :key="key"
+        v-for="opt in formattedOptions"
+        :key="opt.key"
         v-model="answer.selected_options"
-        :val="key"
-        :label="`${key}. ${text}`"
+        :val="opt.key"
+        :label="`${opt.key}. ${opt.value}`"
         :disable="readonly"
         @update:model-value="updateAnswer"
       />
@@ -97,7 +97,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 
 const props = defineProps({
   question: {
@@ -127,6 +127,24 @@ const emit = defineEmits(['update:modelValue']);
 const answer = ref({
   selected_options: props.modelValue?.selected_options || [],
   answer_text: props.modelValue?.answer_text || ''
+});
+
+const formattedOptions = computed(() => {
+  const options = props.question.options;
+  if (!options) return [];
+  
+  // If it's already a shuffled array of objects {key, value}
+  if (Array.isArray(options)) {
+    // Basic check if it has key/value structure
+    if (options.length > 0 && typeof options[0] === 'object' && 'key' in options[0]) {
+        return options;
+    }
+    // Fallback if just simple array of strings (indices as keys)
+    return options.map((val, idx) => ({ key: idx, value: val }));
+  }
+  
+  // Normal object format {A: 'Text', B: 'Text'}
+  return Object.entries(options).map(([key, value]) => ({ key, value }));
 });
 
 watch(() => props.modelValue, (newVal) => {

@@ -22,7 +22,8 @@ class QuExam extends Model
         'is_published',
         'start_date',
         'end_date',
-        'publish_results_timing'
+        'publish_results_timing',
+        'settings'
     ];
 
     protected $casts = [
@@ -31,6 +32,7 @@ class QuExam extends Model
         'start_date' => 'datetime',
         'end_date' => 'datetime',
         'passing_score' => 'decimal:2',
+        'settings' => 'array',
     ];
 
     // Relationships

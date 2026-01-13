@@ -121,16 +121,16 @@
           <template v-slot:body-cell-bloom_distribution="props">
             <q-td :props="props">
               <div v-if="props.row.bloom_distribution" class="row q-gutter-xs">
-                <q-chip 
-                  v-for="(count, level) in props.row.bloom_distribution" 
-                  :key="level"
-                  v-if="count > 0"
-                  dense 
-                  size="sm"
-                  color="purple-2"
-                >
-                  {{ level }}: {{ count }}
-                </q-chip>
+                <template v-for="(count, level) in props.row.bloom_distribution" :key="level">
+                  <q-chip 
+                    v-if="count > 0"
+                    dense 
+                    size="sm"
+                    color="purple-2"
+                  >
+                    {{ level }}: {{ count }}
+                  </q-chip>
+                </template>
               </div>
             </q-td>
           </template>
@@ -234,6 +234,7 @@
             :selected-subject-id="localFilters.subject_id"
             :exam="editingExam"
             @success="onExamSaved"
+            @cancel="createDialog = false"
           />
         </q-card-section>
       </q-card>
@@ -269,6 +270,11 @@ const deleteDialog = ref(false);
 const createDialog = ref(false);
 const examToDelete = ref(null);
 const editingExam = ref(null);
+
+// Helper functions - defined before usage
+const capitalizeFirst = (str) => {
+  return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
+};
 
 const examTypeOptions = props.examTypes.map(type => ({
   value: type,
@@ -328,9 +334,14 @@ const viewExam = (exam) => {
   router.visit(route('qu-exams.show', exam.id));
 };
 
-const editExam = (exam) => {
-  editingExam.value = exam;
-  createDialog.value = true;
+const editExam = async (exam) => {
+  try {
+    const response = await window.axios.get(route('qu-exams.edit', exam.id));
+    editingExam.value = response.data;
+    createDialog.value = true;
+  } catch (error) {
+    console.error('Failed to load exam data', error);
+  }
 };
 
 const duplicateExam = (exam) => {
@@ -360,10 +371,6 @@ const deleteExam = () => {
 
 const truncateText = (text, length) => {
   return text && text.length > length ? text.substring(0, length) + '...' : text;
-};
-
-const capitalizeFirst = (str) => {
-  return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
 };
 
 const statusColor = (status) => {

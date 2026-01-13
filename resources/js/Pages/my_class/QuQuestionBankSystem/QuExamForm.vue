@@ -106,6 +106,19 @@
         />
       </div>
 
+      <div class="row q-gutter-md q-mt-md">
+        <q-toggle
+          v-model="form.settings.shuffle_questions"
+          label="Shuffle Questions"
+          color="primary"
+        />
+        <q-toggle
+          v-model="form.settings.shuffle_options"
+          label="Shuffle Options"
+          color="primary"
+        />
+      </div>
+
       <!-- Attempt Settings -->
       <q-expansion-item
         icon="repeat"
@@ -310,7 +323,8 @@
           flat
           label="Cancel"
           color="negative"
-          @click="$emit('cancel')"
+          class="q-ml-sm"
+          @click="onCancel"
         />
       </div>
     </q-form>
@@ -368,13 +382,21 @@ const form = useForm({
     evaluate: 0,
     create: 0
   },
-  question_ids: [],
+  question_ids: props.exam?.questions?.map(q => q.id) || [],
   is_published: props.exam?.is_published || false,
-  total_marks: props.exam?.total_marks || 0
+  total_marks: props.exam?.total_marks || 0,
+  settings: props.exam?.settings || {
+    shuffle_questions: false,
+    shuffle_options: false
+  }
 });
 
-const questionSelectionMode = ref('auto');
-const selectedQuestions = ref([]);
+const initialSelectionMode = props.exam?.bloom_distribution && Object.values(props.exam.bloom_distribution).some(val => val > 0)
+  ? 'auto'
+  : (props.exam ? 'manual' : 'auto');
+
+const questionSelectionMode = ref(initialSelectionMode);
+const selectedQuestions = ref(props.exam?.questions || []);
 const questionSelectorDialog = ref(false);
 const isScheduled = ref(!!(props.exam?.start_date || props.exam?.end_date));
 const maxAttemptsOption = ref(
@@ -514,6 +536,13 @@ const removeQuestion = (index) => {
   selectedQuestions.value.splice(index, 1);
   form.question_ids = selectedQuestions.value.map(q => q.id);
   form.total_marks = totalMarksFromQuestions.value;
+};
+
+const onCancel = () => {
+  emit('cancel');
+  if (!route().current('qu-exams.index')) {
+    router.visit(route('qu-exams.index'));
+  }
 };
 
 const submitForm = () => {

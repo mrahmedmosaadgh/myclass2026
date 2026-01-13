@@ -168,15 +168,15 @@
       <q-card-section v-if="selection.length > 0">
         <div class="text-subtitle2 q-mb-sm">Bloom Distribution of Selected Questions</div>
         <div class="row q-gutter-sm">
-          <q-chip
-            v-for="(count, level) in bloomDistribution"
-            :key="level"
-            v-if="count > 0"
-            :icon="getBloomIcon(level)"
-            color="purple-2"
-          >
-            {{ capitalizeFirst(level) }}: {{ count }}
-          </q-chip>
+          <template v-for="(count, level) in bloomDistribution" :key="level">
+            <q-chip
+              v-if="count > 0"
+              :icon="getBloomIcon(level)"
+              color="purple-2"
+            >
+              {{ capitalizeFirst(level) }}: {{ count }}
+            </q-chip>
+          </template>
         </div>
       </q-card-section>
 

@@ -149,6 +149,24 @@ Route::middleware([
                 ->name('exams.grading');
             Route::post('answers/{answer}/grade', [\App\Http\Controllers\QuExamController::class, 'gradeAnswer'])
                 ->name('answers.grade');
+            
+            // Student Exam Taking Routes
+            Route::prefix('student')->name('student.')->group(function () {
+                Route::get('exams', [\App\Http\Controllers\QuExamController::class, 'studentIndex'])
+                    ->name('exams.index');
+                Route::get('exams/{quExam}', [\App\Http\Controllers\QuExamController::class, 'studentShow'])
+                    ->name('exams.show');
+                Route::post('exams/{quExam}/start', [\App\Http\Controllers\QuExamController::class, 'startExam'])
+                    ->name('exams.start');
+                Route::get('exams/{quExam}/take/{quAttempt}', [\App\Http\Controllers\QuExamController::class, 'takeExam'])
+                    ->name('exams.take');
+                Route::post('exams/{quExam}/auto-save/{quAttempt}', [\App\Http\Controllers\QuExamController::class, 'autoSave'])
+                    ->name('exams.auto-save');
+                Route::post('exams/{quExam}/submit/{quAttempt}', [\App\Http\Controllers\QuExamController::class, 'submitExam'])
+                    ->name('exams.submit');
+                Route::get('exams/{quExam}/results/{quAttempt}', [\App\Http\Controllers\QuExamController::class, 'viewResults'])
+                    ->name('exams.results');
+            });
         });
 
         // Teacher presentation / demo lesson editor route
