@@ -22,6 +22,7 @@ Enhance the Student Exam System with question/option shuffling and stabilize the
     - Reverted "Edit" action in `QuExamList` to use the **Dialog** workflow (as per user preference).
     - Implemented **Async Data Fetching**: Created logic to fetch full exam data (questions, settings) via `axios` before opening the edit dialog, solving the "missing questions" issue.
     - Updated `QuExamController::edit` to return JSON data when requested via AJAX.
+- **Page Titles**: Added dynamic `<Head>` titles to all exam views (List, Form, Show, Student Views) for better UX and compliance with instructions.
 - **Cancel Button Logic**:
     - Implemented context-aware Cancel behavior in `QuExamForm`:
         - **In Dialog**: Closes the dialog.

@@ -1,4 +1,5 @@
 <template>
+  <Head :title="exam ? 'Edit Exam' : 'Create Exam'" />
   <div class="q-pa-md">
     <q-form @submit="submitForm" class="q-gutter-md">
       <!-- Basic Information -->

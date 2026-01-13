@@ -1,4 +1,5 @@
 <template>
+  <Head :title="exam.title || 'Take Exam'" />
   <div class="exam-container">
     <!-- Fixed Header -->
     <q-header elevated class="bg-white text-dark">

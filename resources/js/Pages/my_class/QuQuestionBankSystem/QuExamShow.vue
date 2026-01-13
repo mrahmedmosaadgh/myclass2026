@@ -1,4 +1,5 @@
 <template>
+  <Head :title="exam.title" />
   <div class="q-pa-md">
     <q-card>
       <q-card-section>

@@ -1,4 +1,5 @@
 <template>
+  <Head :title="exam.title ? exam.title + ' - Results' : 'Exam Results'" />
   <div class="q-pa-md">
     <q-card>
       <!-- Header -->
