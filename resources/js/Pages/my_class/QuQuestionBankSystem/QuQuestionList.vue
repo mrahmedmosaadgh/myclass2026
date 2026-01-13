@@ -5,11 +5,11 @@
         <div class="row items-center">
           <div class="text-h5">Question Bank</div>
           <q-space />
-          <q-btn 
-            color="primary" 
-            label="Create Question" 
+          <q-btn
+            color="primary"
+            label="Create Question"
             icon="add"
-            :to="route('qu-questions.create')"
+            @click="createDialog = true"
           />
         </div>
       </q-card-section>
@@ -196,6 +196,24 @@
           <q-btn flat label="Cancel" color="primary" v-close-popup />
           <q-btn flat label="Delete" color="negative" @click="deleteQuestion" />
         </q-card-actions>
+       </q-card>
+    </q-dialog>
+
+    <!-- Create Question Dialog -->
+    <q-dialog v-model="createDialog" maximized>
+      <q-card>
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">Create Question</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+
+        <q-card-section>
+          <QuQuestionForm 
+            :subjects="subjects" 
+            @success="onQuestionCreated"
+          />
+        </q-card-section>
       </q-card>
     </q-dialog>
   </div>
@@ -206,6 +224,7 @@ import { ref, reactive, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
 import QuQuestionDisplay from './QuComponents/QuQuestionDisplay.vue';
+import QuQuestionForm from './QuQuestionForm.vue';
 
 const props = defineProps({
   questions: Object,
@@ -223,6 +242,7 @@ const localFilters = reactive({
 const currentPage = ref(props.questions.current_page);
 const viewDialog = ref(false);
 const deleteDialog = ref(false);
+const createDialog = ref(false);
 const selectedQuestion = ref(null);
 const questionToDelete = ref(null);
 
@@ -320,5 +340,10 @@ const getBloomIcon = (level) => {
     create: 'auto_awesome'
   };
   return icons[level] || 'help';
+};
+
+const onQuestionCreated = () => {
+  createDialog.value = false;
+  router.reload({ only: ['questions'] });
 };
 </script>

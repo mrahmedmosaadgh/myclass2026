@@ -162,6 +162,8 @@ const props = defineProps({
   question: Object
 });
 
+const emit = defineEmits(['success']);
+
 const topics = ref([]);
 
 const questionTypes = [
@@ -246,9 +248,13 @@ const getBloomIcon = (level) => {
 
 const submitForm = () => {
   if (props.question) {
-    form.put(route('qu-questions.update', props.question.id));
+    form.put(route('qu-questions.update', props.question.id), {
+      onSuccess: () => emit('success')
+    });
   } else {
-    form.post(route('qu-questions.store'));
+    form.post(route('qu-questions.store'), {
+      onSuccess: () => emit('success')
+    });
   }
 };
 </script>
