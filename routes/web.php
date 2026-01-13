@@ -141,6 +141,8 @@ Route::middleware([
             
             // Exam Management (Teachers & Admins)  
             Route::resource('exams', \App\Http\Controllers\QuExamController::class);
+            Route::get('exams/questions/available', [\App\Http\Controllers\QuExamController::class, 'getAvailableQuestions'])
+                ->name('exams.questions.available');
             
             // Grading view for teachers
             Route::get('exams/{exam}/grading', [\App\Http\Controllers\QuExamController::class, 'grading'])
