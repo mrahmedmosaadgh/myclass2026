@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\QuExam;
 use App\Models\QuQuestion;
 use App\Models\Subject;
+use App\Models\Grade;
+use App\Models\Classroom;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -86,6 +89,8 @@ class QuExamController extends Controller
 
         return Inertia::render('my_class/QuQuestionBankSystem/QuExamForm', [
             'subjects' => Subject::all(),
+            'grades' => Grade::all(['id', 'name']),
+            'classrooms' => Classroom::with('grade')->get(['id', 'name', 'grade_id']),
             'customGroups' => $customGroups,
             'examTypes' => ['practice', 'quiz', 'midterm', 'final', 'survey'],
             'markCalculationMethods' => ['last', 'best', 'average'],
@@ -125,6 +130,11 @@ class QuExamController extends Controller
             'settings' => 'nullable|array',
             'settings.shuffle_questions' => 'boolean',
             'settings.shuffle_options' => 'boolean',
+            'target_audience' => 'nullable|array',
+            'target_audience.roles' => 'nullable|array',
+            'target_audience.grade_ids' => 'nullable|array',
+            'target_audience.classroom_ids' => 'nullable|array',
+            'target_audience.user_ids' => 'nullable|array',
         ]);
 
         $validated['created_by'] = auth()->id();
@@ -188,7 +198,10 @@ class QuExamController extends Controller
 
         return Inertia::render('my_class/QuQuestionBankSystem/QuExamForm', [
             'exam' => $exam,
+            'exam' => $exam,
             'subjects' => Subject::all(),
+            'grades' => Grade::all(['id', 'name']),
+            'classrooms' => Classroom::with('grade')->get(['id', 'name', 'grade_id']),
             'customGroups' => $customGroups,
             'examTypes' => ['practice', 'quiz', 'midterm', 'final', 'survey'],
             'markCalculationMethods' => ['last', 'best', 'average'],
@@ -221,6 +234,11 @@ class QuExamController extends Controller
             'settings' => 'nullable|array',
             'settings.shuffle_questions' => 'boolean',
             'settings.shuffle_options' => 'boolean',
+            'target_audience' => 'nullable|array',
+            'target_audience.roles' => 'nullable|array',
+            'target_audience.grade_ids' => 'nullable|array',
+            'target_audience.classroom_ids' => 'nullable|array',
+            'target_audience.user_ids' => 'nullable|array',
         ]);
 
         $exam->update($validated);
@@ -331,42 +349,33 @@ class QuExamController extends Controller
      */
     public function studentIndex(Request $request)
     {
-        $userId = auth()->id();
+        $user = auth()->user();
         
-        $query = QuExam::with(['subject', 'attempts' => function($q) use ($userId) {
-                $q->where('user_id', $userId);
+        $exams = QuExam::with(['subject', 'attempts' => function($q) use ($user) {
+                $q->where('user_id', $user->id);
             }])
             ->where('is_published', true)
-            ->when($request->subject_id, fn($q) => $q->where('subject_id', $request->subject_id));
-
-        $exams = $query->latest()->get()->map(function ($exam) use ($userId) {
-            $userAttempts = $exam->attempts;
-            $attemptCount = $userAttempts->count();
-            $inProgressAttempt = $userAttempts->firstWhere('completed_at', null);
-            $completedAttempts = $userAttempts->where('completed_at', '!=', null);
-            
-            return [
-                'id' => $exam->id,
-                'title' => $exam->title,
-                'description' => $exam->description,
-                'subject' => $exam->subject,
-                'exam_type' => $exam->exam_type,
-                'duration_minutes' => $exam->duration_minutes,
-                'total_marks' => $exam->total_marks,
-                'passing_score' => $exam->passing_score,
-                'max_attempts' => $exam->max_attempts,
-                'start_date' => $exam->start_date,
-                'end_date' => $exam->end_date,
-                'status' => $exam->getStatus(),
-                'is_available' => $exam->isAvailable(),
-                'attempt_count' => $attemptCount,
-                'remaining_attempts' => $exam->getRemainingAttempts($userId),
-                'has_in_progress' => !is_null($inProgressAttempt),
-                'in_progress_attempt_id' => $inProgressAttempt?->id,
-                'completed_attempts_count' => $completedAttempts->count(),
-                'best_score' => $completedAttempts->max('score'),
-            ];
-        });
+            ->forUser($user)  // Apply access control scope
+            ->get()
+            ->map(function ($exam) use ($user) {
+                return [
+                    'id' => $exam->id,
+                    'title' => $exam->title,
+                    'description' => $exam->description,
+                    'subject' => $exam->subject,
+                    'exam_type' => $exam->exam_type,
+                    'duration_minutes' => $exam->duration_minutes,
+                    'total_marks' => $exam->total_marks,
+                    'passing_score' => $exam->passing_score,
+                    'max_attempts' => $exam->max_attempts,
+                    'start_date' => $exam->start_date,
+                    'end_date' => $exam->end_date,
+                    'status' => $exam->getStatus(),
+                    'is_available' => $exam->isAvailable(),
+                    'attempts_count' => $exam->attempts->count(),
+                    'remaining_attempts' => $exam->getRemainingAttempts($user),
+                ];
+            });
 
         return Inertia::render('my_class/QuQuestionBankSystem/QuStudentExamList', [
             'exams' => $exams,
@@ -745,5 +754,22 @@ class QuExamController extends Controller
                 ];
             }) : [],
         ]);
+    }
+    /**
+     * Search users for assignment (students, teachers, etc.)
+     */
+    public function searchUsers(Request $request)
+    {
+        $search = $request->input('search');
+        if (!$search) {
+            return response()->json(['users' => []]);
+        }
+
+        $users = User::where('name', 'like', "%{$search}%")
+            ->orWhere('email', 'like', "%{$search}%")
+            ->limit(20)
+            ->get(['id', 'name', 'email', 'role']);
+
+        return response()->json(['users' => $users]);
     }
 }

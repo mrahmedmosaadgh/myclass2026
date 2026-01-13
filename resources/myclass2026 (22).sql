@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jan 13, 2026 at 02:54 PM
+-- Generation Time: Jan 13, 2026 at 05:46 PM
 -- Server version: 8.0.33
 -- PHP Version: 8.4.16
 
@@ -59,6 +59,264 @@ CREATE TABLE `activity_logs` (
   `page_url` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `activity_logs`
+--
+
+INSERT INTO `activity_logs` (`id`, `user_id`, `activity`, `page_url`, `created_at`) VALUES
+(1, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/questions', '2026-01-13 15:21:49'),
+(2, 19, 'Visited a page', 'http://127.0.0.1:8000/dashboard', '2026-01-13 15:21:50'),
+(3, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:21:50'),
+(4, 19, 'Visited a page', 'http://127.0.0.1:8000/dashboard', '2026-01-13 15:21:50'),
+(5, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:21:50'),
+(6, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:21:50'),
+(7, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:21:50'),
+(8, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:21:51'),
+(9, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:21:51'),
+(10, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/questions', '2026-01-13 15:23:54'),
+(11, 19, 'Visited a page', 'http://127.0.0.1:8000/dashboard', '2026-01-13 15:23:55'),
+(12, 19, 'Visited a page', 'http://127.0.0.1:8000/dashboard', '2026-01-13 15:23:55'),
+(13, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:23:56'),
+(14, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:23:56'),
+(15, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:23:56'),
+(16, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:23:56'),
+(17, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:23:56'),
+(18, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:23:57'),
+(19, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/questions', '2026-01-13 15:24:16'),
+(20, 19, 'Visited a page', 'http://127.0.0.1:8000/dashboard', '2026-01-13 15:24:16'),
+(21, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:24:17'),
+(22, 19, 'Visited a page', 'http://127.0.0.1:8000/dashboard', '2026-01-13 15:24:17'),
+(23, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:24:17'),
+(24, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:24:17'),
+(25, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:24:17'),
+(26, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:24:18'),
+(27, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:24:18'),
+(28, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/questions', '2026-01-13 15:25:11'),
+(29, 19, 'Visited a page', 'http://127.0.0.1:8000/dashboard', '2026-01-13 15:25:12'),
+(30, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:25:12'),
+(31, 19, 'Visited a page', 'http://127.0.0.1:8000/dashboard', '2026-01-13 15:25:12'),
+(32, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:25:12'),
+(33, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:25:12'),
+(34, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:25:12'),
+(35, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:25:13'),
+(36, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:25:13'),
+(37, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/questions', '2026-01-13 15:25:58'),
+(38, 19, 'Visited a page', 'http://127.0.0.1:8000/dashboard', '2026-01-13 15:25:59'),
+(39, 19, 'Visited a page', 'http://127.0.0.1:8000/dashboard', '2026-01-13 15:25:59'),
+(40, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:25:59'),
+(41, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:25:59'),
+(42, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:26:00'),
+(43, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:26:00'),
+(44, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:26:00'),
+(45, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:26:00'),
+(46, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/questions', '2026-01-13 15:40:16'),
+(47, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/questions', '2026-01-13 15:40:16'),
+(48, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:40:16'),
+(49, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:40:16'),
+(50, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 15:42:47'),
+(51, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:42:48'),
+(52, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:42:48'),
+(53, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 15:42:58'),
+(54, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:42:58'),
+(55, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:42:58'),
+(56, 19, 'Visited a page', 'http://127.0.0.1:8000/dashboard', '2026-01-13 15:44:26'),
+(57, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:44:27'),
+(58, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:44:27'),
+(59, 19, 'Visited a page', 'http://127.0.0.1:8000/dashboard', '2026-01-13 15:44:33'),
+(60, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 15:44:33'),
+(61, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 15:44:34'),
+(62, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:44:34'),
+(63, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:44:34'),
+(64, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:44:34'),
+(65, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:44:35'),
+(66, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/questions/available', '2026-01-13 15:45:54'),
+(67, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 15:50:38'),
+(68, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:50:39'),
+(69, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:50:39'),
+(70, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/questions/available', '2026-01-13 15:51:14'),
+(71, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 15:51:34'),
+(72, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 15:51:34'),
+(73, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 15:51:34'),
+(74, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/1', '2026-01-13 15:51:42'),
+(75, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 15:52:15'),
+(76, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 15:52:16'),
+(77, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:52:16'),
+(78, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:52:16'),
+(79, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/1', '2026-01-13 15:52:21'),
+(80, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 15:53:04'),
+(81, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:53:04'),
+(82, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:53:04'),
+(83, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/1', '2026-01-13 15:53:39'),
+(84, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 15:53:39'),
+(85, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 15:53:39'),
+(86, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/questions/available', '2026-01-13 15:53:53'),
+(87, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/1', '2026-01-13 15:57:55'),
+(88, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 15:58:17'),
+(89, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 15:58:18'),
+(90, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:58:18'),
+(91, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:58:18'),
+(92, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/1', '2026-01-13 15:59:19'),
+(93, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 15:59:30'),
+(94, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 15:59:30'),
+(95, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 15:59:33'),
+(96, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:59:33'),
+(97, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 15:59:33'),
+(98, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/1', '2026-01-13 15:59:43'),
+(99, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:02:21'),
+(100, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:02:21'),
+(101, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/1', '2026-01-13 16:02:25'),
+(102, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/1', '2026-01-13 16:02:26'),
+(103, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:02:27'),
+(104, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:02:27'),
+(105, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:02:28'),
+(106, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:02:28'),
+(107, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/1', '2026-01-13 16:02:37'),
+(108, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:10:04'),
+(109, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:10:04'),
+(110, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/1', '2026-01-13 16:10:11'),
+(111, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/1', '2026-01-13 16:12:47'),
+(112, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/1', '2026-01-13 16:12:47'),
+(113, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:12:48'),
+(114, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:12:49'),
+(115, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:14:14'),
+(116, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:14:15'),
+(117, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:14:15'),
+(118, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/1', '2026-01-13 16:14:55'),
+(119, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:21:32'),
+(120, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:21:32'),
+(121, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:21:34'),
+(122, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:21:34'),
+(123, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:21:34'),
+(124, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/1', '2026-01-13 16:21:38'),
+(125, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/1/edit', '2026-01-13 16:22:37'),
+(126, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/1/edit', '2026-01-13 16:22:41'),
+(127, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:22:41'),
+(128, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:22:41'),
+(129, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:22:42'),
+(130, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:22:42'),
+(131, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:22:42'),
+(132, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:22:42'),
+(133, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:22:43'),
+(134, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:22:44'),
+(135, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:22:44'),
+(136, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:22:44'),
+(137, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:22:44'),
+(138, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:22:44'),
+(139, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:22:56'),
+(140, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:22:57'),
+(141, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:22:57'),
+(142, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:33:13'),
+(143, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:33:13'),
+(144, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:33:13'),
+(145, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/1', '2026-01-13 16:33:19'),
+(146, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:33:25'),
+(147, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:33:25'),
+(148, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:34:13'),
+(149, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/1', '2026-01-13 16:34:21'),
+(150, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:34:21'),
+(151, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/questions/available', '2026-01-13 16:35:08'),
+(152, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:35:31'),
+(153, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:35:31'),
+(154, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:35:31'),
+(155, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/2', '2026-01-13 16:35:35'),
+(156, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:35:40'),
+(157, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:35:40'),
+(158, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/questions/available', '2026-01-13 16:39:42'),
+(159, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:39:47'),
+(160, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:39:48'),
+(161, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:39:48'),
+(162, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/questions/available', '2026-01-13 16:41:36'),
+(163, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/questions/available', '2026-01-13 16:41:43'),
+(164, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:41:59'),
+(165, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:41:59'),
+(166, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:42:00'),
+(167, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:43:17'),
+(168, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:43:17'),
+(169, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:43:17'),
+(170, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:44:00'),
+(171, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:44:00'),
+(172, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:44:00'),
+(173, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/2', '2026-01-13 16:44:04'),
+(174, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/2/edit', '2026-01-13 16:44:40'),
+(175, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:45:11'),
+(176, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:45:11'),
+(177, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/questions/available', '2026-01-13 16:46:18'),
+(178, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/2', '2026-01-13 16:46:35'),
+(179, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:46:35'),
+(180, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:46:35'),
+(181, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:46:53'),
+(182, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:46:54'),
+(183, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:46:54'),
+(184, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:46:54'),
+(185, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/2', '2026-01-13 16:47:25'),
+(186, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/2/edit', '2026-01-13 16:47:28'),
+(187, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/questions/available', '2026-01-13 16:47:37'),
+(188, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/2', '2026-01-13 16:47:49'),
+(189, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:47:49'),
+(190, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:47:49'),
+(191, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/2', '2026-01-13 16:48:02'),
+(192, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/2/edit', '2026-01-13 16:48:12'),
+(193, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:53:29'),
+(194, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:53:29'),
+(195, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:53:37'),
+(196, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:53:37'),
+(197, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:53:37'),
+(198, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/2/edit', '2026-01-13 16:53:46'),
+(199, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/2', '2026-01-13 16:54:15'),
+(200, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:54:15'),
+(201, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 16:54:15'),
+(202, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/2/edit', '2026-01-13 16:54:19'),
+(203, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/2/edit', '2026-01-13 16:56:04'),
+(204, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:56:04'),
+(205, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:56:04'),
+(206, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/2/edit', '2026-01-13 16:56:31'),
+(207, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:56:32'),
+(208, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:56:32'),
+(209, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/2/edit', '2026-01-13 16:56:57'),
+(210, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:56:57'),
+(211, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 16:56:57'),
+(212, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/2/edit', '2026-01-13 16:57:24'),
+(213, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/2', '2026-01-13 17:00:29'),
+(214, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/2/edit', '2026-01-13 17:00:32'),
+(215, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 17:00:40'),
+(216, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 17:00:41'),
+(217, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/2/edit', '2026-01-13 17:00:43'),
+(218, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/2/edit', '2026-01-13 17:00:47'),
+(219, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 17:00:47'),
+(220, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 17:00:47'),
+(221, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 17:00:58'),
+(222, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 17:00:59'),
+(223, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 17:00:59'),
+(224, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 17:00:59'),
+(225, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/2/edit', '2026-01-13 17:01:14'),
+(226, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/2/edit', '2026-01-13 17:01:20'),
+(227, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/2', '2026-01-13 17:01:25'),
+(228, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 17:01:25'),
+(229, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 17:01:25'),
+(230, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/2', '2026-01-13 17:01:28'),
+(231, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 17:01:34'),
+(232, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 17:01:34'),
+(233, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/2', '2026-01-13 17:01:41'),
+(234, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 17:01:48'),
+(235, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 17:01:48'),
+(236, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/2/edit', '2026-01-13 17:01:51'),
+(237, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/questions/available', '2026-01-13 17:02:00'),
+(238, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/questions/available', '2026-01-13 17:02:06'),
+(239, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/questions/available', '2026-01-13 17:02:11'),
+(240, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/questions/available', '2026-01-13 17:02:14'),
+(241, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/questions/available', '2026-01-13 17:02:17'),
+(242, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/questions/available', '2026-01-13 17:02:18'),
+(243, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/questions/available', '2026-01-13 17:02:20'),
+(244, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams/questions/available', '2026-01-13 17:02:22'),
+(245, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 17:02:23'),
+(246, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/exams', '2026-01-13 17:02:36'),
+(247, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 17:02:36'),
+(248, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 17:02:36'),
+(249, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/student/exams', '2026-01-13 17:23:42'),
+(250, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 17:23:43'),
+(251, 19, 'Visited a page', 'http://127.0.0.1:8000/user-messages', '2026-01-13 17:23:43'),
+(252, 19, 'Visited a page', 'http://127.0.0.1:8000/qu/student/exams/2/start', '2026-01-13 17:23:58');
 
 -- --------------------------------------------------------
 
@@ -1552,7 +1810,9 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 (119, '2026_01_13_094430_create_qu_exam_questions_table', 10),
 (120, '2026_01_13_094431_create_qu_attempts_table', 10),
 (121, '2026_01_13_094433_create_qu_answers_table', 10),
-(122, '2026_01_13_140512_add_exam_management_fields_to_qu_exams_table', 11);
+(122, '2026_01_13_140512_add_exam_management_fields_to_qu_exams_table', 11),
+(123, '2026_01_13_162758_add_settings_json_column_to_qu_exams_table', 12),
+(124, '2026_01_13_174427_add_target_audience_to_qu_exams_table', 13);
 
 -- --------------------------------------------------------
 
@@ -2243,9 +2503,18 @@ CREATE TABLE `qu_exams` (
   `start_date` datetime DEFAULT NULL COMMENT 'When exam becomes available',
   `end_date` datetime DEFAULT NULL COMMENT 'Submission deadline',
   `publish_results_timing` enum('immediate','after_end','manual') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'immediate',
+  `settings` json DEFAULT NULL,
+  `target_audience` json DEFAULT NULL COMMENT 'Defines who can see/take the exam. NULL = Public/Everyone.',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `qu_exams`
+--
+
+INSERT INTO `qu_exams` (`id`, `title`, `description`, `exam_type`, `custom_group`, `max_attempts`, `mark_calculation_method`, `passing_score`, `subject_id`, `duration_minutes`, `total_marks`, `bloom_distribution`, `created_by`, `is_published`, `start_date`, `end_date`, `publish_results_timing`, `settings`, `target_audience`, `created_at`, `updated_at`) VALUES
+(2, 'Dolore obcaecati autem doloribus dolores in nihil illo qui aut ab quis odio harum recusandae', 'Sit consequatur labo', 'quiz', 'In quia qui id nihil', NULL, 'last', 50.00, 1, 60, 6, NULL, 19, 1, NULL, NULL, 'immediate', '{\"shuffle_options\": false, \"shuffle_questions\": true}', NULL, '2026-01-13 13:35:31', '2026-01-13 14:01:25');
 
 -- --------------------------------------------------------
 
@@ -2261,6 +2530,18 @@ CREATE TABLE `qu_exam_questions` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `qu_exam_questions`
+--
+
+INSERT INTO `qu_exam_questions` (`id`, `qu_exam_id`, `qu_question_id`, `order`, `created_at`, `updated_at`) VALUES
+(7, 2, 5, 0, '2026-01-13 13:35:31', '2026-01-13 13:35:31'),
+(8, 2, 6, 0, '2026-01-13 13:35:31', '2026-01-13 13:35:31'),
+(12, 2, 7, 0, '2026-01-13 13:47:49', '2026-01-13 13:47:49'),
+(13, 2, 8, 0, '2026-01-13 13:47:49', '2026-01-13 13:47:49'),
+(14, 2, 9, 0, '2026-01-13 13:47:49', '2026-01-13 13:47:49'),
+(15, 2, 10, 0, '2026-01-13 13:47:49', '2026-01-13 13:47:49');
 
 -- --------------------------------------------------------
 
@@ -3860,10 +4141,8 @@ CREATE TABLE `sessions` (
 --
 
 INSERT INTO `sessions` (`id`, `user_id`, `ip_address`, `user_agent`, `payload`, `last_activity`) VALUES
-('8cI1BshRDpTEzGHSAEUKeegSs8AEvyawVVA5uomG', 19, '127.0.0.1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', 'YTo2OntzOjY6Il90b2tlbiI7czo0MDoiYzV1dVdEc2xiRVU2RHBudGR0QkpldVczdW9mNU41WWZ4Mllubkt6QiI7czozOiJ1cmwiO2E6MDp7fXM6OToiX3ByZXZpb3VzIjthOjE6e3M6MzoidXJsIjtzOjMxOiJodHRwOi8vMTI3LjAuMC4xOjgwMDAvZGFzaGJvYXJkIjt9czo2OiJfZmxhc2giO2E6Mjp7czozOiJvbGQiO2E6MDp7fXM6MzoibmV3IjthOjA6e319czo1MDoibG9naW5fd2ViXzU5YmEzNmFkZGMyYjJmOTQwMTU4MGYwMTRjN2Y1OGVhNGUzMDk4OWQiO2k6MTk7czoyMToicGFzc3dvcmRfaGFzaF9zYW5jdHVtIjtzOjYwOiIkMnkkMTIkS3AxRUVGRnBPN0ZTSUJEWElGUFR3ZUZzM2hNSHRJVjQvdmNnemI4a256ZmNHUXhremhPb0MiO30=', 1768315857),
-('L6kCfCaOhXZQxL5LPuw7kYALCTJ47UKluzLmUXNF', NULL, '127.0.0.1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', 'YTo0OntzOjY6Il90b2tlbiI7czo0MDoiTUo5N3NaVk9Fak01Y2ZENGNJbG1rUmRGcmVsYWw1NlNqaUxtQU43ciI7czozOiJ1cmwiO2E6MTp7czo4OiJpbnRlbmRlZCI7czo4NzoiaHR0cDovLzEyNy4wLjAuMTo4MDAwL3F1L3F1ZXN0aW9ucz9ibG9vbV9sZXZlbD0mZGlmZmljdWx0eT0mcXVlc3Rpb25fdHlwZT0mc3ViamVjdF9pZD0xIjt9czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6Mjc6Imh0dHA6Ly8xMjcuMC4wLjE6ODAwMC9sb2dpbiI7fXM6NjoiX2ZsYXNoIjthOjI6e3M6Mzoib2xkIjthOjA6e31zOjM6Im5ldyI7YTowOnt9fX0=', 1768315856),
-('lfSDCzF9MuGy4dvFvQHLeTL5kXehzGdb9Bcejayt', NULL, '127.0.0.1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', 'YTo0OntzOjY6Il90b2tlbiI7czo0MDoiWFVsWDc4YURZVlh3akdCUnBUZFlZS3JMeDhpVlJzR1VxelNqbmpYVyI7czozOiJ1cmwiO2E6MTp7czo4OiJpbnRlbmRlZCI7czo0NjoiaHR0cDovLzEyNy4wLjAuMTo4MDAwL2xlc3Nvbi1wcmVzZW50YXRpb24vZWRpdCI7fXM6OToiX3ByZXZpb3VzIjthOjE6e3M6MzoidXJsIjtzOjI3OiJodHRwOi8vMTI3LjAuMC4xOjgwMDAvbG9naW4iO31zOjY6Il9mbGFzaCI7YToyOntzOjM6Im9sZCI7YTowOnt9czozOiJuZXciO2E6MDp7fX19', 1768313466),
-('z2ETNEDXIiPNiVuVG7N3rmhunU6PGfbaFHMEYARA', NULL, '127.0.0.1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', 'YTo0OntzOjY6Il90b2tlbiI7czo0MDoiNDdVSWpVaDJsUDl0T0RBQkQ4QWRHT0FURXJ5VWhvZXRxZzZmNzlDdSI7czozOiJ1cmwiO2E6MTp7czo4OiJpbnRlbmRlZCI7czo4NzoiaHR0cDovLzEyNy4wLjAuMTo4MDAwL3F1L3F1ZXN0aW9ucz9ibG9vbV9sZXZlbD0mZGlmZmljdWx0eT0mcXVlc3Rpb25fdHlwZT0mc3ViamVjdF9pZD0xIjt9czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6Mjc6Imh0dHA6Ly8xMjcuMC4wLjE6ODAwMC9sb2dpbiI7fXM6NjoiX2ZsYXNoIjthOjI6e3M6Mzoib2xkIjthOjA6e31zOjM6Im5ldyI7YTowOnt9fX0=', 1768313466);
+('8cI1BshRDpTEzGHSAEUKeegSs8AEvyawVVA5uomG', 19, '127.0.0.1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', 'YTo2OntzOjY6Il90b2tlbiI7czo0MDoiYzV1dVdEc2xiRVU2RHBudGR0QkpldVczdW9mNU41WWZ4Mllubkt6QiI7czozOiJ1cmwiO2E6MDp7fXM6OToiX3ByZXZpb3VzIjthOjE6e3M6MzoidXJsIjtzOjM4OiJodHRwOi8vMTI3LjAuMC4xOjgwMDAvcXUvc3R1ZGVudC9leGFtcyI7fXM6NjoiX2ZsYXNoIjthOjI6e3M6Mzoib2xkIjthOjA6e31zOjM6Im5ldyI7YTowOnt9fXM6NTA6ImxvZ2luX3dlYl81OWJhMzZhZGRjMmIyZjk0MDE1ODBmMDE0YzdmNThlYTRlMzA5ODlkIjtpOjE5O3M6MjE6InBhc3N3b3JkX2hhc2hfc2FuY3R1bSI7czo2MDoiJDJ5JDEyJEtwMUVFRkZwTzdGU0lCRFhJRlBUd2VGczNoTUh0SVY0L3ZjZ3piOGtuemZjR1F4a3poT29DIjt9', 1768325023),
+('L6kCfCaOhXZQxL5LPuw7kYALCTJ47UKluzLmUXNF', NULL, '127.0.0.1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', 'YTo0OntzOjY6Il90b2tlbiI7czo0MDoiTUo5N3NaVk9Fak01Y2ZENGNJbG1rUmRGcmVsYWw1NlNqaUxtQU43ciI7czozOiJ1cmwiO2E6MTp7czo4OiJpbnRlbmRlZCI7czo4NzoiaHR0cDovLzEyNy4wLjAuMTo4MDAwL3F1L3F1ZXN0aW9ucz9ibG9vbV9sZXZlbD0mZGlmZmljdWx0eT0mcXVlc3Rpb25fdHlwZT0mc3ViamVjdF9pZD0xIjt9czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6Mjc6Imh0dHA6Ly8xMjcuMC4wLjE6ODAwMC9sb2dpbiI7fXM6NjoiX2ZsYXNoIjthOjI6e3M6Mzoib2xkIjthOjA6e31zOjM6Im5ldyI7YTowOnt9fX0=', 1768320768);
 
 -- --------------------------------------------------------
 
@@ -4489,7 +4768,7 @@ INSERT INTO `users` (`id`, `school_id`, `name`, `email`, `email_verified`, `emai
 (16, 1, 'Lucky', 't5x046026', NULL, NULL, '$2y$12$Kp1EEFFpO7FSIBDXIFPTweFs3hMHtIV4/vcgzb8knzfcGQxkzhOoC', NULL, NULL, NULL, NULL, NULL, NULL, 'teacher', 1, NULL, NULL, 1, '2026-01-03 02:29:42', '2026-01-03 02:29:42', NULL),
 (17, 1, 'Ahmed Rabie', 'txo8z2526', NULL, NULL, '$2y$12$Kp1EEFFpO7FSIBDXIFPTweFs3hMHtIV4/vcgzb8knzfcGQxkzhOoC', NULL, NULL, NULL, NULL, NULL, NULL, 'teacher', 1, NULL, NULL, 1, '2026-01-03 02:29:42', '2026-01-03 02:29:42', NULL),
 (18, 1, 'Abdulwahab Saleh', 'tslaw6724', NULL, NULL, '$2y$12$Kp1EEFFpO7FSIBDXIFPTweFs3hMHtIV4/vcgzb8knzfcGQxkzhOoC', NULL, NULL, NULL, NULL, NULL, NULL, 'teacher', 1, NULL, NULL, 1, '2026-01-03 02:29:42', '2026-01-03 02:29:42', NULL),
-(19, 1, 'Ahmed Mosad', 'tuhn06837', NULL, NULL, '$2y$12$Kp1EEFFpO7FSIBDXIFPTweFs3hMHtIV4/vcgzb8knzfcGQxkzhOoC', NULL, NULL, NULL, 'YUICbvFNOEvsBcouIIOOFLsVdD29wGiwSdZlNOabsRdA5qDmYgypeka25iPH', NULL, NULL, 'teacher', 1, NULL, '2026-01-13 11:50:57', 1, '2026-01-03 02:29:42', '2026-01-13 11:50:57', NULL),
+(19, 1, 'Ahmed Mosad', 'tuhn06837', NULL, NULL, '$2y$12$Kp1EEFFpO7FSIBDXIFPTweFs3hMHtIV4/vcgzb8knzfcGQxkzhOoC', NULL, NULL, NULL, 'YUICbvFNOEvsBcouIIOOFLsVdD29wGiwSdZlNOabsRdA5qDmYgypeka25iPH', NULL, NULL, 'teacher', 1, NULL, '2026-01-13 14:23:58', 1, '2026-01-03 02:29:42', '2026-01-13 14:23:58', NULL),
 (20, 1, 'Emad Maghawry', 'tngqe2659', NULL, NULL, '$2y$12$Kp1EEFFpO7FSIBDXIFPTweFs3hMHtIV4/vcgzb8knzfcGQxkzhOoC', NULL, NULL, NULL, NULL, NULL, NULL, 'teacher', 1, NULL, NULL, 1, '2026-01-03 02:29:42', '2026-01-03 02:29:42', NULL),
 (21, 1, 'Tarek Zanaty', 'tpgtx8677', NULL, NULL, '$2y$12$Kp1EEFFpO7FSIBDXIFPTweFs3hMHtIV4/vcgzb8knzfcGQxkzhOoC', NULL, NULL, NULL, NULL, NULL, NULL, 'teacher', 1, NULL, NULL, 1, '2026-01-03 02:29:42', '2026-01-03 02:29:42', NULL),
 (22, 1, 'Yaser', 'tiuwd6356', NULL, NULL, '$2y$12$Kp1EEFFpO7FSIBDXIFPTweFs3hMHtIV4/vcgzb8knzfcGQxkzhOoC', NULL, NULL, NULL, NULL, NULL, NULL, 'teacher', 1, NULL, NULL, 1, '2026-01-03 02:29:42', '2026-01-03 02:29:42', NULL),
@@ -5811,7 +6090,7 @@ ALTER TABLE `academic_years`
 -- AUTO_INCREMENT for table `activity_logs`
 --
 ALTER TABLE `activity_logs`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=253;
 
 --
 -- AUTO_INCREMENT for table `behaviors`
@@ -6033,7 +6312,7 @@ ALTER TABLE `messages`
 -- AUTO_INCREMENT for table `migrations`
 --
 ALTER TABLE `migrations`
-  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=123;
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=125;
 
 --
 -- AUTO_INCREMENT for table `myproject_tasks`
@@ -6201,13 +6480,13 @@ ALTER TABLE `qu_attempts`
 -- AUTO_INCREMENT for table `qu_exams`
 --
 ALTER TABLE `qu_exams`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `qu_exam_questions`
 --
 ALTER TABLE `qu_exam_questions`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- AUTO_INCREMENT for table `qu_questions`

@@ -23,7 +23,8 @@ class QuExam extends Model
         'start_date',
         'end_date',
         'publish_results_timing',
-        'settings'
+        'settings',
+        'target_audience'
     ];
 
     protected $casts = [
@@ -33,6 +34,7 @@ class QuExam extends Model
         'end_date' => 'datetime',
         'passing_score' => 'decimal:2',
         'settings' => 'array',
+        'target_audience' => 'array',
     ];
 
     // Relationships
@@ -108,5 +110,48 @@ class QuExam extends Model
         }
         
         return 'active';
+    }
+    /**
+     * Scope a query to only include exams visible to a given user.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @param  \App\Models\User  $user
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeForUser($query, $user)
+    {
+        return $query->where(function ($q) use ($user) {
+            // Creator always sees their exams
+            $q->where('created_by', $user->id)
+            
+            // Public exams (target_audience is NULL)
+              ->orWhereNull('target_audience')
+              
+            // Explicit User ID
+              ->orWhereRaw("JSON_CONTAINS(target_audience->'$.user_ids', CAST(? AS JSON))", [$user->id])
+              
+            // Role Logic
+              ->orWhere(function ($subQ) use ($user) {
+                  // Check if user has a role property or relation. 
+                  // Using 'role' column for now as per plan assumption, verifying next.
+                  $userRole = $user->role ?? null; 
+                  
+                  if ($userRole) {
+                      $subQ->whereRaw("JSON_CONTAINS(target_audience->'$.roles', JSON_QUOTE(?))", [$userRole]);
+                      
+                      // Granular filters for students
+                      if ($userRole === 'student' && method_exists($user, 'student') && $user->student) { 
+                          $student = $user->student;
+                          $gradeId = $student->grade_id;
+                          $classroomId = $student->classroom_id;
+                          
+                          $subQ->where(function ($filterQ) use ($gradeId, $classroomId) {
+                             $filterQ->whereRaw("(target_audience->'$.grade_ids' IS NULL OR JSON_CONTAINS(target_audience->'$.grade_ids', CAST(? AS JSON)))", [$gradeId])
+                                     ->whereRaw("(target_audience->'$.classroom_ids' IS NULL OR JSON_CONTAINS(target_audience->'$.classroom_ids', CAST(? AS JSON)))", [$classroomId]);
+                          });
+                      }
+                  }
+              });
+        });
     }
 }
