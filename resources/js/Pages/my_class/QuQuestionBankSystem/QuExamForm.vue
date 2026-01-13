@@ -78,7 +78,7 @@
       </q-input>
 
       <!-- Target Audience -->
-      <div class="text-h6 q-mt-lg">Assignment</div>
+      <div class="text-h6 q-mt-lg">Who can take this exam?</div>
       <q-separator />
 
       <div class="q-gutter-md q-mt-sm">
@@ -86,27 +86,30 @@
           v-model="audienceType"
           :options="[
             { label: 'Public (Everyone)', value: 'public' },
-            { label: 'Specific Audience', value: 'specific' }
+            { label: 'Specific Classrooms', value: 'specific' }
           ]"
           toggle-color="secondary"
         />
 
         <div v-if="audienceType === 'specific'" class="q-pa-md bg-grey-1 rounded-borders">
-          <div class="text-subtitle2 q-mb-sm">Who can take this exam?</div>
+          <div class="text-subtitle2 q-mb-sm">Select Classrooms</div>
           
           <q-select
-            v-model="form.target_audience.roles"
-            :options="rolesOptions"
-            label="Roles"
+            v-model="form.target_audience.classroom_ids"
+            :options="classrooms"
+            option-value="id"
+            option-label="name"
+            label="Classrooms"
             multiple
             emit-value
             map-options
-            hint="Select roles (e.g., Student)"
+            hint="Select which classrooms can access this exam"
           >
             <template v-slot:option="{ itemProps, opt, selected, toggleOption }">
               <q-item v-bind="itemProps">
                 <q-item-section>
-                  <q-item-label v-html="opt.label" />
+                  <q-item-label v-html="opt.name" />
+                  <q-item-label caption v-if="opt.grade">Grade: {{ opt.grade.name }}</q-item-label>
                 </q-item-section>
                 <q-item-section side>
                   <q-toggle :model-value="selected" @update:model-value="toggleOption(opt)" />
@@ -115,65 +118,12 @@
             </template>
           </q-select>
 
-          <!-- Granular Filters for Students -->
-          <div v-if="form.target_audience.roles.includes('student')" class="q-ml-md q-mt-md q-pl-md q-border-l-4 border-primary">
-            <div class="text-caption text-primary q-mb-xs">Student Filters (Optional)</div>
-            
-            <q-select
-              v-model="form.target_audience.grade_ids"
-              :options="grades"
-              option-value="id"
-              option-label="name"
-              label="Filter by Grade"
-              multiple
-              emit-value
-              map-options
-              hint="Leave empty to include all grades"
-            >
-              <template v-slot:option="{ itemProps, opt, selected, toggleOption }">
-                <q-item v-bind="itemProps">
-                  <q-item-section>
-                    <q-item-label v-html="opt.label" />
-                  </q-item-section>
-                  <q-item-section side>
-                    <q-toggle :model-value="selected" @update:model-value="toggleOption(opt)" />
-                  </q-item-section>
-                </q-item>
-              </template>
-            </q-select>
-
-            <q-select
-              v-model="form.target_audience.classroom_ids"
-              :options="classrooms"
-              option-value="id"
-              option-label="name"
-              label="Filter by Classroom"
-              multiple
-              emit-value
-              map-options
-              hint="Leave empty to include all classrooms"
-              class="q-mt-sm"
-            >
-              <template v-slot:option="{ itemProps, opt, selected, toggleOption }">
-                <q-item v-bind="itemProps">
-                  <q-item-section>
-                    <q-item-label v-html="opt.label" />
-                    <q-item-label caption v-if="opt.grade">Grade: {{ opt.grade.name }}</q-item-label>
-                  </q-item-section>
-                  <q-item-section side>
-                    <q-toggle :model-value="selected" @update:model-value="toggleOption(opt)" />
-                  </q-item-section>
-                </q-item>
-              </template>
-            </q-select>
-          </div>
-
           <q-separator class="q-my-md" />
 
-          <div class="text-subtitle2 q-mb-sm">Specific Users (Optional)</div>
+          <div class="text-subtitle2 q-mb-sm">Specific Students (Optional)</div>
           <q-select
             v-model="form.target_audience.user_ids"
-            label="Assign to Specific Users"
+            label="Assign to Specific Students"
             multiple
             use-input
             fill-input
@@ -185,12 +135,12 @@
             emit-value
             map-options
             @filter="filterUsers"
-            hint="Search by name or email"
+            hint="Search by name or email to add individual students"
           >
             <template v-slot:no-option>
               <q-item>
                 <q-item-section class="text-grey">
-                  No results
+                  Type at least 2 characters to search
                 </q-item-section>
               </q-item>
             </template>
@@ -207,7 +157,7 @@
             </template>
           </q-select>
 
-          <!-- Selected Users Badge List -->
+          <!-- Selected Students Badge List -->
           <div v-if="form.target_audience.user_ids.length > 0" class="q-mt-sm row q-gutter-xs">
             <q-badge
               v-for="id in form.target_audience.user_ids"
@@ -217,7 +167,6 @@
               @click="form.target_audience.user_ids = form.target_audience.user_ids.filter(uid => uid !== id)"
             >
               User ID: {{ id }}
-              <!-- Ideally we would show name here, but we need to fetch/store objects -->
             </q-badge>
           </div>
         </div>
@@ -540,7 +489,7 @@ const form = useForm({
     shuffle_options: false
   },
   target_audience: props.exam?.target_audience || {
-    roles: [],
+    roles: ['student'],  // Default to student role
     grade_ids: [],
     classroom_ids: [],
     user_ids: []
@@ -550,8 +499,6 @@ const form = useForm({
 // Audience Selection Logic
 const audienceType = ref(
   (props.exam?.target_audience && (
-    props.exam.target_audience.roles?.length > 0 ||
-    props.exam.target_audience.grade_ids?.length > 0 ||
     props.exam.target_audience.classroom_ids?.length > 0 ||
     props.exam.target_audience.user_ids?.length > 0
   )) ? 'specific' : 'public'
@@ -597,7 +544,10 @@ const rolesOptions = [
 
 watch(audienceType, (newVal) => {
   if (newVal === 'public') {
-    form.target_audience = { roles: [], grade_ids: [], classroom_ids: [], user_ids: [] };
+    form.target_audience = { roles: ['student'], grade_ids: [], classroom_ids: [], user_ids: [] };
+  } else {
+    // When switching to specific, ensure student role is set
+    form.target_audience.roles = ['student'];
   }
 });
 

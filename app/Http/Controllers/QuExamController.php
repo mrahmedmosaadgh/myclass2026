@@ -44,11 +44,19 @@ class QuExamController extends Controller
             ->latest();
 
         // Get distinct custom groups for filter
-        $customGroups = QuExam::whereNotNull('custom_group')
-            ->distinct()
+        $customGroups = QuExam::distinct()
+            ->whereNotNull('custom_group')
             ->pluck('custom_group')
             ->sort()
             ->values();
+        
+        // Get teacher's classrooms only
+        $user = auth()->user();
+        $classrooms = collect();
+        
+        if ($user && $user->teacher) {
+            $classrooms = $user->teacher->classrooms()->load('grade');
+        }
 
         return Inertia::render('my_class/QuQuestionBankSystem/QuExamList', [
             'exams' => $query->paginate(20)->through(function ($exam) {
@@ -72,6 +80,8 @@ class QuExamController extends Controller
                 ];
             }),
             'subjects' => Subject::all(),
+            'grades' => Grade::all(['id', 'name']),
+            'classrooms' => $classrooms,
             'customGroups' => $customGroups,
             'examTypes' => ['practice', 'quiz', 'midterm', 'final', 'survey'],
             'markCalculationMethods' => ['last', 'best', 'average'],
@@ -86,11 +96,19 @@ class QuExamController extends Controller
     public function create()
     {
         $customGroups = QuExam::distinct()->whereNotNull('custom_group')->pluck('custom_group');
+        
+        // Get teacher's classrooms only
+        $user = auth()->user();
+        $classrooms = collect();
+        
+        if ($user && $user->teacher) {
+            $classrooms = $user->teacher->classrooms()->load('grade');
+        }
 
         return Inertia::render('my_class/QuQuestionBankSystem/QuExamForm', [
             'subjects' => Subject::all(),
             'grades' => Grade::all(['id', 'name']),
-            'classrooms' => Classroom::with('grade')->get(['id', 'name', 'grade_id']),
+            'classrooms' => $classrooms,
             'customGroups' => $customGroups,
             'examTypes' => ['practice', 'quiz', 'midterm', 'final', 'survey'],
             'markCalculationMethods' => ['last', 'best', 'average'],
@@ -195,13 +213,20 @@ class QuExamController extends Controller
         }
 
         $customGroups = QuExam::distinct()->whereNotNull('custom_group')->pluck('custom_group');
+        
+        // Get teacher's classrooms only
+        $user = auth()->user();
+        $classrooms = collect();
+        
+        if ($user && $user->teacher) {
+            $classrooms = $user->teacher->classrooms()->load('grade');
+        }
 
         return Inertia::render('my_class/QuQuestionBankSystem/QuExamForm', [
             'exam' => $exam,
-            'exam' => $exam,
             'subjects' => Subject::all(),
             'grades' => Grade::all(['id', 'name']),
-            'classrooms' => Classroom::with('grade')->get(['id', 'name', 'grade_id']),
+            'classrooms' => $classrooms,
             'customGroups' => $customGroups,
             'examTypes' => ['practice', 'quiz', 'midterm', 'final', 'survey'],
             'markCalculationMethods' => ['last', 'best', 'average'],

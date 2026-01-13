@@ -136,9 +136,10 @@ class Teacher extends Model
 
     public function classrooms()
     {
-        return $this->belongsToMany(Classroom::class, 'classroom_subject_teachers', 'teacher_id', 'classroom_id')
-            ->withPivot(['subject_id', 'classes_per_week', 'data', 'c_text', 'c_bg', 'color_custom', 'color_custom_text'])
-            ->withTimestamps();
+
+
+        $classroom_ids = $this->classroomSubjectTeachers->pluck('classroom_id');
+        return Classroom::whereIn('id', $classroom_ids)->get();
     }
 
     public function questionBanks()

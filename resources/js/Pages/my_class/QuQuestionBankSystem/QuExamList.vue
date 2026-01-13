@@ -228,6 +228,8 @@
         <q-card-section>
           <QuExamForm 
             :subjects="subjects" 
+            :grades="grades"
+            :classrooms="classrooms"
             :exam-types="examTypes"
             :mark-calculation-methods="markCalculationMethods"
             :publish-results-timings="publishResultsTimings"
@@ -252,6 +254,8 @@ import QuExamForm from './QuExamForm.vue';
 const props = defineProps({
   exams: Object,
   subjects: Array,
+  grades: Array,
+  classrooms: Array,
   customGroups: Array,
   examTypes: Array,
   markCalculationMethods: Array,
