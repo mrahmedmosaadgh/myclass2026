@@ -1,38 +1,8 @@
 <template>
   <q-card flat bordered class="q-pa-md">
     <div class="row q-gutter-md items-end">
-      <!-- School Filter -->
-      <div class="col-12 col-sm-6 col-md-3">
-        <SchoolSelect
-          v-model="filters.school_id"
-          :schools="schools"
-          :loading="loadingSchools"
-          @update:model-value="emitFilters"
-        />
-      </div>
-
-      <!-- Academic Year Filter -->
-      <div class="col-12 col-sm-6 col-md-3">
-        <AcademicYearSelect
-          v-model="filters.academic_year_id"
-          :academic-years="academicYears"
-          :loading="loadingYears"
-          @update:model-value="emitFilters"
-        />
-      </div>
-
-      <!-- Semester Filter -->
-      <div class="col-12 col-sm-6 col-md-2">
-        <SemesterSelect
-          v-model="filters.semester_id"
-          :semesters="semesters"
-          :loading="loadingSemesters"
-          @update:model-value="emitFilters"
-        />
-      </div>
-
       <!-- Status Filter -->
-      <div class="col-12 col-sm-6 col-md-2">
+      <div class="col-12 col-sm-6 col-md-3">
         <q-select
           v-model="filters.status"
           :options="statusOptions"
@@ -66,10 +36,10 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
-import SchoolSelect from '../shared/SchoolSelect.vue'
-import AcademicYearSelect from '../shared/AcademicYearSelect.vue'
-import SemesterSelect from '../shared/SemesterSelect.vue'
+import { ref, watch, onMounted } from 'vue'
+import { useSchoolDataStore } from '@/Stores/schoolData'
+
+const schoolDataStore = useSchoolDataStore()
 
 const props = defineProps({
   modelValue: { type: Object, default: () => ({}) },
@@ -91,11 +61,26 @@ const statusOptions = [
 ]
 
 const filters = ref({
-  school_id: null,
-  academic_year_id: null,
-  semester_id: null,
+  school_id: schoolDataStore.schoolId || null,
+  academic_year_id: schoolDataStore.academicYearId || null,
+  semester_id: schoolDataStore.semesterId || null,
   status: null,
   ...props.modelValue
+})
+
+// Auto-populate from store on mount
+onMounted(() => {
+  if (!filters.value.school_id && schoolDataStore.schoolId) {
+    filters.value.school_id = schoolDataStore.schoolId
+  }
+  if (!filters.value.academic_year_id && schoolDataStore.academicYearId) {
+    filters.value.academic_year_id = schoolDataStore.academicYearId
+  }
+  if (!filters.value.semester_id && schoolDataStore.semesterId) {
+    filters.value.semester_id = schoolDataStore.semesterId
+  }
+  // Emit initial filters
+  emitFilters()
 })
 
 watch(() => props.modelValue, (newVal) => {
@@ -109,9 +94,9 @@ const emitFilters = () => {
 
 const clearFilters = () => {
   filters.value = {
-    school_id: null,
-    academic_year_id: null,
-    semester_id: null,
+    school_id: schoolDataStore.schoolId || null,
+    academic_year_id: schoolDataStore.academicYearId || null,
+    semester_id: schoolDataStore.semesterId || null,
     status: null
   }
   emitFilters()

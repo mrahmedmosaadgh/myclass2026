@@ -89,6 +89,22 @@
           </q-btn>
         </div>
 
+        <!-- Random Fill Button -->
+        <div class="col-12 col-sm-auto">
+          <q-btn
+            color="positive"
+            icon="shuffle"
+            label="Random Fill"
+            outline
+            :disable="!activeCopy || !selectedClassroomId"
+            @click="showRandomFillDialog = true"
+          >
+            <q-tooltip v-if="!activeCopy || !selectedClassroomId">
+              {{ t('common.selectClassroomFirst') }}
+            </q-tooltip>
+          </q-btn>
+        </div>
+
         <!-- Statistics -->
         <div class="col-12">
           <!-- Overall Statistics -->
@@ -144,6 +160,49 @@
               >
                 {{ classroomStats.conflict_count }} {{ t('common.conflicts') }}
               </q-chip>
+            </div>
+            
+            <!-- Subject Breakdown Table -->
+            <div v-if="classroomStats.subject_breakdown && classroomStats.subject_breakdown.length > 0" class="q-mt-md">
+              <div class="text-caption text-grey-7 q-mb-xs">Subject Breakdown</div>
+              <q-markup-table dense flat bordered class="subject-breakdown-table">
+                <thead>
+                  <tr>
+                    <th class="text-left">Subject</th>
+                    <th class="text-left">Teacher</th>
+                    <th class="text-center">Expected</th>
+                    <th class="text-center">Actual</th>
+                    <th class="text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(item, index) in classroomStats.subject_breakdown" :key="index">
+                    <td class="text-left">
+                      <q-badge color="blue-2" text-color="blue-9">{{ item.subject_name }}</q-badge>
+                    </td>
+                    <td class="text-left">{{ item.teacher_name }}</td>
+                    <td class="text-center">
+                      <q-chip dense size="sm" color="grey-3" text-color="grey-9">{{ item.expected }}</q-chip>
+                    </td>
+                    <td class="text-center">
+                      <q-chip dense size="sm" :color="item.actual === item.expected ? 'green-2' : 'orange-2'" :text-color="item.actual === item.expected ? 'green-9' : 'orange-9'">
+                        {{ item.actual }}
+                      </q-chip>
+                    </td>
+                    <td class="text-center">
+                      <q-icon v-if="item.actual === item.expected" name="check_circle" color="positive" size="sm">
+                        <q-tooltip>Correct</q-tooltip>
+                      </q-icon>
+                      <q-icon v-else-if="item.actual < item.expected" name="arrow_downward" color="warning" size="sm">
+                        <q-tooltip>Missing {{ item.expected - item.actual }} period(s)</q-tooltip>
+                      </q-icon>
+                      <q-icon v-else name="arrow_upward" color="warning" size="sm">
+                        <q-tooltip>{{ item.actual - item.expected }} extra period(s)</q-tooltip>
+                      </q-icon>
+                    </td>
+                  </tr>
+                </tbody>
+              </q-markup-table>
             </div>
           </div>
         </div>
@@ -245,6 +304,15 @@
       :copy-id="activeCopy?.id"
       @applied="handleAIImportApplied"
     />
+
+    <!-- Random Fill Dialog -->
+    <RandomFillDialog
+      v-model="showRandomFillDialog"
+      :classroom-id="selectedClassroomId"
+      :classroom-name="selectedClassroomName"
+      :copy-id="activeCopy?.id"
+      @applied="handleRandomFillApplied"
+    />
   </div>
 </template>
 
@@ -258,6 +326,7 @@ import CSTAssignDialog from '../components/timetable/CSTAssignDialog.vue'
 import StatusBadge from '../components/shared/StatusBadge.vue'
 import WeeklyPlanMenu from '../WeeklyPlanMenu.vue'
 import AIImportDialog from '../components/timetable/AIImportDialog.vue'
+import RandomFillDialog from '../components/timetable/RandomFillDialog.vue'
 
 const { t } = useI18n()
 
@@ -310,6 +379,7 @@ const loadingConflictDetails = ref(false)
 const conflictDetails = ref([])
 const conflictType = ref('overall') // 'overall' or 'classroom'
 const showAIImportDialog = ref(false)
+const showRandomFillDialog = ref(false)
 
 // Methods
 const fetchScheduleCopies = async () => {
@@ -648,6 +718,18 @@ const handleAIImportApplied = async () => {
   })
 }
 
+// Handle Random Fill completion
+const handleRandomFillApplied = async () => {
+  // Do not close dialog automatically
+  schedules.value = [] // clear to force reactivity
+  await fetchSchedules()
+  $q.notify({ 
+    type: 'positive', 
+    message: 'Random fill completed successfully! Timetable refreshed.',
+    position: 'top'
+  })
+}
+
 watch(activeCopy, async (newVal) => {
   if (!newVal) return
   selectedClassroomId.value = null
@@ -679,5 +761,20 @@ onMounted(async () => {
 <style scoped>
 h4 {
   font-size: 1.5rem;
+}
+
+.subject-breakdown-table {
+  font-size: 0.875rem;
+  max-width: 600px;
+}
+
+.subject-breakdown-table th {
+  background-color: #f5f5f5;
+  font-weight: 600;
+  padding: 8px;
+}
+
+.subject-breakdown-table td {
+  padding: 6px 8px;
 }
 </style>

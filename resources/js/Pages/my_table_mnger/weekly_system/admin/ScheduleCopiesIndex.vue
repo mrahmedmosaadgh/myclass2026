@@ -15,6 +15,16 @@
       </div>
       <div class="col-auto">
         <q-btn
+          color="teal"
+          icon="preview"
+          label="CST Overview"
+          outline
+          @click="showCSTOverviewDialog = true"
+          class="q-mr-sm"
+        >
+          <q-tooltip>View subject-teacher assignments overview</q-tooltip>
+        </q-btn>
+        <q-btn
           color="primary"
           icon="add"
           :label="t('common.create')"
@@ -62,6 +72,7 @@
           @activate="handleActivate"
           @archive="handleArchive"
           @delete="handleDelete"
+          @sync="openSyncDialog"
         />
       </div>
     </div>
@@ -97,6 +108,19 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- Sync Dialog -->
+    <ScheduleSyncDialog
+      v-model="showSyncDialog"
+      :copy-id="syncingCopy?.id"
+      :copy-name="syncingCopy?.name"
+      @synced="handleSynced"
+    />
+
+    <!-- CST Overview Dialog -->
+    <CSTOverviewDialog
+      v-model="showCSTOverviewDialog"
+    />
   </div>
 </template>
 
@@ -108,6 +132,8 @@ import axios from 'axios'
 import ScheduleCopyCard from '../components/schedule-copies/ScheduleCopyCard.vue'
 import ScheduleCopyForm from '../components/schedule-copies/ScheduleCopyForm.vue'
 import ScheduleCopyFilters from '../components/schedule-copies/ScheduleCopyFilters.vue'
+import ScheduleSyncDialog from '../components/schedule-copies/ScheduleSyncDialog.vue'
+import CSTOverviewDialog from '../components/schedule-copies/CSTOverviewDialog.vue'
 import WeeklyPlanMenu from '../WeeklyPlanMenu.vue'
 
 const { t } = useI18n()
@@ -131,8 +157,11 @@ const deleting = ref(false)
 // Dialog states
 const showFormDialog = ref(false)
 const showDeleteDialog = ref(false)
+const showSyncDialog = ref(false)
+const showCSTOverviewDialog = ref(false)
 const editingCopy = ref(null)
 const deletingCopy = ref(null)
+const syncingCopy = ref(null)
 
 // Filters
 const filters = ref({
@@ -296,6 +325,19 @@ const confirmDelete = async () => {
 
 const handleFilter = () => {
   // Filters are reactive, so filteredCopies will auto-update
+}
+
+const openSyncDialog = (copy) => {
+  syncingCopy.value = copy
+  showSyncDialog.value = true
+}
+
+const handleSynced = () => {
+  $q.notify({
+    type: 'positive',
+    message: 'Schedule synchronization updated',
+    position: 'top'
+  })
 }
 
 // Lifecycle

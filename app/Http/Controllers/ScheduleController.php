@@ -112,6 +112,35 @@ class ScheduleController extends Controller
                 'conflict_count' => 0 // Classroom-specific conflicts
             ];
             
+            // Calculate subject breakdown for classroom
+            if ($request->has('classroom_id')) {
+                $subjectBreakdown = [];
+                foreach ($records as $schedule) {
+                    if ($schedule->cst_id && $schedule->cst) {
+                        $subjectName = $schedule->cst->subject->name ?? 'Unknown';
+                        $teacherName = $schedule->cst->teacher->name ?? 'Unknown';
+                        $classesPerWeek = $schedule->cst->classes_per_week ?? 0;
+                        $key = $schedule->cst_id; // Use CST ID as unique key
+                        
+                        if (!isset($subjectBreakdown[$key])) {
+                            $subjectBreakdown[$key] = [
+                                'subject_name' => $subjectName,
+                                'teacher_name' => $teacherName,
+                                'expected' => $classesPerWeek,
+                                'actual' => 0
+                            ];
+                        }
+                        $subjectBreakdown[$key]['actual']++;
+                    }
+                }
+                
+                // Convert to array and sort by subject name
+                $classroomStats['subject_breakdown'] = array_values($subjectBreakdown);
+                usort($classroomStats['subject_breakdown'], function($a, $b) {
+                    return strcmp($a['subject_name'], $b['subject_name']);
+                });
+            }
+            
             // Calculate classroom-specific conflicts if classroom_id is provided
             if ($request->has('classroom_id') && $request->has('copy_id')) {
                 $classroomStats['conflict_count'] = $this->calculateClassroomConflictCount(
@@ -1108,6 +1137,306 @@ class ScheduleController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Update failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Generate a preview of random fill assignments for empty periods
+     * Does not save anything, just returns what would be filled
+     */
+    public function generateRandomFillPreview(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'copy_id' => 'required|exists:schedule_copies,id',
+                'classroom_id' => 'required|exists:classrooms,id'
+            ]);
+
+            $copyId = $validated['copy_id'];
+            $classroomId = $validated['classroom_id'];
+
+            // Get all existing schedules for this classroom
+            $existingSchedules = Schedule::where('copy_id', $copyId)
+                ->whereHas('cst', function($q) use ($classroomId) {
+                    $q->where('classroom_id', $classroomId);
+                })
+                ->get();
+
+            // Create a map of filled slots
+            $filledSlots = [];
+            foreach ($existingSchedules as $schedule) {
+                if ($schedule->cst_id && $schedule->day_number && $schedule->period_number) {
+                    $key = $schedule->day_number . '-' . $schedule->period_number;
+                    $filledSlots[$key] = true;
+                }
+            }
+
+            // Get all CST options for this classroom
+            $cstOptions = ClassroomSubjectTeacher::where('classroom_id', $classroomId)
+                ->with(['subject', 'teacher'])
+                ->get();
+
+            if ($cstOptions->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No subject-teacher assignments found for this classroom'
+                ], 422);
+            }
+
+            // Define all possible slots (days 1-5, periods 1-8)
+            $allSlots = [];
+            for ($day = 1; $day <= 5; $day++) {
+                for ($period = 1; $period <= 8; $period++) {
+                    $allSlots[] = ['day' => $day, 'period' => $period];
+                }
+            }
+
+            // Find empty slots
+            $emptySlots = [];
+            foreach ($allSlots as $slot) {
+                $key = $slot['day'] . '-' . $slot['period'];
+                if (!isset($filledSlots[$key])) {
+                    $emptySlots[] = $slot;
+                }
+            }
+
+            if (empty($emptySlots)) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'No empty slots to fill',
+                    'data' => [
+                        'filled' => [],
+                        'conflicts' => [],
+                        'unfillable' => [],
+                        'summary' => [
+                            'total_empty' => 0,
+                            'fillable' => 0,
+                            'conflicts' => 0,
+                            'unfillable' => 0
+                        ]
+                    ]
+                ]);
+            }
+
+            // For each empty slot, find available CSTs
+            $filled = [];
+            $conflicts = [];
+            $unfillable = [];
+
+            foreach ($emptySlots as $slot) {
+                $day = $slot['day'];
+                $period = $slot['period'];
+
+                // Get all teachers busy at this slot in other classrooms
+                $busyTeacherIds = Schedule::where('copy_id', $copyId)
+                    ->where('day_number', $day)
+                    ->where('period_number', $period)
+                    ->whereNotNull('cst_id')
+                    ->with('cst')
+                    ->get()
+                    ->pluck('cst.teacher_id')
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->toArray();
+
+                // Find available CSTs (teachers not busy)
+                $availableCsts = $cstOptions->filter(function($cst) use ($busyTeacherIds) {
+                    return !in_array($cst->teacher_id, $busyTeacherIds);
+                });
+
+                if ($availableCsts->isNotEmpty()) {
+                    // Randomly pick one available CST
+                    $selectedCst = $availableCsts->random();
+                    $filled[] = [
+                        'day' => $day,
+                        'period' => $period,
+                        'cst_id' => $selectedCst->id,
+                        'subject_name' => $selectedCst->subject->name ?? 'Unknown',
+                        'teacher_name' => $selectedCst->teacher->name ?? 'Unknown',
+                        'has_conflict' => false
+                    ];
+                } else {
+                    // All teachers are busy, check if we can still fill with conflict
+                    if ($cstOptions->isNotEmpty()) {
+                        $selectedCst = $cstOptions->random();
+                        
+                        // Get conflict details
+                        $conflictSchedule = Schedule::where('copy_id', $copyId)
+                            ->where('day_number', $day)
+                            ->where('period_number', $period)
+                            ->whereHas('cst', function($q) use ($selectedCst) {
+                                $q->where('teacher_id', $selectedCst->teacher_id);
+                            })
+                            ->with(['cst.classroom'])
+                            ->first();
+
+                        $conflicts[] = [
+                            'day' => $day,
+                            'period' => $period,
+                            'cst_id' => $selectedCst->id,
+                            'subject_name' => $selectedCst->subject->name ?? 'Unknown',
+                            'teacher_name' => $selectedCst->teacher->name ?? 'Unknown',
+                            'has_conflict' => true,
+                            'conflict_details' => [
+                                'teacher_name' => $selectedCst->teacher->name ?? 'Unknown',
+                                'busy_in_classroom' => $conflictSchedule ? $conflictSchedule->cst->classroom->name : 'Unknown',
+                                'message' => 'Teacher is already assigned to another classroom at this time'
+                            ]
+                        ];
+                    } else {
+                        // No CSTs available at all (shouldn't happen, but handle it)
+                        $unfillable[] = [
+                            'day' => $day,
+                            'period' => $period,
+                            'reason' => 'No subject-teacher assignments available for this classroom'
+                        ];
+                    }
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'filled' => $filled,
+                    'conflicts' => $conflicts,
+                    'unfillable' => $unfillable,
+                    'summary' => [
+                        'total_empty' => count($emptySlots),
+                        'fillable' => count($filled),
+                        'conflicts' => count($conflicts),
+                        'unfillable' => count($unfillable)
+                    ]
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to generate preview: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Apply random fill assignments after user confirmation
+     * Accepts array of assignments and optional force_conflicts flag
+     */
+    public function applyRandomFill(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'copy_id' => 'required|exists:schedule_copies,id',
+                'classroom_id' => 'required|exists:classrooms,id',
+                'assignments' => 'required|array',
+                'assignments.*.day' => 'required|integer|min:1|max:7',
+                'assignments.*.period' => 'required|integer|min:1|max:12',
+                'assignments.*.cst_id' => 'required|exists:classroom_subject_teachers,id',
+                'force_conflicts' => 'boolean'
+            ]);
+
+            $copyId = $validated['copy_id'];
+            $classroomId = $validated['classroom_id'];
+            $assignments = $validated['assignments'];
+            $forceConflicts = $validated['force_conflicts'] ?? false;
+
+            // Get school_id from copy
+            $copy = ScheduleCopy::find($copyId);
+            $schoolId = $copy->school_id;
+
+            $created = [];
+            $updated = [];
+            $skipped = [];
+
+            foreach ($assignments as $assignment) {
+                $day = $assignment['day'];
+                $period = $assignment['period'];
+                $cstId = $assignment['cst_id'];
+
+                // Check if slot already exists
+                $existingSchedule = Schedule::where('copy_id', $copyId)
+                    ->where('day_number', $day)
+                    ->where('period_number', $period)
+                    ->whereHas('cst', function($q) use ($classroomId) {
+                        $q->where('classroom_id', $classroomId);
+                    })
+                    ->first();
+
+                // Check for teacher conflicts if not forcing
+                if (!$forceConflicts) {
+                    $cst = ClassroomSubjectTeacher::find($cstId);
+                    $teacherConflict = Schedule::where('copy_id', $copyId)
+                        ->where('day_number', $day)
+                        ->where('period_number', $period)
+                        ->where('id', '!=', $existingSchedule?->id ?? 0)
+                        ->whereHas('cst', function($q) use ($cst) {
+                            $q->where('teacher_id', $cst->teacher_id);
+                        })
+                        ->exists();
+
+                    if ($teacherConflict) {
+                        $skipped[] = [
+                            'day' => $day,
+                            'period' => $period,
+                            'reason' => 'Teacher conflict detected and force_conflicts is false'
+                        ];
+                        continue;
+                    }
+                }
+
+                if ($existingSchedule) {
+                    // Update existing schedule
+                    $existingSchedule->update([
+                        'cst_id' => $cstId,
+                        'active' => true
+                    ]);
+                    $updated[] = [
+                        'day' => $day,
+                        'period' => $period,
+                        'schedule_id' => $existingSchedule->id
+                    ];
+                } else {
+                    // Create new schedule
+                    $schedule = Schedule::create([
+                        'copy_id' => $copyId,
+                        'school_id' => $schoolId,
+                        'cst_id' => $cstId,
+                        'day_number' => $day,
+                        'period_number' => $period,
+                        'active' => true
+                    ]);
+                    $created[] = [
+                        'day' => $day,
+                        'period' => $period,
+                        'schedule_id' => $schedule->id
+                    ];
+                }
+            }
+
+            $message = 'Random fill completed successfully';
+            if (count($skipped) > 0) {
+                $message .= ' (some assignments skipped due to conflicts)';
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'summary' => [
+                    'created' => count($created),
+                    'updated' => count($updated),
+                    'skipped' => count($skipped),
+                    'total' => count($assignments)
+                ],
+                'created' => $created,
+                'updated' => $updated,
+                'skipped' => $skipped
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to apply random fill: ' . $e->getMessage()
             ], 500);
         }
     }

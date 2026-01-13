@@ -20,6 +20,7 @@ return new class extends Migration
             $table->foreignId('subject_id')->constrained('subjects')->onDelete('cascade');
             $table->tinyInteger('active')->default(0)->comment('0=inactive, 1=active');
             $table->timestamps();
+            $table->softDeletes(); // Adds deleted_at column with index
 
             // Indexes for better performance
             $table->index(['school_id', 'active']);

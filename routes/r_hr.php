@@ -62,6 +62,10 @@ Route::get('/teachers', [TeacherManagementController::class, 'index']);
     Route::resource('classroom', ClassroomController::class);
     Route::resource('teacher', TeacherController::class);
     Route::resource('student-parent', StudentParentController::class);
+    Route::get('students/download-template-with-classroom', [StudentController::class, 'downloadTemplateWithClassroom'])
+        ->name('students.download-template-with-classroom');
+    Route::get('students/download-template', [StudentController::class, 'downloadTemplate'])
+        ->name('students.download-template');
     Route::get('students/filtered', [StudentController::class, 'getFiltered'])->name('students.filtered');
     Route::resource('students', StudentController::class);
     Route::resource('grade-subject', GradeSubjectController::class);
@@ -125,13 +129,21 @@ Route::post('/schedule-copies/{id}/execute-schedule-changes', [ScheduleCopyContr
     Route::post('student-parent/undo-import/{importId}', [StudentParentController::class, 'undoImport'])
         ->name('student-parent.undo-import');
 
+
+
+
     // Student Routes
     Route::post('students/validate-import', [StudentController::class, 'validateImport'])
         ->name('students.validate-import');
     Route::post('students/get-school-students/{school_id}', [StudentController::class, 'get_school_students'])
         ->name('students.get-school-students');
+    Route::post('students/import-with-classroom', [StudentController::class, 'importWithClassroom'])
+        ->name('students.import-with-classroom');
     Route::post('students/import', [StudentController::class, 'import'])
         ->name('students.import');
+
+
+
     
     // Student Promotion Routes
     Route::post('students/promote', [StudentController::class, 'promoteStudents'])

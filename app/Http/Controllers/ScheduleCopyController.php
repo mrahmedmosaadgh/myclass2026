@@ -71,32 +71,17 @@ class ScheduleCopyController extends Controller
                 throw new \Exception("Invalid classes_per_week value for classroom: {$cst->classroom->name}, subject: {$cst->subject->name}, teacher: {$cst->teacher->name}");
             }
 
-            // Create multiple entries based on classes_per_week
+            // Create entries with auto-numbered period_order (1, 2, 3... up to classes_per_week)
             for ($i = 1; $i <= $cst->classes_per_week; $i++) {
-                $scheduleData = [
+                Schedule::create([
                     'copy_id' => $schedule_copy_id,
                     'cst_id' => $cst->id,
                     'school_id' => $cst->school_id,
-                    // 'week' => $validated['week_number'],
-                    // 'semester' => $validated['semester_id'],
-                    'period_order' => $i,
+                    'period_order' => $i,  // Auto-numbered: 1, 2, 3...
                     'active' => true,
-                    'day' => null,  // Will be set later when scheduling
-                    'period_detail_id' => null  // Will be set later when scheduling
-                ];
-
-                // Check for existing record
-                $existingSchedule = Schedule::where([
-                    'copy_id' => $schedule_copy_id,
-                    'cst_id' => $cst->id,
-                    'period_order' => $i,
-                ])->first();
-
-                if ($existingSchedule) {
-                    $existingSchedule->update($scheduleData);
-                } else {
-                    Schedule::create($scheduleData);
-                }
+                    'day_number' => null,  // Will be set later when scheduling
+                    'period_number' => null  // Will be set later when scheduling
+                ]);
             }
         }
     }
@@ -287,19 +272,360 @@ class ScheduleCopyController extends Controller
 
     public function destroy(ScheduleCopy $scheduleCopy)
     {
-        // Update status and active fields
-        $scheduleCopy->update([
-            'status' => 'archived',
-            'active' => false,
-            'last_modified_by' => auth()->id()
-        ]);
+        // Start a database transaction
+        DB::beginTransaction();
+        
+        try {
+            // Archive all related schedules by deleting them (they have cascade deletion)
+            $scheduleCopy->schedules()->delete();
+            
+            // Archive all related weekly plans by deleting them
+            $scheduleCopy->weeklyPlans()->delete();
+            
+            // Archive all related schedule dailies by deleting them
+            $scheduleCopy->scheduleDailies()->delete();
+            
+            // Update status to archived
+            $scheduleCopy->update([
+                'status' => 'archived',
+                'last_modified_by' => auth()->id()
+            ]);
 
-        // Soft delete the record
-        $scheduleCopy->delete();
+            // Soft delete the record itself
+            $scheduleCopy->delete();
 
-        return response()->json([
-            'message' => 'Schedule copy deleted successfully',
-            'status' => 'success'
-        ]);
+            // Commit the transaction
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Schedule copy and all related data archived successfully',
+                'status' => 'success'
+            ]);
+        } catch (\Exception $e) {
+            // Rollback the transaction on error
+            DB::rollback();
+            
+            Log::error('Error archiving schedule copy: ' . $e->getMessage(), [
+                'schedule_copy_id' => $scheduleCopy->id,
+                'user_id' => auth()->id()
+            ]);
+            
+            return response()->json([
+                'message' => 'Error archiving schedule copy: ' . $e->getMessage(),
+                'status' => 'error'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get sync status for a schedule copy
+     * Compares actual schedule counts vs expected (classes_per_week) for each CST
+     */
+    public function getSyncStatus(Request $request, $copyId)
+    {
+        try {
+            $scheduleCopy = ScheduleCopy::with(['school', 'academicYear'])->findOrFail($copyId);
+
+            // Get all CSTs for this school and academic year
+            $csts = ClassroomSubjectTeacher::where('school_id', $scheduleCopy->school_id)
+                ->where('academic_year_id', $scheduleCopy->academic_year_id)
+                ->with(['classroom', 'subject', 'teacher'])
+                ->get();
+
+            // Get all schedules for this copy
+            $schedules = Schedule::where('copy_id', $copyId)->get();
+
+            // Build breakdown per CST
+            $breakdown = [];
+            $summary = [
+                'total_csts' => $csts->count(),
+                'ok' => 0,
+                'missing' => 0,
+                'extra' => 0,
+                'total_expected' => 0,
+                'total_actual' => 0
+            ];
+
+            // Group by classroom for better UI display
+            $byClassroom = [];
+
+            foreach ($csts as $cst) {
+                $expected = $cst->classes_per_week ?? 0;
+                $actual = $schedules->where('cst_id', $cst->id)->count();
+                $diff = $actual - $expected;
+                
+                $status = 'ok';
+                if ($diff < 0) {
+                    $status = 'missing';
+                    $summary['missing']++;
+                } elseif ($diff > 0) {
+                    $status = 'extra';
+                    $summary['extra']++;
+                } else {
+                    $summary['ok']++;
+                }
+
+                $summary['total_expected'] += $expected;
+                $summary['total_actual'] += $actual;
+
+                $classroomId = $cst->classroom_id;
+                $classroomName = $cst->classroom->name ?? 'Unknown';
+
+                if (!isset($byClassroom[$classroomId])) {
+                    $byClassroom[$classroomId] = [
+                        'classroom_id' => $classroomId,
+                        'classroom_name' => $classroomName,
+                        'items' => []
+                    ];
+                }
+
+                $byClassroom[$classroomId]['items'][] = [
+                    'cst_id' => $cst->id,
+                    'subject_name' => $cst->subject->name ?? 'Unknown',
+                    'teacher_name' => $cst->teacher->name ?? 'Unknown',
+                    'expected' => $expected,
+                    'actual' => $actual,
+                    'diff' => $diff,
+                    'status' => $status
+                ];
+            }
+
+            // Sort classrooms by name
+            usort($byClassroom, function($a, $b) {
+                return strcmp($a['classroom_name'], $b['classroom_name']);
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'copy_id' => $copyId,
+                    'copy_name' => $scheduleCopy->name,
+                    'school_name' => $scheduleCopy->school->name ?? 'Unknown',
+                    'summary' => $summary,
+                    'by_classroom' => array_values($byClassroom)
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get sync status: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Apply sync fixes - create missing or delete extra schedule records
+     */
+    public function applySyncFixes(Request $request, $copyId)
+    {
+        try {
+            $validated = $request->validate([
+                'actions' => 'required|array',
+                'actions.*.cst_id' => 'required|exists:classroom_subject_teachers,id',
+                'actions.*.action' => 'required|in:create_missing,delete_extra'
+            ]);
+
+            $scheduleCopy = ScheduleCopy::findOrFail($copyId);
+
+            $results = [
+                'created' => 0,
+                'deleted' => 0,
+                'errors' => []
+            ];
+
+            DB::beginTransaction();
+
+            foreach ($validated['actions'] as $actionData) {
+                $cstId = $actionData['cst_id'];
+                $action = $actionData['action'];
+
+                $cst = ClassroomSubjectTeacher::find($cstId);
+                if (!$cst) {
+                    $results['errors'][] = "CST ID {$cstId} not found";
+                    continue;
+                }
+
+                $expected = $cst->classes_per_week ?? 0;
+                $currentSchedules = Schedule::where('copy_id', $copyId)
+                    ->where('cst_id', $cstId)
+                    ->orderBy('period_order')
+                    ->get();
+                $actual = $currentSchedules->count();
+
+                if ($action === 'create_missing' && $actual < $expected) {
+                    // Find the highest period_order currently used
+                    $maxOrder = $currentSchedules->max('period_order') ?? 0;
+                    
+                    // Create missing records
+                    for ($i = $actual + 1; $i <= $expected; $i++) {
+                        $maxOrder++;
+                        Schedule::create([
+                            'copy_id' => $copyId,
+                            'cst_id' => $cstId,
+                            'school_id' => $scheduleCopy->school_id,
+                            'period_order' => $maxOrder,
+                            'active' => true,
+                            'day_number' => null,
+                            'period_number' => null
+                        ]);
+                        $results['created']++;
+                    }
+                } elseif ($action === 'delete_extra' && $actual > $expected) {
+                    // Delete extra records (those without day/period assignment first, then by highest period_order)
+                    $toDelete = $actual - $expected;
+                    
+                    // Prioritize deleting unassigned schedules
+                    $unassigned = $currentSchedules->filter(function($s) {
+                        return is_null($s->day_number) || is_null($s->period_number);
+                    })->sortByDesc('period_order');
+
+                    $assigned = $currentSchedules->filter(function($s) {
+                        return !is_null($s->day_number) && !is_null($s->period_number);
+                    })->sortByDesc('period_order');
+
+                    $deleteList = $unassigned->take($toDelete);
+                    if ($deleteList->count() < $toDelete) {
+                        // Need to delete some assigned ones too
+                        $remaining = $toDelete - $deleteList->count();
+                        $deleteList = $deleteList->merge($assigned->take($remaining));
+                    }
+
+                    foreach ($deleteList as $schedule) {
+                        $schedule->delete();
+                        $results['deleted']++;
+                    }
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Sync completed: {$results['created']} created, {$results['deleted']} deleted",
+                'results' => $results
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to apply sync fixes: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get CST (Classroom-Subject-Teacher) overview statistics
+     * Shows per-classroom count and total expected schedule entries
+     */
+    public function getCSTOverview(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'school_id' => 'required|exists:schools,id',
+                'academic_year_id' => 'required|exists:academic_years,id',
+                'include_deleted' => 'boolean'
+            ]);
+
+            $schoolId = $validated['school_id'];
+            $academicYearId = $validated['academic_year_id'];
+            $includeDeleted = $validated['include_deleted'] ?? false;
+
+            // Get all CSTs for this school and academic year
+            $query = ClassroomSubjectTeacher::where('school_id', $schoolId)
+                ->where('academic_year_id', $academicYearId)
+                ->with(['classroom', 'subject', 'teacher']);
+
+            if ($includeDeleted) {
+                $query->withTrashed();
+            }
+
+            $csts = $query->get();
+
+            if ($csts->isEmpty()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'No subject-teacher assignments found',
+                    'data' => [
+                        'by_classroom' => [],
+                        'summary' => [
+                            'total_classrooms' => 0,
+                            'total_csts' => 0,
+                            'total_deleted_csts' => 0,
+                            'total_expected_schedules' => 0
+                        ]
+                    ]
+                ]);
+            }
+
+            // Group by classroom
+            $byClassroom = [];
+            $totalExpectedSchedules = 0;
+            $totalDeletedCsts = 0;
+
+            foreach ($csts as $cst) {
+                $classroomId = $cst->classroom_id;
+                $classroomName = $cst->classroom->name ?? 'Unknown';
+                $classesPerWeek = $cst->classes_per_week ?? 0;
+                $isDeleted = !is_null($cst->deleted_at);
+
+                if ($isDeleted) {
+                    $totalDeletedCsts++;
+                }
+
+                if (!isset($byClassroom[$classroomId])) {
+                    $byClassroom[$classroomId] = [
+                        'classroom_id' => $classroomId,
+                        'classroom_name' => $classroomName,
+                        'cst_count' => 0,
+                        'cst_deleted_count' => 0,
+                        'total_classes_per_week' => 0,
+                        'subjects' => []
+                    ];
+                }
+
+                if (!$isDeleted) {
+                    $byClassroom[$classroomId]['cst_count']++;
+                    $byClassroom[$classroomId]['total_classes_per_week'] += $classesPerWeek;
+                    $totalExpectedSchedules += $classesPerWeek;
+                } else {
+                    $byClassroom[$classroomId]['cst_deleted_count']++;
+                }
+
+                $byClassroom[$classroomId]['subjects'][] = [
+                    'cst_id' => $cst->id,
+                    'subject_name' => $cst->subject->name ?? 'Unknown',
+                    'teacher_name' => $cst->teacher->name ?? 'Unknown',
+                    'classes_per_week' => $classesPerWeek,
+                    'deleted_at' => $cst->deleted_at ? $cst->deleted_at->toDateTimeString() : null,
+                    'is_deleted' => $isDeleted
+                ];
+            }
+
+            // Sort classrooms by name
+            usort($byClassroom, function($a, $b) {
+                return strcmp($a['classroom_name'], $b['classroom_name']);
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'by_classroom' => array_values($byClassroom),
+                    'summary' => [
+                        'total_classrooms' => count($byClassroom),
+                        'total_csts' => $csts->filter(fn($c) => is_null($c->deleted_at))->count(),
+                        'total_deleted_csts' => $totalDeletedCsts,
+                        'total_expected_schedules' => $totalExpectedSchedules
+                    ]
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get CST overview: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

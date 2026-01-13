@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cache;
@@ -190,6 +192,106 @@ class StudentController extends Controller
     {
         $student->delete();
         return redirect()->back()->with('success', 'Student deleted successfully.');
+    }
+
+    public function downloadTemplate()
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // Set headers
+        $headers = ['name', 'name_ar', 'name_cute', 'notes'];
+        $sheet->fromArray($headers, null, 'A1');
+
+        // Add sample data
+        $sampleData = [
+            ['John Doe', 'جون دو', 'Johnny', 'Sample note'],
+            ['Jane Smith', 'جين سميث', 'Janie', 'Another note'],
+            ['Ahmed Ali', 'أحمد علي', 'Ahmed', 'Sample student']
+        ];
+
+        $sheet->fromArray($sampleData, null, 'A2');
+
+        // Style the header row
+        $headerStyle = [
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => '4472C4']],
+            'borders' => ['allBorders' => ['borderStyle' => 'thin']],
+        ];
+        $sheet->getStyle('A1:D1')->applyFromArray($headerStyle);
+
+        // Auto-size columns
+        foreach (range('A', 'D') as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+
+        // Add borders to data
+        $dataRange = 'A1:D' . (count($sampleData) + 1);
+        $sheet->getStyle($dataRange)->applyFromArray([
+            'borders' => ['allBorders' => ['borderStyle' => 'thin', 'color' => ['rgb' => 'CCCCCC']]],
+        ]);
+
+        // Create writer and download
+        $writer = new Xlsx($spreadsheet);
+        $filename = 'students_template_' . date('Y-m-d') . '.xlsx';
+
+        // Set headers for download
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+
+        $writer->save('php://output');
+        exit;
+    }
+
+    public function downloadTemplateWithClassroom()
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // Set headers
+        $headers = ['name', 'name_ar', 'name_cute', 'classroom', 'notes'];
+        $sheet->fromArray($headers, null, 'A1');
+
+        // Add sample data with various classroom formats
+        $sampleData = [
+            ['John Doe', 'جون دو', 'Johnny', '4A', 'Sample note'],
+            ['Jane Smith', 'جين سميث', 'Janie', 'Grade 4 - A', 'Another note'],
+            ['Ahmed Ali', 'أحمد علي', 'Ahmed', '4-A', 'Sample student']
+        ];
+
+        $sheet->fromArray($sampleData, null, 'A2');
+
+        // Style the header row
+        $headerStyle = [
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => '4472C4']],
+            'borders' => ['allBorders' => ['borderStyle' => 'thin']],
+        ];
+        $sheet->getStyle('A1:E1')->applyFromArray($headerStyle);
+
+        // Auto-size columns
+        foreach (range('A', 'E') as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+
+        // Add borders to data
+        $dataRange = 'A1:E' . (count($sampleData) + 1);
+        $sheet->getStyle($dataRange)->applyFromArray([
+            'borders' => ['allBorders' => ['borderStyle' => 'thin', 'color' => ['rgb' => 'CCCCCC']]],
+        ]);
+
+        // Create writer and download
+        $writer = new Xlsx($spreadsheet);
+        $filename = 'students_template_with_classroom_' . date('Y-m-d') . '.xlsx';
+
+        // Set headers for download
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+
+        $writer->save('php://output');
+        exit;
     }
 
     public function validateImport(Request $request)
@@ -374,6 +476,135 @@ class StudentController extends Controller
                 'errors' => ['An error occurred while processing the data: ' . $e->getMessage()]
             ], 500);
         }
+    }
+
+    /**
+     * Import students with classroom column - school-wide import
+     * Processes ONE record at a time to avoid timeout
+     */
+    public function importWithClassroom(Request $request)
+    {
+        $request->validate([
+            'school_id' => 'required|exists:schools,id',
+            'name' => 'required|string',
+            'classroom' => 'required|string',
+            'name_ar' => 'nullable|string',
+            'name_cute' => 'nullable|string',
+            'notes' => 'nullable|string',
+        ]);
+
+        try {
+            $schoolId = $request->school_id;
+            $name = trim($request->name);
+            $classroomName = trim($request->classroom);
+
+            // Smart classroom matching
+            $classroom = $this->findClassroom($classroomName, $schoolId);
+
+            if (!$classroom) {
+                return response()->json([
+                    'success' => false,
+                    'status' => 'failed',
+                    'message' => "Classroom '{$classroomName}' not found in this school"
+                ]);
+            }
+
+            // Validate classroom has required fields
+            if (empty($classroom->stage_id) || empty($classroom->grade_id)) {
+                return response()->json([
+                    'success' => false,
+                    'status' => 'failed',
+                    'message' => "Classroom '{$classroom->name}' is missing stage_id or grade_id. Please configure the classroom properly."
+                ]);
+            }
+
+            // Check for duplicates (case-insensitive)
+            $existingStudent = Student::where('classroom_id', $classroom->id)
+                ->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])
+                ->first();
+
+            if ($existingStudent) {
+                return response()->json([
+                    'success' => true,
+                    'status' => 'duplicate',
+                    'message' => "Student '{$name}' already exists in {$classroom->name}"
+                ]);
+            }
+
+            // Create student (user will be created automatically by Student model)
+            // Use classroom's stage_id and grade_id directly
+            $student = Student::create([
+                'name' => $name,
+                'name_ar' => trim($request->name_ar ?? ''),
+                'name_cute' => trim($request->name_cute ?? ''),
+                'notes' => trim($request->notes ?? ''),
+                'school_id' => $classroom->school_id,
+                'stage_id' => $classroom->stage_id,
+                'grade_id' => $classroom->grade_id,
+                'classroom_id' => $classroom->id,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'status' => 'created',
+                'message' => "Student '{$name}' created successfully in {$classroom->name}",
+                'student_id' => $student->id
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Failed to create student: ' . $e->getMessage()
+            ], 422);
+        }
+    }
+
+    /**
+     * Smart classroom finder - tries multiple matching strategies
+     */
+    private function findClassroom($classroomName, $schoolId)
+    {
+        // 1. Exact match
+        $classroom = Classroom::where('school_id', $schoolId)
+            ->where('name', $classroomName)
+            ->select('id', 'name', 'school_id', 'stage_id', 'grade_id')
+            ->first();
+
+        if ($classroom) {
+            return $classroom;
+        }
+
+        // 2. Case-insensitive match
+        $classroom = Classroom::where('school_id', $schoolId)
+            ->whereRaw('LOWER(name) = ?', [mb_strtolower($classroomName)])
+            ->select('id', 'name', 'school_id', 'stage_id', 'grade_id')
+            ->first();
+
+        if ($classroom) {
+            return $classroom;
+        }
+
+        // 3. Normalized match (using existing normalizeClassroomName method)
+        $normalized = $this->normalizeClassroomName($classroomName);
+        
+        $classrooms = Classroom::where('school_id', $schoolId)
+            ->select('id', 'name', 'school_id', 'stage_id', 'grade_id')
+            ->get();
+        
+        foreach ($classrooms as $cls) {
+            if ($this->normalizeClassroomName($cls->name) === $normalized) {
+                return $cls;
+            }
+        }
+
+        // 4. Partial match (contains)
+        $classroom = Classroom::where('school_id', $schoolId)
+            ->where('name', 'like', '%' . $classroomName . '%')
+            ->select('id', 'name', 'school_id', 'stage_id', 'grade_id')
+            ->first();
+
+        return $classroom;
     }
 
     /**

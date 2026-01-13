@@ -469,4 +469,91 @@ $data= ClassroomSubjectTeacher::where('school_id', $school_id)->where('teacher_i
             'data' => $query->get()
         ]);
     }
+
+    /**
+     * Update only the classes_per_week field for a CST
+     */
+    public function updateClassesPerWeek(Request $request, $id)
+    {
+        try {
+            $validated = $request->validate([
+                'classes_per_week' => 'required|integer|min:1|max:20'
+            ]);
+
+            $cst = ClassroomSubjectTeacher::findOrFail($id);
+            
+            $cst->classes_per_week = $validated['classes_per_week'];
+            $cst->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Classes per week updated successfully',
+                'data' => $cst->load(['classroom', 'subject', 'teacher'])
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Restore a soft-deleted CST
+     */
+    public function restore($id)
+    {
+        try {
+            $cst = ClassroomSubjectTeacher::onlyTrashed()->findOrFail($id);
+            $cst->restore();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'CST restored successfully',
+                'data' => $cst->load(['classroom', 'subject', 'teacher'])
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to restore: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Soft delete a CST
+     */
+    public function softDelete($id)
+    {
+        try {
+            $cst = ClassroomSubjectTeacher::findOrFail($id);
+            
+            // Check if it's the last subject for this classroom
+            $classroomCstCount = ClassroomSubjectTeacher::where('classroom_id', $cst->classroom_id)
+                ->where('id', '!=', $id)
+                ->count();
+            
+            if ($classroomCstCount === 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot delete the last subject for this classroom'
+                ], 422);
+            }
+
+            $cst->delete(); // Soft delete
+
+            return response()->json([
+                'success' => true,
+                'message' => 'CST soft-deleted successfully. You can restore it later if needed.'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

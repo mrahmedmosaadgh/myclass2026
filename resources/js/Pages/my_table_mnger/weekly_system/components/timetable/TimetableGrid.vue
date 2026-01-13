@@ -15,9 +15,9 @@
       </div>
     </div>
 
-    <!-- Day Rows -->
+    <!-- Day Rows (excluding Friday=6 and Saturday=7) -->
     <div
-      v-for="day in days"
+      v-for="day in filteredDays"
       :key="day.value"
       class="grid-row"
     >
@@ -60,8 +60,8 @@ const props = defineProps({
 
 const emit = defineEmits(['cell-click', 'edit', 'clear'])
 
-// Using translation for day names
-const days = [
+// Using translation for day names (excluding Friday=6 and Saturday=7)
+const allDays = [
   { value: 1, label: t('weeklyPlans.fullDays.1'), short: t('weeklyPlans.shortDays.1') },
   { value: 2, label: t('weeklyPlans.fullDays.2'), short: t('weeklyPlans.shortDays.2') },
   { value: 3, label: t('weeklyPlans.fullDays.3'), short: t('weeklyPlans.shortDays.3') },
@@ -70,6 +70,9 @@ const days = [
   { value: 6, label: t('weeklyPlans.fullDays.6'), short: t('weeklyPlans.shortDays.6') },
   { value: 7, label: t('weeklyPlans.fullDays.7'), short: t('weeklyPlans.shortDays.7') }
 ]
+
+// Filter out Friday (6) and Saturday (7)
+const filteredDays = allDays.filter(day => day.value !== 6 && day.value !== 7)
 
 const periods = [1, 2, 3, 4, 5, 6, 7, 8]
 
@@ -116,7 +119,7 @@ const getConflictInfo = (schedule) => {
   gap: 2px;
   background: #f5f5f5;
   border-radius: 8px;
-  padding: 2px;
+  padding: 8px;
   overflow-x: auto;
   direction: ltr;
 }
@@ -130,7 +133,7 @@ const getConflictInfo = (schedule) => {
   /* Changed to have periods as columns: 100px for day header + n periods */
   grid-template-columns: 100px repeat(v-bind('periods.length'), 1fr);
   gap: 2px;
-  /* min-height: 80px; */
+  min-height: 80px;
 }
 
 .header-row .grid-cell {
@@ -142,33 +145,35 @@ const getConflictInfo = (schedule) => {
 .grid-cell {
   background: white;
   border-radius: 4px;
-  min-height: 40px;
+  min-width: 100px;
+  min-height: 60px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 4px;
+  padding: 2px;
+  overflow: hidden;
+  position: relative;
 }
 
 .period-header {
   background: #e3f2fd;
   font-weight: 600;
-  min-width: 80px;
+  min-width: 100px;
 }
 
 .period-number {
   font-size: 1.1rem;
   font-weight: bold;
-  /* color: var(--q-primary); */
-  color: white;
-
+  color: var(--q-primary);
 }
 
 .day-header {
-  background: #f0f0f0;
+  /* background: #f0f0f0; */
   font-weight: 600;
-  padding: 12px 8px;
-  min-width: 100px;
+  /* padding: 12px 8px;
+  min-width: 100px; */
+  color: aqua;
 }
 
 .day-name {
@@ -180,7 +185,47 @@ const getConflictInfo = (schedule) => {
 }
 
 .schedule-cell {
-  padding: 0;
+  padding: 4px;
+  position: relative;
+}
+
+/* Style for handling long text in cells */
+.schedule-cell:hover::after {
+  content: attr(title);
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  z-index: 100;
+  white-space: nowrap;
+  font-size: 12px;
+  pointer-events: none;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.3s, visibility 0.3s;
+}
+
+.schedule-cell:hover .schedule-content {
+  position: relative;
+  z-index: 2;
+}
+
+.schedule-cell:hover::after {
+  visibility: visible;
+  opacity: 1;
+}
+
+.schedule-content {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+  text-align: center;
+  font-size: 12px;
 }
 
 @media (max-width: 768px) {
@@ -194,6 +239,11 @@ const getConflictInfo = (schedule) => {
 
   .day-short {
     display: block;
+  }
+  
+  .grid-cell {
+    min-width: 80px;
+    min-height: 60px;
   }
 }
 

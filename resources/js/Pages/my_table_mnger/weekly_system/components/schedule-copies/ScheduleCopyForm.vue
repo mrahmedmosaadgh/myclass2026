@@ -41,27 +41,6 @@
             </template>
           </q-input>
 
-          <!-- School Selector -->
-          <SchoolSelect
-            v-model="form.school_id"
-            :schools="schools"
-            :loading="loadingSchools"
-          />
-
-          <!-- Academic Year Selector -->
-          <AcademicYearSelect
-            v-model="form.academic_year_id"
-            :academic-years="academicYears"
-            :loading="loadingYears"
-          />
-
-          <!-- Semester Selector -->
-          <SemesterSelect
-            v-model="form.semester_id"
-            :semesters="semesters"
-            :loading="loadingSemesters"
-          />
-
           <!-- Week Number -->
           <q-input
             v-model.number="form.week_number"
@@ -124,9 +103,13 @@
           <q-checkbox
             v-if="!isEdit"
             v-model="form.auto_generate"
-            label="Auto-generate schedule slots (5 days × 8 periods per classroom)"
+            label="Auto-generate schedule entries from subject-teacher assignments"
             color="primary"
-          />
+          >
+            <q-tooltip>
+              Creates schedule records based on classes_per_week for each subject-teacher assignment
+            </q-tooltip>
+          </q-checkbox>
         </q-form>
       </q-card-section>
 
@@ -146,10 +129,10 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
-import SchoolSelect from '../shared/SchoolSelect.vue'
-import AcademicYearSelect from '../shared/AcademicYearSelect.vue'
-import SemesterSelect from '../shared/SemesterSelect.vue'
+import { ref, computed, watch, onMounted } from 'vue'
+import { useSchoolDataStore } from '@/Stores/schoolData'
+
+const schoolDataStore = useSchoolDataStore()
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -182,9 +165,9 @@ const statusOptions = [
 const defaultForm = () => ({
   name: '',
   description: '',
-  school_id: null,
-  academic_year_id: null,
-  semester_id: null,
+  school_id: schoolDataStore.schoolId || null,
+  academic_year_id: schoolDataStore.academicYearId || null,
+  semester_id: schoolDataStore.semesterId || null,
   week_number: null,
   copy_date: null,
   status: 'draft',
@@ -203,6 +186,7 @@ watch(() => props.editData, (newData) => {
       copy_date: newData.copy_date ? newData.copy_date.split('T')[0] : null
     }
   } else {
+    // Auto-populate from store when creating new
     form.value = defaultForm()
   }
 }, { immediate: true })
@@ -211,6 +195,11 @@ watch(() => props.editData, (newData) => {
 watch(dialogModel, (isOpen) => {
   if (!isOpen) {
     form.value = defaultForm()
+  } else if (!isEdit.value) {
+    // Auto-populate from store when dialog opens for create
+    form.value.school_id = schoolDataStore.schoolId || form.value.school_id
+    form.value.academic_year_id = schoolDataStore.academicYearId || form.value.academic_year_id
+    form.value.semester_id = schoolDataStore.semesterId || form.value.semester_id
   }
 })
 

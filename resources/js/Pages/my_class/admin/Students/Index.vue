@@ -45,6 +45,18 @@
             </q-tooltip>
           </q-btn>
           <q-btn
+            color="purple"
+            icon="cloud_upload"
+            label="School-Wide Import"
+            @click="triggerSchoolWideImport"
+            :disable="!filters.school_id"
+            unelevated
+          >
+            <q-tooltip v-if="!filters.school_id">
+              Please select a School first
+            </q-tooltip>
+          </q-btn>
+          <q-btn
             color="positive"
             icon="download"
             label="Export"
@@ -501,7 +513,7 @@
       @promoted="onPromotionComplete"
     />
 
-    <!-- Import Dialog -->
+    <!-- Import Dialog (Filtered - to selected classroom) -->
     <q-dialog v-model="showImportDialog" persistent>
       <q-card style="min-width: 700px; max-width: 90vw">
         <q-card-section class="bg-info text-white">
@@ -532,6 +544,16 @@
               <strong>Required columns:</strong> name<br>
               <strong>Optional columns:</strong> name_ar, name_cute, notes
             </div>
+            <template v-slot:action>
+              <q-btn
+                flat
+                dense
+                label="Download Template"
+                icon="download"
+                color="primary"
+                @click="downloadTemplate"
+              />
+            </template>
           </q-banner>
         </q-card-section>
 
@@ -561,6 +583,76 @@
       </q-card>
     </q-dialog>
 
+    <!-- School-Wide Import Dialog -->
+    <q-dialog v-model="showSchoolWideImportDialog" persistent>
+      <q-card style="min-width: 700px; max-width: 90vw">
+        <q-card-section class="bg-purple text-white">
+          <div class="text-h6">School-Wide Import</div>
+          <div class="text-caption">
+            Importing to: {{ getSelectedSchoolName() }}
+          </div>
+        </q-card-section>
+
+        <q-card-section v-if="!importWithClassroomPreview.length">
+          <q-file
+            v-model="importWithClassroomFile"
+            label="Select Excel file with classroom column"
+            accept=".xlsx,.xls"
+            outlined
+            @update:model-value="handleSchoolWideFileUpload"
+          >
+            <template v-slot:prepend>
+              <q-icon name="attach_file" />
+            </template>
+          </q-file>
+          
+          <q-banner class="bg-grey-2 q-mt-md" rounded>
+            <template v-slot:avatar>
+              <q-icon name="info" color="info" />
+            </template>
+            <div class="text-caption">
+              <strong>Required columns:</strong> name, classroom<br>
+              <strong>Optional columns:</strong> name_ar, name_cute, notes<br>
+              <strong>Classroom formats:</strong> "4A", "Grade 4 - A", "4-A"
+            </div>
+            <template v-slot:action>
+              <q-btn
+                flat
+                dense
+                label="Download Template"
+                icon="download"
+                color="primary"
+                @click="downloadTemplateWithClassroom"
+              />
+            </template>
+          </q-banner>
+        </q-card-section>
+
+        <q-card-section v-else class="q-pt-none" style="max-height: 400px; overflow-y: auto">
+          <div class="text-subtitle2 q-mb-sm">Preview ({{ importWithClassroomPreview.length }} students)</div>
+          <q-table
+            :rows="importWithClassroomPreview"
+            :columns="importWithClassroomColumns"
+            row-key="index"
+            flat
+            dense
+            :pagination="{ rowsPerPage: 10 }"
+          />
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" color="negative" @click="closeSchoolWideImportDialog" />
+          <q-btn
+            v-if="importWithClassroomPreview.length"
+            unelevated
+            label="Import All"
+            color="purple"
+            @click="executeSchoolWideImport"
+            :loading="importing"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
 
   </div>
 </template>
@@ -598,10 +690,23 @@ const importFile = ref(null)
 const importPreviewData = ref([])
 const importing = ref(false)
 
+// School-wide import state
+const showSchoolWideImportDialog = ref(false)
+const importWithClassroomFile = ref(null)
+const importWithClassroomPreview = ref([])
+
 const importPreviewColumns = [
   { name: 'name', label: 'Name', field: 'name', align: 'left' },
   { name: 'name_ar', label: 'Arabic Name', field: 'name_ar', align: 'left' },
   { name: 'name_cute', label: 'Nickname', field: 'name_cute', align: 'left' },
+  { name: 'notes', label: 'Notes', field: 'notes', align: 'left' }
+]
+
+const importWithClassroomColumns = [
+  { name: 'name', label: 'Name', field: 'name', align: 'left' },
+  { name: 'name_ar', label: 'Arabic Name', field: 'name_ar', align: 'left' },
+  { name: 'name_cute', label: 'Nickname', field: 'name_cute', align: 'left' },
+  { name: 'classroom', label: 'Classroom', field: 'classroom', align: 'left' },
   { name: 'notes', label: 'Notes', field: 'notes', align: 'left' }
 ]
 
@@ -1129,10 +1234,210 @@ const executeImport = async () => {
   }
 }
 
+const downloadTemplate = () => {
+  window.location.href = '/admin/students/download-template'
+}
+
+const downloadTemplateWithClassroom = () => {
+  window.location.href = '/admin/students/download-template-with-classroom'
+}
+
+const handleSchoolWideFileUpload = async (file) => {
+  if (!file) return
+
+  try {
+    const data = await readExcelFile(file)
+    
+    // Check if classroom column exists
+    if (data.length > 0 && !('classroom' in data[0]) && !('Classroom' in data[0])) {
+      $q.notify({
+        type: 'negative',
+        message: 'Invalid file: Missing "classroom" column. Please download the correct template.'
+      })
+      importWithClassroomFile.value = null
+      return
+    }
+
+    const validRows = []
+    const invalidRows = []
+
+    data.forEach((row, index) => {
+      const name = row.name || row.Name || ''
+      const classroom = row.classroom || row.Classroom || ''
+
+      // Check if required fields are empty
+      if (!name.trim() || !classroom.trim()) {
+        invalidRows.push({
+          row: index + 2, // Excel row number (1-indexed + header)
+          reason: !name.trim() ? 'Missing name' : 'Missing classroom'
+        })
+      } else {
+        validRows.push({
+          index,
+          name: name.trim(),
+          name_ar: (row.name_ar || row['Arabic Name'] || '').trim(),
+          name_cute: (row.name_cute || row.Nickname || '').trim(),
+          classroom: classroom.trim(),
+          notes: (row.notes || row.Notes || '').trim()
+        })
+      }
+    })
+
+    if (invalidRows.length > 0) {
+      const errorMessages = invalidRows.map(r => `Row ${r.row}: ${r.reason}`).join('\n')
+      $q.dialog({
+        title: 'Invalid Records Found',
+        message: `Found ${invalidRows.length} invalid record(s):\n\n${errorMessages}\n\nThese rows will be skipped.`,
+        html: true
+      })
+    }
+
+    importWithClassroomPreview.value = validRows
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: 'Error reading Excel file: ' + error.message
+    })
+  }
+}
+
+const executeSchoolWideImport = async () => {
+  if (!filters.value.school_id) {
+    $q.notify({
+      type: 'negative',
+      message: 'Please select a school'
+    })
+    return
+  }
+
+  const totalRecords = importWithClassroomPreview.value.length
+  let processed = 0
+  let created = 0
+  let duplicates = 0
+  let failed = 0
+  const errors = []
+
+  // Show progress dialog
+  const progressDialog = $q.dialog({
+    title: 'Importing Students',
+    message: `Processing 0 of ${totalRecords} students...`,
+    progress: {
+      spinner: false,
+      value: 0,
+      color: 'primary'
+    },
+    persistent: true,
+    ok: false
+  })
+
+  importing.value = true
+
+  try {
+    // Process each record one by one
+    for (const [index, row] of importWithClassroomPreview.value.entries()) {
+      try {
+        const response = await axios.post('/admin/students/import-with-classroom', {
+          school_id: filters.value.school_id,
+          name: row.name,
+          name_ar: row.name_ar,
+          name_cute: row.name_cute,
+          classroom: row.classroom,
+          notes: row.notes
+        })
+
+        processed++
+
+        // Track status
+        if (response.data.status === 'created') {
+          created++
+        } else if (response.data.status === 'duplicate') {
+          duplicates++
+        }
+
+        // Update progress
+        progressDialog.update({
+          message: `Processing ${processed} of ${totalRecords} students...\nCreated: ${created} | Duplicates: ${duplicates} | Failed: ${failed}`,
+          progress: {
+            value: processed / totalRecords
+          }
+        })
+
+      } catch (error) {
+        processed++
+        failed++
+        errors.push({
+          row: index + 2,
+          name: row.name,
+          error: error.response?.data?.message || error.message
+        })
+
+        // Update progress
+        progressDialog.update({
+          message: `Processing ${processed} of ${totalRecords} students...\nCreated: ${created} | Duplicates: ${duplicates} | Failed: ${failed}`,
+          progress: {
+            value: processed / totalRecords
+          }
+        })
+      }
+    }
+
+    // Close progress dialog
+    progressDialog.hide()
+
+    // Show results
+    const resultMessage = `Import Complete!\n\n✅ Created: ${created}\n⏭️ Duplicates: ${duplicates}\n❌ Failed: ${failed}`
+
+    if (failed > 0) {
+      $q.dialog({
+        title: 'Import Completed with Errors',
+        message: resultMessage + '\n\nCheck console for error details.',
+        html: true
+      })
+      console.log('Import Errors:', errors)
+    } else {
+      $q.notify({
+        type: 'positive',
+        message: resultMessage,
+        html: true,
+        timeout: 5000
+      })
+    }
+
+    closeSchoolWideImportDialog()
+    await applyFilters()
+
+  } catch (error) {
+    progressDialog.hide()
+    $q.notify({
+      type: 'negative',
+      message: 'Import failed: ' + (error.message || 'Unknown error')
+    })
+  } finally {
+    importing.value = false
+  }
+}
+
+const triggerSchoolWideImport = () => {
+  if (!filters.value.school_id) {
+    $q.notify({
+      type: 'negative',
+      message: 'Please select a School first'
+    })
+    return
+  }
+  showSchoolWideImportDialog.value = true
+}
+
 const closeImportDialog = () => {
   showImportDialog.value = false
   importFile.value = null
   importPreviewData.value = []
+}
+
+const closeSchoolWideImportDialog = () => {
+  showSchoolWideImportDialog.value = false
+  importWithClassroomFile.value = null
+  importWithClassroomPreview.value = []
 }
 
 // Initialize

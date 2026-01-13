@@ -84,6 +84,22 @@ class ScheduleCopy extends Model
     {
         return $this->belongsTo(User::class, 'last_modified_by');
     }
+
+    /**
+     * Relationship with WeeklyPlan model
+     */
+    public function weeklyPlans()
+    {
+        return $this->hasMany(WeeklyPlan::class, 'copy_id');
+    }
+
+    /**
+     * Relationship with ScheduleDaily model
+     */
+    public function scheduleDailies()
+    {
+        return $this->hasMany(ScheduleDaily::class, 'schedule_copy_id');
+    }
 }
 
 

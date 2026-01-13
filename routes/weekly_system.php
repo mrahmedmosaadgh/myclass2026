@@ -139,6 +139,30 @@ Route::middleware(['auth', 'verified'])->prefix('weekly-system')->name('weekly-s
         Route::post('/ai-import/update', [\App\Http\Controllers\ScheduleController::class, 'applyAIUpdate'])
             ->name('api.ai-import.update');
 
+        // Random Fill endpoints
+        Route::post('/random-fill/preview', [\App\Http\Controllers\ScheduleController::class, 'generateRandomFillPreview'])
+            ->name('api.random-fill.preview');
+        Route::post('/random-fill/apply', [\App\Http\Controllers\ScheduleController::class, 'applyRandomFill'])
+            ->name('api.random-fill.apply');
+
+        // Schedule Sync endpoints
+        Route::post('/schedule-copies/{copyId}/sync-status', [\App\Http\Controllers\ScheduleCopyController::class, 'getSyncStatus'])
+            ->name('api.schedule-copies.sync-status');
+        Route::post('/schedule-copies/{copyId}/apply-sync', [\App\Http\Controllers\ScheduleCopyController::class, 'applySyncFixes'])
+            ->name('api.schedule-copies.apply-sync');
+
+        // CST Overview endpoint
+        Route::post('/schedule-copies/cst-overview', [\App\Http\Controllers\ScheduleCopyController::class, 'getCSTOverview'])
+            ->name('api.schedule-copies.cst-overview');
+
+        // CST Management endpoints
+        Route::put('/cst/{id}/classes-per-week', [\App\Http\Controllers\ClassroomSubjectTeacherController::class, 'updateClassesPerWeek'])
+            ->name('api.cst.update-classes-per-week');
+        Route::post('/cst/{id}/restore', [\App\Http\Controllers\ClassroomSubjectTeacherController::class, 'restore'])
+            ->name('api.cst.restore');
+        Route::delete('/cst/{id}', [\App\Http\Controllers\ClassroomSubjectTeacherController::class, 'softDelete'])
+            ->name('api.cst.soft-delete');
+
         // Sync analysis dashboard
         Route::get('/sync-analysis', [WeeklySystemController::class, 'getSyncAnalysis'])
             ->name('api.sync-analysis');

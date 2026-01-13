@@ -129,7 +129,23 @@ Route::middleware([
 
 
 
+
         Route::resource('teacher/period-activities', PeriodActivityController::class);
+
+        // QU Question Bank System Routes
+        Route::prefix('qu')->name('qu-')->group(function () {
+            // Question Management (Teachers & Admins)
+            Route::resource('questions', \App\Http\Controllers\QuQuestionController::class);
+            
+            // Exam Management (Teachers & Admins)  
+            Route::resource('exams', \App\Http\Controllers\QuExamController::class);
+            
+            // Grading view for teachers
+            Route::get('exams/{exam}/grading', [\App\Http\Controllers\QuExamController::class, 'grading'])
+                ->name('exams.grading');
+            Route::post('answers/{answer}/grade', [\App\Http\Controllers\QuExamController::class, 'gradeAnswer'])
+                ->name('answers.grade');
+        });
 
         // Teacher presentation / demo lesson editor route
         Route::get('/teacher/presentation', function () {

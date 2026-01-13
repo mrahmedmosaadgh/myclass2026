@@ -71,8 +71,8 @@ export default {
             deleteFailed: 'فشل في الحذف'
         },
         assigned: 'مُعين',
-        conflicts: 'الصراعات',
-        noConflicts: 'لا توجد صراعات',
+        conflicts: 'التعارضات',
+        noConflicts: 'لا توجد تعارضات',
         empty: 'فارغ',
         aiGenerate: 'توليد عبر الذكاء الاصطناعي',
     },
@@ -490,7 +490,7 @@ export default {
             activateSchedule: 'تفعيل الجدول',
             selectClassroom: 'اختر الفصل',
             chooseClassroom: 'اختر الفصل',
-            conflictDetails: 'تفاصيل الصراع',
+            conflictDetails: 'تفاصيل التعارض',
             assignedTo: 'مُعين إلى'
         },
         weeklyPlansManager: {

@@ -48,6 +48,14 @@
 
     <!-- Actions -->
     <q-card-actions align="right">
+      <q-btn 
+        flat dense color="teal" 
+        icon="sync" 
+        label="Sync"
+        @click="$emit('sync', copy)"
+      >
+        <q-tooltip>Check schedule synchronization</q-tooltip>
+      </q-btn>
       <q-btn flat dense color="primary" icon="edit" label="Edit" @click="$emit('edit', copy)" />
       <q-btn 
         v-if="copy.status !== 'active'" 
@@ -82,7 +90,7 @@ defineProps({
   }
 })
 
-defineEmits(['edit', 'activate', 'archive', 'delete'])
+defineEmits(['edit', 'activate', 'archive', 'delete', 'sync'])
 
 const formatDate = (date) => {
   if (!date) return ''

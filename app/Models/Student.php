@@ -74,7 +74,7 @@ class Student extends Model
                 $user = User::create([
                     'name' => $normalizedName,
                     'email' => $student->s_id,
-                    'role' => 'parent',
+                    'role' => 'student',
 
                     // 'email' => $student->email,
                     // 'password' => bcrypt(Str::random(10)), // Generate a random password
