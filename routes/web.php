@@ -136,6 +136,8 @@ Route::middleware([
         Route::prefix('qu')->name('qu-')->group(function () {
             // Question Management (Teachers & Admins)
             Route::resource('questions', \App\Http\Controllers\QuQuestionController::class);
+            Route::post('questions/bulk-import', [\App\Http\Controllers\QuQuestionController::class, 'bulkImport'])
+                ->name('questions.bulk-import');
             
             // Exam Management (Teachers & Admins)  
             Route::resource('exams', \App\Http\Controllers\QuExamController::class);

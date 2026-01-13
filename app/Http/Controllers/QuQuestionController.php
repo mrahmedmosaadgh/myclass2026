@@ -6,6 +6,8 @@ use App\Models\QuQuestion;
 use App\Models\Subject;
 use App\Models\CurriculumTopic;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class QuQuestionController extends Controller
@@ -80,12 +82,12 @@ class QuQuestionController extends Controller
     /**
      * Show the form for editing the specified question.
      */
-    public function edit(QuQuestion $quQuestion)
+    public function edit(QuQuestion $question)
     {
-        $quQuestion->load(['subject', 'topic']);
+        $question->load(['subject', 'topic']);
 
         return Inertia::render('my_class/QuQuestionBankSystem/QuQuestionForm', [
-            'question' => $quQuestion,
+            'question' => $question,
             'subjects' => Subject::with('curricula.curriculumTopics')->get(),
         ]);
     }
@@ -93,7 +95,7 @@ class QuQuestionController extends Controller
     /**
      * Update the specified question in storage.
      */
-    public function update(Request $request, QuQuestion $quQuestion)
+    public function update(Request $request, QuQuestion $question)
     {
         $validated = $request->validate([
             'subject_id' => 'required|exists:subjects,id',
@@ -107,7 +109,7 @@ class QuQuestionController extends Controller
             'marks' => 'required|integer|min:1',
         ]);
 
-        $quQuestion->update($validated);
+        $question->update($validated);
 
         return redirect()->route('qu-questions.index')
             ->with('success', 'Question updated successfully');
@@ -116,11 +118,68 @@ class QuQuestionController extends Controller
     /**
      * Remove the specified question from storage.
      */
-    public function destroy(QuQuestion $quQuestion)
+    public function destroy(QuQuestion $question)
     {
-        $quQuestion->delete();
+        $question->delete();
 
         return redirect()->route('qu-questions.index')
             ->with('success', 'Question deleted successfully');
+    }
+
+    /**
+     * Bulk import questions from AI-generated JSON.
+     */
+    public function bulkImport(Request $request)
+    {
+        $validated = $request->validate([
+            'questions' => 'required|array|min:1|max:50',
+            'questions.*.subject_id' => 'required|exists:subjects,id',
+            'questions.*.topic_id' => 'nullable|exists:curriculum_topics,id',
+            'questions.*.question_text' => 'required|string|min:10|max:1000',
+            'questions.*.question_type' => 'required|in:mcq,true_false,short,long',
+            'questions.*.options' => 'required_if:questions.*.question_type,mcq,true_false|array',
+            'questions.*.correct_answer' => 'required|array',
+            'questions.*.difficulty' => 'required|in:easy,medium,hard',
+            'questions.*.bloom_level' => 'nullable|in:remember,understand,apply,analyze,evaluate,create',
+            'questions.*.marks' => 'required|integer|min:1|max:100',
+        ]);
+
+        $imported = 0;
+        $failed = 0;
+
+        DB::beginTransaction();
+        try {
+            foreach ($validated['questions'] as $questionData) {
+                try {
+                    QuQuestion::create([
+                        'subject_id' => $questionData['subject_id'],
+                        'topic_id' => $questionData['topic_id'] ?? null,
+                        'question_text' => $questionData['question_text'],
+                        'question_type' => $questionData['question_type'],
+                        'options' => $questionData['options'] ?? [],
+                        'correct_answer' => $questionData['correct_answer'],
+                        'difficulty' => $questionData['difficulty'],
+                        'bloom_level' => $questionData['bloom_level'] ?? null,
+                        'marks' => $questionData['marks'],
+                        'created_by' => auth()->id(),
+                    ]);
+                    $imported++;
+                } catch (\Exception $e) {
+                    $failed++;
+                    Log::error('Failed to import question', [
+                        'question' => $questionData,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+
+            DB::commit();
+
+            return redirect()->route('qu-questions.index')
+                ->with('success', "Successfully imported {$imported} questions" . ($failed > 0 ? ", {$failed} failed" : ''));
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'Bulk import failed: ' . $e->getMessage()]);
+        }
     }
 }

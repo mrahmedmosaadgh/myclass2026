@@ -52,7 +52,7 @@ import { ZiggyVue } from 'ziggy-js';
 import { createI18n } from 'vue-i18n';
 import Vue3Toastify from 'vue3-toastify';
 // Import Quasar components normally (not lazy loaded)
-import { Quasar, Notify, Loading, Dialog, Dark, QRadioGroup, QRadio } from 'quasar';
+import { Quasar, Notify, Loading, Dialog, Dark, QOptionGroup, QRadio } from 'quasar';
 import AppLayoutDefault from '@/Layouts/AppLayoutDefault.vue';
 import languageSwitcher from './plugins/languageSwitcher.js';
 // Lazy load heavy CSS
@@ -147,7 +147,7 @@ createInertiaApp({
                     Dark // Add Dark plugin for dark mode
                 },
                 components: {
-                    QRadioGroup,
+                    QOptionGroup,
                     QRadio
                 },
                 config: {

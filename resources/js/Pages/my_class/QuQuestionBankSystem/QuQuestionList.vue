@@ -5,6 +5,15 @@
         <div class="row items-center">
           <div class="text-h5">Question Bank</div>
           <q-space />
+          <q-btn 
+            color="secondary" 
+            label="AI Generate" 
+            icon="auto_awesome"
+            @click="aiDialog = true"
+            class="q-mr-sm"
+          >
+            <q-tooltip>Generate questions using AI</q-tooltip>
+          </q-btn>
           <q-btn
             color="primary"
             label="Create Question"
@@ -130,7 +139,7 @@
                 round
                 color="primary" 
                 icon="edit" 
-                :to="route('qu-questions.edit', props.row.id)"
+                @click="editQuestion(props.row)"
               >
                 <q-tooltip>Edit</q-tooltip>
               </q-btn>
@@ -211,11 +220,20 @@
         <q-card-section>
           <QuQuestionForm 
             :subjects="subjects" 
+            :selected-subject-id="localFilters.subject_id"
             @success="onQuestionCreated"
           />
         </q-card-section>
       </q-card>
     </q-dialog>
+
+    <!-- AI Generator Dialog -->
+    <QuAIGeneratorDialog
+      v-model="aiDialog"
+      :subject-id="localFilters.subject_id"
+      :subjects="subjects"
+      @success="onQuestionCreated"
+    />
   </div>
 </template>
 
@@ -225,6 +243,7 @@ import { router } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
 import QuQuestionDisplay from './QuComponents/QuQuestionDisplay.vue';
 import QuQuestionForm from './QuQuestionForm.vue';
+import QuAIGeneratorDialog from './QuAIGeneratorDialog.vue';
 
 const props = defineProps({
   questions: Object,
@@ -233,7 +252,7 @@ const props = defineProps({
 });
 
 const localFilters = reactive({
-  subject_id: props.filters?.subject_id || null,
+  subject_id: props.filters?.subject_id || (props.subjects.length > 0 ? props.subjects[0].id : null),
   difficulty: props.filters?.difficulty || null,
   bloom_level: props.filters?.bloom_level || null,
   question_type: props.filters?.question_type || null
@@ -243,6 +262,7 @@ const currentPage = ref(props.questions.current_page);
 const viewDialog = ref(false);
 const deleteDialog = ref(false);
 const createDialog = ref(false);
+const aiDialog = ref(false);
 const selectedQuestion = ref(null);
 const questionToDelete = ref(null);
 
@@ -290,6 +310,11 @@ const changePage = (page) => {
   });
 };
 
+// Auto-apply filter if first subject was auto-selected
+if (!props.filters?.subject_id && localFilters.subject_id) {
+  applyFilters();
+}
+
 const onTableRequest = (props) => {
   changePage(props.pagination.page);
 };
@@ -297,6 +322,10 @@ const onTableRequest = (props) => {
 const viewQuestion = (question) => {
   selectedQuestion.value = question;
   viewDialog.value = true;
+};
+
+const editQuestion = (question) => {
+  router.visit(route('qu-questions.edit', question.id));
 };
 
 const confirmDelete = (question) => {

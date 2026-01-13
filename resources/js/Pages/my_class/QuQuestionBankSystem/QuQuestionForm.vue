@@ -7,8 +7,8 @@
 
       <q-card-section>
         <q-form @submit.prevent="submitForm">
-          <!-- Subject and Topic -->
-          <div class="row q-gutter-md q-mb-md">
+          <!-- Subject (only show when editing or no subject pre-selected) -->
+          <div v-if="!selectedSubjectId" class="row q-gutter-md q-mb-md">
             <q-select
               v-model="form.subject_id"
               :options="subjects"
@@ -21,17 +21,19 @@
               :rules="[val => !!val || 'Subject is required']"
               @update:model-value="loadTopics"
             />
+          </div>
 
+          <!-- Topic (always show, filtered by subject) -->
+          <div class="q-mb-md">
             <q-select
               v-model="form.topic_id"
               :options="topics"
               option-value="id"
               option-label="name"
-              label="Topic"
+              label="Topic (Optional)"
               clearable
               emit-value
               map-options
-              style="flex: 1"
               :disable="!form.subject_id"
             />
           </div>
@@ -46,9 +48,13 @@
             emit-value
             map-options
             class="q-mb-md"
-            :rules="[val => !!val || 'Question type is required']"
+            :rules="[val => !!val || 'Please select a question type']"
             @update:model-value="onQuestionTypeChange"
-          />
+          >
+            <template v-slot:hint>
+              Choose how students will answer this question
+            </template>
+          </q-select>
 
           <!-- Question Text -->
           <q-input
@@ -58,36 +64,62 @@
             rows="4"
             outlined
             class="q-mb-md"
-            :rules="[val => !!val || 'Question text is required']"
-          />
+            counter
+            maxlength="1000"
+            :rules="[
+              val => !!val || 'Question text is required',
+              val => val.length >= 10 || 'Question must be at least 10 characters',
+              val => val.length <= 1000 || 'Question must not exceed 1000 characters'
+            ]"
+          >
+            <template v-slot:hint>
+              Write a clear and concise question (10-1000 characters)
+            </template>
+          </q-input>
 
           <!-- MCQ Options -->
           <div v-if="form.question_type === 'mcq'" class="q-mb-md">
-            <div class="text-subtitle2 q-mb-sm">Options</div>
+            <div class="text-subtitle2 q-mb-sm">Multiple Choice Options *</div>
             <div v-for="(option, key) in form.options" :key="key" class="row q-gutter-sm q-mb-sm items-center">
               <q-input
                 v-model="form.options[key]"
                 :label="`Option ${key}`"
                 outlined
                 style="flex: 1"
-                :rules="[val => !!val || `Option ${key} is required`]"
+                :rules="[
+                  val => !!val || `Option ${key} cannot be empty`,
+                  val => val.length >= 1 || `Option ${key} must have at least 1 character`
+                ]"
               />
               <q-checkbox
                 :model-value="form.correct_answer.includes(key)"
                 @update:model-value="toggleCorrectAnswer(key)"
                 label="Correct"
+                color="positive"
               />
             </div>
-            <div class="text-caption text-grey-7">Select one or more correct answers</div>
+            <q-banner v-if="form.correct_answer.length === 0" class="bg-warning text-white q-mt-sm">
+              <template v-slot:avatar>
+                <q-icon name="warning" />
+              </template>
+              Please select at least one correct answer
+            </q-banner>
+            <div v-else class="text-caption text-positive">
+              ✓ {{ form.correct_answer.length }} correct answer(s) selected
+            </div>
           </div>
 
           <!-- True/False -->
           <div v-if="form.question_type === 'true_false'" class="q-mb-md">
             <div class="text-subtitle2 q-mb-sm">Correct Answer</div>
-            <q-radio-group v-model="form.correct_answer[0]">
-              <q-radio val="true" label="True" />
-              <q-radio val="false" label="False" />
-            </q-radio-group>
+            <q-option-group 
+              v-model="form.correct_answer[0]"
+              :options="[
+                { label: 'True', value: 'true' },
+                { label: 'False', value: 'false' }
+              ]"
+              type="radio"
+            />
           </div>
 
           <!-- Short/Long Answer (No options needed, teacher will grade manually) -->
@@ -105,20 +137,31 @@
             <q-select
               v-model="form.difficulty"
               :options="difficultyOptions"
-              label="Difficulty *"
+              label="Difficulty Level *"
               style="min-width: 150px"
-              :rules="[val => !!val || 'Difficulty is required']"
-            />
+              :rules="[val => !!val || 'Please select difficulty level']"
+            >
+              <template v-slot:hint>
+                How challenging is this question?
+              </template>
+            </q-select>
 
             <q-select
               v-model="form.bloom_level"
-              :options="bloomLevels"
-              label="Bloom Level"
+              :options="bloomLevelOptions"
+              option-value="value"
+              option-label="label"
+              label="Bloom's Taxonomy Level"
               clearable
-              style="min-width: 150px"
+              emit-value
+              map-options
+              style="min-width: 200px"
             >
               <template v-slot:prepend>
                 <q-icon :name="form.bloom_level ? getBloomIcon(form.bloom_level) : 'help'" />
+              </template>
+              <template v-slot:hint>
+                Cognitive skill level (optional)
               </template>
             </q-select>
 
@@ -127,9 +170,17 @@
               type="number"
               label="Marks *"
               min="1"
+              max="100"
               style="max-width: 120px"
-              :rules="[val => val > 0 || 'Marks must be greater than 0']"
-            />
+              :rules="[
+                val => val > 0 || 'Marks must be greater than 0',
+                val => val <= 100 || 'Marks cannot exceed 100'
+              ]"
+            >
+              <template v-slot:hint>
+                Points (1-100)
+              </template>
+            </q-input>
           </div>
 
           <!-- Submit Buttons -->
@@ -156,10 +207,14 @@
 import { ref, reactive, watch, computed } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
+import { useQuasar } from 'quasar';
+
+const $q = useQuasar();
 
 const props = defineProps({
   subjects: Array,
-  question: Object
+  question: Object,
+  selectedSubjectId: [Number, String]
 });
 
 const emit = defineEmits(['success']);
@@ -175,12 +230,17 @@ const questionTypes = [
 
 const difficultyOptions = ['easy', 'medium', 'hard'];
 
-const bloomLevels = [
-  'remember', 'understand', 'apply', 'analyze', 'evaluate', 'create'
+const bloomLevelOptions = [
+  { value: 'remember', label: 'Remember - Recall facts and basic concepts' },
+  { value: 'understand', label: 'Understand - Explain ideas or concepts' },
+  { value: 'apply', label: 'Apply - Use information in new situations' },
+  { value: 'analyze', label: 'Analyze - Draw connections among ideas' },
+  { value: 'evaluate', label: 'Evaluate - Justify a decision or course of action' },
+  { value: 'create', label: 'Create - Produce new or original work' }
 ];
 
 const form = useForm({
-  subject_id: props.question?.subject_id || null,
+  subject_id: props.question?.subject_id || props.selectedSubjectId || null,
   topic_id: props.question?.topic_id || null,
   question_text: props.question?.question_text || '',
   question_type: props.question?.question_type || 'mcq',
@@ -207,9 +267,11 @@ const loadTopics = (subjectId) => {
   }
 };
 
-// Load topics on mount if question exists
+// Load topics on mount if question exists or selectedSubjectId is provided
 if (props.question?.subject_id) {
   loadTopics(props.question.subject_id);
+} else if (props.selectedSubjectId) {
+  loadTopics(props.selectedSubjectId);
 }
 
 const onQuestionTypeChange = (type) => {
@@ -247,13 +309,55 @@ const getBloomIcon = (level) => {
 };
 
 const submitForm = () => {
+  // Validate MCQ has at least one correct answer
+  if (form.question_type === 'mcq' && form.correct_answer.length === 0) {
+    $q.notify({
+      type: 'warning',
+      message: 'Please select at least one correct answer for MCQ',
+      position: 'top'
+    });
+    return;
+  }
+
   if (props.question) {
     form.put(route('qu-questions.update', props.question.id), {
-      onSuccess: () => emit('success')
+      onSuccess: () => {
+        $q.notify({
+          type: 'positive',
+          message: 'Question updated successfully!',
+          icon: 'check_circle',
+          position: 'top'
+        });
+        emit('success');
+      },
+      onError: (errors) => {
+        $q.notify({
+          type: 'negative',
+          message: 'Failed to update question. Please check the form.',
+          caption: Object.values(errors)[0],
+          position: 'top'
+        });
+      }
     });
   } else {
     form.post(route('qu-questions.store'), {
-      onSuccess: () => emit('success')
+      onSuccess: () => {
+        $q.notify({
+          type: 'positive',
+          message: 'Question created successfully!',
+          icon: 'check_circle',
+          position: 'top'
+        });
+        emit('success');
+      },
+      onError: (errors) => {
+        $q.notify({
+          type: 'negative',
+          message: 'Failed to create question. Please check the form.',
+          caption: Object.values(errors)[0],
+          position: 'top'
+        });
+      }
     });
   }
 };
