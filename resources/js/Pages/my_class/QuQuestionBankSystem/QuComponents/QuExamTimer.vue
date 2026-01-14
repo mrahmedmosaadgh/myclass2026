@@ -33,7 +33,7 @@ const warnings = ref({
 
 const formattedTime = computed(() => {
   const minutes = Math.floor(timeRemaining.value / 60);
-  const seconds = timeRemaining.value % 60;
+  const seconds = Math.floor(timeRemaining.value % 60);
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 });
 

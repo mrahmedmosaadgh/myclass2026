@@ -172,6 +172,16 @@
                 flat 
                 dense 
                 round
+                color="indigo" 
+                icon="print" 
+                @click="openPrintDialog(props.row)"
+              >
+                <q-tooltip>Print Preview</q-tooltip>
+              </q-btn>
+              <q-btn 
+                flat 
+                dense 
+                round
                 color="negative" 
                 icon="delete" 
                 @click="confirmDelete(props.row)"
@@ -242,6 +252,29 @@
         </q-card-section>
       </q-card>
     </q-dialog>
+
+    <!-- Print Preview Dialog -->
+    <q-dialog v-model="showPrintDialogState" maximized transition-show="slide-up" transition-hide="slide-down">
+      <q-card class="bg-white text-black">
+        <q-bar class="bg-primary text-white">
+          <q-icon name="print" />
+          <div>Print Preview: {{ selectedExamForPrint?.title }}</div>
+          <q-space />
+          <q-btn dense flat icon="close" v-close-popup>
+            <q-tooltip>Close</q-tooltip>
+          </q-btn>
+        </q-bar>
+        
+        <q-card-section class="q-pa-none" style="height: calc(100vh - 50px);">
+          <iframe 
+            v-if="selectedExamForPrint"
+            id="printFrame"
+            :src="route('qu-student.exams.print', selectedExamForPrint?.id)" 
+            style="width: 100%; height: 100%; border: none;"
+          ></iframe>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 
@@ -250,6 +283,15 @@ import { ref, reactive, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
 import QuExamForm from './QuExamForm.vue';
+
+// Print Dialog Logic
+const showPrintDialogState = ref(false);
+const selectedExamForPrint = ref(null);
+
+const openPrintDialog = (exam) => {
+  selectedExamForPrint.value = exam;
+  showPrintDialogState.value = true;
+};
 
 const props = defineProps({
   exams: Object,

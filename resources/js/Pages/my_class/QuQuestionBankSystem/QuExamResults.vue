@@ -66,7 +66,7 @@
           <div class="col-12 col-sm-6 col-md-3">
             <q-card flat bordered>
               <q-card-section class="text-center">
-                <div class="text-h6">{{ attempt.time_taken_minutes }} min</div>
+                <div class="text-h6">{{ Math.round(attempt.time_taken_minutes) }} min</div>
                 <div class="text-caption text-grey-7">Time Taken</div>
               </q-card-section>
             </q-card>
@@ -102,7 +102,7 @@
                   <div class="text-subtitle1 text-weight-bold q-mb-sm">
                     Question {{ index + 1 }}
                   </div>
-                  <div class="text-body1 q-mb-md" v-html="question.question_text"></div>
+                  <div class="text-body1 q-mb-md" v-html="renderMath(question.question_text)"></div>
 
                   <!-- MCQ/True-False Options -->
                   <div v-if="question.question_type === 'mcq' || question.question_type === 'true_false'" class="q-mb-md">
@@ -114,20 +114,20 @@
                         :class="getOptionClass(question, key)"
                       >
                         <q-icon
-                          v-if="show_correct_answers && question.correct_answer === key"
+                          v-if="show_correct_answers && (Array.isArray(question.correct_answer) ? question.correct_answer[0] === key : question.correct_answer === key)"
                           name="check_circle"
                           color="positive"
                           size="sm"
                           class="q-mr-sm"
                         />
                         <q-icon
-                          v-else-if="question.student_answer?.selected_options === key && question.correct_answer !== key"
+                          v-else-if="question.student_answer?.selected_options === key && (Array.isArray(question.correct_answer) ? question.correct_answer[0] !== key : question.correct_answer !== key)"
                           name="cancel"
                           color="negative"
                           size="sm"
                           class="q-mr-sm"
                         />
-                        {{ key }}. {{ text }}
+                        <span v-html="`${key}. ${renderMath(text)}`"></span>
                       </div>
                     </div>
 
@@ -161,13 +161,13 @@
                   <div v-else-if="question.question_type === 'short' || question.question_type === 'long'">
                     <div class="text-caption text-grey-7 q-mb-xs">Your Answer:</div>
                     <q-card flat bordered class="q-pa-sm bg-grey-1">
-                      {{ question.student_answer?.answer_text || 'No answer provided' }}
+                      <div v-html="renderMath(question.student_answer?.answer_text || 'No answer provided')"></div>
                     </q-card>
                     
                     <div v-if="show_correct_answers && question.correct_answer" class="q-mt-sm">
                       <div class="text-caption text-grey-7 q-mb-xs">Model Answer:</div>
                       <q-card flat bordered class="q-pa-sm bg-green-1">
-                        {{ question.correct_answer }}
+                        <div v-html="renderMath(question.correct_answer)"></div>
                       </q-card>
                     </div>
                   </div>
@@ -208,6 +208,7 @@
 import { computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
+import { renderMath } from '@/Utils/katex';
 
 const props = defineProps({
   exam: Object,
@@ -226,7 +227,8 @@ const scoreColor = computed(() => {
 const getOptionClass = (question, optionKey) => {
   if (!props.show_correct_answers) return '';
   
-  const isCorrect = question.correct_answer === optionKey;
+  const correctAnswer = Array.isArray(question.correct_answer) ? question.correct_answer[0] : question.correct_answer;
+  const isCorrect = correctAnswer === optionKey;
   const isSelected = question.student_answer?.selected_options === optionKey;
   
   if (isCorrect) return 'text-positive text-weight-bold';

@@ -1,7 +1,6 @@
 <template>
   <Head :title="exam.title || 'Take Exam'" />
-  <div class="exam-container">
-    <!-- Fixed Header -->
+  <q-layout view="hHh lpR fFf" class="bg-grey-1" v-bind="$attrs">
     <q-header elevated class="bg-white text-dark">
       <q-toolbar>
         <q-toolbar-title>
@@ -17,113 +16,115 @@
       </q-toolbar>
     </q-header>
 
-    <div class="exam-content">
-      <!-- Question Navigation Sidebar -->
-      <div class="navigation-sidebar">
-        <q-card>
-          <q-card-section>
-            <div class="text-subtitle2 q-mb-md">Questions</div>
-            <div class="text-caption text-grey-7 q-mb-sm">
-              Answered: {{ answeredCount }} / {{ questions.length }}
-            </div>
-            <div class="question-grid">
-              <q-btn
-                v-for="(question, index) in questions"
-                :key="question.id"
-                :label="index + 1"
-                :color="getQuestionButtonColor(index)"
-                :outline="currentQuestionIndex !== index"
-                :unelevated="currentQuestionIndex === index"
-                size="sm"
-                @click="navigateToQuestion(index)"
-                class="question-nav-btn"
-              >
-                <q-icon
-                  v-if="isQuestionAnswered(question.id)"
-                  name="check"
-                  size="xs"
-                  class="absolute-top-right"
-                  style="margin: 2px"
-                />
-              </q-btn>
-            </div>
-          </q-card-section>
+    <q-page-container>
+      <div class="exam-content">
+        <!-- Question Navigation Sidebar -->
+        <div class="navigation-sidebar">
+          <q-card>
+            <q-card-section>
+              <div class="text-subtitle2 q-mb-md">Questions</div>
+              <div class="text-caption text-grey-7 q-mb-sm">
+                Answered: {{ answeredCount }} / {{ questions.length }}
+              </div>
+              <div class="question-grid">
+                <q-btn
+                  v-for="(question, index) in questions"
+                  :key="question.id"
+                  :label="index + 1"
+                  :color="getQuestionButtonColor(index)"
+                  :outline="currentQuestionIndex !== index"
+                  :unelevated="currentQuestionIndex === index"
+                  size="sm"
+                  @click="navigateToQuestion(index)"
+                  class="question-nav-btn"
+                >
+                  <q-icon
+                    v-if="isQuestionAnswered(question.id)"
+                    name="check"
+                    size="xs"
+                    class="absolute-top-right"
+                    style="margin: 2px"
+                  />
+                </q-btn>
+              </div>
+            </q-card-section>
 
-          <q-separator />
+            <q-separator />
 
-          <q-card-section>
-            <div class="text-caption text-grey-7 q-mb-xs">
-              Last saved: {{ lastSavedText }}
-            </div>
-            <q-linear-progress
-              v-if="isSaving"
-              indeterminate
-              color="primary"
-              size="2px"
-            />
-          </q-card-section>
-        </q-card>
-      </div>
-
-      <!-- Main Question Area -->
-      <div class="question-area">
-        <q-card>
-          <q-card-section>
-            <div class="text-caption text-grey-7 q-mb-sm">
-              Question {{ currentQuestionIndex + 1 }} of {{ questions.length }}
-            </div>
-            
-            <QuQuestionDisplay
-              :question="currentQuestion"
-              :index="currentQuestionIndex + 1"
-              v-model="currentAnswer"
-              :readonly="false"
-              :show-correct-answer="false"
-              @update:model-value="onAnswerChange"
-            />
-          </q-card-section>
-
-          <q-separator />
-
-          <q-card-actions align="between" class="q-pa-md">
-            <q-btn
-              flat
-              color="primary"
-              label="Previous"
-              icon="chevron_left"
-              :disable="currentQuestionIndex === 0"
-              @click="previousQuestion"
-            />
-
-            <div class="q-gutter-sm">
-              <q-btn
-                outline
+            <q-card-section>
+              <div class="text-caption text-grey-7 q-mb-xs">
+                Last saved: {{ lastSavedText }}
+              </div>
+              <q-linear-progress
+                v-if="isSaving"
+                indeterminate
                 color="primary"
-                label="Save Progress"
-                icon="save"
-                @click="saveAnswers(true)"
-                :loading="isSaving"
+                size="2px"
               />
-              <q-btn
-                color="negative"
-                label="Submit Exam"
-                icon="send"
-                @click="confirmSubmit"
-              />
-            </div>
+            </q-card-section>
+          </q-card>
+        </div>
 
-            <q-btn
-              flat
-              color="primary"
-              label="Next"
-              icon-right="chevron_right"
-              :disable="currentQuestionIndex === questions.length - 1"
-              @click="nextQuestion"
-            />
-          </q-card-actions>
-        </q-card>
+        <!-- Main Question Area -->
+        <div class="question-area">
+          <q-card>
+            <q-card-section>
+              <div class="text-caption text-grey-7 q-mb-sm">
+                Question {{ currentQuestionIndex + 1 }} of {{ questions.length }}
+              </div>
+              
+              <QuQuestionDisplay
+                :question="currentQuestion"
+                :index="currentQuestionIndex + 1"
+                v-model="currentAnswer"
+                :readonly="false"
+                :show-correct-answer="false"
+                @update:model-value="onAnswerChange"
+              />
+            </q-card-section>
+
+            <q-separator />
+
+            <q-card-actions align="between" class="q-pa-md">
+              <q-btn
+                flat
+                color="primary"
+                label="Previous"
+                icon="chevron_left"
+                :disable="currentQuestionIndex === 0"
+                @click="previousQuestion"
+              />
+
+              <div class="q-gutter-sm">
+                <q-btn
+                  outline
+                  color="primary"
+                  label="Save Progress"
+                  icon="save"
+                  @click="saveAnswers(true)"
+                  :loading="isSaving"
+                />
+                <q-btn
+                  color="negative"
+                  label="Submit Exam"
+                  icon="send"
+                  @click="confirmSubmit"
+                />
+              </div>
+
+              <q-btn
+                flat
+                color="primary"
+                label="Next"
+                icon-right="chevron_right"
+                :disable="currentQuestionIndex === questions.length - 1"
+                @click="nextQuestion"
+              />
+            </q-card-actions>
+          </q-card>
+        </div>
       </div>
-    </div>
+    </q-page-container>
 
     <!-- Submit Confirmation Dialog -->
     <q-dialog v-model="submitDialog" persistent>
@@ -151,7 +152,7 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
-  </div>
+  </q-layout>
 </template>
 
 <script setup>
@@ -159,6 +160,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
 import { useQuasar } from 'quasar';
+import axios from 'axios';
 import QuExamTimer from './QuComponents/QuExamTimer.vue';
 import QuQuestionDisplay from './QuComponents/QuQuestionDisplay.vue';
 
@@ -197,8 +199,15 @@ const currentAnswer = computed({
 const answeredCount = computed(() => {
   return Object.keys(answers.value).filter(questionId => {
     const answer = answers.value[questionId];
-    return (answer.selected_options && answer.selected_options.length > 0) ||
-           (answer.answer_text && answer.answer_text.trim().length > 0);
+    // Check for selected_options (can be string for MCQ or array for multi-select)
+    const hasSelectedOption = answer.selected_options && (
+      (typeof answer.selected_options === 'string' && answer.selected_options.length > 0) ||
+      (Array.isArray(answer.selected_options) && answer.selected_options.length > 0)
+    );
+    // Check for text answer
+    const hasTextAnswer = answer.answer_text && answer.answer_text.trim().length > 0;
+    
+    return hasSelectedOption || hasTextAnswer;
   }).length;
 });
 
@@ -213,8 +222,16 @@ const lastSavedText = computed(() => {
 const isQuestionAnswered = (questionId) => {
   const answer = answers.value[questionId];
   if (!answer) return false;
-  return (answer.selected_options && answer.selected_options.length > 0) ||
-         (answer.answer_text && answer.answer_text.trim().length > 0);
+  
+  // Check for selected_options (can be string for MCQ or array for multi-select)
+  const hasSelectedOption = answer.selected_options && (
+    (typeof answer.selected_options === 'string' && answer.selected_options.length > 0) ||
+    (Array.isArray(answer.selected_options) && answer.selected_options.length > 0)
+  );
+  // Check for text answer
+  const hasTextAnswer = answer.answer_text && answer.answer_text.trim().length > 0;
+  
+  return hasSelectedOption || hasTextAnswer;
 };
 
 const getQuestionButtonColor = (index) => {
@@ -249,37 +266,32 @@ const saveAnswers = async (showNotification = true) => {
   isSaving.value = true;
   
   try {
-    await router.post(
+    await axios.post(
       route('qu-student.exams.auto-save', {
         quExam: props.exam.id,
         quAttempt: props.attempt.id
       }),
-      { answers: answers.value },
-      {
-        preserveState: true,
-        preserveScroll: true,
-        onSuccess: () => {
-          lastSaved.value = Date.now();
-          if (showNotification) {
-            $q.notify({
-              type: 'positive',
-              message: 'Progress saved',
-              icon: 'save',
-              timeout: 2000
-            });
-          }
-        },
-        onError: () => {
-          if (showNotification) {
-            $q.notify({
-              type: 'negative',
-              message: 'Failed to save progress',
-              icon: 'error'
-            });
-          }
-        }
-      }
+      { answers: answers.value }
     );
+    
+    lastSaved.value = Date.now();
+    if (showNotification) {
+      $q.notify({
+        type: 'positive',
+        message: 'Progress saved',
+        icon: 'save',
+        timeout: 2000
+      });
+    }
+  } catch (error) {
+    if (showNotification) {
+      $q.notify({
+        type: 'negative',
+        message: 'Failed to save progress',
+        icon: 'error'
+      });
+    }
+    console.error('Auto-save error:', error);
   } finally {
     isSaving.value = false;
   }

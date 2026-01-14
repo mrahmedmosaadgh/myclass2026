@@ -146,11 +146,13 @@ Route::middleware([
             Route::get('exams/questions/available', [\App\Http\Controllers\QuExamController::class, 'getAvailableQuestions'])
                 ->name('exams.questions.available');
             
-            // Grading view for teachers
-            Route::get('exams/{exam}/grading', [\App\Http\Controllers\QuExamController::class, 'grading'])
-                ->name('exams.grading');
-            Route::post('answers/{answer}/grade', [\App\Http\Controllers\QuExamController::class, 'gradeAnswer'])
-                ->name('answers.grade');
+            // Teacher Grading Routes
+            Route::get('grading', [\App\Http\Controllers\QuExamController::class, 'teacherGradingIndex'])
+                ->name('grading.index');
+            Route::get('grading/{attempt}', [\App\Http\Controllers\QuExamController::class, 'teacherGradeAttempt'])
+                ->name('grading.show');
+            Route::post('grading/{attempt}', [\App\Http\Controllers\QuExamController::class, 'saveGrades'])
+                ->name('grading.save');
             
             // Student Exam Taking Routes
             Route::prefix('student')->name('student.')->group(function () {
@@ -168,6 +170,8 @@ Route::middleware([
                     ->name('exams.submit');
                 Route::get('exams/{quExam}/results/{quAttempt}', [\App\Http\Controllers\QuExamController::class, 'viewResults'])
                     ->name('exams.results');
+                Route::get('exams/{quExam}/print', [\App\Http\Controllers\QuExamController::class, 'printExam'])
+                    ->name('exams.print');
             });
         });
 

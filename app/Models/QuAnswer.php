@@ -11,11 +11,15 @@ class QuAnswer extends Model
         'qu_question_id',
         'selected_options',
         'answer_text',
-        'marks_obtained'
+        'marks_obtained',
+        'feedback',
+        'graded_at',
+        'graded_by'
     ];
 
     protected $casts = [
         'selected_options' => 'array',
+        'graded_at' => 'datetime',
     ];
 
     // Relationships

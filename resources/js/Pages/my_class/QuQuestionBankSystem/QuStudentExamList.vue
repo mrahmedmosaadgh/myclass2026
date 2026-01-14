@@ -102,24 +102,103 @@
           <q-separator />
 
           <q-card-section>
-            <div class="row items-center q-gutter-md">
+            <div class="row items-start q-gutter-md">
               <div class="col">
-                <div class="text-caption text-grey-7">Attempts</div>
-                <div class="text-body2">
-                  {{ exam.attempt_count }} / {{ exam.max_attempts || '∞' }}
-                  <span v-if="exam.remaining_attempts !== null" class="text-grey-7">
-                    ({{ exam.remaining_attempts }} remaining)
-                  </span>
+                <div class="text-subtitle2 q-mb-sm">Attempt History</div>
+                
+                <!-- Attempts Count -->
+                <div class="q-mb-sm">
+                  <q-chip dense color="primary" text-color="white" icon="assignment">
+                    {{ exam.attempt_stats?.completed_attempts || 0 }} / {{ exam.max_attempts || '∞' }} Completed
+                  </q-chip>
+                  <q-chip 
+                    v-if="exam.remaining_attempts !== null && exam.remaining_attempts > 0" 
+                    dense 
+                    color="green" 
+                    text-color="white"
+                    icon="check_circle"
+                  >
+                    {{ exam.remaining_attempts }} Remaining
+                  </q-chip>
+                  <q-chip 
+                    v-else-if="exam.remaining_attempts === 0" 
+                    dense 
+                    color="orange" 
+                    text-color="white"
+                    icon="block"
+                  >
+                    No Attempts Left
+                  </q-chip>
                 </div>
-                <div v-if="exam.best_score !== null" class="text-caption text-positive q-mt-xs">
-                  Best Score: {{ exam.best_score }}
+
+                <!-- Performance Stats (Visual Redesign) -->
+                <div v-if="exam.attempt_stats?.completed_attempts > 0" class="q-mt-md">
+                   <div class="row q-col-gutter-xs">
+                    <!-- Attempts -->
+                    <div class="col-3">
+                      <q-card flat class="bg-purple-1 text-center q-pa-xs rounded-borders h-full">
+                         <div class="text-caption text-purple-9 text-weight-bold" style="font-size: 0.7rem">Runs</div>
+                         <div class="text-subtitle1 text-purple-10 text-weight-bolder q-my-none" style="line-height:1.1">
+                            {{ exam.attempt_stats.completed_attempts }}
+                            <span v-if="exam.max_attempts" class="text-caption text-purple-5">/{{ exam.max_attempts }}</span>
+                         </div>
+                      </q-card>
+                    </div>
+
+                    <!-- Best Score -->
+                    <div class="col-3">
+                      <q-card flat class="bg-amber-1 text-center q-pa-xs rounded-borders h-full">
+                         <div class="text-caption text-amber-10 text-weight-bold row justify-center items-center" style="font-size: 0.7rem">
+                            <q-icon name="emoji_events" size="12px" class="q-mr-xs"/> Best
+                         </div>
+                         <div class="text-subtitle1 text-amber-10 text-weight-bolder q-my-none" style="line-height:1.1">
+                            {{ exam.attempt_stats.best_score }} <span class="text-caption" style="font-size: 0.7rem">/{{ exam.total_marks }}</span>
+                         </div>
+                         <div class="text-amber-9 text-weight-bold" style="font-size: 9px">
+                           {{ Math.round((exam.attempt_stats.best_score / exam.total_marks) * 100) }}%
+                         </div>
+                      </q-card>
+                    </div>
+
+                    <!-- Average -->
+                    <div class="col-3">
+                      <q-card flat class="bg-blue-1 text-center q-pa-xs rounded-borders h-full">
+                         <div class="text-caption text-blue-9 text-weight-bold" style="font-size: 0.7rem">Avg</div>
+                         <div class="text-subtitle1 text-blue-10 text-weight-bolder q-my-none" style="line-height:1.1">
+                            {{ Math.round(exam.attempt_stats.average_score * 10) / 10 }} <span class="text-caption" style="font-size: 0.7rem">/{{ exam.total_marks }}</span>
+                         </div>
+                         <div class="text-blue-8 text-weight-bold" style="font-size: 9px">
+                           {{ Math.round((exam.attempt_stats.average_score / exam.total_marks) * 100) }}%
+                         </div>
+                      </q-card>
+                    </div>
+
+                    <!-- Last -->
+                    <div class="col-3">
+                      <q-card flat class="bg-teal-1 text-center q-pa-xs rounded-borders h-full">
+                         <div class="text-caption text-teal-9 text-weight-bold" style="font-size: 0.7rem">Last</div>
+                         <div class="text-subtitle1 text-teal-10 text-weight-bold q-my-none" style="line-height:1.1">
+                            {{ exam.attempt_stats.last_score }} <span class="text-caption" style="font-size: 0.7rem">/{{ exam.total_marks }}</span>
+                         </div>
+                         <div class="text-teal-8" style="font-size: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                           {{ formatDate(exam.attempt_stats.last_attempt_date).split(',')[0] }}
+                         </div>
+                      </q-card>
+                    </div>
+                   </div>
+                </div>
+
+                <!-- No attempts yet message -->
+                <div v-else class="text-caption text-grey-6">
+                  <q-icon name="info" size="xs" class="q-mr-xs" />
+                  No completed attempts yet
                 </div>
               </div>
 
               <div class="col-auto">
                 <!-- Resume In-Progress Exam -->
                 <q-btn
-                  v-if="exam.has_in_progress"
+                  v-if="exam.attempt_stats?.has_in_progress"
                   color="orange"
                   label="Resume Exam"
                   icon="play_arrow"
@@ -137,18 +216,40 @@
 
                 <!-- View Results -->
                 <q-btn
-                  v-if="exam.completed_attempts_count > 0"
+                  v-if="exam.attempt_stats?.completed_attempts > 0"
                   flat
-                  color="secondary"
+                  color="info"
                   label="View Results"
                   icon="assessment"
                   @click="viewResults(exam)"
-                  class="q-ml-sm"
                 />
+
+                <!-- Print Exam (for practice) -->
+                  <q-btn
+                    v-if="exam.settings?.allow_print"
+                    flat
+                    color="secondary"
+                    label="Print"
+                    icon="print"
+                    @click="printExam(exam)"
+                  >
+                    <q-tooltip>Open print view in new window</q-tooltip>
+                  </q-btn>
+
+                  <q-btn
+                    v-if="exam.settings?.allow_print"
+                    flat
+                    color="indigo"
+                    label="Preview"
+                    icon="visibility"
+                    @click="openPrintDialog(exam)"
+                  >
+                     <q-tooltip>Preview and print in dialog</q-tooltip>
+                  </q-btn>
 
                 <!-- Disabled State -->
                 <q-btn
-                  v-if="!canStartExam(exam) && !exam.has_in_progress"
+                  v-if="!canStartExam(exam) && !exam.attempt_stats?.has_in_progress"
                   disable
                   color="grey"
                   :label="getDisabledReason(exam)"
@@ -190,6 +291,29 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- Print Preview Dialog -->
+       <q-dialog v-model="showPrintDialogState" maximized transition-show="slide-up" transition-hide="slide-down">
+         <q-card class="bg-white text-black">
+           <q-bar class="bg-primary text-white">
+             <q-icon name="print" />
+             <div>Print Preview: {{ selectedExamForPrint?.title }}</div>
+             <q-space />
+             <q-btn dense flat icon="close" v-close-popup>
+               <q-tooltip>Close</q-tooltip>
+             </q-btn>
+           </q-bar>
+ 
+           <q-card-section class="q-pa-none" style="height: calc(100vh - 50px);">
+             <iframe 
+               v-if="selectedExamForPrint"
+               id="printFrame"
+               :src="route('qu-student.exams.print', selectedExamForPrint?.id)" 
+               style="width: 100%; height: 100%; border: none;"
+             ></iframe>
+           </q-card-section>
+         </q-card>
+       </q-dialog>
   </div>
 </template>
 
@@ -224,7 +348,7 @@ const applyFilters = () => {
 const canStartExam = (exam) => {
   return exam.is_available && 
          (exam.remaining_attempts === null || exam.remaining_attempts > 0) &&
-         !exam.has_in_progress;
+         !exam.attempt_stats?.has_in_progress;
 };
 
 const getDisabledReason = (exam) => {
@@ -262,17 +386,36 @@ const startExam = () => {
 const resumeExam = (exam) => {
   router.visit(route('qu-student.exams.take', {
     quExam: exam.id,
-    quAttempt: exam.in_progress_attempt_id
+    quAttempt: exam.attempt_stats.in_progress_attempt_id
   }));
 };
 
 const viewResults = (exam) => {
-  // Navigate to a results list page (to be created) or directly to last attempt
-  $q.notify({
-    type: 'info',
-    message: 'Results viewing coming soon',
-    icon: 'info'
-  });
+  const lastAttemptId = exam.attempt_stats?.last_attempt_id;
+  if (lastAttemptId) {
+    router.visit(route('qu-student.exams.results', {
+      quExam: exam.id,
+      quAttempt: lastAttemptId
+    }));
+  }
+};
+
+const printExam = (exam) => {
+  // Open print view in new window
+  window.open(
+    route('qu-student.exams.print', exam.id),
+    '_blank',
+    'width=800,height=600'
+  );
+};
+
+// Print Dialog Logic
+const showPrintDialogState = ref(false);
+const selectedExamForPrint = ref(null);
+
+const openPrintDialog = (exam) => {
+  selectedExamForPrint.value = exam;
+  showPrintDialogState.value = true;
 };
 
 const capitalizeFirst = (str) => {

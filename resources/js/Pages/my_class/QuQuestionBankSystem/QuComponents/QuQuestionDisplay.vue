@@ -19,20 +19,24 @@
 
     <!-- Question Text -->
     <div class="q-mb-md">
-      <div class="text-body1" v-html="question.question_text"></div>
+      <div class="text-body1" v-html="formattedQuestionText"></div>
     </div>
 
     <!-- MCQ Options -->
     <div v-if="question.question_type === 'mcq'" class="q-gutter-sm">
-      <q-radio
-        v-for="opt in formattedOptions"
-        :key="opt.key"
-        v-model="answer.selected_options"
-        :val="opt.key"
-        :label="`${opt.key}. ${opt.value}`"
-        :disable="readonly"
-        @update:model-value="updateAnswer"
-      />
+      <div v-for="opt in formattedOptions" :key="opt.key" class="q-mb-sm">
+        <q-radio
+          v-model="answer.selected_options"
+          :val="opt.key"
+          :disable="readonly"
+          @update:model-value="updateAnswer"
+        >
+          <div class="row items-center">
+            <span class="q-mr-sm text-weight-bold">{{ opt.key }}.</span>
+            <span v-html="opt.value"></span>
+          </div>
+        </q-radio>
+      </div>
     </div>
 
     <!-- True/False Options -->
@@ -86,10 +90,10 @@
         </template>
         <strong>Correct Answer:</strong>
         <span v-if="question.question_type === 'mcq' || question.question_type === 'true_false'">
-          {{ Array.isArray(question.correct_answer) ? question.correct_answer.join(', ') : question.correct_answer }}
+          <span v-html="renderMath(Array.isArray(question.correct_answer) ? question.correct_answer.join(', ') : question.correct_answer)"></span>
         </span>
         <span v-else>
-          {{ question.correct_answer }}
+          <span v-html="renderMath(question.correct_answer)"></span>
         </span>
       </q-banner>
     </div>
@@ -98,6 +102,7 @@
 
 <script setup>
 import { ref, watch, computed } from 'vue';
+import { renderMath } from '@/Utils/katex';
 
 const props = defineProps({
   question: {
@@ -129,22 +134,35 @@ const answer = ref({
   answer_text: props.modelValue?.answer_text || ''
 });
 
+const formattedQuestionText = computed(() => {
+  return renderMath(props.question.question_text);
+});
+
 const formattedOptions = computed(() => {
   const options = props.question.options;
   if (!options) return [];
   
+  let processedOptions = [];
+
   // If it's already a shuffled array of objects {key, value}
   if (Array.isArray(options)) {
     // Basic check if it has key/value structure
     if (options.length > 0 && typeof options[0] === 'object' && 'key' in options[0]) {
-        return options;
+        processedOptions = options;
+    } else {
+        // Fallback if just simple array of strings (indices as keys)
+        processedOptions = options.map((val, idx) => ({ key: idx, value: val }));
     }
-    // Fallback if just simple array of strings (indices as keys)
-    return options.map((val, idx) => ({ key: idx, value: val }));
+  } else {
+    // Normal object format {A: 'Text', B: 'Text'}
+    processedOptions = Object.entries(options).map(([key, value]) => ({ key, value }));
   }
-  
-  // Normal object format {A: 'Text', B: 'Text'}
-  return Object.entries(options).map(([key, value]) => ({ key, value }));
+
+  // Render math in option values
+  return processedOptions.map(opt => ({
+    ...opt,
+    value: renderMath(opt.value)
+  }));
 });
 
 watch(() => props.modelValue, (newVal) => {

@@ -8,6 +8,7 @@ use App\Models\Subject;
 use App\Models\Grade;
 use App\Models\Classroom;
 use App\Models\User;
+use App\Models\QuAttempt;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -148,6 +149,7 @@ class QuExamController extends Controller
             'settings' => 'nullable|array',
             'settings.shuffle_questions' => 'boolean',
             'settings.shuffle_options' => 'boolean',
+            'settings.allow_print' => 'boolean',
             'target_audience' => 'nullable|array',
             'target_audience.roles' => 'nullable|array',
             'target_audience.grade_ids' => 'nullable|array',
@@ -259,6 +261,7 @@ class QuExamController extends Controller
             'settings' => 'nullable|array',
             'settings.shuffle_questions' => 'boolean',
             'settings.shuffle_options' => 'boolean',
+            'settings.allow_print' => 'boolean',
             'target_audience' => 'nullable|array',
             'target_audience.roles' => 'nullable|array',
             'target_audience.grade_ids' => 'nullable|array',
@@ -339,34 +342,109 @@ class QuExamController extends Controller
     /**
      * Show grading interface for teachers.
      */
-    public function grading(QuExam $exam)
+    /**
+     * Teacher: List all attempts requiring grading
+     */
+    public function teacherGradingIndex(Request $request)
     {
-        $exam->load(['attempts.user', 'attempts.answers.question']);
+        $query = QuAttempt::with(['exam', 'user'])
+            ->whereHas('exam', function($q) {
+                $q->where('created_by', auth()->id());
+            })
+            ->where('completed_at', '!=', null);
 
-        return Inertia::render('my_class/QuQuestionBankSystem/QuGrading', [
-            'exam' => $exam,
-            'attempts' => $exam->attempts
+        // Filter by exam
+        if ($request->filled('exam_id')) {
+            $query->where('qu_exam_id', $request->exam_id);
+        }
+
+        // Filter by grading status
+        if ($request->filled('grading_status')) {
+            $query->where('grading_status', $request->grading_status);
+        }
+
+        $attempts = $query->latest('completed_at')->paginate(20);
+
+        return Inertia::render('my_class/QuQuestionBankSystem/QuGradingList', [
+            'attempts' => $attempts,
+            'exams' => QuExam::where('created_by', auth()->id())->get(['id', 'title']),
+            'filters' => $request->only(['exam_id', 'grading_status'])
         ]);
     }
 
     /**
-     * Grade a specific answer.
+     * Teacher: Show grading interface for specific attempt
      */
-    public function gradeAnswer(Request $request, $answerId)
+    public function teacherGradeAttempt(QuAttempt $attempt)
     {
-        $validated = $request->validate([
-            'marks_obtained' => 'required|integer|min:0'
+        $attempt->load([
+            'exam',
+            'user',
+            'answers.question'
         ]);
 
-        $answer = \App\Models\QuAnswer::findOrFail($answerId);
-        $answer->update($validated);
+        // Separate auto-graded and manual questions
+        $autoGraded = [];
+        $manualQuestions = [];
 
-        // Recalculate attempt score
-        $attempt = $answer->attempt;
-        $totalScore = $attempt->answers()->sum('marks_obtained');
-        $attempt->update(['score' => $totalScore]);
+        foreach ($attempt->answers as $answer) {
+            $question = $answer->question;
+            if (in_array($question->question_type, ['mcq', 'true_false'])) {
+                $autoGraded[] = [
+                    'question' => $question,
+                    'answer' => $answer,
+                    'is_correct' => $answer->marks_obtained == $question->marks
+                ];
+            } else {
+                $manualQuestions[] = [
+                    'question' => $question,
+                    'answer' => $answer
+                ];
+            }
+        }
 
-        return back()->with('success', 'Answer graded successfully');
+        return Inertia::render('my_class/QuQuestionBankSystem/QuGrading', [
+            'attempt' => $attempt,
+            'autoGraded' => $autoGraded,
+            'manualQuestions' => $manualQuestions,
+            'totalMarks' => $attempt->exam->total_marks
+        ]);
+    }
+
+    /**
+     * Teacher: Save grades for an attempt
+     */
+    public function saveGrades(Request $request, QuAttempt $attempt)
+    {
+        $validated = $request->validate([
+            'grades' => 'required|array',
+            'grades.*.answer_id' => 'required|exists:qu_answers,id',
+            'grades.*.marks_obtained' => 'required|numeric|min:0',
+            'grades.*.feedback' => 'nullable|string|max:1000'
+        ]);
+
+        foreach ($validated['grades'] as $gradeData) {
+            $answer = QuAnswer::find($gradeData['answer_id']);
+            
+            // Validate marks don't exceed question marks
+            if ($gradeData['marks_obtained'] > $answer->question->marks) {
+                return back()->withErrors([
+                    'grades' => 'Marks awarded cannot exceed question marks'
+                ]);
+            }
+
+            $answer->update([
+                'marks_obtained' => $gradeData['marks_obtained'],
+                'feedback' => $gradeData['feedback'] ?? null,
+                'graded_at' => now(),
+                'graded_by' => auth()->id()
+            ]);
+        }
+
+        // Recalculate total score
+        $attempt->recalculateScore();
+
+        return back()->with('success', 'Grades saved successfully');
     }
 
     /**
@@ -383,6 +461,21 @@ class QuExamController extends Controller
             ->forUser($user)  // Apply access control scope
             ->get()
             ->map(function ($exam) use ($user) {
+                // Calculate attempt statistics
+                $completedAttempts = $exam->attempts->where('completed_at', '!=', null);
+                $inProgressAttempt = $exam->attempts->firstWhere('completed_at', null);
+                
+                $attemptStats = [
+                    'total_attempts' => $exam->attempts->count(),
+                    'completed_attempts' => $completedAttempts->count(),
+                    'has_in_progress' => $inProgressAttempt !== null,
+                    'in_progress_attempt_id' => $inProgressAttempt?->id,
+                    'best_score' => $completedAttempts->max('score'),
+                    'average_score' => $completedAttempts->avg('score'),
+                    'last_score' => $completedAttempts->sortByDesc('completed_at')->first()?->score,
+                    'last_attempt_date' => $completedAttempts->sortByDesc('completed_at')->first()?->completed_at,
+                ];
+
                 return [
                     'id' => $exam->id,
                     'title' => $exam->title,
@@ -399,6 +492,8 @@ class QuExamController extends Controller
                     'is_available' => $exam->isAvailable(),
                     'attempts_count' => $exam->attempts->count(),
                     'remaining_attempts' => $exam->getRemainingAttempts($user),
+                    'attempt_stats' => $attemptStats,
+                    'settings' => $exam->settings,
                 ];
             });
 
@@ -672,7 +767,23 @@ class QuExamController extends Controller
                 $isCorrect = false;
                 
                 if ($question->question_type === 'mcq') {
-                    $isCorrect = $answer->selected_options == $question->correct_answer;
+                    // Skip if no correct answer is set or student didn't answer
+                    if (!$question->correct_answer || !$answer->selected_options) {
+                        $answer->marks_obtained = 0;
+                        $answer->save();
+                        continue;
+                    }
+                    
+                    // correct_answer is stored as JSON array, e.g., ["A"] or ["A", "C"]
+                    // Get the first element if it's an array, otherwise use as-is
+                    $correctAnswer = is_array($question->correct_answer) 
+                        ? trim($question->correct_answer[0] ?? '') 
+                        : trim((string) $question->correct_answer);
+                    
+                    // Student answer is a string like "A"
+                    $studentAnswer = trim((string) $answer->selected_options);
+                    
+                    $isCorrect = $studentAnswer === $correctAnswer;
                 } elseif ($question->question_type === 'true_false') {
                     $studentAnswer = $answer->selected_options[0] ?? null;
                     $isCorrect = $studentAnswer == $question->correct_answer;
@@ -780,6 +891,57 @@ class QuExamController extends Controller
             }) : [],
         ]);
     }
+    /**
+     * Print View for Exam
+     */
+    public function printExam(QuExam $quExam)
+    {
+        // Check if print is allowed
+        if (!($quExam->settings['allow_print'] ?? false)) {
+            abort(403, 'Printing is not enabled for this exam.');
+        }
+
+        $quExam->load(['questions' => function ($query) {
+            $query->orderBy('pivot_order');
+        }]);
+
+        // Shuffle questions if enabled (consistent with how student sees it?) 
+        // For printing, usually static order is better, but let's respect settings if we want a unique paper
+        // Actually for a generic "practice print", standard order is probably best.
+        // Let's stick to standard order unless specifically requested.
+
+        // Get student info
+        $user = auth()->user();
+        $student = $user->student;
+        $isStudent = $user->role === 'student' || $student !== null;
+
+        return Inertia::render('my_class/QuQuestionBankSystem/QuExamPrint', [
+            'exam' => [
+                'id' => $quExam->id,
+                'title' => $quExam->title,
+                'subject' => $quExam->subject,
+                'total_marks' => $quExam->total_marks,
+                'duration_minutes' => $quExam->duration_minutes,
+                'description' => $quExam->description,
+                'questions' => $quExam->questions->map(function ($question) {
+                    return [
+                        'id' => $question->id,
+                        'question_text' => $question->question_text,
+                        'question_type' => $question->question_type,
+                        'options' => $question->options,
+                        'marks' => $question->marks,
+                        'correct_answer' => $question->correct_answer,
+                    ];
+                }),
+            ],
+            'student_info' => [
+                'name' => $isStudent ? ($student?->name ?? $user->name) : '',
+                'school_name' => $isStudent ? ($student?->school_name ?? config('app.name')) : ($user->school?->name ?? config('app.name')),
+                'classroom_name' => $isStudent ? ($student?->classroom_name ?? '') : '',
+            ]
+        ]);
+    }
+
     /**
      * Search users for assignment (students, teachers, etc.)
      */

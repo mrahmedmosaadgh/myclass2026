@@ -213,6 +213,15 @@
           label="Shuffle Options"
           color="primary"
         />
+        <q-toggle
+          v-model="form.settings.allow_print"
+          label="Allow Print (for practice)"
+          color="secondary"
+        >
+          <q-tooltip>
+            Enable students to print this exam for offline practice
+          </q-tooltip>
+        </q-toggle>
       </div>
 
       <!-- Attempt Settings -->
@@ -486,7 +495,8 @@ const form = useForm({
   total_marks: props.exam?.total_marks || 0,
   settings: props.exam?.settings || {
     shuffle_questions: false,
-    shuffle_options: false
+    shuffle_options: false,
+    allow_print: false
   },
   target_audience: props.exam?.target_audience || {
     roles: ['student'],  // Default to student role
