@@ -29,8 +29,12 @@
           <q-select
             v-model="localFilters.grading_status"
             :options="statusOptions"
+            option-value="value"
+            option-label="label"
             label="Grading Status"
             clearable
+            emit-value
+            map-options
             @update:model-value="applyFilters"
             style="min-width: 200px"
           />
@@ -65,7 +69,7 @@
                 :color="getScoreColor(props.row)"
                 text-color="white"
               >
-                {{ props.row.score || 0 }} / {{ props.row.exam.total_marks }}
+                {{ Math.round(props.row.score || 0) }} / {{ props.row.exam.total_marks }}
               </q-chip>
             </q-td>
           </template>
@@ -154,21 +158,21 @@ const columns = [
 ];
 
 const applyFilters = () => {
-  router.get(route('qu.grading.index'), localFilters, {
+  router.get(route('qu-grading.index'), localFilters, {
     preserveState: true,
     preserveScroll: true
   });
 };
 
 const changePage = (page) => {
-  router.get(route('qu.grading.index', { ...localFilters, page }), {}, {
+  router.get(route('qu-grading.index', { ...localFilters, page }), {}, {
     preserveState: true,
     preserveScroll: true
   });
 };
 
 const gradeAttempt = (attempt) => {
-  router.visit(route('qu.grading.show', attempt.id));
+  router.visit(route('qu-grading.show', attempt.id));
 };
 
 const formatDate = (dateString) => {

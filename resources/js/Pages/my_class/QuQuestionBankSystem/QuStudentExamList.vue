@@ -145,14 +145,14 @@
                       </q-card>
                     </div>
 
-                    <!-- Best Score -->
+                     <!-- Best Score -->
                     <div class="col-3">
                       <q-card flat class="bg-amber-1 text-center q-pa-xs rounded-borders h-full">
                          <div class="text-caption text-amber-10 text-weight-bold row justify-center items-center" style="font-size: 0.7rem">
                             <q-icon name="emoji_events" size="12px" class="q-mr-xs"/> Best
                          </div>
                          <div class="text-subtitle1 text-amber-10 text-weight-bolder q-my-none" style="line-height:1.1">
-                            {{ exam.attempt_stats.best_score }} <span class="text-caption" style="font-size: 0.7rem">/{{ exam.total_marks }}</span>
+                            {{ Math.round(exam.attempt_stats.best_score || 0) }} <span class="text-caption" style="font-size: 0.7rem">/{{ exam.total_marks }}</span>
                          </div>
                          <div class="text-amber-9 text-weight-bold" style="font-size: 9px">
                            {{ Math.round((exam.attempt_stats.best_score / exam.total_marks) * 100) }}%
@@ -165,7 +165,7 @@
                       <q-card flat class="bg-blue-1 text-center q-pa-xs rounded-borders h-full">
                          <div class="text-caption text-blue-9 text-weight-bold" style="font-size: 0.7rem">Avg</div>
                          <div class="text-subtitle1 text-blue-10 text-weight-bolder q-my-none" style="line-height:1.1">
-                            {{ Math.round(exam.attempt_stats.average_score * 10) / 10 }} <span class="text-caption" style="font-size: 0.7rem">/{{ exam.total_marks }}</span>
+                            {{ Math.round(exam.attempt_stats.average_score || 0) }} <span class="text-caption" style="font-size: 0.7rem">/{{ exam.total_marks }}</span>
                          </div>
                          <div class="text-blue-8 text-weight-bold" style="font-size: 9px">
                            {{ Math.round((exam.attempt_stats.average_score / exam.total_marks) * 100) }}%
@@ -178,7 +178,7 @@
                       <q-card flat class="bg-teal-1 text-center q-pa-xs rounded-borders h-full">
                          <div class="text-caption text-teal-9 text-weight-bold" style="font-size: 0.7rem">Last</div>
                          <div class="text-subtitle1 text-teal-10 text-weight-bold q-my-none" style="line-height:1.1">
-                            {{ exam.attempt_stats.last_score }} <span class="text-caption" style="font-size: 0.7rem">/{{ exam.total_marks }}</span>
+                            {{ Math.round(exam.attempt_stats.last_score || 0) }} <span class="text-caption" style="font-size: 0.7rem">/{{ exam.total_marks }}</span>
                          </div>
                          <div class="text-teal-8" style="font-size: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                            {{ formatDate(exam.attempt_stats.last_attempt_date).split(',')[0] }}

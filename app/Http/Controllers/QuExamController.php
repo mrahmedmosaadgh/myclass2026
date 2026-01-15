@@ -9,6 +9,7 @@ use App\Models\Grade;
 use App\Models\Classroom;
 use App\Models\User;
 use App\Models\QuAttempt;
+use App\Models\QuAnswer;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -373,6 +374,50 @@ class QuExamController extends Controller
     }
 
     /**
+     * Get attempts for a specific exam (JSON for Dialog)
+     */
+    public function getGradingAttempts(Request $request, QuExam $exam)
+    {
+        // Ensure teacher owns the exam
+        if ($exam->created_by !== auth()->id()) {
+            abort(403);
+        }
+
+        $query = $exam->attempts()
+            ->with('user.student.classroom')
+            ->whereNotNull('completed_at');
+
+        // Filter by grading status
+        if ($request->filled('grading_status')) {
+            $query->where('grading_status', $request->grading_status);
+        }
+
+        // Filter by classroom
+        if ($request->filled('classroom_id')) {
+            $query->whereHas('user.student', function($q) use ($request) {
+                $q->where('classroom_id', $request->classroom_id);
+            });
+        }
+
+        $attempts = $query->latest('completed_at')->get()->map(function($attempt) {
+            return [
+                'id' => $attempt->id,
+                'user' => [
+                    'name' => $attempt->user->name,
+                    'classroom' => $attempt->user->student?->classroom?->name ?? 'N/A'
+                ],
+                'score' => $attempt->score,
+                'status' => $attempt->grading_status,
+                'submitted_at' => $attempt->completed_at->format('Y-m-d H:i')
+            ];
+        });
+
+        return response()->json([
+            'attempts' => $attempts
+        ]);
+    }
+
+    /**
      * Teacher: Show grading interface for specific attempt
      */
     public function teacherGradeAttempt(QuAttempt $attempt)
@@ -412,6 +457,54 @@ class QuExamController extends Controller
     }
 
     /**
+     * Get grading data for an attempt (JSON)
+     */
+    public function getAttemptGradingData(QuAttempt $attempt)
+    {
+        // Load relationships
+        $attempt->load(['exam', 'user', 'answers.question']);
+
+        $questions = $attempt->exam->questions()->orderBy('order')->get();
+        $autoGraded = [];
+        $manualQuestions = [];
+
+        foreach ($questions as $question) {
+            $answer = $attempt->answers->where('qu_question_id', $question->id)->first();
+            
+            // If no answer found, create a blank one so it can be graded
+            if (!$answer) {
+                $answer = QuAnswer::create([
+                    'qu_attempt_id' => $attempt->id,
+                    'qu_question_id' => $question->id,
+                    'marks_obtained' => in_array($question->question_type, ['mcq', 'true_false']) ? 0 : null,
+                    'answer_text' => null,
+                    'selected_options' => null
+                ]);
+            }
+
+            if (in_array($question->question_type, ['mcq', 'true_false'])) {
+                $autoGraded[] = [
+                    'question' => $question,
+                    'answer' => $answer,
+                    'is_correct' => $answer->marks_obtained == $question->marks
+                ];
+            } else {
+                $manualQuestions[] = [
+                    'question' => $question,
+                    'answer' => $answer
+                ];
+            }
+        }
+
+        return response()->json([
+            'attempt' => $attempt,
+            'autoGraded' => $autoGraded,
+            'manualQuestions' => $manualQuestions,
+            'totalMarks' => $attempt->exam->total_marks
+        ]);
+    }
+
+    /**
      * Teacher: Save grades for an attempt
      */
     public function saveGrades(Request $request, QuAttempt $attempt)
@@ -424,12 +517,21 @@ class QuExamController extends Controller
         ]);
 
         foreach ($validated['grades'] as $gradeData) {
-            $answer = QuAnswer::find($gradeData['answer_id']);
+            $answer = QuAnswer::with('question')->find($gradeData['answer_id']);
+            
+            if (!$answer || !$answer->question) {
+                continue;
+            }
+
+            // Security: Ensure answer belongs to this attempt
+            if ($answer->qu_attempt_id !== $attempt->id) {
+                continue;
+            }
             
             // Validate marks don't exceed question marks
-            if ($gradeData['marks_obtained'] > $answer->question->marks) {
+            if ((float)$gradeData['marks_obtained'] > (float)$answer->question->marks) {
                 return back()->withErrors([
-                    'grades' => 'Marks awarded cannot exceed question marks'
+                    'grades' => "Marks awarded cannot exceed question marks ({$answer->question->marks})"
                 ]);
             }
 
@@ -794,20 +896,27 @@ class QuExamController extends Controller
             }
         }
 
-        // Calculate total score
-        $totalScore = $quAttempt->answers()->sum('marks_obtained');
-        
-        // Mark as completed
-        $quAttempt->update([
-            'completed_at' => now(),
-            'score' => $totalScore,
-        ]);
+    // Calculate total score
+    $totalScore = $quAttempt->answers()->sum('marks_obtained');
+    
+    // Check if exam requires manual grading
+    $hasManualQuestions = $quExam->questions->whereIn('question_type', ['short', 'long'])->isNotEmpty();
+    $gradingStatus = $hasManualQuestions ? 'pending' : 'completed';
+    $gradedAt = $hasManualQuestions ? null : now();
 
-        return redirect()->route('qu-student.exams.results', [
-            'quExam' => $quExam->id,
-            'quAttempt' => $quAttempt->id
-        ])->with('success', 'Exam submitted successfully!');
-    }
+    // Mark as completed
+    $quAttempt->update([
+        'completed_at' => now(),
+        'score' => $totalScore,
+        'grading_status' => $gradingStatus,
+        'graded_at' => $gradedAt
+    ]);
+
+    return redirect()->route('qu-student.exams.results', [
+        'quExam' => $quExam->id,
+        'quAttempt' => $quAttempt->id
+    ])->with('success', 'Exam submitted successfully!');
+}
 
     /**
      * Student: View exam results.

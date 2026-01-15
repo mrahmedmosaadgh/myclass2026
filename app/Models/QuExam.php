@@ -128,7 +128,7 @@ class QuExam extends Model
               ->orWhereNull('target_audience')
               
             // Explicit User ID
-              ->orWhereRaw("JSON_CONTAINS(target_audience->'$.user_ids', CAST(? AS JSON))", [$user->id])
+              ->orWhereRaw("JSON_CONTAINS(JSON_EXTRACT(target_audience, '$.user_ids'), ?)", [$user->id])
               
             // Role Logic
               ->orWhere(function ($subQ) use ($user) {
@@ -137,7 +137,7 @@ class QuExam extends Model
                   $userRole = $user->role ?? null; 
                   
                   if ($userRole) {
-                      $subQ->whereRaw("JSON_CONTAINS(target_audience->'$.roles', JSON_QUOTE(?))", [$userRole]);
+                      $subQ->whereRaw("JSON_CONTAINS(JSON_EXTRACT(target_audience, '$.roles'), JSON_QUOTE(?))", [$userRole]);
                       
                       // Granular filters for students
                       if ($userRole === 'student' && method_exists($user, 'student') && $user->student) { 
@@ -146,8 +146,8 @@ class QuExam extends Model
                           $classroomId = $student->classroom_id;
                           
                           $subQ->where(function ($filterQ) use ($gradeId, $classroomId) {
-                             $filterQ->whereRaw("(target_audience->'$.grade_ids' IS NULL OR JSON_CONTAINS(target_audience->'$.grade_ids', CAST(? AS JSON)))", [$gradeId])
-                                     ->whereRaw("(target_audience->'$.classroom_ids' IS NULL OR JSON_CONTAINS(target_audience->'$.classroom_ids', CAST(? AS JSON)))", [$classroomId]);
+                             $filterQ->whereRaw("(JSON_EXTRACT(target_audience, '$.grade_ids') IS NULL OR JSON_CONTAINS(JSON_EXTRACT(target_audience, '$.grade_ids'), ?))", [$gradeId])
+                                     ->whereRaw("(JSON_EXTRACT(target_audience, '$.classroom_ids') IS NULL OR JSON_CONTAINS(JSON_EXTRACT(target_audience, '$.classroom_ids'), ?))", [$classroomId]);
                           });
                       }
                   }

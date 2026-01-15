@@ -31,16 +31,18 @@ if (!ToolsSwitcher.isFirebaseEnabled()) {
   database = ToolsSwitcher.isEnabled('firebase', 'database') ? getDatabase(app) : null;
 
   // Connect to emulators only if enabled
-  if (ToolsSwitcher.isEmulatorsEnabled() && 
-      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const isLocalIp = window.location.hostname.startsWith('192.168.');
+
+  if (ToolsSwitcher.isEmulatorsEnabled() && (isLocalhost || isLocalIp)) {
     console.log('🔧 Emulators enabled - connecting...');
-    
+
     try {
       if (auth) {
         connectAuthEmulator(auth, 'http://127.0.0.1:9099');
         console.log('✅ Connected to Auth Emulator');
       }
-      
+
       if (database) {
         connectDatabaseEmulator(database, '127.0.0.1', 9000);
         console.log('✅ Connected to Database Emulator');

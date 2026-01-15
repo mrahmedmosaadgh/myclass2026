@@ -255,7 +255,7 @@ const currentScore = computed(() => {
   
   // Add auto-graded scores
   props.autoGraded.forEach(item => {
-    total += item.answer.marks_obtained || 0;
+    total += parseFloat(item.answer.marks_obtained) || 0;
   });
   
   // Add manual grades
@@ -263,7 +263,7 @@ const currentScore = computed(() => {
     total += parseFloat(grade.marks_obtained) || 0;
   });
   
-  return total.toFixed(2);
+  return Math.round(total);
 });
 
 const gradingStatusColor = computed(() => {
@@ -295,7 +295,7 @@ const getStudentAnswer = (item) => {
 const saveGrades = () => {
   saving.value = true;
   
-  router.post(route('qu.grading.save', props.attempt.id), {
+  router.post(route('qu-grading.save', props.attempt.id), {
     grades: Object.values(grades)
   }, {
     onSuccess: () => {
@@ -308,7 +308,7 @@ const saveGrades = () => {
 };
 
 const backToList = () => {
-  router.visit(route('qu.grading.index'));
+  router.visit(route('qu-grading.index'));
 };
 </script>
 

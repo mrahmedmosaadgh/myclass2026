@@ -11,7 +11,7 @@
       <!-- Score Display -->
       <q-card-section class="text-center q-py-xl" v-if="show_results">
         <div class="text-h2 text-weight-bold" :class="scoreColor">
-          {{ attempt.score }} / {{ exam.total_marks }}
+          {{ Math.round(attempt.score) }} / {{ exam.total_marks }}
         </div>
         <div class="text-h6 text-grey-7 q-mt-sm">
           {{ statistics.percentage }}%

@@ -182,6 +182,16 @@
                 flat 
                 dense 
                 round
+                color="orange" 
+                icon="grading" 
+                @click="viewGrading(props.row)"
+              >
+                <q-tooltip>View Grading</q-tooltip>
+              </q-btn>
+              <q-btn 
+                flat 
+                dense 
+                round
                 color="negative" 
                 icon="delete" 
                 @click="confirmDelete(props.row)"
@@ -275,6 +285,105 @@
         </q-card-section>
       </q-card>
     </q-dialog>
+
+    <!-- Grading List Dialog -->
+    <q-dialog v-model="showGradingDialog" maximized>
+      <q-card>
+        <q-bar class="bg-primary text-white">
+          <q-icon name="grading" />
+          <div>Grading: {{ gradingExam?.title }}</div>
+          <q-space />
+          <q-btn dense flat icon="close" v-close-popup>
+            <q-tooltip>Close</q-tooltip>
+          </q-btn>
+        </q-bar>
+
+        <q-card-section>
+          <div class="row q-col-gutter-md q-mb-md">
+            <div class="col-12 col-md-3">
+              <q-select
+                v-model="gradingFilters.grading_status"
+                :options="statusOptions"
+                option-value="value"
+                option-label="label"
+                label="Grading Status"
+                clearable
+                emit-value
+                map-options
+                @update:model-value="fetchGradingAttempts"
+                dense
+                outlined
+              />
+            </div>
+            
+            <div class="col-12 col-md-3">
+              <q-select
+                v-model="gradingFilters.classroom_id"
+                :options="classrooms"
+                option-value="id"
+                option-label="name"
+                label="Classroom"
+                clearable
+                emit-value
+                map-options
+                @update:model-value="fetchGradingAttempts"
+                dense
+                outlined
+              />
+            </div>
+          </div>
+
+          <q-table
+            :rows="gradingAttempts"
+            :columns="gradingColumns"
+            row-key="id"
+            flat
+            bordered
+            :loading="gradingLoading"
+          >
+            <template v-slot:body-cell-score="props">
+              <q-td :props="props">
+                <q-chip
+                  :color="getGradingScoreColor(props.row)"
+                  text-color="white"
+                  size="sm"
+                >
+                  {{ Math.round(props.row.score || 0) }} / {{ gradingExam?.total_marks }}
+                </q-chip>
+              </q-td>
+            </template>
+
+            <template v-slot:body-cell-status="props">
+              <q-td :props="props">
+                <q-badge
+                  :color="getGradingStatusColor(props.row.status)"
+                  :label="capitalizeFirst(props.row.status)"
+                />
+              </q-td>
+            </template>
+
+            <template v-slot:body-cell-actions="props">
+              <q-td :props="props">
+                <q-btn
+                  color="primary"
+                  icon="edit"
+                  label="Grade"
+                  size="sm"
+                  @click="goToGrading(props.row)"
+                />
+              </q-td>
+            </template>
+          </q-table>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+
+    <!-- Nested Grading Interface -->
+    <QuGradingDialog
+      v-model="showGradingInterface"
+      :attempt-id="currentAttemptId"
+      @graded="onGradingComplete"
+    />
   </div>
 </template>
 
@@ -283,6 +392,7 @@ import { ref, reactive, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
 import QuExamForm from './QuExamForm.vue';
+import QuGradingDialog from './QuGradingDialog.vue';
 
 // Print Dialog Logic
 const showPrintDialogState = ref(false);
@@ -441,9 +551,85 @@ const examTypeColor = (type) => {
   return colors[type] || 'grey';
 };
 
+// Grading Dialog Logic
+const showGradingDialog = ref(false);
+const gradingAttempts = ref([]);
+const gradingLoading = ref(false);
+const gradingExam = ref(null);
+const gradingFilters = reactive({
+  grading_status: null,
+  classroom_id: null
+});
+
+const openGradingDialog = async (exam) => {
+  gradingExam.value = exam;
+  showGradingDialog.value = true;
+  gradingFilters.grading_status = null;
+  gradingFilters.classroom_id = null;
+  await fetchGradingAttempts();
+};
+
+const fetchGradingAttempts = async () => {
+  if (!gradingExam.value) return;
+  
+  gradingLoading.value = true;
+  try {
+    const response = await window.axios.get(route('qu-exams.grading-attempts', gradingExam.value.id), {
+      params: gradingFilters
+    });
+    gradingAttempts.value = response.data.attempts;
+  } catch (error) {
+    console.error('Failed to load grading attempts', error);
+  } finally {
+    gradingLoading.value = false;
+  }
+};
+
+const goToGrading = (attempt) => {
+  currentAttemptId.value = attempt.id;
+  showGradingInterface.value = true;
+};
+
+const getGradingScoreColor = (attempt) => {
+  if (!gradingExam.value?.passing_score) return 'primary';
+  const percentage = (attempt.score / gradingExam.value.total_marks) * 100;
+  return percentage >= gradingExam.value.passing_score ? 'positive' : 'negative';
+};
+
+const getGradingStatusColor = (status) => {
+  const colors = {
+    pending: 'grey',
+    partial: 'orange',
+    completed: 'positive'
+  };
+  return colors[status] || 'grey';
+};
+
+const gradingColumns = [
+  { name: 'student', label: 'Student', field: row => row.user.name, align: 'left' },
+  { name: 'classroom', label: 'Classroom', field: row => row.user.classroom, align: 'left' },
+  { name: 'score', label: 'Score', field: 'score', align: 'center' },
+  { name: 'status', label: 'Status', field: 'status', align: 'center' },
+  { name: 'submitted', label: 'Submitted', field: 'submitted_at', align: 'center' },
+  { name: 'actions', label: 'Actions', align: 'center' }
+];
+
+const viewGrading = (exam) => {
+  openGradingDialog(exam);
+};
+
 const onExamSaved = () => {
   createDialog.value = false;
   editingExam.value = null;
   router.reload({ only: ['exams'] });
+};
+
+// Nested Grading Interface Logic
+const showGradingInterface = ref(false);
+const currentAttemptId = ref(null);
+
+const onGradingComplete = () => {
+  // Refresh the attempts list to show updated scores/status
+  fetchGradingAttempts();
 };
 </script>

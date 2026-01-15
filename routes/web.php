@@ -145,6 +145,10 @@ Route::middleware([
                 ->name('exams.users.search');
             Route::get('exams/questions/available', [\App\Http\Controllers\QuExamController::class, 'getAvailableQuestions'])
                 ->name('exams.questions.available');
+            Route::get('exams/{exam}/grading-attempts', [\App\Http\Controllers\QuExamController::class, 'getGradingAttempts'])
+                ->name('exams.grading-attempts');
+            Route::get('exams/grading/{attempt}/data', [\App\Http\Controllers\QuExamController::class, 'getAttemptGradingData'])
+                ->name('exams.grading-data');
             
             // Teacher Grading Routes
             Route::get('grading', [\App\Http\Controllers\QuExamController::class, 'teacherGradingIndex'])

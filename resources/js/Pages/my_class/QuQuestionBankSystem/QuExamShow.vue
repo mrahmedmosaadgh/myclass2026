@@ -59,7 +59,7 @@
                  <q-item v-if="exam.passing_score">
                   <q-item-section>
                     <q-item-label caption>Passing Score</q-item-label>
-                    <q-item-label>{{ exam.passing_score }}</q-item-label>
+                    <q-item-label>{{ Math.round(exam.passing_score) }}</q-item-label>
                   </q-item-section>
                 </q-item>
                 
