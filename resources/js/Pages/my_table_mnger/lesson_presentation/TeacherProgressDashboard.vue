@@ -1,4 +1,5 @@
 <template>
+  <Head :title="lesson?.name ? `Progress: ${lesson.name}` : 'Student Progress'" />
   <div class="teacher-dashboard q-pa-md">
     <div class="row items-center q-mb-lg">
       <div class="col">

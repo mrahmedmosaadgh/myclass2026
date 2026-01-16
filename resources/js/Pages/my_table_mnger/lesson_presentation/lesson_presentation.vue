@@ -1,4 +1,5 @@
 <template>
+  <Head :title="presentation.name ? `Editing: ${presentation.name}` : 'New Lesson'" />
   <q-layout view="hHh Lpr fFf" class="bg-grey-1">
     
     <!-- Colorful Header -->

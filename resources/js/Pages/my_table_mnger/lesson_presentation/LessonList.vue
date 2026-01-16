@@ -1,4 +1,5 @@
 <template>
+  <Head title="Lesson Dashboard" />
   <div class="q-pa-md bg-grey-2">
     <div class="max-w-7xl mx-auto">
       

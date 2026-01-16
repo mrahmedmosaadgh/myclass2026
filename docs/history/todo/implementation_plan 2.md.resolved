@@ -1,0 +1,185 @@
+# AI-Powered Lesson Section Template Generator
+
+## Goal
+
+Add an AI-assisted template generation feature to the Section Template Manager that allows users to generate lesson section templates based on their subject and grade level. The workflow involves prompt generation, user confirmation, AI response pasting, validation, and template import.
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Workflow Confirmation**: The implementation follows this workflow:
+> 1. User clicks "Generate with AI" button
+> 2. User selects subject and grade level (with optional additional context)
+> 3. System generates a detailed prompt and displays it for user to copy
+> 4. User copies the prompt and pastes it into their AI tool (e.g., ChatGPT, Claude)
+> 5. User returns with the AI response and pastes it into our system
+> 6. System validates the JSON response format
+> 7. User previews the template and can accept or reject it
+> 8. On acceptance, template is saved to database
+
+This workflow is similar to the existing question generation feature in the codebase. Please confirm this approach meets your needs.
+
+> [!WARNING]
+> **Manual AI Interaction**: This implementation requires users to manually copy/paste between our app and external AI tools. This is consistent with the existing pattern in `QuAIGeneratorDialog.vue` but requires an external OpenAI API key or AI service access.
+
+## Proposed Changes
+
+### Frontend Components
+
+#### [NEW] [AITemplateSuggestion.vue](file:///Users/ahmedmosaad/Herd/myclass2026-main/resources/js/Components/Common/ai/AITemplateSuggestion.vue)
+
+A new reusable component for AI-powered template generation with the following features:
+- **Step 1: Configuration** - User selects:
+  - Subject (dropdown)
+  - Grade level (dropdown)
+  - Number of sections to generate (3-10)
+  - Optional custom instructions
+  - Quick suggestion buttons (e.g., "Elementary Science", "High School Math", "Language Arts")
+- **Step 2: Prompt Display** - Shows generated prompt with copy button
+- **Step 3: Response Input** - Textarea for pasting AI response with validation
+- **Step 4: Preview** - Display parsed template with visual preview
+- **Step 5: Confirmation** - Accept/reject buttons
+
+The component will emit events for template acceptance, allowing the parent component to handle the save operation.
+
+---
+
+#### [MODIFY] [SectionTemplateManager.vue](file:///Users/ahmedmosaad/Herd/myclass2026-main/resources/js/Pages/my_table_mnger/lesson_presentation/SectionTemplateManager.vue)
+
+**Changes:**
+1. Add "Generate with AI" button next to the existing "New Template" button (line 9)
+2. Import and integrate the new `AITemplateSuggestion` component
+3. Add dialog state management for AI generation workflow
+4. Handle template creation from AI-generated data
+5. Add loading states and success notifications
+
+**Key modifications:**
+- Line 9: Add new button with icon `auto_awesome` 
+- Add new `showAIGenerator` ref variable
+- Add new `handleAITemplateAccepted` method to process AI-generated template
+- Add `q-dialog` for AI generation workflow
+
+---
+
+### Backend API
+
+No backend changes are required at this stage. The existing `LessonSectionTemplateController::store` method (line 25-38) will handle template creation from AI-generated data.
+
+---
+
+### Supporting Utilities
+
+#### [NEW] [promptTemplates.js](file:///Users/ahmedmosaad/Herd/myclass2026-main/resources/js/utils/promptTemplates.js)
+
+Utility file containing:
+- Prompt template for lesson section generation
+- Section color palette presets for different subjects
+- JSON schema documentation for expected AI response
+- Validation functions for AI responses
+
+**Example prompt structure:**
+```
+You are an educational curriculum designer. Generate a lesson plan section template for:
+- Subject: {subject}
+- Grade Level: {grade}
+- Number of Sections: {count}
+- Additional Context: {customInstructions}
+
+Return a JSON object with the following structure:
+{
+  "name": "Template name",
+  "sections": [
+    {
+      "id": "unique_id",
+      "title": "Section Title",
+      "icon": "📝",
+      "qIcon": "article",
+      "bg": "#f3f4f6",
+      "bgActive": "#e5e7eb",
+      "borderColor": "#9ca3af",
+      "textColor": "#1f2937"
+    }
+  ]
+}
+
+Guidelines:
+- Use pedagogically sound section names for the grade level
+- Include relevant emojis that match each section's purpose
+- Use age-appropriate language
+- Color code sections meaningfully
+```
+
+---
+
+### Data Flow
+
+```mermaid
+graph TD
+    A[User clicks Generate with AI] --> B[Opens AI Generation Dialog]
+    B --> C[User selects subject/grade]
+    C --> D[System generates prompt]
+    D --> E[User copies prompt]
+    E --> F[User pastes to external AI]
+    F --> G[User copies AI response]
+    G --> H[User pastes response]
+    H --> I{Validate JSON}
+    I -->|Invalid| J[Show error message]
+    I -->|Valid| K[Preview template]
+    K --> L{User accepts?}
+    L -->|No| M[Close dialog]
+    L -->|Yes| N[Call existing store API]
+    N --> O[Refresh template list]
+    O --> P[Show success notification]
+```
+
+## Verification Plan
+
+### Automated Tests
+
+No unit tests will be added initially as the existing codebase doesn't have frontend tests. The validation logic will be tested manually.
+
+### Manual Verification
+
+1. **Open the Section Template Manager**:
+   - Navigate to `http://127.0.0.1:8000/lesson-presentation/section-template-manager`
+   - Verify the page loads without errors
+
+2. **Test AI Generation Button**:
+   - Click the new "Generate with AI" button
+   - Verify the AI generation dialog opens
+   - Confirm all form fields are present (subject, grade, section count, custom instructions)
+
+3. **Test Prompt Generation**:
+   - Select "Mathematics" and "Grade 5"
+   - Set section count to 5
+   - Add custom instruction: "Focus on problem-solving skills"
+   - Click "Generate Prompt"
+   - Verify prompt contains all specified details
+   - Test the copy button functionality
+
+4. **Test Response Validation**:
+   - Paste invalid JSON → should show validation error
+   - Paste valid JSON but wrong structure → should show schema error  
+   - Paste correctly formatted template JSON → should proceed to preview
+
+5. **Test Template Preview**:
+   - Verify all sections from AI response are displayed
+   - Check colors, icons, and titles render correctly
+   - Verify drag-and-drop reordering works in preview
+
+6. **Test Template Acceptance**:
+   - Click "Accept Template"
+   - Verify template appears in the main list
+   - Confirm template is saved to database (check network tab for successful POST request)
+   - Verify template data matches AI-generated structure
+
+7. **Test Edge Cases**:
+   - Cancel at prompt step → dialog should close without saving
+   - Cancel at preview step → dialog should close without saving
+   - Generate multiple templates in sequence → all should save independently
+   - Try with different subjects/grades → verify prompt adapts appropriately
+
+8. **Test Integration with Existing Features**:
+   - Edit an AI-generated template → verify all fields are editable
+   - Set an AI-generated template as active → verify it works in lesson editor
+   - Delete an AI-generated template → verify deletion works normally

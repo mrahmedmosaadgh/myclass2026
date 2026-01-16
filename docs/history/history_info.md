@@ -114,3 +114,8 @@ Repository Info:
 Remote: https://github.com/mrahmedmosaadgh/myclass2026_build.git
 Status: It has many untracked files (the new build assets).
 Do you want me to add all files, commit them, and push to this myclass2026_build repository?
+
+
+
+
+  try to remember this while creating any page the title of the page very easy   <Head title="My Page" /> and no need to imprt it its is imported in app.js

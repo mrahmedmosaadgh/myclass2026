@@ -1,4 +1,5 @@
 <template>
+  <Head title="Section Templates" />
   <div class="p-6 bg-gray-50 min-h-screen">
     <div class="max-w-6xl mx-auto">
       <div class="flex items-center justify-between mb-6">
@@ -6,7 +7,16 @@
           <h1 class="text-2xl font-bold">Lesson Section Templates</h1>
           <p class="text-gray-600 mt-1">Manage section templates for your lessons</p>
         </div>
-        <q-btn unelevated color="primary" icon="add" label="New Template" @click="createNew" />
+        <div class="flex gap-2">
+          <q-btn 
+            unelevated 
+            style="background: linear-gradient(to right, #9333ea, #4f46e5); color: white;"
+            icon="auto_awesome" 
+            label="Generate with AI" 
+            @click="openAIGenerator" 
+          />
+          <q-btn unelevated color="primary" icon="add" label="New Template" @click="createNew" />
+        </div>
       </div>
 
       <div class="grid gap-4">
@@ -133,6 +143,13 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- AI Template Generator -->
+    <AITemplateSuggestion 
+      ref="aiGenerator" 
+      @template-accepted="handleAITemplateAccepted"
+      @close="showAIGenerator = false"
+    />
   </div>
 </template>
 
@@ -141,12 +158,14 @@ import { ref, onMounted } from 'vue';
 import { useQuasar } from 'quasar';
 import axios from 'axios';
 import draggable from 'vuedraggable';
+import AITemplateSuggestion from '@/Components/Common/ai/AITemplateSuggestion.vue';
 
 const $q = useQuasar();
 const templates = ref([]);
 const showEditor = ref(false);
 const isSaving = ref(false);
 const editingTemplate = ref({ name: '', structure: { sections: [] } });
+const aiGenerator = ref(null);
 
 const fetchTemplates = async () => {
   try {
@@ -247,6 +266,44 @@ const deleteTemplate = async (id) => {
       $q.notify({ type: 'negative', message: 'Failed to delete' });
     }
   });
+};
+
+const openAIGenerator = () => {
+  if (aiGenerator.value) {
+    aiGenerator.value.open();
+  }
+};
+
+const handleAITemplateAccepted = async (templateData) => {
+  isSaving.value = true;
+  try {
+    // Prepare the template data for saving
+    const templateToSave = {
+      name: templateData.name,
+      structure: {
+        sections: templateData.sections
+      }
+    };
+
+    // Save using the existing store endpoint
+    await axios.post(route('lesson-presentation.section-templates.store'), templateToSave);
+
+    $q.notify({ 
+      type: 'positive', 
+      message: 'AI-generated template saved successfully!',
+      icon: 'auto_awesome'
+    });
+    
+    fetchTemplates();
+  } catch (error) {
+    console.error(error);
+    $q.notify({ 
+      type: 'negative', 
+      message: 'Failed to save AI-generated template' 
+    });
+  } finally {
+    isSaving.value = false;
+  }
 };
 
 onMounted(() => {

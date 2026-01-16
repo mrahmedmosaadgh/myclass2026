@@ -1,4 +1,5 @@
 <template>
+  <Head :title="presentation.name ? `Lesson: ${presentation.name}` : 'Lesson View'" />
   <LessonPlayer
     v-if="!loading"
     :presentation="presentation"

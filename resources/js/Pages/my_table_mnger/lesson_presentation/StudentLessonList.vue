@@ -1,4 +1,5 @@
 <template>
+  <Head title="My Lessons" />
   <div class="student-lesson-list q-pa-md">
     <!-- Header with Progress -->
     <div class="row items-center q-mb-lg">

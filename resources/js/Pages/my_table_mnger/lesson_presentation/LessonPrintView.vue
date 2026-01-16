@@ -1,4 +1,5 @@
 <template>
+  <Head :title="presentation.name ? `Print: ${presentation.name}` : 'Print Lesson'" />
   <div 
     :class="print_sild_only ? '' : 'min-h-screen p-8 print:p-0'" 
     class="bg-white"
