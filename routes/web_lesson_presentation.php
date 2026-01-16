@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Models\CourseManagement\LessonPlanTemplate;
 use App\Http\Controllers\LessonPresentationController;
 use App\Http\Controllers\LessonProgressController;
 
@@ -21,6 +22,21 @@ Route::middleware([
     'verified',
 ])->prefix('lesson-presentation')->name('lesson-presentation.')->group(function () {
     
+    // Section Template Management
+    Route::prefix('section-templates')->name('section-templates.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\LessonSectionTemplateController::class, 'index'])->name('index');
+        Route::post('/', [\App\Http\Controllers\LessonSectionTemplateController::class, 'store'])->name('store');
+        Route::get('/{id}', [\App\Http\Controllers\LessonSectionTemplateController::class, 'show'])->name('show');
+        Route::put('/{id}', [\App\Http\Controllers\LessonSectionTemplateController::class, 'update'])->name('update');
+        Route::delete('/{id}', [\App\Http\Controllers\LessonSectionTemplateController::class, 'destroy'])->name('destroy');
+        Route::post('/{id}/set-active', [\App\Http\Controllers\LessonSectionTemplateController::class, 'setActive'])->name('set-active');
+    });
+
+    // Template Manager Page
+    Route::get('/section-template-manager', function () {
+        return Inertia::render('my_table_mnger/lesson_presentation/SectionTemplateManager');
+    })->name('section-template-manager');
+
     // ========================================
     // Teacher Views
     // ========================================
@@ -32,17 +48,41 @@ Route::middleware([
 
     // Lesson Editor
     Route::get('/edit', function () {
-        $teacher = \App\Models\Teacher::first();
+        $teacher = \App\Models\Teacher::first(); // TODO: Auth::user()->teacher
         $school = \App\Models\School::first();
-        $subject = \App\Models\Subject::first();
+
+        // Handle Subject Selection
+        $subjectId = request()->input('subject_id');
+        $subject = $subjectId 
+            ? \App\Models\Subject::find($subjectId) 
+            : \App\Models\Subject::first();
+
+        // Handle Grade Selection (optional, but good to have context)
+        $gradeId = request()->input('grade_id');
         
+        // Get active template
+        $activeTemplate = LessonPlanTemplate::where('is_active', true)->first();
+        $sections = $activeTemplate && isset($activeTemplate->structure['sections']) 
+            ? $activeTemplate->structure['sections'] 
+            : [];
+        
+        // Fetch Grade Name
+        $gradeName = null;
+        if ($gradeId) {
+            $grade = \App\Models\Grade::find($gradeId);
+            $gradeName = $grade ? $grade->name : null;
+        }
+
         return Inertia::render('my_table_mnger/lesson_presentation/lesson_presentation', [
             'defaultContext' => [
                 'teacher_id' => $teacher ? $teacher->id : null,
                 'school_id' => $school ? $school->id : null,
                 'subject_id' => $subject ? $subject->id : null,
+                'grade_id' => $gradeId,
+                'subject_name' => $subject ? $subject->name : 'Unknown Subject',
+                'grade_name' => $gradeName,
             ],
-            'sections' => \App\Models\free\LessonPresentation::SECTIONS,
+            'sections' => $sections,
         ]);
     })->name('edit');
     
@@ -61,10 +101,12 @@ Route::middleware([
     // Student Lesson View - View a specific lesson
     Route::get('/student/{id}', function ($id) {
         $student = \App\Models\Student::first(); // TODO: Replace with Auth::user()->student
+        $presentation = \App\Models\free\LessonPresentation::findOrFail($id);
+        
         return Inertia::render('my_table_mnger/lesson_presentation/StudentLessonView', [
             'presentationId' => $id,
             'studentId' => $student ? $student->id : 1,
-            'sections' => \App\Models\free\LessonPresentation::SECTIONS,
+            'sections' => $presentation->getSections(),
         ]);
     })->name('student.view');
 
@@ -150,3 +192,4 @@ Route::middleware([
             ->name('quiz-attempt');
     });
 });
+

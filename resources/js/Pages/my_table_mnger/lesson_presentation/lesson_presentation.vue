@@ -1,201 +1,187 @@
 <template>
-  <div class="flex  bg-gray-50 overflow-hidden">
-    <!-- Custom Sidebar (Replaces q-dialog) -->
-    <!-- v-model:currentSection="currentSection" -->
+  <q-layout view="hHh Lpr fFf" class="bg-grey-1">
+    
+    <!-- Colorful Header -->
+    <q-header elevated class="bg-primary text-white">
+      <q-toolbar>
+        <q-btn flat dense round icon="menu" aria-label="Menu" @click="leftDrawerOpen = !leftDrawerOpen" />
+        
+        <q-btn flat round dense icon="arrow_back" component="a" href="/lesson-presentation/dashboard">
+           <q-tooltip>Back</q-tooltip>
+        </q-btn>
 
+        <q-toolbar-title class="q-ml-sm">
+           <div class="row items-center q-gutter-x-md">
+             <div class="cursor-pointer">
+                {{ presentation.name || 'New Lesson' }}
+                <q-popup-edit v-model="presentation.name" auto-save v-slot="scope">
+                  <q-input v-model="scope.value" dense autofocus counter @keyup.enter="scope.set" label="Lesson Name" />
+                </q-popup-edit>
+                <q-icon name="edit" size="xs" class="q-ml-xs opacity-50" />
+             </div>
+             <q-badge color="white" text-color="primary" :label="currentGradeName" v-if="presentation.grade_id" />
+           </div>
+           <div class="text-caption text-blue-2 cursor-pointer ellipsis" style="max-width: 300px;">
+              {{ presentation.description || 'Add description...' }}
+              <q-popup-edit v-model="presentation.description" auto-save v-slot="scope">
+                  <q-input v-model="scope.value" dense autofocus type="textarea" @keyup.enter="scope.set" label="Description" />
+                </q-popup-edit>
+           </div>
+        </q-toolbar-title>
 
-    <!-- Main Area: Slide Editor -->
-    <div class="flex-1 flex flex-col overflow-hidden">
-      <!-- Compact Header -->
-      <div class="bg-white border-b border-gray-200 px-6 py-3">
-        <div class="flex items-center justify-between gap-4">
-          <!-- Left: Lesson Info -->
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 mb-1">
-              <q-btn
-                flat
-                dense
-                round
-                icon="arrow_back"
-                color="grey-7"
-                size="sm"
-                to="/lesson-presentation"
-              >
-                <q-tooltip>Back to lessons</q-tooltip>
-              </q-btn>
-              <q-badge 
-                v-if="presentation.grade_id" 
-                color="primary" 
-                :label="currentGradeName"
-              />
-              <input 
-                v-model="presentation.name" 
-                class="text-base font-semibold text-gray-800 border-none focus:ring-0 p-0 flex-1 bg-transparent placeholder-gray-400"
-                placeholder="Lesson Name"
-              />
+        <div class="row items-center q-gutter-sm">
+            <div class="column q-mr-md text-right text-caption text-grey-1">
+               <div>Subject: <span class="text-weight-bold">{{ defaultContext?.subject_name }}</span></div>
+               <div>Class: <span class="text-weight-bold">{{ defaultContext?.grade_name }}</span></div>
             </div>
-            <div class="flex items-center gap-2 ml-10">
-              <q-icon name="description" size="14px" color="grey-5" />
-              <input 
-                v-model="presentation.description" 
-                class="text-sm text-gray-500 border-none focus:ring-0 p-0 flex-1 bg-transparent placeholder-gray-400"
-                placeholder="Add description..."
-              />
-            </div>
-          </div>
+            
+            <q-separator vertical dark class="q-mx-sm" />
 
-          <!-- Right: Actions -->
-          <div class="flex items-center gap-3">
-            <!-- Quiz Selector -->
-            <QuizSelector
-              v-model="presentation.quiz_id"
-              :school-id="defaultContext.school_id"
-              :grade-id="presentation.grade_id"
-              :subject-id="defaultContext.subject_id"
-            />
-            
-            <div class="h-6 w-px bg-gray-300"></div>
-            
-            <q-btn
-              v-if="activeId"
-              flat
-              dense
-              round
-              icon="content_copy"
-              color="grey-7"
-              size="sm"
-              @click="duplicateLesson"
-            >
-              <q-tooltip>Duplicate</q-tooltip>
+            <q-btn flat round dense icon="content_copy" @click="duplicateLesson" v-if="activeId">
+               <q-tooltip>Duplicate</q-tooltip>
             </q-btn>
-            <q-btn
-              outline
-              dense
-              icon="visibility"
-              label="Preview"
-              color="primary"
-              size="sm"
-              @click="showPreview = true"
-              :disable="!activeId"
-            >
-              <q-tooltip v-if="!activeId">Save first</q-tooltip>
+            
+            <q-separator vertical dark class="q-mx-sm" />
+            
+            <q-btn flat round dense icon="download" @click="exportLessonAsJSON" color="accent">
+               <q-tooltip>Export Lesson as JSON</q-tooltip>
             </q-btn>
-            <q-btn
-              unelevated
-              dense
-              icon="save"
-              label="Save"
-              color="positive"
-              size="sm"
-              @click="savePresentation"
-              :loading="isSaving"
-            />
-          </div>
+            <q-btn flat round dense icon="upload" @click="importLessonFromJSON" color="secondary">
+               <q-tooltip>Import Lesson from JSON</q-tooltip>
+            </q-btn>
+            
+            <q-separator vertical dark class="q-mx-sm" />
+            
+            <q-btn flat round dense icon="visibility" @click="showPreview = true" :disable="!activeId">
+               <q-tooltip>Preview</q-tooltip>
+            </q-btn>
+            <q-btn unelevated color="positive" icon="save" label="Save" @click="savePresentation" :loading="isSaving" />
         </div>
-      </div>
+      </q-toolbar>
+    </q-header>
 
+    <!-- Sidebar Drawer -->
+    <q-drawer v-model="leftDrawerOpen" show-if-above bordered class="bg-white" :width="300">
+       <LessonSidebar
+          :sections="sections"
+          v-model:currentSection_data="currentSection_data"
+          v-model:currentSection="currentSection"
+          :slides="slides"
+          v-model:showDrawer="showSectionsDrawer"
+          :can-edit="true"
+          :active-slide="currentSlide"
+          @selectSlide="(slide) => currentSlideIndex = filteredSlides.indexOf(slide)"
+          @addSlide="addSlide"
+          class="fit"
+       />
+    </q-drawer>
 
-      <!-- -------------------------------------- -->
+    <!-- Main Content -->
+    <q-page-container>
+      <q-page class="q-pa-md bg-grey-2 row justify-center">
+        <!-- Editor Area -->
+         <div class="col-12 col-lg-10" style="max-width: 1200px">
+           <transition
+              appear
+              enter-active-class="animated fadeIn"
+              leave-active-class="animated fadeOut"
+            >
+              <div v-if="currentSlide" class="bg-white rounded-borders shadow-1 q-pa-lg">
+                 <!-- Slide Toolbar -->
+                 <div class="row items-center justify-between q-mb-md">
+                    <div class="row items-center q-gutter-sm">
+                       <q-icon name="edit_note" color="primary" size="md" />
+                       <div class="text-h6 text-grey-8">Slide Editor</div>
+                       
+                       <!-- Slide Navigation -->
+                       <q-separator vertical inset class="q-mx-sm" />
+                       <q-btn-group outline>
+                          <q-btn 
+                            flat
+                            dense
+                            icon="chevron_left" 
+                            @click="previousSlide"
+                            :disable="currentSlideIndex === 0"
+                            color="primary"
+                          >
+                            <q-tooltip>Previous Slide (←)</q-tooltip>
+                          </q-btn>
+                          
+                          <q-btn 
+                            flat
+                            dense
+                            no-caps
+                            :label="`${currentSlideIndex + 1} / ${filteredSlides.length}`"
+                            color="primary"
+                            class="q-px-md"
+                          >
+                            <q-tooltip>Current Slide</q-tooltip>
+                          </q-btn>
+                          
+                          <q-btn 
+                            flat
+                            dense
+                            icon="chevron_right" 
+                            @click="nextSlide"
+                            :disable="currentSlideIndex >= filteredSlides.length - 1"
+                            color="primary"
+                          >
+                            <q-tooltip>Next Slide (→)</q-tooltip>
+                          </q-btn>
+                       </q-btn-group>
+                    </div>
+                    
+                    <div class="row items-center q-gutter-sm">
+                       <q-select 
+                        v-model="currentSlide.slide_type"
+                        :options="[
+                            { label: '📝 Text', value: 'text' },
+                            { label: '🖼️ Image', value: 'image' },
+                            { label: '🎥 Video', value: 'video' },
+                            { label: '🎵 Audio', value: 'audio' },
+                            { label: '📄 PDF', value: 'pdf' },
+                            { label: '❓ Question', value: 'question' },
+                            { label: '🎨 Drawing', value: 'drawing' }
+                        ]"
+                        dense
+                        outlined
+                        emit-value
+                        map-options
+                        options-dense
+                        color="primary"
+                        label="Slide Type"
+                        style="min-width: 150px"
+                       />
+                       <q-btn flat round color="negative" icon="delete" @click="deleteSlide(currentSlide)">
+                          <q-tooltip>Delete Slide</q-tooltip>
+                       </q-btn>
+                   </div>
+                </div>
 
+                <q-separator class="q-mb-md" />
 
-<div class="flex w-full flex-col">
-
-  <LessonSidebar
-  :sections="sections"
-  v-model:currentSection_data="currentSection_data"
-  v-model:currentSection="currentSection"
-  :slides="slides"
-  v-model:showDrawer="showSectionsDrawer"
-  :can-edit="true"
-  :active-slide="currentSlide"
-  @selectSlide="(slide) => currentSlideIndex = filteredSlides.indexOf(slide)"
-  @addSlide="addSlide"
-  />
-  <!-- @deleteSlide="deleteSlide" -->
-</div>
-
-      
-      <!-- Editor Content -->
-      <div   v-if="currentSection"    class="flex-1 overflow-y-auto p-6 bg-gray-50 flex justify-center">
-        <div class="w-full max-w-4xl">
-          <div v-if="currentSlide" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <!-- Slide Type Selector -->
-            <div class="mb-4 flex items-center justify-between">
-              <div class="flex items-center gap-3">
-                <q-icon name="edit_note" size="24px" color="primary" />
-                <h3 class="text-base font-semibold text-gray-700">Slide Editor</h3>
-                <q-btn
-                  round
-                  dense
-                  color="negative"
-                  icon="delete"
-                  size="sm"
-                  @click="deleteSlide(currentSlide)"
-                >
-                  <q-tooltip>Delete Slide</q-tooltip>
-                </q-btn>
+                <!-- Slide Content Component -->
+                <div style="min-height: 500px">
+                   <component 
+                    :is="getSlideComponent(currentSlide.slide_type)" 
+                    v-model="currentSlide.slide_content"
+                    :key="currentSlide.id || currentSlideIndex"
+                  />
+                </div>
               </div>
-              <select 
-                v-model="currentSlide.slide_type"
-                class="border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 text-sm px-3 py-2"
-              >
-                <option value="text">📝 Text</option>
-                <option value="image">🖼️ Image</option>
-                <option value="video">🎥 Video</option>
-                <option value="audio">🎵 Audio</option>
-                <option value="pdf">📄 PDF</option>
-                <option value="question">❓ Question</option>
-              </select>
-            </div>
 
-            <!-- Slide Content -->
-            <div class="min-h-[500px]">
-              <!-- <div v-if="currentSection_data" 
-                   class="mb-4 p-3 rounded-lg border flex items-center gap-3 transition-colors duration-300"
-                   :style="{ 
-                     backgroundColor: currentSection_data.bg, 
-                     borderColor: currentSection_data.borderColor 
-                   }"
-              >
-                <div class="w-10 h-10 rounded-full flex items-center justify-center bg-white shadow-sm"
-                     :style="{ color: currentSection_data.textColor }"
-                >
-                  <q-icon :name="currentSection_data.qIcon || currentSection_data.icon" size="20px" />
-                </div>
-                <div>
-                  <div class="text-xs font-bold uppercase tracking-wider opacity-70"
-                       :style="{ color: currentSection_data.textColor }"
-                  >
-                
-                  </div>
-                  <div class="text-lg font-bold leading-none"
-                       :style="{ color: currentSection_data.textColor }"
-                  >
-                    {{ currentSection_data.title }}
-                  </div>
-                </div>
-              </div> -->
+              <!-- Empty State -->
+              <div v-else class="column items-center justify-center text-grey-5 q-pa-xl bg-white rounded-borders shadow-1 fit" style="min-height: 500px">
+                 <q-icon name="touch_app" size="80px" color="primary" class="opacity-20" />
+                 <div class="text-h5 q-mt-md text-weight-medium">Select a Slide</div>
+                 <div class="text-subtitle1 q-mt-sm">Choose a section on the left to start editing</div>
+              </div>
+          </transition>
+         </div>
+      </q-page>
+    </q-page-container>
 
-              <component 
-                :is="getSlideComponent(currentSlide.slide_type)" 
-                v-model="currentSlide.slide_content"
-              />
-            </div>
-          </div>
-          
-          <!-- Empty State -->
-          <div v-else class="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-            <q-icon name="layers_clear" size="4rem" color="grey-4" />
-            <p class="text-gray-500 text-lg mt-4 mb-2">No Slide Selected</p>
-            <p class="text-gray-400 text-sm">Choose a section and add a slide to get started</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-
-
-  </div>
+  </q-layout>
 
   <!-- Preview Dialog -->
   <q-dialog v-model="showPreview" maximized>
@@ -222,17 +208,20 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 import { useQuasar } from 'quasar';
 import axios from 'axios';
 import TextSlide from './components/slides/TextSlide.vue';
 import MediaSlide from './components/slides/MediaSlide.vue';
 import QuestionSlide from './components/slides/QuestionSlide.vue';
+import PDFSlide from './components/slides/PDFSlide.vue';
+import VideoSlide from './components/slides/VideoSlide.vue';
 import SectionIndicator from './components/SectionIndicator.vue';
 import LessonSidebar from './components/LessonSidebar.vue';
 import LessonPlayer from './components/LessonPlayer.vue';
 import QuizSelector from './components/QuizSelector.vue';
+import FingerDrawingSlide from './components/FingerDrawingSlide.vue';
 import { useTeacherStore } from '@/Stores/teacherStore';
 
 const props = defineProps({
@@ -277,6 +266,7 @@ const presentation = ref({
 const sections = ref(props.sections);
 
 const currentSection = ref(''); // Default to 'learn' section
+const leftDrawerOpen = ref(true);
 const currentSection_data = ref(null);
 const slides = ref([]);
 const currentSlideIndex = ref(0);
@@ -329,11 +319,12 @@ const getSlideComponent = (type) => {
   switch (type) {
     case 'text': return TextSlide;
     case 'question': return QuestionSlide;
+    case 'pdf': return PDFSlide;
+    case 'video': return VideoSlide;
     case 'image':
-    case 'video':
     case 'audio':
-    case 'pdf':
       return MediaSlide;
+    case 'drawing': return FingerDrawingSlide;
     default: return TextSlide;
   }
 };
@@ -349,6 +340,7 @@ const getSlideSummary = (slide) => {
     const count = slide.slide_content?.questions?.length || 0;
     return `${count} Question${count !== 1 ? 's' : ''}`;
   }
+  if (slide.slide_type === 'drawing') return 'Drawing Canvas';
   return `${slide.slide_type} content`;
 };
 
@@ -410,6 +402,32 @@ const stripHtml = (html) => {
   const tmp = document.createElement('DIV');
   tmp.innerHTML = html || '';
   return tmp.textContent || tmp.innerText || '';
+};
+
+// Navigation functions
+const previousSlide = () => {
+  if (currentSlideIndex.value > 0) {
+    currentSlideIndex.value--;
+  }
+};
+
+const nextSlide = () => {
+  if (currentSlideIndex.value < filteredSlides.value.length - 1) {
+    currentSlideIndex.value++;
+  }
+};
+
+// Keyboard navigation
+const handleKeyboard = (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  
+  if (e.key === 'ArrowLeft') {
+    e.preventDefault();
+    previousSlide();
+  } else if (e.key === 'ArrowRight') {
+    e.preventDefault();
+    nextSlide();
+  }
 };
 
 const validatePresentation = () => {
@@ -580,22 +598,16 @@ const savePresentation = async () => {
 
     $q.notify({
       type: 'positive',
-      message: 'Lesson saved successfully!',
+      message: 'Lesson saved successfully! Redirecting...',
       icon: 'check_circle',
       position: 'top',
-      timeout: 2000
+      timeout: 1500
     });
     
-    // Update activeId if it was a new presentation
-    if (!activeId.value && savedPresentation.id) {
-      // Update the activeId ref so preview button becomes enabled
-      activeId.value = savedPresentation.id;
-      
-      // Update URL without page reload
-      const newUrl = new URL(window.location);
-      newUrl.searchParams.set('id', savedPresentation.id);
-      window.history.pushState({}, '', newUrl);
-    }
+    // Redirect to Dashboard
+    setTimeout(() => {
+        window.location.href = '/lesson-presentation/dashboard';
+    }, 1500);
   } catch (error) {
     console.error('Save failed:', error);
     $q.notify({
@@ -672,6 +684,135 @@ const duplicateLesson = async () => {
   }
 };
 
+// Export lesson as JSON file
+const exportLessonAsJSON = () => {
+  try {
+    // Create descriptive filename
+    const lessonName = presentation.value.name || 'Untitled_Lesson';
+    const date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const sanitizedName = lessonName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    const filename = `lesson_${sanitizedName}_${date}.json`;
+    
+    // Prepare export data
+    const exportData = {
+      version: '1.0',
+      exportDate: new Date().toISOString(),
+      lesson: {
+        name: presentation.value.name,
+        description: presentation.value.description,
+        grade_id: presentation.value.grade_id,
+        quiz_id: presentation.value.quiz_id,
+      },
+      sections: sections.value,
+      slides: slides.value,
+      metadata: {
+        subject_name: props.defaultContext?.subject_name,
+        grade_name: props.defaultContext?.grade_name,
+        totalSlides: slides.value.length,
+      }
+    };
+    
+    // Create and download file
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    $q.notify({
+      type: 'positive',
+      message: `Lesson exported as ${filename}`,
+      icon: 'download',
+      position: 'top',
+      timeout: 2000
+    });
+  } catch (error) {
+    console.error('Export failed:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to export lesson',
+      icon: 'error',
+      position: 'top'
+    });
+  }
+};
+
+// Import lesson from JSON file
+const importLessonFromJSON = () => {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      
+      // Validate data structure
+      if (!data.lesson || !data.slides) {
+        throw new Error('Invalid lesson file format');
+      }
+      
+      // Confirm import
+      $q.dialog({
+        title: 'Import Lesson',
+        message: `Import "${data.lesson.name}"? This will replace current unsaved changes.`,
+        cancel: true,
+        persistent: true,
+        ok: {
+          label: 'Import',
+          color: 'primary'
+        }
+      }).onOk(() => {
+        // Load lesson data
+        presentation.value.name = data.lesson.name;
+        presentation.value.description = data.lesson.description;
+        presentation.value.grade_id = data.lesson.grade_id;
+        presentation.value.quiz_id = data.lesson.quiz_id;
+        
+        // Load slides
+        slides.value = data.slides.map(slide => ({
+          ...slide,
+          id: null // Remove IDs so they'll be created as new
+        }));
+        
+        // Load sections if available
+        if (data.sections && data.sections.length > 0) {
+          sections.value = data.sections;
+          // Set first section as current
+          if (!currentSection.value && sections.value.length > 0) {
+            currentSection.value = sections.value[0].id;
+          }
+        }
+        
+        $q.notify({
+          type: 'positive',
+          message: `Lesson "${data.lesson.name}" imported successfully!`,
+          icon: 'upload',
+          position: 'top',
+          timeout: 2000
+        });
+      });
+    } catch (error) {
+      console.error('Import failed:', error);
+      $q.notify({
+        type: 'negative',
+        message: 'Failed to import lesson. Please check the file format.',
+        icon: 'error',
+        position: 'top',
+        timeout: 3000
+      });
+    }
+  };
+  
+  input.click();
+};
+
 
 const fetchPresentation = async (id) => {
   try {
@@ -708,17 +849,39 @@ watch(currentSection, () => {
 onMounted(async () => {
   await teacherStore.fetchTeacherData();
   
+  // Add keyboard navigation
+  window.addEventListener('keydown', handleKeyboard);
+  
   if (activeId.value) {
-    fetchPresentation(activeId.value);
+    await fetchPresentation(activeId.value);
+    // Set first section as default if sections exist
+    if (sections.value.length > 0 && !currentSection.value) {
+      currentSection.value = sections.value[0].id;
+    }
   } else {
     if (slides.value.length === 0) {
       addSlide();
     }
-    // Pre-select first grade if creating new
-    if (teacherStore.grades.length > 0) {
+    
+    // Set first section as default
+    if (sections.value.length > 0) {
+      currentSection.value = sections.value[0].id;
+    }
+    
+    // Priority 1: Use grade_id passed from URL (via defaultContext)
+    if (props.defaultContext.grade_id) {
+        presentation.value.grade_id = parseInt(props.defaultContext.grade_id);
+    } 
+    // Priority 2: Fallback to first grade in store
+    else if (teacherStore.grades.length > 0) {
       presentation.value.grade_id = teacherStore.grades[0].id;
     }
   }
+});
+
+// Cleanup keyboard listener on unmount
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleKeyboard);
 });
 </script>
 

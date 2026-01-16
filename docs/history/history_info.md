@@ -104,6 +104,13 @@ php artisan db:seed
  create the required history file in docs/history (with what you did and what still need to be done if you have)with the correct timestamped name and title, then stage, commit with the specified message format, and push to your current branch.
 
 
+php artisan serve
+npm run dev
 
+public/build is a separate git repository.
+npm run build
+Repository Info:
 
-
+Remote: https://github.com/mrahmedmosaadgh/myclass2026_build.git
+Status: It has many untracked files (the new build assets).
+Do you want me to add all files, commit them, and push to this myclass2026_build repository?

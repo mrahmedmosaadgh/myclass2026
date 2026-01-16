@@ -17,7 +17,10 @@ return new class extends Migration
             $table->foreignId('qu_question_id')->constrained()->onDelete('cascade');
             $table->json('selected_options')->nullable(); // ["A", "C"]
             $table->text('answer_text')->nullable();
-            $table->integer('marks_obtained')->nullable();
+            $table->decimal('marks_obtained', 5, 2)->nullable();
+            $table->text('feedback')->nullable();
+            $table->timestamp('graded_at')->nullable();
+            $table->foreignId('graded_by')->nullable()->constrained('users');
             $table->timestamps();
             
             $table->unique(['qu_attempt_id', 'qu_question_id']);

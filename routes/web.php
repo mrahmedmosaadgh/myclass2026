@@ -157,6 +157,12 @@ Route::middleware([
                 ->name('grading.show');
             Route::post('grading/{attempt}', [\App\Http\Controllers\QuExamController::class, 'saveGrades'])
                 ->name('grading.save');
+
+            // Analytics Routes
+            Route::get('analytics', [\App\Http\Controllers\QuExamController::class, 'analyticsIndex'])
+                ->name('analytics.index');
+            Route::get('analytics/{exam}', [\App\Http\Controllers\QuExamController::class, 'examAnalytics'])
+                ->name('analytics.exam');
             
             // Student Exam Taking Routes
             Route::prefix('student')->name('student.')->group(function () {
@@ -482,6 +488,11 @@ Route::middleware([
         // resources\js\Pages\my_table_mnger/reward_sys/reward_sys.vue
         // my_table_mnger/reward_sys/reward_sys
     })->name('reward_sys'); 
+
+    // Reward system drawing tool
+    Route::get('/reward-system/drawing', function () {
+        return Inertia::render('my_table_mnger/reward_sys/drawing/DrawingMain');
+    })->name('reward.system.drawing');
 
     // Lesson Presentation Routes (moved to separate file)
     require __DIR__.'/web_lesson_presentation.php';

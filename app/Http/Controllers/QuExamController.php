@@ -1000,6 +1000,118 @@ class QuExamController extends Controller
             }) : [],
         ]);
     }
+
+    /**
+     * Teacher: Analytics Dashboard Index
+     */
+    public function analyticsIndex(Request $request)
+    {
+        $exams = QuExam::where('created_by', auth()->id())
+            ->withCount(['attempts as total_attempts', 'attempts as completed_attempts_count' => function($q) {
+                $q->whereNotNull('completed_at');
+            }])
+            ->get()
+            ->map(function($exam) {
+                $scores = $exam->attempts->whereNotNull('completed_at')->pluck('score');
+                $avgScore = $scores->count() > 0 ? $scores->avg() : 0;
+                
+                return [
+                    'id' => $exam->id,
+                    'title' => $exam->title,
+                    'created_at' => $exam->created_at->format('Y-m-d'),
+                    'total_attempts' => $exam->total_attempts,
+                    'completed_attempts' => $exam->completed_attempts_count,
+                    'average_score' => round($avgScore, 2),
+                    'total_marks' => $exam->total_marks,
+                    'pending_grading' => $exam->attempts->where('grading_status', 'pending')->count()
+                ];
+            });
+
+        return Inertia::render('my_class/QuQuestionBankSystem/QuAnalyticsDashboard', [
+            'exams' => $exams
+        ]);
+    }
+
+    /**
+     * Teacher: Detailed Exam Analytics
+     */
+    public function examAnalytics(QuExam $exam)
+    {
+        if ($exam->created_by !== auth()->id()) {
+            abort(403);
+        }
+
+        $exam->load(['questions', 'subject']);
+        
+        $attempts = $exam->attempts()
+            ->whereNotNull('completed_at')
+            ->with(['user', 'answers'])
+            ->get();
+
+        if ($attempts->isEmpty()) {
+            return response()->json(['error' => 'No completed attempts for this exam']);
+        }
+
+        // 1. Score Distribution & Stats
+        $scores = $attempts->pluck('score');
+        $minScore = $scores->min();
+        $maxScore = $scores->max();
+        $avgScore = $scores->avg();
+        $medianScore = $scores->median();
+
+        // 2. Question Difficulty Analysis
+        $questionStats = $exam->questions->map(function($question) use ($attempts) {
+            $answers = $attempts->flatMap->answers->where('qu_question_id', $question->id);
+            
+            $totalAnswers = $answers->count();
+            if ($totalAnswers === 0) return null;
+
+            $totalMarksObtained = $answers->sum('marks_obtained');
+            $maxPossibleMarks = $totalAnswers * $question->marks;
+            
+            // Avoid division by zero
+            $percentageCorrect = $maxPossibleMarks > 0 ? ($totalMarksObtained / $maxPossibleMarks) * 100 : 0;
+
+            return [
+                'id' => $question->id,
+                'text' => $question->question_text,
+                'type' => $question->question_type,
+                'bloom_level' => $question->bloom_level,
+                'percentage_correct' => round($percentageCorrect, 1),
+                'difficulty_label' => $percentageCorrect > 80 ? 'Easy' : ($percentageCorrect > 50 ? 'Medium' : 'Hard')
+            ];
+        })->filter()->values();
+
+        // 3. Bloom Level Performance
+        $bloomStats = $questionStats->groupBy('bloom_level')->map(function($group, $level) {
+            return [
+                'level' => $level ?: 'Unspecified',
+                'avg_percentage' => round($group->avg('percentage_correct'), 1),
+                'count' => $group->count()
+            ];
+        })->values();
+
+        return response()->json([
+            'exam' => [
+                'title' => $exam->title,
+                'subject' => $exam->subject->name,
+                'total_marks' => $exam->total_marks
+            ],
+            'overview' => [
+                'total_attempts' => $attempts->count(),
+                'avg_score' => round($avgScore, 2),
+                'min_score' => $minScore,
+                'max_score' => $maxScore,
+                'median_score' => $medianScore,
+                'pass_rate' => $exam->passing_score ? round(($attempts->where('score', '>=', $exam->passing_score)->count() / $attempts->count()) * 100, 1) : null
+            ],
+            'question_stats' => $questionStats,
+            'bloom_stats' => $bloomStats,
+            'score_distribution' => $scores->countBy(function($score) {
+                return floor($score / 10) * 10 . '-' . (floor($score / 10) * 10 + 9);
+            })->sortKeys()
+        ]);
+    }
     /**
      * Print View for Exam
      */

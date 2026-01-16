@@ -7,6 +7,13 @@
           <div class="text-h5">Exam Management</div>
           <q-space />
           <q-btn
+            color="secondary"
+            label="Analytics"
+            icon="analytics"
+            class="q-mr-sm"
+            @click="goToAnalytics"
+          />
+          <q-btn
             color="primary"
             label="Create Exam"
             icon="add"
@@ -515,6 +522,10 @@ const duplicateExam = (exam) => {
 const confirmDelete = (exam) => {
   examToDelete.value = exam;
   deleteDialog.value = true;
+};
+
+const goToAnalytics = () => {
+  router.visit(route('qu-analytics.index'));
 };
 
 const deleteExam = () => {

@@ -1,0 +1,129 @@
+# Replace Hard-Coded Sections with Template System
+
+## Phase 1: Planning ✓
+- [x] Understand current system
+- [x] Found existing `lesson_plan_templates` table
+- [x] Adapted plan to use existing resources
+
+## Phase 2: Database & Models
+- [ ] Add `sections` JSON column to `lesson_presentations` table
+- [ ] Update [LessonPresentation](file:///Users/ahmedmosaad/Herd/myclass2026-main/app/Models/free/LessonPresentation.php#13-132) model (remove SECTIONS constant, add sections field)
+- [ ] Create seeder with default template
+
+## Phase 3: Backend API
+- [ ] Create `LessonSectionTemplateController` (CRUD operations)
+- [ ] Add routes for template management
+- [ ] Update lesson edit route to load sections from template
+- [ ] Update lesson store to copy sections when creating lesson
+
+## Phase 4: Frontend - Template Manager
+- [ ] Create `SectionTemplateManager.vue` page
+- [ ] Implement template list view with section previews
+- [ ] Implement template create/edit dialog
+- [ ] Add drag-drop for section ordering
+- [ ] Add color pickers for section styling
+
+## Phase 5: Testing
+- [ ] Run migration and seeder
+- [ ] Test creating/editing/deleting templates
+- [ ] Test setting active template
+- [ ] Verify lessons use sections from template
+- [ ] Create walkthrough documentation
+
+## Phase 1: Planning ✓
+- [x] Understand current system
+- [x] Create simplified implementation plan (JSON columns)
+
+## Phase 2: Database & Models
+- [ ] Create migration for `lesson_section_templates` table (with JSON `sections` column)
+- [ ] Add `sections` JSON column to `lesson_presentations` table
+- [ ] Create `LessonSectionTemplate` model
+- [ ] Update [LessonPresentation](file:///Users/ahmedmosaad/Herd/myclass2026-main/app/Models/free/LessonPresentation.php#13-132) model (remove SECTIONS constant, add sections field)
+- [ ] Create seeder with default template
+
+## Phase 3: Backend API
+- [ ] Create `LessonSectionTemplateController` (CRUD operations)
+- [ ] Add routes for template management
+- [ ] Update lesson edit route to load sections from template
+- [ ] Update lesson store to copy sections when creating lesson
+
+## Phase 4: Frontend - Template Manager
+- [ ] Create `SectionTemplateManager.vue` page
+- [ ] Implement template list view with section previews
+- [ ] Implement template create/edit dialog
+- [ ] Add drag-drop for section ordering
+- [ ] Add color pickers for section styling
+
+## Phase 5: Testing
+- [ ] Run migrations and seeder
+- [ ] Test creating/editing/deleting templates
+- [ ] Test setting default template
+- [ ] Verify lessons use sections from template
+- [ ] Create walkthrough documentation
+
+## Phase 1: Planning ✓
+- [x] Understand current system
+- [x] Create revised implementation plan
+
+## Phase 2: Database & Models
+- [ ] Create migration for `lesson_section_templates` table
+- [ ] Create migration for `lesson_sections` table  
+- [ ] Add `section_template_id` column to `lesson_presentations`
+- [ ] Create `LessonSectionTemplate` model
+- [ ] Create `LessonSection` model
+- [ ] Update [LessonPresentation](file:///Users/ahmedmosaad/Herd/myclass2026-main/app/Models/free/LessonPresentation.php#13-132) model (remove SECTIONS constant)
+- [ ] Create seeder with default template
+
+## Phase 3: Backend API
+- [ ] Create `LessonSectionTemplateController`
+- [ ] Add routes for template CRUD operations
+- [ ] Add route for set-default endpoint
+- [ ] Update lesson editor route to load dynamic sections
+
+## Phase 4: Frontend - Template Manager
+- [ ] Create `SectionTemplateManager.vue` page
+- [ ] Implement template list view
+- [ ] Implement template create/edit dialog
+- [ ] Add drag-drop for section ordering
+- [ ] Add color pickers for section styling
+
+## Phase 5: Testing
+- [ ] Test creating new template
+- [ ] Test editing template sections
+- [ ] Test deleting template
+- [ ] Test setting default template
+- [ ] Verify lessons use dynamic sections
+- [ ] Create walkthrough
+
+## Phase 1: Understanding (In Progress)
+- [x] Understand current lesson presentation structure
+- [x] Understand database schema  
+- [x] Understand frontend components
+- [/] Create implementation plan
+
+## Phase 2: Database & Backend
+- [ ] Create migration for `lesson_plan_templates` table
+- [ ] Create [LessonPlanTemplate](file:///Users/ahmedmosaad/Herd/myclass2026-main/app/Models/CourseManagement/LessonPlanTemplate.php#8-65) model
+- [ ] Create `LessonPlanTemplateController` with CRUD operations
+- [ ] Add API routes for template management
+
+## Phase 3: Template Manager UI
+- [ ] Create `TemplateManager.vue` component
+- [ ] Implement template list view
+- [ ] Implement template creation form
+- [ ] Implement template editor (similar to lesson editor)
+- [ ] Add route for template manager page
+
+## Phase 4: Template Selection
+- [ ] Create `TemplateSelector.vue` dialog component
+- [ ] Update lesson creation flow to show template selector
+- [ ] Implement "Apply Template" logic in backend
+- [ ] Hydrate lesson from template structure
+
+## Phase 5: Testing & Verification
+- [ ] Test creating a new template
+- [ ] Test editing existing template
+- [ ] Test creating lesson from blank
+- [ ] Test creating lesson from template
+- [ ] Verify slides are properly generated from template
+- [ ] Create walkthrough documentation

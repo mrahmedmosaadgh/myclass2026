@@ -4,6 +4,7 @@ namespace App\Models\free;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\CourseManagement\LessonPlanTemplate;
 use App\Models\School;
 use App\Models\Teacher;
 use App\Models\Subject;
@@ -14,68 +15,8 @@ class LessonPresentation extends Model
 {
     use HasFactory;
 
-    public const SECTIONS = [
-        [
-            'id' => 'objectives',
-            'title' => 'Objectives',
-            'icon' => '🎯',
-            'qIcon' => 'flag',
-            'bg' => '#fffbeb',
-            'bgActive' => '#fef3c7',
-            'borderColor' => '#f59e0b',
-            'textColor' => '#92400e'
-        ],
-        [
-            'id' => 'warmup',
-            'title' => 'Warm-Up',
-            'icon' => '🔥',
-            'qIcon' => 'whatshot',
-            'bg' => '#fff7ed',
-            'bgActive' => '#fed7aa',
-            'borderColor' => '#ea580c',
-            'textColor' => '#9a3412'
-        ],
-        [
-            'id' => 'learn',
-            'title' => 'Learn',
-            'icon' => '📚',
-            'qIcon' => 'menu_book',
-            'bg' => '#eff6ff',
-            'bgActive' => '#dbeafe',
-            'borderColor' => '#3b82f6',
-            'textColor' => '#1e40af'
-        ],
-        [
-            'id' => 'practice',
-            'title' => 'Practice',
-            'icon' => '✍️',
-            'qIcon' => 'edit_note',
-            'bg' => '#faf5ff',
-            'bgActive' => '#e9d5ff',
-            'borderColor' => '#a855f7',
-            'textColor' => '#6b21a8'
-        ],
-        [
-            'id' => 'homework',
-            'title' => 'Homework',
-            'icon' => '📖',
-            'qIcon' => 'assignment',
-            'bg' => '#eef2ff',
-            'bgActive' => '#c7d2fe',
-            'borderColor' => '#6366f1',
-            'textColor' => '#3730a3'
-        ],
-        [
-            'id' => 'quiz',
-            'title' => 'Quiz',
-            'icon' => '📝',
-            'qIcon' => 'quiz',
-            'bg' => '#f0fdf4',
-            'bgActive' => '#bbf7d0',
-            'borderColor' => '#22c55e',
-            'textColor' => '#15803d'
-        ]
-    ];
+    // Sections are now handled dynamically via database templates
+
 
     protected $fillable = [
         'school_id',
@@ -87,15 +28,35 @@ class LessonPresentation extends Model
         'order',
         'quiz_id',
         'is_active',
+        'sections',
     ];
 
     protected $casts = [
+        'quiz_id' => 'integer',
+        'sections' => 'array',
         'is_active' => 'boolean',
     ];
 
     public function slides()
     {
         return $this->hasMany(LessonPresentationSlide::class);
+    }
+
+    public function getSections()
+    {
+        // If lesson has its own sections, return those
+        if ($this->sections && is_array($this->sections)) {
+            return $this->sections;
+        }
+        
+        // Otherwise, get from active template
+        $activeTemplate = LessonPlanTemplate::where('is_active', true)->first();
+        if ($activeTemplate && isset($activeTemplate->structure['sections'])) {
+            return $activeTemplate->structure['sections'];
+        }
+        
+        // Ultimate fallback (empty array)
+        return [];
     }
 
     public function school()

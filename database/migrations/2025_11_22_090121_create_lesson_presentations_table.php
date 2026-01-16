@@ -17,9 +17,16 @@ return new class extends Migration
             $table->foreignId('teacher_id')->constrained('teachers')->onDelete('cascade');
             $table->foreignId('subject_id')->constrained('subjects')->onDelete('cascade');
             $table->foreignId('grade_id')->constrained('grades')->onDelete('cascade');
+            $table->integer('order')->default(0); // for lesson sequencing
+            $table->unsignedBigInteger('quiz_id')->nullable(); // link to quiz system (future)
+            $table->boolean('is_active')->default(true); // for lesson sequencing
             $table->string('name');
             $table->text('description')->nullable();
+            $table->json('sections')->nullable();
             $table->timestamps();
+            
+            // Index for ordering lessons
+            $table->index(['grade_id', 'subject_id', 'order']);
         });
     }
 

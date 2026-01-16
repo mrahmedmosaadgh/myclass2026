@@ -46,7 +46,7 @@ return new class extends Migration
 
             // Indexes for better performance
             $table->index(['school_id', 'academic_year_id', 'semester_id']);
-            $table->index(['active', 'status']);
+            $table->index(['status']);
             $table->index('copy_date');
         });
     }

@@ -23,13 +23,19 @@ export const useTeacherStore = defineStore('teacher', () => {
                 // Extract grades from the new format
                 grades.value = response.data.data.map(item => ({
                     ...item.grade,
+                    classrooms: item.classrooms, // Preserve classrooms structure
                     subjects: item.classrooms.flatMap(c => c.subjects).filter((s, i, arr) =>
                         arr.findIndex(t => t.id === s.id) === i
                     )
                 }));
 
-                // Extract all classrooms
-                classrooms.value = response.data.data.flatMap(item => item.classrooms);
+                // Extract all classrooms and add grade info to them
+                classrooms.value = response.data.data.flatMap(item =>
+                    item.classrooms.map(c => ({
+                        ...c,
+                        grade: item.grade // Attach grade info
+                    }))
+                );
             } else {
                 // Fallback to old format
                 grades.value = response.data.grades || [];

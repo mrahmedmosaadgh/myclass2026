@@ -19,6 +19,10 @@ class LessonPresentationController extends Controller
             $query->where('grade_id', $request->grade_id);
         }
 
+        if ($request->has('subject_id')) {
+            $query->where('subject_id', $request->subject_id);
+        }
+
         return $query->get();
     }
 
@@ -87,23 +91,40 @@ class LessonPresentationController extends Controller
             'quiz_id' => 'nullable|integer',
         ]);
 
-        $presentation = LessonPresentation::create($validated);
-
-        // Auto-assign to all students in this grade
-        $students = \App\Models\Student::where('grade_id', $validated['grade_id'])->get();
-        
-        foreach ($students as $student) {
-            \App\Models\LessonStudentProgress::create([
-                'lesson_presentation_id' => $presentation->id,
-                'student_id' => $student->id,
-                'status' => 'locked',
-                'color_status' => 'gray',
-                'opened_by_teacher_id' => null,
-                'opened_at' => null,
-            ]);
+        // Copy sections from active template
+        $activeTemplate = \App\Models\CourseManagement\LessonPlanTemplate::where('is_active', true)->first();
+        if ($activeTemplate && isset($activeTemplate->structure['sections'])) {
+            $validated['sections'] = $activeTemplate->structure['sections'];
         }
 
-        return response()->json($presentation, 201);
+        $presentation = LessonPresentation::create($validated);
+
+        // Assign to all students based on school, grade, subject
+        $students = \App\Models\Student::where('school_id', $validated['school_id'])
+            ->where('grade_id', $validated['grade_id'])
+            ->get();
+
+        $progressData = $students->map(function ($student) {
+            return [
+                'student_id' => $student->id,
+                'status' => 'locked',
+            ];
+        })->toArray();
+
+        // Use correct relationship and createMany for efficiency
+        $presentation->studentProgress()->createMany($progressData);
+
+        // Add a default "Welcome" slide to the first section (usually Objectives)
+        $presentation->slides()->create([
+            'section' => $validated['sections'][0]['id'] ?? 'objectives',
+            'slide_type' => 'content_text',
+            'slide_content' => [
+                'title' => 'Welcome to ' . $validated['name'],
+                'content' => $validated['description'] ?? 'Lets get started!',
+            ],
+        ]);
+
+        return response()->json($presentation->load('slides'), 201);
     }
 
     public function update(Request $request, $id)
@@ -135,7 +156,7 @@ class LessonPresentationController extends Controller
         $validated = $request->validate([
             'slide_type' => 'required|string',
             'slide_content' => 'nullable|array', // Allow empty slide_content
-            'section' => 'required|string|in:' . implode(',', array_column(LessonPresentation::SECTIONS, 'id')),
+            'section' => 'required|string',
             'order_index' => 'nullable|integer',
         ]);
         
@@ -163,7 +184,7 @@ class LessonPresentationController extends Controller
         $validated = $request->validate([
             'slide_type' => 'sometimes|string',
             'slide_content' => 'nullable|array', // Allow empty slide_content
-            'section' => 'sometimes|string|in:' . implode(',', array_column(LessonPresentation::SECTIONS, 'id')),
+            'section' => 'sometimes|string',
             'order_index' => 'nullable|integer',
         ]);
         

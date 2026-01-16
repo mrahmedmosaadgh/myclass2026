@@ -299,6 +299,12 @@ Route::middleware(['auth:sanctum', 'web'])->prefix('quiz-sessions')->group(funct
     Route::post('/{session}/answers', [App\Http\Controllers\QuizSessionController::class, 'submitAnswer']);
 });
 
+// Media Upload API Routes
+Route::middleware(['auth:sanctum', 'web'])->group(function () {
+    Route::post('/upload-media', [App\Http\Controllers\MediaUploadController::class, 'upload']);
+    Route::delete('/delete-media', [App\Http\Controllers\MediaUploadController::class, 'delete']);
+});
+
 // Navigation API
 
 

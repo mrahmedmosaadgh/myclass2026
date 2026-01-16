@@ -20,7 +20,7 @@ return new class extends Migration
             $table->foreignId('to_grade_id')->constrained('grades')->onDelete('cascade');
             $table->foreignId('academic_year_id')->nullable()->constrained('academic_years')->onDelete('set null');
             $table->foreignId('semester_id')->nullable()->constrained('semesters')->onDelete('set null');
-            $table->foreignId('changed_by_user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('changed_by_user_id')->constrained('users')->onDelete('cascade'); // Fixed: removed explicit table name
             $table->string('change_reason')->nullable();
             $table->text('notes')->nullable();
             $table->timestamp('changed_at');
