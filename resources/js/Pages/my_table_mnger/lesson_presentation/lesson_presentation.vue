@@ -42,6 +42,18 @@
                <q-tooltip>Duplicate</q-tooltip>
             </q-btn>
             
+            <q-btn 
+              flat 
+              round 
+              dense 
+              icon="auto_awesome" 
+              @click="openAILessonGenerator"
+              style="background: linear-gradient(to right, #9333ea, #4f46e5);"
+              class="text-white"
+            >
+               <q-tooltip>Generate with AI</q-tooltip>
+            </q-btn>
+            
             <q-separator vertical dark class="q-mx-sm" />
             
             <q-btn flat round dense icon="download" @click="exportLessonAsJSON" color="accent">
@@ -56,6 +68,11 @@
             <q-btn flat round dense icon="visibility" @click="showPreview = true" :disable="!activeId">
                <q-tooltip>Preview</q-tooltip>
             </q-btn>
+            
+            <q-btn flat round dense icon="print" @click="openPrintDialog" :disable="!activeId || slides.length === 0" color="deep-orange">
+               <q-tooltip>Print Lesson Plan</q-tooltip>
+            </q-btn>
+            
             <q-btn unelevated color="positive" icon="save" label="Save" @click="savePresentation" :loading="isSaving" />
         </div>
       </q-toolbar>
@@ -186,7 +203,7 @@
 
   <!-- Preview Dialog -->
   <q-dialog v-model="showPreview" maximized>
-    <q-card class="bg-white">
+    <q-card class="bg-grey-1">
       <q-card-section class="row items-center q-pb-none bg-primary text-white">
         <div class="text-h6 flex items-center gap-2">
           <q-icon name="visibility" size="28px" />
@@ -196,7 +213,7 @@
         <q-btn icon="close" flat round dense v-close-popup />
       </q-card-section>
 
-      <q-card-section class="q-pa-none" style="height: calc(100vh - 60px)">
+      <q-card-section class="q-pa-none bg-grey-1" style="height: calc(100vh - 60px)">
         <LessonPlayer
           :presentation="{ ...presentation, name: 'Preview: ' + presentation.name }"
           :sections="sections"
@@ -206,6 +223,24 @@
       </q-card-section>
     </q-card>
   </q-dialog>
+
+  <!-- AI Lesson Plan Generator -->
+  <AILessonPlanGenerator
+    ref="aiLessonGenerator"
+    :lesson-config="lessonConfigForAI"
+    @plan-accepted="handleAIPlanAccepted"
+  />
+
+  <!-- Print Lesson Plan -->
+  <PrintLessonPlan
+    ref="printLessonPlan"
+    :presentation="presentation"
+    :sections="sections"
+    :slides="slides"
+    :teacher-name="teacherStore.teacher?.name || 'Teacher'"
+    :subject-name="defaultContext?.subject_name || 'Subject'"
+    :grade-name="defaultContext?.grade_name || 'Grade'"
+  />
 </template>
 
 <script setup>
@@ -223,6 +258,8 @@ import LessonSidebar from './components/LessonSidebar.vue';
 import LessonPlayer from './components/LessonPlayer.vue';
 import QuizSelector from './components/QuizSelector.vue';
 import FingerDrawingSlide from './components/FingerDrawingSlide.vue';
+import AILessonPlanGenerator from '@/Components/Common/ai/AILessonPlanGenerator.vue';
+import PrintLessonPlan from '@/Components/Common/PrintLessonPlan.vue';
 import { useTeacherStore } from '@/Stores/teacherStore';
 
 const props = defineProps({
@@ -273,8 +310,18 @@ const slides = ref([]);
 const currentSlideIndex = ref(0);
 const isSaving = ref(false);
 const showPreview = ref(false);
+const aiLessonGenerator = ref(null);
+const printLessonPlan = ref(null);
 const showSectionsDrawerRaw = ref(true); // Closed by default on mobile, show-if-above handles desktop
 const showSlideListDialog = ref(true);
+
+// Computed config for AI Generator
+const lessonConfigForAI = computed(() => ({
+  lessonTitle: presentation.value.name || 'New Lesson',
+  subject: props.defaultContext?.subject_name || 'General',
+  grade: props.defaultContext?.grade_name || 'General',
+  sections: sections.value
+}));
 
 // Computed property to make dialog always hidden on small screens
 const showSectionsDrawer = computed({
@@ -812,6 +859,56 @@ const importLessonFromJSON = () => {
   };
   
   input.click();
+};
+
+// AI Lesson Plan Generator Methods
+const openAILessonGenerator = () => {
+  if (!presentation.value.name || presentation.value.name === 'New Lesson') {
+    $q.notify({
+      type: 'warning',
+      message: 'Please set a lesson title first',
+      icon: 'warning',
+      position: 'top'
+    });
+    return;
+  }
+  
+  aiLessonGenerator.value?.open();
+};
+
+const handleAIPlanAccepted = (plan) => {
+  // Add all generated slides to the slides array
+  let addedCount = 0;
+  
+  plan.sections.forEach(section => {
+    section.slides.forEach(slide => {
+      slides.value.push({
+        slide_type: slide.slide_type,
+        slide_content: slide.slide_content,
+        section: section.sectionId
+      });
+      addedCount++;
+    });
+  });
+  
+  $q.notify({
+    type: 'positive',
+    message: `Successfully added ${addedCount} slides from AI! Don't forget to save.`,
+    icon: 'check_circle',
+    position: 'top',
+    timeout: 3000
+  });
+  
+  // Switch to the first section that has slides
+  if (plan.sections.length > 0) {
+    currentSection.value = plan.sections[0].sectionId;
+    currentSlideIndex.value = 0;
+  }
+};
+
+// Print Lesson Plan
+const openPrintDialog = () => {
+  printLessonPlan.value?.open();
 };
 
 

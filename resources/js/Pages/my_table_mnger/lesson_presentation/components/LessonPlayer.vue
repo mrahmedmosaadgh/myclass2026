@@ -610,9 +610,30 @@ const handleAnswerSelected = async (record) => {
 
 const handleQuizCompleted = async (result) => {
   if (props.isPreview) {
-    $q.notify({ type: 'positive', message: `[Preview] Quiz completed! Score: ${result.correct}/${result.total}` });
-    return;
+    $q.notify({
+      type: 'positive',
+      message: `[Preview] Quiz completed! Score: ${result.correct}/${result.total}`,
+      position: 'top'
+    });
+  } else {
+    $q.notify({
+      type: 'positive',
+      message: `Quiz completed! Score: ${result.correct}/${result.total}`,
+      icon: 'celebration',
+      position: 'top'
+    });
   }
+
+  // Mark all questions as solved so we can proceed
+  const questions = currentSlide.value.slide_content?.questions || [];
+  questions.forEach(q => {
+    questionSolved.value[q.id] = true;
+  });
+
+  // Automatically proceed to next slide after a short delay
+  setTimeout(() => {
+    nextSlide();
+  }, 1500);
 };
 
 const fetchQuizInfo = async () => {
@@ -726,11 +747,16 @@ watch(() => props.presentation.quiz_id, (newQuizId) => {
 
 .slide-content-area {
   width: 100%;
-  height: 100%;
-  max-width: 1600px;
-  padding: 40px;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 60px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
   overflow: auto;
+  max-height: calc(100vh - 120px);
 }
+
 
 .floating-nav {
   position: absolute;

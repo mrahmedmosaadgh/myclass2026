@@ -86,6 +86,19 @@ public function share(Request $request): array
     ]);
 }
 
+    /**
+     * Add Content Security Policy headers to response
+     */
+    public function handle($request, \Closure $next)
+    {
+        $response = parent::handle($request, $next);
+        
+        // Add Content Security Policy header allowing framing from Perplexity
+        $response->headers->set('Content-Security-Policy', 
+            "frame-ancestors 'self' https://onedrive.live.com https://*.sharepoint.com https://app.athina.ai https://www.perplexity.ai https://perplexity.ai;");
+        
+        return $response;
+    }
 
 
     public function share2(Request $request): array
