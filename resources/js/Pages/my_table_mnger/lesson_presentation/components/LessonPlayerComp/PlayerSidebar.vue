@@ -10,9 +10,6 @@
   >
     <q-scroll-area class="fit">
       <div class="q-pa-md">
-        <!-- Progress Overview -->
-        <ProgressCard :progress="overallProgress" class="q-mb-md" />
-
         <!-- Sections List -->
         <div class="sections-list">
           <SectionCard
@@ -33,7 +30,6 @@
 </template>
 
 <script setup>
-import ProgressCard from './ProgressCard.vue';
 import SectionCard from './SectionCard.vue';
 
 const props = defineProps({
@@ -56,10 +52,6 @@ const props = defineProps({
   progress: {
     type: Object,
     default: null
-  },
-  overallProgress: {
-    type: Number,
-    default: 0
   },
   canAccessSection: {
     type: Function,

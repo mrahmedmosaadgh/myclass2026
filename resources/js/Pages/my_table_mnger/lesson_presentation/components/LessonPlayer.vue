@@ -7,7 +7,6 @@
       :current-section="currentSection"
       :slides="slides"
       :progress="progress"
-      :overall-progress="overallProgress"
       :can-access-section="canAccessSection"
       :is-section-completed="isSectionCompleted"
       @section-select="handleSectionChange"
@@ -311,6 +310,19 @@
           >
             <q-tooltip>Exit Presentation</q-tooltip>
           </q-btn>
+
+          <!-- Slide Annotation Toggle Button -->
+          <q-btn
+            flat
+            dense
+            round
+            :icon="showSlideAnnotations ? 'edit_off' : 'edit_note'"
+            :color="showSlideAnnotations ? 'deep-orange' : 'white'"
+            @click="toggleSlideAnnotations"
+            class="slide-annotation-btn"
+          >
+            <q-tooltip>{{ showSlideAnnotations ? 'Hide Slide Annotations' : 'Show Slide Annotations' }}</q-tooltip>
+          </q-btn>
         </div>
 
         <!-- No Content State -->
@@ -329,6 +341,18 @@
           </div>
         </div>
       </div>
+
+      <!-- Drawing Overlay (outside main content, true overlay) -->
+      <DrawingOverlay v-if="showFullscreenDialog" ref="drawingOverlayRef" @drawing-state-changed="handleDrawingStateChanged" />
+
+      <!-- Slide Annotation Overlay -->
+      <SlideAnnotationOverlay 
+        v-if="showFullscreenDialog && showSlideAnnotations" 
+        :current-slide-id="getCurrentSlideId()"
+        :current-section="currentSection"
+        :current-slide-index="currentSlideIndex"
+        @close="showSlideAnnotations = false"
+      />
     </q-dialog>
   </q-layout>
 </template>
@@ -342,6 +366,8 @@ import PlayerSidebar from './LessonPlayerComp/PlayerSidebar.vue';
 import SectionBanner from './LessonPlayerComp/SectionBanner.vue';
 import SlideRenderer from './LessonPlayerComp/SlideRenderer.vue';
 import NavigationFooter from './LessonPlayerComp/NavigationFooter.vue';
+import DrawingOverlay from './LessonPlayerComp/DrawingOverlay.vue';
+import SlideAnnotationOverlay from './LessonPlayerComp/SlideAnnotationOverlay.vue';
 
 const $q = useQuasar();
 
@@ -366,6 +392,8 @@ const questionSolved = ref({});
 const quizInfo = ref(null);
 const showFullscreenDialog = ref(false);
 const showSectionMenu = ref(false);
+const drawingOverlayRef = ref(null);
+const showSlideAnnotations = ref(false);
 
 // Computed
 const currentSectionSlides = computed(() => {
@@ -601,6 +629,20 @@ const startQuiz = () => {
   $q.notify({ type: 'info', message: 'Quiz engine integration coming soon!' });
 };
 
+const handleDrawingStateChanged = (isActive) => {
+  // Can handle drawing state changes if needed
+  console.log('Drawing mode:', isActive ? 'active' : 'inactive');
+};
+
+const toggleSlideAnnotations = () => {
+  showSlideAnnotations.value = !showSlideAnnotations.value;
+};
+
+const getCurrentSlideId = () => {
+  const slide = currentSlide.value;
+  return slide?.id || `${currentSection.value}-${currentSlideIndex.value}`;
+};
+
 // Watchers
 watch(currentSection, () => {
   currentSlideIndex.value = 0;
@@ -611,13 +653,22 @@ watch(currentSection, () => {
 
 // Initialize
 onMounted(() => {
+  // Set initial section based on progress or default to first section
   if (props.progress) {
     if (canAccessQuiz.value) currentSection.value = 'quiz';
     else if (canAccessPractice.value && !props.progress.practice_submitted_at) currentSection.value = 'practice';
+    else if (props.sections.length > 0) currentSection.value = props.sections[0].id;
+  } else if (props.sections.length > 0) {
+    // No progress, start with first section
+    currentSection.value = props.sections[0].id;
   }
   
+  // Set section data
   const section = props.sections.find(s => s.id === currentSection.value);
   currentSection_data.value = section;
+  
+  // Reset to first slide
+  currentSlideIndex.value = 0;
   
   if (props.presentation.quiz_id) fetchQuizInfo();
 });
@@ -799,5 +850,17 @@ watch(() => props.presentation.quiz_id, (newQuizId) => {
 .slide-fade-leave-to {
   transform: translateX(-100%);
   opacity: 0;
+}
+
+.slide-annotation-btn {
+  position: absolute;
+  top: 20px;
+  right: 70px;
+  z-index: 100;
+  background: rgba(0,0,0,0.6);
+  
+  &:hover {
+    background: rgba(0,0,0,0.8);
+  }
 }
 </style>
