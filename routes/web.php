@@ -20,6 +20,8 @@ use App\Http\Controllers\PeriodActivityController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\CalendarEventController;
+use App\Http\Controllers\SchoolBrandingController;
+use App\Http\Controllers\Auth\SchoolLoginController;
 
 // Route::get('/', function () {
 //     return Inertia::render('Welcome', [
@@ -29,6 +31,19 @@ use App\Http\Controllers\CalendarEventController;
 //         'phpVersion' => PHP_VERSION,
 //     ]);
 // });
+
+// School-specific login routes (public)
+Route::get('/login/{school_slug}', [SchoolLoginController::class, 'show'])
+    ->name('school.login');
+Route::post('/login/{school_slug}', [SchoolLoginController::class, 'authenticate'])
+    ->name('school.login.authenticate');
+Route::get('/api/school-branding/{school_slug}', [SchoolLoginController::class, 'getBranding'])
+    ->name('school.branding');
+
+// Detect user's school for redirect (public)
+Route::post('/api/detect-school', [App\Http\Controllers\Auth\LoginRedirectController::class, 'detectSchool'])
+    ->name('detect.school');
+
 
 Route::middleware([
     'auth:sanctum',
@@ -225,6 +240,18 @@ Route::middleware([
             Route::get('/helpers/ai-prompt', [App\Http\Controllers\Admin\MenuController::class, 'generateAIPrompt']);
         });
     });
+
+    // School branding settings (admin only)
+    Route::prefix('admin/school-branding')
+        ->name('admin.school-branding.')
+        ->group(function () {
+            Route::get('/', [SchoolBrandingController::class, 'index'])->name('index');
+            Route::put('/{school}', [SchoolBrandingController::class, 'update'])->name('update');
+            Route::post('/{school}/logo', [SchoolBrandingController::class, 'uploadLogo'])->name('upload-logo');
+            Route::post('/{school}/background', [SchoolBrandingController::class, 'uploadBackground'])->name('upload-background');
+            Route::get('/{school}/login-link', [SchoolBrandingController::class, 'generateLoginLink'])->name('login-link');
+            Route::get('/{school}/preview', [SchoolBrandingController::class, 'preview'])->name('preview');
+        });
 });
 
 // Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {

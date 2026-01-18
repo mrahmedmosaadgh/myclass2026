@@ -42,6 +42,7 @@ export default {
         users: 'المستخدمين',
         documents: 'المستندات',
         allRightsReserved: 'جميع الحقوق محفوظة',
+        selectLanguage: 'اختر اللغة',
         status: {
             draft: 'مسودة',
             pending: 'قيد الانتظار',
@@ -526,6 +527,19 @@ export default {
             lastWeek: 'الأسبوع الماضي',
             nextWeek: 'الأسبوع القادم',
             selectWeek: 'اختر الأسبوع',
+        }
+    },
+    // Missing translations for weekly system components
+    weeklySystem: {
+        mySchedule: {
+            emptyState: 'لم يتم تعيين جدول بعد',
+            free: 'فارغ',
+            totalClasses: 'إجمالي الحصص',
+            classrooms: 'الفصول',
+            subjects: 'المواد',
+        },
+        notifications: {
+            loadFailed: 'فشل تحميل البيانات',
         }
     }
 };

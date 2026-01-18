@@ -112,4 +112,95 @@ class School extends Model
     {
         return $this->belongsTo(User::class, 'resolved_by');
     }
+
+    /**
+     * Get the branding data from the JSON data column
+     */
+    public function getBrandingAttribute()
+    {
+        $data = $this->data ?? [];
+        return $data['branding'] ?? [
+            'school_slug' => null,
+            'logo_path' => null,
+            'background_path' => null,
+            'school_name_en' => $this->name,
+            'school_name_ar' => $this->name_ar,
+            'colors' => [
+                'primary' => '#6366f1',
+                'secondary' => '#8b5cf6',
+                'accent' => '#ec4899'
+            ],
+            'login_page_settings' => [
+                'show_particles' => true,
+                'animation_style' => 'fade',
+                'card_style' => 'glassmorphism'
+            ]
+        ];
+    }
+
+    /**
+     * Set the branding data in the JSON data column
+     */
+    public function setBrandingAttribute($value)
+    {
+        $data = $this->data ?? [];
+        $data['branding'] = $value;
+        $this->attributes['data'] = json_encode($data);
+    }
+
+    /**
+     * Get the school slug for URL routing
+     */
+    public function getSchoolSlugAttribute()
+    {
+        $branding = $this->branding;
+        
+        // If slug exists in branding, use it
+        if (!empty($branding['school_slug'])) {
+            return $branding['school_slug'];
+        }
+        
+        // Otherwise, generate from school name
+        return \Illuminate\Support\Str::slug($this->name);
+    }
+
+    /**
+     * Update branding data
+     */
+    public function updateBranding(array $brandingData)
+    {
+        $currentBranding = $this->branding;
+        $updatedBranding = array_merge($currentBranding, $brandingData);
+        
+        $data = $this->data ?? [];
+        $data['branding'] = $updatedBranding;
+        $this->data = $data;
+        $this->save();
+        
+        return $this;
+    }
+
+    /**
+     * Get the full URL for the logo
+     */
+    public function getLogoUrlAttribute()
+    {
+        $branding = $this->branding;
+        if (!empty($branding['logo_path'])) {
+            return asset('storage/' . $branding['logo_path']);
+        }
+        return null;
+    }
+
+    /**
+     * Get the full URL for the background image
+     */
+    public function getBackgroundUrlAttribute()
+    {
+        $branding = $this->branding;
+        if (!empty($branding['background_path'])) {
+            return asset('storage/' . $branding['background_path']);
+        }
+        return null;
+    }
 }

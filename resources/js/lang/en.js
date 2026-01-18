@@ -42,6 +42,7 @@
         users: 'Users',
         documents: 'Documents',
         allRightsReserved: 'All rights reserved',
+        selectLanguage: 'Select Language',
         status: {
             draft: 'Draft',
             pending: 'Pending',
@@ -538,6 +539,19 @@
             lastWeek: 'Last Week',
             nextWeek: 'Next Week',
             selectWeek: 'Select Week',
+        }
+    },
+    // Missing translations for weekly system components
+    weeklySystem: {
+        mySchedule: {
+            emptyState: 'No schedule assigned yet',
+            free: 'Free',
+            totalClasses: 'Total Classes',
+            classrooms: 'Classrooms',
+            subjects: 'Subjects',
+        },
+        notifications: {
+            loadFailed: 'Failed to load data',
         }
     }
 };

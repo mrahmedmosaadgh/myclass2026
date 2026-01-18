@@ -1,4 +1,5 @@
 <script setup>
+import { ref } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import AuthenticationCard from '@/Components/AuthenticationCard.vue';
 import AuthenticationCardLogo from '@/Components/AuthenticationCardLogo.vue';
@@ -18,6 +19,31 @@ const form = useForm({
     password: '',
     remember: false,
 });
+
+const detectingSchool = ref(false);
+
+// Detect user's school when email is entered
+async function detectSchool() {
+    if (!form.email || form.email.length < 3) return;
+    
+    detectingSchool.value = true;
+    
+    try {
+        const response = await axios.post(route('detect.school'), {
+            email: form.email
+        });
+        
+        if (response.data.redirect) {
+            // Redirect to school-specific login page with email as query parameter
+            window.location.href = response.data.redirect + '?email=' + encodeURIComponent(form.email);
+        }
+    } catch (error) {
+        // User not found or no school - continue with default login
+        console.log('No school detected, using default login');
+    } finally {
+        detectingSchool.value = false;
+    }
+}
 
 const submit = () => {
     form.transform(data => ({
@@ -52,11 +78,12 @@ const submit = () => {
                     required
                     autofocus
                     autocomplete="username"
+                    @blur="detectSchool"
                 />
                 <InputError class="mt-2" :message="form.errors.email" />
             </div>
 
-            <div class="mt-4">
+            <div v-if="!detectingSchool" class="mt-4">
                 <InputLabel for="password" value="Password" />
                 <TextInput
                     id="password"
@@ -69,14 +96,14 @@ const submit = () => {
                 <InputError class="mt-2" :message="form.errors.password" />
             </div>
 
-            <div class="block mt-4">
+            <div v-if="!detectingSchool" class="block mt-4">
                 <label class="flex items-center">
                     <Checkbox v-model:checked="form.remember" name="remember" />
                     <span class="ms-2 text-sm text-gray-600">Remember me</span>
                 </label>
             </div>
 
-            <div class="flex items-center justify-end mt-4">
+            <div v-if="!detectingSchool" class="flex items-center justify-end mt-4">
                 <Link v-if="canResetPassword" :href="route('password.request')" class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                     Forgot your password?
                 </Link>
@@ -84,6 +111,10 @@ const submit = () => {
                 <PrimaryButton class="ms-4" :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
                     Log in
                 </PrimaryButton>
+            </div>
+            
+            <div v-if="detectingSchool" class="mt-4 text-center text-sm text-gray-600">
+                Detecting your school...
             </div>
         </form>
     </AuthenticationCard>
