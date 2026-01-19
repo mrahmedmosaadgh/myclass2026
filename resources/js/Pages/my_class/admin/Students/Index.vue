@@ -179,7 +179,7 @@
               clearable
               emit-value
               map-options
-              :disable="!filters.stage_id"
+              :disable="!filters.school_id"
               @update:model-value="onGradeChange"
             >
               <template v-slot:prepend>
@@ -200,11 +200,19 @@
               clearable
               emit-value
               map-options
-              :disable="!filters.grade_id"
+              :disable="!filters.school_id"
               @update:model-value="applyFilters"
+              @popup-show="onClassroomDropdownShow"
             >
               <template v-slot:prepend>
                 <q-icon name="meeting_room" />
+              </template>
+              <template v-slot:no-option>
+                <q-item>
+                  <q-item-section class="text-grey">
+                    {{ classrooms.length === 0 ? 'Click to load classrooms...' : 'No classrooms available' }}
+                  </q-item-section>
+                </q-item>
               </template>
             </q-select>
           </div>
@@ -248,6 +256,12 @@
               {{ selected.length }} student(s) selected
             </div>
           </div>
+        </template>
+
+        <template v-slot:body-cell-index="props">
+          <q-td :props="props">
+            {{ props.rowIndex + 1 }}
+          </q-td>
         </template>
 
         <template v-slot:body-cell-avatar="props">
@@ -340,8 +354,8 @@
     </q-card>
 
     <!-- Bulk Actions Toolbar (appears when students selected) -->
-    <q-page-sticky position="bottom" :offset="[0, 18]" v-if="selected.length > 0">
-      <q-toolbar class="bg-primary text-white shadow-up-2">
+    <div v-if="selected.length > 0" style="position: fixed; bottom: 18px; left: 0; right: 0; z-index: 2000; padding: 0 16px;">
+      <q-toolbar class="bg-primary text-white shadow-up-2" style="border-radius: 4px;">
         <q-toolbar-title>
           {{ selected.length }} student(s) selected
         </q-toolbar-title>
@@ -371,7 +385,7 @@
           @click="selected = []"
         />
       </q-toolbar>
-    </q-page-sticky>
+    </div>
 
     <!-- Student Form Dialog -->
     <q-dialog v-model="showStudentDialog" persistent>
@@ -421,6 +435,30 @@
             
             <!-- Show these fields only when editing -->
             <template v-if="editingStudent">
+              <!-- Current Student Info Banner -->
+              <div class="col-12">
+                <q-banner class="bg-grey-2 q-mb-md" rounded>
+                  <template v-slot:avatar>
+                    <q-icon name="info" color="primary" />
+                  </template>
+                  <div class="text-weight-bold">Current Assignment:</div>
+                  <div>
+                    <q-chip dense color="secondary" text-color="white" icon="business">
+                      {{ editingStudent.school?.name || 'N/A' }}
+                    </q-chip>
+                    <q-chip dense color="info" text-color="white" icon="layers">
+                      {{ editingStudent.stage?.name || 'N/A' }}
+                    </q-chip>
+                    <q-chip dense color="primary" text-color="white" icon="school">
+                      {{ editingStudent.grade?.name || 'N/A' }}
+                    </q-chip>
+                    <q-chip dense color="accent" text-color="white" icon="meeting_room">
+                      {{ editingStudent.classroom?.name || 'N/A' }}
+                    </q-chip>
+                  </div>
+                </q-banner>
+              </div>
+
               <div class="col-12 col-md-6">
                 <q-select
                   v-model="studentForm.school_id"
@@ -477,7 +515,20 @@
                   map-options
                   :disable="!studentForm.grade_id"
                   :rules="[val => !!val || 'Classroom is required']"
-                />
+                  @update:model-value="onClassroomChange"
+                >
+                  <template v-slot:prepend>
+                    <q-icon name="meeting_room" />
+                  </template>
+                </q-select>
+                
+                <!-- Warning when classroom is changed -->
+                <q-banner v-if="classroomChanged" class="bg-warning text-white q-mt-sm" dense rounded>
+                  <template v-slot:avatar>
+                    <q-icon name="warning" />
+                  </template>
+                  <strong>Warning:</strong> Changing the classroom will update the student's assignment and may affect their schedule and records.
+                </q-banner>
               </div>
             </template>
             <div class="col-12">
@@ -594,6 +645,30 @@
         </q-card-section>
 
         <q-card-section v-if="!importWithClassroomPreview.length">
+          <!-- Import Mode Selector -->
+          <div class="q-mb-md">
+            <div class="text-subtitle2 q-mb-sm">Import Mode</div>
+            <q-option-group
+              v-model="importMode"
+              :options="importModeOptions"
+              color="purple"
+              inline
+            />
+            <q-banner class="bg-blue-1 q-mt-sm" dense rounded>
+              <template v-slot:avatar>
+                <q-icon :name="importMode === 'skip' ? 'info' : 'update'" color="primary" />
+              </template>
+              <div class="text-caption">
+                <span v-if="importMode === 'skip'">
+                  <strong>Skip Mode:</strong> Existing students will be left unchanged. Only new students will be created.
+                </span>
+                <span v-else>
+                  <strong>Update Mode:</strong> Existing students will be updated with new data from Excel (non-empty fields only).
+                </span>
+              </div>
+            </q-banner>
+          </div>
+
           <q-file
             v-model="importWithClassroomFile"
             label="Select Excel file with classroom column"
@@ -628,27 +703,149 @@
           </q-banner>
         </q-card-section>
 
-        <q-card-section v-else class="q-pt-none" style="max-height: 400px; overflow-y: auto">
-          <div class="text-subtitle2 q-mb-sm">Preview ({{ importWithClassroomPreview.length }} students)</div>
+        <q-card-section v-else class="q-pt-none">
+          <div class="text-subtitle2 q-mb-sm">Preview ({{ filteredPreviewRecords.length }} of {{ importWithClassroomPreview.length }} students)</div>
+          
+          <!-- Filter Buttons (only show after validation) -->
+          <div v-if="validationResults.length" class="q-mb-md">
+            <q-btn-group outline>
+              <q-btn 
+                :outline="statusFilter !== 'all'"
+                :unelevated="statusFilter === 'all'"
+                label="All"
+                color="grey-7"
+                size="sm"
+                @click="statusFilter = 'all'"
+              />
+              <q-btn 
+                v-if="validationSummary.errors > 0"
+                :outline="statusFilter !== 'error'"
+                :unelevated="statusFilter === 'error'"
+                :label="`❌ Errors (${validationSummary.errors})`"
+                color="negative"
+                size="sm"
+                @click="statusFilter = 'error'"
+              />
+              <q-btn 
+                v-if="validationSummary.will_create > 0"
+                :outline="statusFilter !== 'will_create'"
+                :unelevated="statusFilter === 'will_create'"
+                :label="`✅ Create (${validationSummary.will_create})`"
+                color="positive"
+                size="sm"
+                @click="statusFilter = 'will_create'"
+              />
+              <q-btn 
+                v-if="validationSummary.will_update > 0"
+                :outline="statusFilter !== 'will_update'"
+                :unelevated="statusFilter === 'will_update'"
+                :label="`📝 Update (${validationSummary.will_update})`"
+                color="primary"
+                size="sm"
+                @click="statusFilter = 'will_update'"
+              />
+              <q-btn 
+                v-if="validationSummary.will_restore > 0"
+                :outline="statusFilter !== 'will_restore'"
+                :unelevated="statusFilter === 'will_restore'"
+                :label="`🔄 Restore (${validationSummary.will_restore})`"
+                color="info"
+                size="sm"
+                @click="statusFilter = 'will_restore'"
+              />
+              <q-btn 
+                v-if="validationSummary.will_skip > 0"
+                :outline="statusFilter !== 'will_skip'"
+                :unelevated="statusFilter === 'will_skip'"
+                :label="`⏭️ Skip (${validationSummary.will_skip})`"
+                color="warning"
+                size="sm"
+                @click="statusFilter = 'will_skip'"
+              />
+            </q-btn-group>
+          </div>
+
           <q-table
-            :rows="importWithClassroomPreview"
+            :rows="filteredPreviewRecords"
             :columns="importWithClassroomColumns"
             row-key="index"
             flat
+            bordered
             dense
-            :pagination="{ rowsPerPage: 10 }"
-          />
+            :pagination="{ rowsPerPage: 20 }"
+            style="max-height: 400px"
+            virtual-scroll
+          >
+            <template v-slot:body-cell-status="props">
+              <q-td :props="props">
+                <q-badge 
+                  v-if="props.row.validationStatus"
+                  :color="props.row.validationColor || 'grey'"
+                  :label="props.row.validationIcon + ' ' + props.row.validationMessage"
+                />
+                <q-badge 
+                  v-else
+                  color="grey" 
+                  label="⏳ Pending validation"
+                />
+              </q-td>
+            </template>
+          </q-table>
+
+          <!-- Validation Summary (below table) -->
+          <div v-if="validationSummary" class="q-mt-md">
+            <q-separator class="q-mb-md" />
+            <div class="text-subtitle2 q-mb-sm">📊 Validation Summary</div>
+            <div class="row q-gutter-sm">
+              <q-chip color="grey-3" text-color="grey-9" dense>
+                <strong>Total:</strong> {{ validationSummary.total }}
+              </q-chip>
+              <q-chip v-if="validationSummary.will_create > 0" color="positive" text-color="white" dense>
+                ✅ Will Create: {{ validationSummary.will_create }}
+              </q-chip>
+              <q-chip v-if="validationSummary.will_update > 0" color="primary" text-color="white" dense>
+                📝 Will Update: {{ validationSummary.will_update }}
+              </q-chip>
+              <q-chip v-if="validationSummary.will_restore > 0" color="info" text-color="white" dense>
+                🔄 Will Restore: {{ validationSummary.will_restore }}
+              </q-chip>
+              <q-chip v-if="validationSummary.will_skip > 0" color="warning" text-color="white" dense>
+                ⏭️ Will Skip: {{ validationSummary.will_skip }}
+              </q-chip>
+              <q-chip v-if="validationSummary.errors > 0" color="negative" text-color="white" dense>
+                ❌ Errors: {{ validationSummary.errors }}
+              </q-chip>
+            </div>
+            <q-banner v-if="validationSummary.errors > 0" class="bg-red-1 text-negative q-mt-sm" dense rounded>
+              <template v-slot:avatar>
+                <q-icon name="warning" color="negative" />
+              </template>
+              <strong>Cannot import:</strong> Please fix {{ validationSummary.errors }} error(s) before importing.
+              Click the "❌ Errors" filter above to see only problematic records.
+            </q-banner>
+          </div>
         </q-card-section>
 
         <q-card-actions align="right">
           <q-btn flat label="Cancel" color="negative" @click="closeSchoolWideImportDialog" />
           <q-btn
-            v-if="importWithClassroomPreview.length"
+            v-if="importWithClassroomPreview.length && !validationResults.length"
+            unelevated
+            label="Validate All"
+            color="info"
+            icon="fact_check"
+            @click="validateAllRecords"
+            :loading="validating"
+          />
+          <q-btn
+            v-if="validationResults.length"
             unelevated
             label="Import All"
             color="purple"
+            icon="upload"
             @click="executeSchoolWideImport"
             :loading="importing"
+            :disable="validationSummary && validationSummary.errors > 0"
           />
         </q-card-actions>
       </q-card>
@@ -689,6 +886,8 @@ const saving = ref(false)
 const importFile = ref(null)
 const importPreviewData = ref([])
 const importing = ref(false)
+const classroomChanged = ref(false)
+const originalClassroomId = ref(null)
 
 // School-wide import state
 const showSchoolWideImportDialog = ref(false)
@@ -702,7 +901,27 @@ const importPreviewColumns = [
   { name: 'notes', label: 'Notes', field: 'notes', align: 'left' }
 ]
 
+// Import mode state
+const importMode = ref('skip') // 'skip' or 'update'
+const importModeOptions = [
+  { label: 'Skip Duplicates (Safe)', value: 'skip', description: 'Only create new students' },
+  { label: 'Update Existing', value: 'update', description: 'Update duplicate students with new data' }
+]
+
+// Validation state
+const validating = ref(false)
+const validationResults = ref([])
+const validationSummary = ref(null)
+const statusFilter = ref('all') // 'all', 'error', 'will_create', 'will_update', 'will_skip', 'will_restore'
+
 const importWithClassroomColumns = [
+  { 
+    name: 'status', 
+    label: 'Status', 
+    field: 'status', 
+    align: 'center',
+    format: (val) => val || 'pending'
+  },
   { name: 'name', label: 'Name', field: 'name', align: 'left' },
   { name: 'name_ar', label: 'Arabic Name', field: 'name_ar', align: 'left' },
   { name: 'name_cute', label: 'Nickname', field: 'name_cute', align: 'left' },
@@ -754,11 +973,20 @@ const pagination = ref({
 // Table columns
 const columns = [
   {
+    name: 'index',
+    label: '#',
+    field: 'index',
+    align: 'left',
+    sortable: false,
+    style: 'width: 50px'
+  },
+  {
     name: 'avatar',
     label: '',
-    field: 'avatar',
+    field: 'name', // Use name field for avatar
     align: 'center',
-    style: 'width: 60px'
+    style: 'width: 60px',
+    sortable: false
   },
   {
     name: 's_id',
@@ -777,29 +1005,30 @@ const columns = [
   {
     name: 'school',
     label: 'School',
-    field: row => row.school?.name,
+    field: row => row.school?.name || '',
     align: 'left',
     sortable: true
   },
   {
     name: 'grade',
     label: 'Grade',
-    field: row => row.grade?.name,
+    field: row => row.grade?.name || '',
     align: 'left',
     sortable: true
   },
   {
     name: 'classroom',
     label: 'Classroom',
-    field: row => row.classroom?.name,
+    field: row => row.classroom?.name || '',
     align: 'left',
     sortable: true
   },
   {
     name: 'actions',
     label: 'Actions',
-    field: 'actions',
-    align: 'center'
+    field: 'id', // Use id field for actions
+    align: 'center',
+    sortable: false
   }
 ]
 
@@ -837,6 +1066,17 @@ const getSelectedContext = () => {
   return `${getSelectedSchoolName()} → ${getSelectedGradeName()} → ${getSelectedClassroomName()}`
 }
 
+// Computed property for filtered preview records
+const filteredPreviewRecords = computed(() => {
+  if (statusFilter.value === 'all') {
+    return importWithClassroomPreview.value
+  }
+  
+  return importWithClassroomPreview.value.filter(row => {
+    return row.validationStatus === statusFilter.value
+  })
+})
+
 // Methods
 const getInitials = (name) => {
   if (!name) return '?'
@@ -856,7 +1096,9 @@ const onSchoolChange = async () => {
   classrooms.value = []
 
   if (filters.value.school_id) {
-    await loadStages(filters.value.school_id)
+    // Load stages but also load classrooms for the school directly
+    loadStages(filters.value.school_id)
+    await loadClassrooms(filters.value.school_id, 'school')
   }
   applyFilters()
 }
@@ -865,22 +1107,52 @@ const onStageChange = async () => {
   filters.value.grade_id = null
   filters.value.classroom_id = null
   grades.value = []
-  classrooms.value = []
+  // Don't clear classrooms, we might want to show stage-specific ones
 
   if (filters.value.stage_id) {
     await loadGrades(filters.value.stage_id)
+    await loadClassrooms(filters.value.stage_id, 'stage')
+  } else {
+    // Revert to school classrooms if stage is cleared
+    if (filters.value.school_id) {
+      await loadClassrooms(filters.value.school_id, 'school')
+    } else {
+      classrooms.value = []
+    }
   }
   applyFilters()
 }
 
 const onGradeChange = async () => {
   filters.value.classroom_id = null
-  classrooms.value = []
+  // Don't clear classrooms immediately
 
   if (filters.value.grade_id) {
-    await loadClassrooms(filters.value.grade_id)
+    await loadClassrooms(filters.value.grade_id, 'grade')
+  } else {
+    // Revert to stage or school classrooms
+    if (filters.value.stage_id) {
+      await loadClassrooms(filters.value.stage_id, 'stage')
+    } else if (filters.value.school_id) {
+      await loadClassrooms(filters.value.school_id, 'school')
+    } else {
+      classrooms.value = []
+    }
   }
   applyFilters()
+}
+
+const onClassroomDropdownShow = async () => {
+  // Load classrooms when dropdown is opened (if not already loaded)
+  if (classrooms.value.length === 0 && filters.value.school_id) {
+    if (filters.value.grade_id) {
+      await loadClassrooms(filters.value.grade_id, 'grade')
+    } else if (filters.value.stage_id) {
+      await loadClassrooms(filters.value.stage_id, 'stage')
+    } else {
+      await loadClassrooms(filters.value.school_id, 'school')
+    }
+  }
 }
 
 const loadStages = async (schoolId) => {
@@ -901,12 +1173,23 @@ const loadGrades = async (stageId) => {
   }
 }
 
-const loadClassrooms = async (gradeId) => {
+const loadClassrooms = async (id, type) => {
   try {
-    const response = await axios.get(`/admin/classrooms/by-grade/${gradeId}`)
+    let url = ''
+    if (type === 'school') {
+      url = `/admin/classrooms/by-school/${id}`
+    } else if (type === 'stage') {
+      url = `/admin/classrooms/by-stage/${id}`
+    } else {
+      // Default to grade for backward compatibility or explicit 'grade' type
+      url = `/admin/classrooms/by-grade/${id}`
+    }
+    
+    const response = await axios.get(url)
     classrooms.value = response.data
   } catch (error) {
     console.error('Error loading classrooms:', error)
+    classrooms.value = []
   }
 }
 
@@ -962,8 +1245,12 @@ const onRequest = (props) => {
 }
 
 const openStudentDialog = (student = null) => {
+  classroomChanged.value = false
+  originalClassroomId.value = null
+  
   if (student) {
     editingStudent.value = student
+    originalClassroomId.value = student.classroom_id
     studentForm.value = {
       name: student.name,
       name_ar: student.name_ar,
@@ -993,6 +1280,13 @@ const openStudentDialog = (student = null) => {
     }
   }
   showStudentDialog.value = true
+}
+
+const onClassroomChange = () => {
+  // Check if classroom has been changed from original
+  if (editingStudent.value && originalClassroomId.value !== null) {
+    classroomChanged.value = studentForm.value.classroom_id !== originalClassroomId.value
+  }
 }
 
 const onFormSchoolChange = async () => {
@@ -1095,10 +1389,53 @@ const viewHistory = async (student) => {
 }
 
 const handleExport = () => {
-  $q.notify({
-    type: 'info',
-    message: 'Export functionality coming soon!'
-  })
+  if (students.value.length === 0) {
+    $q.notify({
+      type: 'warning',
+      message: 'No students to export'
+    })
+    return
+  }
+
+  try {
+    // Prepare data for export
+    const exportData = students.value.map(student => ({
+      'ID': student.s_id || '',
+      'Name': student.name || '',
+      'Arabic Name': student.name_ar || '',
+      'Nickname': student.name_cute || '',
+      'School': student.school?.name || '',
+      'Stage': student.stage?.name || '',
+      'Grade': student.grade?.name || '',
+      'Classroom': student.classroom?.name || '',
+      'Notes': student.notes || ''
+    }))
+
+    // Create worksheet
+    const ws = XLSX.utils.json_to_sheet(exportData)
+    
+    // Create workbook
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Students')
+
+    // Generate filename with timestamp
+    const timestamp = new Date().toISOString().split('T')[0]
+    const filename = `students_export_${timestamp}.xlsx`
+
+    // Download file
+    XLSX.writeFile(wb, filename)
+
+    $q.notify({
+      type: 'positive',
+      message: `Successfully exported ${students.value.length} students`
+    })
+  } catch (error) {
+    console.error('Export error:', error)
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to export students'
+    })
+  }
 }
 
 const bulkChangeClassroom = () => {
@@ -1109,10 +1446,53 @@ const bulkChangeClassroom = () => {
 }
 
 const exportSelected = () => {
-  $q.notify({
-    type: 'info',
-    message: `Exporting ${selected.value.length} students...`
-  })
+  if (selected.value.length === 0) {
+    $q.notify({
+      type: 'warning',
+      message: 'No students selected'
+    })
+    return
+  }
+
+  try {
+    // Prepare data for export
+    const exportData = selected.value.map(student => ({
+      'ID': student.s_id || '',
+      'Name': student.name || '',
+      'Arabic Name': student.name_ar || '',
+      'Nickname': student.name_cute || '',
+      'School': student.school?.name || '',
+      'Stage': student.stage?.name || '',
+      'Grade': student.grade?.name || '',
+      'Classroom': student.classroom?.name || '',
+      'Notes': student.notes || ''
+    }))
+
+    // Create worksheet
+    const ws = XLSX.utils.json_to_sheet(exportData)
+    
+    // Create workbook
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Students')
+
+    // Generate filename with timestamp
+    const timestamp = new Date().toISOString().split('T')[0]
+    const filename = `students_export_${timestamp}.xlsx`
+
+    // Download file
+    XLSX.writeFile(wb, filename)
+
+    $q.notify({
+      type: 'positive',
+      message: `Successfully exported ${selected.value.length} students`
+    })
+  } catch (error) {
+    console.error('Export error:', error)
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to export students'
+    })
+  }
 }
 
 const bulkDelete = () => {
@@ -1313,7 +1693,9 @@ const executeSchoolWideImport = async () => {
   const totalRecords = importWithClassroomPreview.value.length
   let processed = 0
   let created = 0
+  let updated = 0
   let duplicates = 0
+  let restored = 0
   let failed = 0
   const errors = []
 
@@ -1342,21 +1724,31 @@ const executeSchoolWideImport = async () => {
           name_ar: row.name_ar,
           name_cute: row.name_cute,
           classroom: row.classroom,
-          notes: row.notes
+          notes: row.notes,
+          import_mode: importMode.value // Pass the selected import mode
         })
 
         processed++
 
-        // Track status
-        if (response.data.status === 'created') {
+        // Track status based on response
+        const status = response.data.status
+        if (status === 'created') {
           created++
-        } else if (response.data.status === 'duplicate') {
+        } else if (status === 'updated') {
+          updated++
+        } else if (status === 'duplicate') {
           duplicates++
+        } else if (status === 'restored') {
+          restored++
         }
 
         // Update progress
+        const statusText = importMode.value === 'update' 
+          ? `Created: ${created} | Updated: ${updated} | Restored: ${restored} | Skipped: ${duplicates} | Failed: ${failed}`
+          : `Created: ${created} | Restored: ${restored} | Duplicates: ${duplicates} | Failed: ${failed}`
+
         progressDialog.update({
-          message: `Processing ${processed} of ${totalRecords} students...\nCreated: ${created} | Duplicates: ${duplicates} | Failed: ${failed}`,
+          message: `Processing ${processed} of ${totalRecords} students...\\n${statusText}`,
           progress: {
             value: processed / totalRecords
           }
@@ -1372,8 +1764,12 @@ const executeSchoolWideImport = async () => {
         })
 
         // Update progress
+        const statusText = importMode.value === 'update' 
+          ? `Created: ${created} | Updated: ${updated} | Restored: ${restored} | Skipped: ${duplicates} | Failed: ${failed}`
+          : `Created: ${created} | Restored: ${restored} | Duplicates: ${duplicates} | Failed: ${failed}`
+
         progressDialog.update({
-          message: `Processing ${processed} of ${totalRecords} students...\nCreated: ${created} | Duplicates: ${duplicates} | Failed: ${failed}`,
+          message: `Processing ${processed} of ${totalRecords} students...\\n${statusText}`,
           progress: {
             value: processed / totalRecords
           }
@@ -1385,12 +1781,16 @@ const executeSchoolWideImport = async () => {
     progressDialog.hide()
 
     // Show results
-    const resultMessage = `Import Complete!\n\n✅ Created: ${created}\n⏭️ Duplicates: ${duplicates}\n❌ Failed: ${failed}`
+    let resultMessage = `Import Complete!\\n\\n✅ Created: ${created}`
+    if (updated > 0) resultMessage += `\\n📝 Updated: ${updated}`
+    if (restored > 0) resultMessage += `\\n🔄 Restored: ${restored}`
+    if (duplicates > 0) resultMessage += `\\n⏭️ Skipped: ${duplicates}`
+    if (failed > 0) resultMessage += `\\n❌ Failed: ${failed}`
 
     if (failed > 0) {
       $q.dialog({
         title: 'Import Completed with Errors',
-        message: resultMessage + '\n\nCheck console for error details.',
+        message: resultMessage + '\\n\\nCheck console for error details.',
         html: true
       })
       console.log('Import Errors:', errors)
@@ -1428,6 +1828,47 @@ const triggerSchoolWideImport = () => {
   showSchoolWideImportDialog.value = true
 }
 
+const validateAllRecords = async () => {
+  validating.value = true
+  
+  try {
+    const response = await axios.post('/admin/students/validate-import-batch', {
+      school_id: filters.value.school_id,
+      students: importWithClassroomPreview.value,
+      import_mode: importMode.value
+    })
+
+    validationResults.value = response.data.validations
+    validationSummary.value = response.data.summary
+
+    // Update preview table with validation results
+    importWithClassroomPreview.value = importWithClassroomPreview.value.map((row, index) => {
+      const validation = validationResults.value[index]
+      return {
+        ...row,
+        validationStatus: validation.status,
+        validationMessage: validation.message,
+        validationIcon: validation.icon,
+        validationColor: validation.color
+      }
+    })
+
+    $q.notify({
+      type: 'positive',
+      message: `Validation complete! ${validationSummary.value.total} records checked.`,
+      timeout: 2000
+    })
+
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: 'Validation failed: ' + (error.message || 'Unknown error')
+    })
+  } finally {
+    validating.value = false
+  }
+}
+
 const closeImportDialog = () => {
   showImportDialog.value = false
   importFile.value = null
@@ -1438,6 +1879,9 @@ const closeSchoolWideImportDialog = () => {
   showSchoolWideImportDialog.value = false
   importWithClassroomFile.value = null
   importWithClassroomPreview.value = []
+  validationResults.value = []
+  validationSummary.value = null
+  statusFilter.value = 'all'
 }
 
 // Initialize

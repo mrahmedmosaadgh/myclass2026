@@ -481,6 +481,7 @@ class StudentController extends Controller
     /**
      * Import students with classroom column - school-wide import
      * Processes ONE record at a time to avoid timeout
+     * Supports two modes: 'skip' (default) or 'update'
      */
     public function importWithClassroom(Request $request)
     {
@@ -491,12 +492,14 @@ class StudentController extends Controller
             'name_ar' => 'nullable|string',
             'name_cute' => 'nullable|string',
             'notes' => 'nullable|string',
+            'import_mode' => 'nullable|string|in:skip,update',
         ]);
 
         try {
             $schoolId = $request->school_id;
             $name = trim($request->name);
             $classroomName = trim($request->classroom);
+            $importMode = $request->import_mode ?? 'skip'; // Default to skip mode
 
             // Smart classroom matching
             $classroom = $this->findClassroom($classroomName, $schoolId);
@@ -504,8 +507,17 @@ class StudentController extends Controller
             if (!$classroom) {
                 return response()->json([
                     'success' => false,
-                    'status' => 'failed',
+                    'status' => 'classroom_not_found',
                     'message' => "Classroom '{$classroomName}' not found in this school"
+                ]);
+            }
+
+            // Validate classroom belongs to the selected school
+            if ($classroom->school_id != $schoolId) {
+                return response()->json([
+                    'success' => false,
+                    'status' => 'classroom_mismatch',
+                    'message' => "Classroom '{$classroom->name}' belongs to a different school"
                 ]);
             }
 
@@ -513,26 +525,98 @@ class StudentController extends Controller
             if (empty($classroom->stage_id) || empty($classroom->grade_id)) {
                 return response()->json([
                     'success' => false,
-                    'status' => 'failed',
+                    'status' => 'classroom_invalid',
                     'message' => "Classroom '{$classroom->name}' is missing stage_id or grade_id. Please configure the classroom properly."
                 ]);
             }
 
-            // Check for duplicates (case-insensitive)
-            $existingStudent = Student::where('classroom_id', $classroom->id)
-                ->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])
-                ->first();
+            // Check for duplicates using normalized name comparison
+            $duplicateCheck = $this->checkDuplicateStudent($name, $schoolId, $classroom->id);
 
-            if ($existingStudent) {
-                return response()->json([
-                    'success' => true,
-                    'status' => 'duplicate',
-                    'message' => "Student '{$name}' already exists in {$classroom->name}"
-                ]);
+            if ($duplicateCheck) {
+                // Handle soft-deleted students
+                if ($duplicateCheck['status'] === 'soft_deleted') {
+                    $softDeletedStudent = $duplicateCheck['student'];
+                    $daysSinceDeletion = $duplicateCheck['days_since_deletion'];
+
+                    // Time-based restoration logic
+                    if ($daysSinceDeletion <= 7) {
+                        // Auto-restore (likely accidental deletion)
+                        $softDeletedStudent->restore();
+                        $softDeletedStudent->update([
+                            'classroom_id' => $classroom->id,
+                            'grade_id' => $classroom->grade_id,
+                            'stage_id' => $classroom->stage_id,
+                            'name_ar' => trim($request->name_ar ?? $softDeletedStudent->name_ar ?? ''),
+                            'name_cute' => trim($request->name_cute ?? $softDeletedStudent->name_cute ?? ''),
+                            'notes' => trim($request->notes ?? $softDeletedStudent->notes ?? ''),
+                        ]);
+
+                        return response()->json([
+                            'success' => true,
+                            'status' => 'restored',
+                            'message' => "Student '{$name}' was restored (deleted {$daysSinceDeletion} days ago)",
+                            'student_id' => $softDeletedStudent->id
+                        ]);
+                    } elseif ($daysSinceDeletion <= 90) {
+                        // Ask user (return warning status)
+                        return response()->json([
+                            'success' => true,
+                            'status' => 'soft_deleted_warning',
+                            'message' => "Student '{$name}' was deleted {$daysSinceDeletion} days ago. Creating new record.",
+                            'days_since_deletion' => $daysSinceDeletion
+                        ]);
+                    }
+                    // If > 90 days, proceed to create new student (fall through)
+                }
+
+                // Handle active duplicate students
+                if ($duplicateCheck['status'] === 'duplicate') {
+                    $existingStudent = $duplicateCheck['student'];
+
+                    if ($importMode === 'update') {
+                        // Update mode: Update existing student with non-empty fields
+                        $updateData = [];
+                        
+                        if (!empty($request->name_ar)) {
+                            $updateData['name_ar'] = trim($request->name_ar);
+                        }
+                        if (!empty($request->name_cute)) {
+                            $updateData['name_cute'] = trim($request->name_cute);
+                        }
+                        if (!empty($request->notes)) {
+                            $updateData['notes'] = trim($request->notes);
+                        }
+                        
+                        // Always update classroom assignment
+                        $updateData['classroom_id'] = $classroom->id;
+                        $updateData['grade_id'] = $classroom->grade_id;
+                        $updateData['stage_id'] = $classroom->stage_id;
+                        $updateData['school_id'] = $classroom->school_id;
+
+                        $existingStudent->update($updateData);
+
+                        return response()->json([
+                            'success' => true,
+                            'status' => 'updated',
+                            'message' => "Student '{$name}' updated successfully in {$classroom->name}",
+                            'student_id' => $existingStudent->id,
+                            'updated_fields' => array_keys($updateData)
+                        ]);
+                    } else {
+                        // Skip mode: Return duplicate status
+                        return response()->json([
+                            'success' => true,
+                            'status' => 'duplicate',
+                            'message' => "Student '{$name}' already exists in {$classroom->name}",
+                            'student_id' => $existingStudent->id
+                        ]);
+                    }
+                }
             }
 
-            // Create student (user will be created automatically by Student model)
-            // Use classroom's stage_id and grade_id directly
+            // No duplicate found - create new student
+            // User will be created automatically by Student model
             $student = Student::create([
                 'name' => $name,
                 'name_ar' => trim($request->name_ar ?? ''),
@@ -552,10 +636,16 @@ class StudentController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('Student import error: ' . $e->getMessage(), [
+                'name' => $request->name ?? null,
+                'classroom' => $request->classroom ?? null,
+                'trace' => $e->getTraceAsString()
+            ]);
+
             return response()->json([
                 'success' => false,
                 'status' => 'error',
-                'message' => 'Failed to create student: ' . $e->getMessage()
+                'message' => 'Failed to process student: ' . $e->getMessage()
             ], 422);
         }
     }
@@ -604,8 +694,215 @@ class StudentController extends Controller
             ->select('id', 'name', 'school_id', 'stage_id', 'grade_id')
             ->first();
 
-        return $classroom;
     }
+
+    /**
+     * Check for duplicate student using normalized name comparison
+     * Returns null if no duplicate, or array with status and student data
+     */
+    private function checkDuplicateStudent($name, $schoolId, $classroomId = null)
+    {
+        $normalizedName = Student::normalizeName($name);
+
+        // Check for active students with same normalized name
+        $query = Student::where('school_id', $schoolId)
+            ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower($normalizedName)]);
+        
+        if ($classroomId) {
+            $query->where('classroom_id', $classroomId);
+        }
+
+        $existingStudent = $query->first();
+
+        if ($existingStudent) {
+            return [
+                'status' => 'duplicate',
+                'student' => $existingStudent
+            ];
+        }
+
+        // Check for soft-deleted students with same normalized name
+        $softDeletedQuery = Student::onlyTrashed()
+            ->where('school_id', $schoolId)
+            ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower($normalizedName)]);
+        
+        if ($classroomId) {
+            $softDeletedQuery->where('classroom_id', $classroomId);
+        }
+
+        $softDeletedStudent = $softDeletedQuery->first();
+
+        if ($softDeletedStudent) {
+            $daysSinceDeletion = now()->diffInDays($softDeletedStudent->deleted_at);
+            
+            return [
+                'status' => 'soft_deleted',
+                'student' => $softDeletedStudent,
+                'days_since_deletion' => $daysSinceDeletion
+            ];
+        }
+
+        return null; // No duplicate found
+    }
+
+    /**
+     * Validate a batch of students before import
+     * Returns status for each student and overall summary
+     */
+    public function validateImportBatch(Request $request)
+    {
+        $request->validate([
+            'school_id' => 'required|exists:schools,id',
+            'students' => 'required|array',
+            'students.*.name' => 'required|string',
+            'students.*.classroom' => 'required|string',
+            'students.*.name_ar' => 'nullable|string',
+            'students.*.name_cute' => 'nullable|string',
+            'students.*.notes' => 'nullable|string',
+            'import_mode' => 'nullable|string|in:skip,update',
+        ]);
+
+        $schoolId = $request->school_id;
+        $students = $request->students;
+        $importMode = $request->import_mode ?? 'skip';
+
+        $validations = [];
+        $summary = [
+            'total' => count($students),
+            'will_create' => 0,
+            'will_update' => 0,
+            'will_skip' => 0,
+            'will_restore' => 0,
+            'errors' => 0,
+        ];
+
+        foreach ($students as $index => $studentData) {
+            $name = trim($studentData['name']);
+            $classroomName = trim($studentData['classroom']);
+
+            // Find classroom
+            $classroom = $this->findClassroom($classroomName, $schoolId);
+
+            if (!$classroom) {
+                $validations[] = [
+                    'index' => $index,
+                    'name' => $name,
+                    'classroom' => $classroomName,
+                    'status' => 'error',
+                    'message' => "Classroom '{$classroomName}' not found",
+                    'icon' => '❌',
+                    'color' => 'negative'
+                ];
+                $summary['errors']++;
+                continue;
+            }
+
+            // Validate classroom
+            if ($classroom->school_id != $schoolId) {
+                $validations[] = [
+                    'index' => $index,
+                    'name' => $name,
+                    'classroom' => $classroomName,
+                    'status' => 'error',
+                    'message' => "Classroom belongs to different school",
+                    'icon' => '❌',
+                    'color' => 'negative'
+                ];
+                $summary['errors']++;
+                continue;
+            }
+
+            if (empty($classroom->stage_id) || empty($classroom->grade_id)) {
+                $validations[] = [
+                    'index' => $index,
+                    'name' => $name,
+                    'classroom' => $classroomName,
+                    'status' => 'error',
+                    'message' => "Classroom missing stage_id or grade_id",
+                    'icon' => '❌',
+                    'color' => 'negative'
+                ];
+                $summary['errors']++;
+                continue;
+            }
+
+            // Check for duplicates
+            $duplicateCheck = $this->checkDuplicateStudent($name, $schoolId, $classroom->id);
+
+            if ($duplicateCheck) {
+                if ($duplicateCheck['status'] === 'soft_deleted') {
+                    $daysSinceDeletion = $duplicateCheck['days_since_deletion'];
+                    
+                    if ($daysSinceDeletion <= 7) {
+                        $validations[] = [
+                            'index' => $index,
+                            'name' => $name,
+                            'classroom' => $classroomName,
+                            'status' => 'will_restore',
+                            'message' => "Will restore (deleted {$daysSinceDeletion} days ago)",
+                            'icon' => '🔄',
+                            'color' => 'info'
+                        ];
+                        $summary['will_restore']++;
+                    } else {
+                        $validations[] = [
+                            'index' => $index,
+                            'name' => $name,
+                            'classroom' => $classroomName,
+                            'status' => 'will_create',
+                            'message' => "Will create new (old record deleted {$daysSinceDeletion} days ago)",
+                            'icon' => '✅',
+                            'color' => 'positive'
+                        ];
+                        $summary['will_create']++;
+                    }
+                } elseif ($duplicateCheck['status'] === 'duplicate') {
+                    if ($importMode === 'update') {
+                        $validations[] = [
+                            'index' => $index,
+                            'name' => $name,
+                            'classroom' => $classroomName,
+                            'status' => 'will_update',
+                            'message' => 'Will update existing student',
+                            'icon' => '📝',
+                            'color' => 'primary'
+                        ];
+                        $summary['will_update']++;
+                    } else {
+                        $validations[] = [
+                            'index' => $index,
+                            'name' => $name,
+                            'classroom' => $classroomName,
+                            'status' => 'will_skip',
+                            'message' => 'Already exists, will skip',
+                            'icon' => '⏭️',
+                            'color' => 'warning'
+                        ];
+                        $summary['will_skip']++;
+                    }
+                }
+            } else {
+                // No duplicate - will create
+                $validations[] = [
+                    'index' => $index,
+                    'name' => $name,
+                    'classroom' => $classroomName,
+                    'status' => 'will_create',
+                    'message' => 'Will create new student',
+                    'icon' => '✅',
+                    'color' => 'positive'
+                ];
+                $summary['will_create']++;
+            }
+        }
+
+        return response()->json([
+            'validations' => $validations,
+            'summary' => $summary
+        ]);
+    }
+
+
 
     /**
      * Delegate import to CourseManagement\StudentImportController to reuse import logic.

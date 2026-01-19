@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Notify, copyToClipboard } from 'quasar';
+import axios from 'axios';
 
 const props = defineProps({
     schools: Array,

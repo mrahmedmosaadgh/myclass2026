@@ -45,7 +45,7 @@
             <select
                 v-model="selectedClassroom"
                 @change="handleClassroomChange"
-                :disabled="!selectedGrade"
+                :disabled="!selectedSchool"
                 class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
             >
                 <option value="">Select Classroom</option>
@@ -89,7 +89,7 @@ const selectedGrade = ref('');
 const selectedClassroom = ref('');
 const canApplyFilters = ref(false);
 
-const handleSchoolChange = () => {
+const handleSchoolChange = async () => {
     selectedStage.value = '';
     selectedGrade.value = '';
     selectedClassroom.value = '';
@@ -100,6 +100,8 @@ const handleSchoolChange = () => {
 
     if (selectedSchool.value) {
         loadStages(selectedSchool.value);
+        await loadClassrooms(selectedSchool.value, 'school');
+        canApplyFilters.value = true;
     }
 };
 
@@ -107,26 +109,42 @@ const handleStageChange = async () => {
     selectedGrade.value = '';
     selectedClassroom.value = '';
     grades.value = [];
-    classrooms.value = [];
-    canApplyFilters.value = false;
+    canApplyFilters.value = true;
 
     if (selectedStage.value) {
         await loadGrades(selectedStage.value);
+        await loadClassrooms(selectedStage.value, 'stage');
+    } else {
+        // If stage is cleared, reload classrooms for the school
+        if (selectedSchool.value) {
+            await loadClassrooms(selectedSchool.value, 'school');
+        } else {
+            classrooms.value = [];
+        }
     }
 };
 
 const handleGradeChange = async () => {
     selectedClassroom.value = '';
-    classrooms.value = [];
-    canApplyFilters.value = false;
+    canApplyFilters.value = true;
 
     if (selectedGrade.value) {
-        await loadClassrooms(selectedGrade.value);
+        await loadClassrooms(selectedGrade.value, 'grade');
+    } else {
+        // If grade is cleared, reload classrooms for the stage (or school)
+        if (selectedStage.value) {
+            await loadClassrooms(selectedStage.value, 'stage');
+        } else if (selectedSchool.value) {
+            await loadClassrooms(selectedSchool.value, 'school');
+        } else {
+            classrooms.value = [];
+        }
     }
 };
 
 const handleClassroomChange = () => {
-    canApplyFilters.value = Boolean(selectedClassroom.value);
+    // Just ensure filters can be applied
+    canApplyFilters.value = true;
 };
 
 const loadStages = (schoolId) => {
@@ -155,9 +173,18 @@ const loadGrades = async (stageId) => {
     }
 };
 
-const loadClassrooms = async (gradeId) => {
+const loadClassrooms = async (id, type) => {
     try {
-        const response = await axios.get(`/admin/classrooms/by-grade/${gradeId}`);
+        let url = '';
+        if (type === 'school') {
+            url = `/admin/classrooms/by-school/${id}`;
+        } else if (type === 'stage') {
+            url = `/admin/classrooms/by-stage/${id}`;
+        } else if (type === 'grade') {
+            url = `/admin/classrooms/by-grade/${id}`;
+        }
+
+        const response = await axios.get(url);
         classrooms.value = response.data;
     } catch (error) {
         console.error('Error loading classrooms:', error);

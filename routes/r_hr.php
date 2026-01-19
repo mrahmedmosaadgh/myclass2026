@@ -139,6 +139,8 @@ Route::post('/schedule-copies/{id}/execute-schedule-changes', [ScheduleCopyContr
         ->name('students.get-school-students');
     Route::post('students/import-with-classroom', [StudentController::class, 'importWithClassroom'])
         ->name('students.import-with-classroom');
+    Route::post('students/validate-import-batch', [StudentController::class, 'validateImportBatch'])
+        ->name('students.validate-import-batch');
     Route::post('students/import', [StudentController::class, 'import'])
         ->name('students.import');
 
@@ -175,8 +177,14 @@ Route::post('/schedule-copies/{id}/execute-schedule-changes', [ScheduleCopyContr
     // Filter Routes
     Route::get('stages/by-school/{schoolId}', [SchoolFilterController::class, 'getStagesBySchool'])
         ->name('stages.by-school');
+    Route::get('grades/by-school/{schoolId}', [SchoolFilterController::class, 'getGradesBySchool'])
+        ->name('grades.by-school');
     Route::get('grades/by-stage/{stageId}', [SchoolFilterController::class, 'getGradesByStage'])
         ->name('grades.by-stage');
+    Route::get('classrooms/by-school/{schoolId}', [SchoolFilterController::class, 'getClassroomsBySchool'])
+        ->name('classrooms.by-school');
+    Route::get('classrooms/by-stage/{stageId}', [SchoolFilterController::class, 'getClassroomsByStage'])
+        ->name('classrooms.by-stage');
     Route::get('classrooms/by-grade/{gradeId}', [SchoolFilterController::class, 'getClassroomsByGrade'])
         ->name('classrooms.by-grade');
 

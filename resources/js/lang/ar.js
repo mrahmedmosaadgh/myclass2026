@@ -74,8 +74,6 @@ export default {
         assigned: 'مُعين',
         conflicts: 'التعارضات',
         noConflicts: 'لا توجد تعارضات',
-        empty: 'فارغ',
-        aiGenerate: 'توليد عبر الذكاء الاصطناعي',
     },
     permissions: {
         dashboard: 'لوحة الصلاحيات',
@@ -529,14 +527,78 @@ export default {
             selectWeek: 'اختر الأسبوع',
         }
     },
-    // Missing translations for weekly system components
+    // Weekly system menu items and other components
     weeklySystem: {
+        menu: {
+            schoolBrowser: 'متصفح المدرسة',
+            manager: 'المدير',
+            scheduleCopies: 'نسخ الجداول',
+            timetable: 'الجدول الزمني',
+            mySchedule: 'جدولي',
+            myPlans: 'خطتي',
+        },
+        schoolBrowser: {
+            title: 'متصفح المدرسة',
+            subtitle: 'تصفح المدارس والفصول والمواد والمعلمين',
+            overviewTab: 'نظرة عامة',
+            classroomsTab: 'الفصول',
+            assignmentsTab: 'المهام',
+            selectSchool: 'اختر مدرسة وقم بتكوين إعداداتها',
+            selectSchoolHint: 'اختر مدرسة من القائمة أعلاه وحدد العام الدراسي والفصل الدراسي ونسخة الجدول',
+            noDataTitle: 'لا توجد بيانات متاحة',
+            noDataSubtitle: 'يرجى تكوين إعدادات المدرسة أولاً',
+        },
+        scheduleCopies: {
+            title: 'إدارة نسخ الجداول',
+            subtitle: 'إدارة إصدارات مختلفة من الجداول',
+        },
+        timetableEditor: {
+            title: 'محرر الجدول الزمني',
+            subtitle: 'تحرير وإدارة جداول الفصول الدراسية',
+            activateSchedule: 'تفعيل الجدول',
+            selectClassroom: 'اختر الفصل',
+            chooseClassroom: 'اختر الفصل',
+            conflictDetails: 'تفاصيل التعارض',
+            assignedTo: 'مُعين إلى'
+        },
+        weeklyPlansManager: {
+            title: 'مدير الخطط الأسبوعية',
+            subtitle: 'توليد ومراقبة وطباعة الخطط الأسبوعية للمعلمين',
+        },
         mySchedule: {
+            title: 'جدولي',
+            subtitle: 'عرض جدول التدريس الشخصي',
             emptyState: 'لم يتم تعيين جدول بعد',
             free: 'فارغ',
             totalClasses: 'إجمالي الحصص',
             classrooms: 'الفصول',
             subjects: 'المواد',
+        },
+        myWeeklyPlans: {
+            title: 'خطتي الأسبوعية',
+            subtitle: 'املأ خطط الدروس الأسبوعية الخاصة بك',
+            tableView: 'عرض الجدول',
+            noClassroom: 'لا يوجد فصل',
+            noSubject: 'لا يوجد مادة',
+            classwork: 'العمل الصفي',
+            homework: 'الواجب المنزلي',
+            notes: 'الملاحظات',
+            noClasswork: 'لا يوجد عمل صفي',
+            noHomework: 'لا يوجد واجب منزلي',
+            noNotes: 'لا توجد ملاحظات',
+            copied: 'تم النسخ',
+            paste: 'لصق',
+            edit: 'تعديل',
+            save: 'حفظ',
+            cancel: 'إلغاء',
+            noPlans: 'لا توجد خطط لهذا الأسبوع',
+            selectWeek: 'يرجى اختيار أسبوع لعرض الخطط',
+        },
+        weekSelector: {
+            currentWeek: 'الأسبوع الحالي',
+            lastWeek: 'الأسبوع الماضي',
+            nextWeek: 'الأسبوع القادم',
+            selectWeek: 'اختر الأسبوع',
         },
         notifications: {
             loadFailed: 'فشل تحميل البيانات',

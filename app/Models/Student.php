@@ -56,7 +56,7 @@ class Student extends Model
             // Generate a unique s_id if not provided
             if (empty($student->s_id)) {
                 do {
-                    $uniqueId = 'p' . strtolower(Str::random(4, 'abcdefghjkmnqrstuvwxyz')) . rand(10000, 99999);
+                    $uniqueId = 's' . strtolower(Str::random(4, 'abcdefghjkmnqrstuvwxyz')) . rand(10000, 99999);
                 } while (self::where('s_id', $uniqueId)->exists());
 
                 $student->s_id = $uniqueId;

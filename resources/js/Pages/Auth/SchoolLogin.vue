@@ -51,7 +51,7 @@ const submit = () => {
 
 <template>
     <div class="school-login-page">
-        <Head :title="`Login - ${branding.school_name_en}`">
+        <Head :title="branding.school_name_en">
             <link 
                 rel="icon" 
                 type="image/x-icon" 
