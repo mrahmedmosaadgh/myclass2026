@@ -826,6 +826,42 @@
           </div>
         </q-card-section>
 
+        <!-- Import Results (shown after completion) -->
+        <q-card-section v-if="importCompleted" class="bg-green-1 q-pa-md">
+          <div class="text-h6 text-positive q-mb-md">
+            <q-icon name="check_circle" size="sm" class="q-mr-sm" />
+            Import Complete!
+          </div>
+          <div class="row q-gutter-sm q-mb-sm">
+            <q-chip color="grey-7" text-color="white" size="md">
+              <strong>Total:</strong> {{ importResults.created + importResults.updated + importResults.restored + importResults.duplicates + importResults.failed }}
+            </q-chip>
+          </div>
+          <div class="row q-gutter-sm">
+            <q-chip v-if="importResults.created > 0" color="positive" text-color="white" size="md">
+              ✅ Created: {{ importResults.created }}
+            </q-chip>
+            <q-chip v-if="importResults.updated > 0" color="primary" text-color="white" size="md">
+              📝 Updated: {{ importResults.updated }}
+            </q-chip>
+            <q-chip v-if="importResults.restored > 0" color="info" text-color="white" size="md">
+              🔄 Restored: {{ importResults.restored }}
+            </q-chip>
+            <q-chip v-if="importResults.duplicates > 0" color="warning" text-color="white" size="md">
+              ⏭️ Skipped: {{ importResults.duplicates }}
+            </q-chip>
+            <q-chip v-if="importResults.failed > 0" color="negative" text-color="white" size="md">
+              ❌ Failed: {{ importResults.failed }}
+            </q-chip>
+          </div>
+          <q-banner v-if="importResults.failed > 0" class="bg-red-1 text-negative q-mt-md" dense rounded>
+            <template v-slot:avatar>
+              <q-icon name="error" color="negative" />
+            </template>
+            <strong>{{ importResults.failed }} record(s) failed.</strong> Check browser console for details.
+          </q-banner>
+        </q-card-section>
+
         <q-card-actions align="right">
           <q-btn flat label="Cancel" color="negative" @click="closeSchoolWideImportDialog" />
           <q-btn
@@ -913,6 +949,10 @@ const validating = ref(false)
 const validationResults = ref([])
 const validationSummary = ref(null)
 const statusFilter = ref('all') // 'all', 'error', 'will_create', 'will_update', 'will_skip', 'will_restore'
+
+// Import completion state
+const importCompleted = ref(false)
+const importResults = ref(null)
 
 const importWithClassroomColumns = [
   { 
@@ -1780,30 +1820,21 @@ const executeSchoolWideImport = async () => {
     // Close progress dialog
     progressDialog.hide()
 
-    // Show results
-    let resultMessage = `Import Complete!\\n\\n✅ Created: ${created}`
-    if (updated > 0) resultMessage += `\\n📝 Updated: ${updated}`
-    if (restored > 0) resultMessage += `\\n🔄 Restored: ${restored}`
-    if (duplicates > 0) resultMessage += `\\n⏭️ Skipped: ${duplicates}`
-    if (failed > 0) resultMessage += `\\n❌ Failed: ${failed}`
-
-    if (failed > 0) {
-      $q.dialog({
-        title: 'Import Completed with Errors',
-        message: resultMessage + '\\n\\nCheck console for error details.',
-        html: true
-      })
-      console.log('Import Errors:', errors)
-    } else {
-      $q.notify({
-        type: 'positive',
-        message: resultMessage,
-        html: true,
-        timeout: 5000
-      })
+    // Store import results for display
+    importResults.value = {
+      created,
+      updated,
+      restored,
+      duplicates,
+      failed,
+      errors
     }
 
-    closeSchoolWideImportDialog()
+    // Show results in dialog instead of closing
+    importCompleted.value = true
+    importing.value = false
+
+    // Refresh the student list
     await applyFilters()
 
   } catch (error) {
@@ -1812,7 +1843,6 @@ const executeSchoolWideImport = async () => {
       type: 'negative',
       message: 'Import failed: ' + (error.message || 'Unknown error')
     })
-  } finally {
     importing.value = false
   }
 }
@@ -1882,6 +1912,8 @@ const closeSchoolWideImportDialog = () => {
   validationResults.value = []
   validationSummary.value = null
   statusFilter.value = 'all'
+  importCompleted.value = false
+  importResults.value = null
 }
 
 // Initialize

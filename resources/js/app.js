@@ -59,8 +59,8 @@ import languageSwitcher from './plugins/languageSwitcher.js';
 import('./loadStyles.js');
 
 // Import language files
-import en from './lang/en';
-import ar from './lang/ar';
+import enMessages from './lang/en.json';
+import arMessages from './lang/ar.json';
 
 const pinia = createPinia();
 
@@ -94,14 +94,15 @@ const initDarkMode = () => {
 
 // Initialize dark mode
 initDarkMode();
+
 // Create i18n instance
 const i18n = createI18n({
     legacy: false, // Set to false to use Composition API
     locale: savedLocale,
     fallbackLocale: 'en',
     messages: {
-        en,
-        ar
+        en: enMessages,
+        ar: arMessages
     },
     missing: (locale, key) => {
         console.log(`[i18n] Missing translation: ${key} in ${locale} locale`);
