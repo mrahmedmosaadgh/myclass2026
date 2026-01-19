@@ -9,7 +9,7 @@ The application was experiencing persistent `[i18n] Missing translation` warning
 3.  **Updated App Entry Point**: Modified `resources/js/app.js` to import the new `.json` translation files and removed the `.default` property access which was causing empty message objects in the `i18n` instance.
 4.  **Reinstalled vue-i18n**: Uninstalled the existing `vue-i18n` package and reinstalled version 9 (`vue-i18n@9`) to ensure compatibility and resolve potential internal package conflicts.
 5.  **Fixed Language Switcher**: Rewrote `resources/js/plugins/languageSwitcher.js` to correctly handle `vue-i18n` v9's `global.locale` property. Added `window.location.reload()` to force a full page reload upon language change, ensuring all components render with the correct translations immediately.
-6.  **Added Missing Keys**: Added the missing `common.empty` translation key to both English ("Empty") and Arabic ("فارغ") JSON files.
+7.  **Cleanup**: Removed the obsolete `resources/js/lang/en.js` and `resources/js/lang/ar.js` files to prevent confusion, as the system now exclusively uses the new JSON files.
 
 ## Status
 - **Validation**: Confirmed that the build process (`npm run build`) completes successfully.
