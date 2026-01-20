@@ -332,6 +332,11 @@ card2
 
 
 
+    <!-- Audio Elements -->
+    <audio ref="bgMusic" loop id="bg-music">
+      <source src="/audio/background_music2.mp3" type="audio/mpeg">
+    </audio>
+
     <!-- Main Tabs -->
 
     <q-card class="shadow-lg rounded-2xl" v-if="students.length">
@@ -348,6 +353,15 @@ card2
         <q-tab name="history" icon="cancel" :label="$t('rewardSys.tabs.history')" />
         <q-tab name="champions" icon="emoji_events" :label="$t('rewardSys.tabs.champions')" @click="showLeaderboard = true" />
         <q-tab name="settings_reports" icon="settings_applications" :label="$t('rewardSys.tabs.settingsReports')" />
+        <div class="absolute-right q-pa-sm flex items-center">
+             <q-toggle
+              v-model="isMusicEnabled"
+              checked-icon="music_note"
+              unchecked-icon="music_off"
+              :label="isMusicEnabled ? $t('rewardSys.musicOn') : $t('rewardSys.musicOff')"
+              color="primary"
+            />
+        </div>
       </q-tabs>
 
       <q-separator />
@@ -1209,6 +1223,57 @@ import draw from './final/draw.vue'
 import draw2 from './final/draw2.vue'
 import draw3 from './final/draw3.vue'
 
+// Sound files
+const soundFiles = {
+  select: '/audio/click-234708.mp3',
+  reward: '/audio/purchase-success-384963.mp3',
+  penalty: '/audio/error-010-206498.mp3'
+}
+
+const audioObjects = {}
+const bgMusic = ref(null)
+const isMusicEnabled = ref(false)
+
+// Initialize music settings
+onMounted(() => {
+  // Preload sound effects
+  for (const [key, src] of Object.entries(soundFiles)) {
+    const audio = new Audio(src)
+    audio.load() // Allow browser to load metadata/buffer
+    audioObjects[key] = audio
+  }
+
+  const storedMusicSetting = localStorage.getItem('reward-system-bg-music')
+  isMusicEnabled.value = storedMusicSetting === 'true'
+  
+  if (bgMusic.value) {
+    bgMusic.value.volume = 0.1 // Set low volume
+    if (isMusicEnabled.value) {
+      bgMusic.value.play().catch(e => console.log('Autoplay prevented:', e))
+    }
+  }
+})
+
+watch(isMusicEnabled, (newValue) => {
+  localStorage.setItem('reward-system-bg-music', newValue)
+  if (bgMusic.value) {
+    if (newValue) {
+      bgMusic.value.play().catch(e => console.log('Playback error:', e))
+    } else {
+      bgMusic.value.pause()
+    }
+  }
+})
+
+const playSound = (type) => {
+  const audio = audioObjects[type]
+  if (audio) {
+    // Reset time to allow rapid playback
+    audio.currentTime = 0
+    audio.play().catch(e => console.log('Sound play error:', e))
+  }
+}
+
 const { t, locale } = useI18n()
 
 const getBehaviorName = (behavior) => {
@@ -1814,6 +1879,8 @@ function toggleSelected(studentId) {
   const idx = selectedIds.value.indexOf(studentId)
   if (idx === -1) {
     selectedIds.value.push(studentId)
+    // Play select sound when selecting
+    playSound('select')
   } else {
     selectedIds.value.splice(idx, 1)
   }
@@ -1830,6 +1897,9 @@ function selectGroupStudents(groupStudents, select) {
     const currentSet = new Set(selectedIds.value)
     presentStudentIds.forEach(id => currentSet.add(id))
     selectedIds.value = Array.from(currentSet)
+    
+    // Play sound
+    playSound('select')
   } else {
     // Deselect all students in the group
     const groupStudentIds = new Set(groupStudents.map(s => s.id))
@@ -1969,6 +2039,15 @@ async function applyBehaviorToStudents(behaviorId) {
         color: 'positive',
         position: 'top'
       })
+      
+      // Play appropriate sound
+      const behavior = behaviors.value.find(b => b.id === behaviorId)
+      if (behavior) {
+        const value = behavior.value || behavior.points || 0
+        if (value > 0) playSound('reward')
+        if (value < 0) playSound('penalty')
+      }
+
       await initClassroomSession()
       selectedIds.value = []
     } else {
@@ -2027,6 +2106,9 @@ async function toggleAttendance(studentId, newValue) {
 async function performAttendanceUpdate(studentId, next, prev) {
   studentAttendance.value[studentId] = next
   studentAttendanceSaving.value[studentId] = true
+
+  // Play selection sound when toggling attendance locally (before API call)
+  playSound('select')
 
   try {
     const res = await rewardPointService.updateAttendance(studentId, next, {

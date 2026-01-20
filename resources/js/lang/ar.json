@@ -505,6 +505,8 @@
     }
   },
   "rewardSys": {
+    "musicOn": "تشغيل الموسيقى",
+    "musicOff": "إيقاف الموسيقى",
     "tabs": {
       "attendance": "الحضور",
       "behaviorIncidents": "سجل السلوك",

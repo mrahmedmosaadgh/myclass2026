@@ -497,6 +497,8 @@
     }
   },
   "rewardSys": {
+    "musicOn": "Music On",
+    "musicOff": "Music Off",
     "tabs": {
       "attendance": "Attendance",
       "behaviorIncidents": "Behavior Incidents",
