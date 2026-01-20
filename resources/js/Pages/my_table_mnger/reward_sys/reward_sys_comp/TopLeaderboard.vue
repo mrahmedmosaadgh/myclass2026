@@ -11,15 +11,37 @@
       <!-- Header with Filters -->
       <q-card-section class="relative z-10 text-center py-6 bg-gradient-to-b from-transparent to-black/50">
         <h1 class="text-4xl md:text-6xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-yellow-100 to-yellow-500 drop-shadow-lg animate-shine">
-          🏆 CHAMPIONS 🏆
+          🏆 {{ $t('rewardSys.leaderboard.champions') }} 🏆
         </h1>
+        
+        <!-- Bulk Print Button -->
+        <div class="mt-4">
+          <q-btn 
+            color="yellow-7" 
+            icon="print" 
+            :label="selectedStudents.size > 0 
+              ? $t('rewardSys.leaderboard.printSelected', { count: selectedStudents.size, plural: selectedStudents.size > 1 ? 's' : '' })
+              : $t('rewardSys.leaderboard.printAllCertificates')"
+            size="lg"
+            class="text-lg font-bold shadow-2xl px-8 py-3"
+            @click="openBulkCertificates"
+            :disable="allStudents.length === 0"
+          >
+            <q-tooltip>{{ $t('rewardSys.leaderboard.generateFor', { 
+              target: selectedStudents.size > 0 
+                ? $t('rewardSys.leaderboard.selectedStudents') 
+                : $t('rewardSys.leaderboard.allChampions') 
+            }) }}</q-tooltip>
+          </q-btn>
+        </div>
+
         <div class="mt-6 flex flex-col md:flex-row items-center justify-center gap-4 px-4">
-          <q-select v-model="filterScope" :options="filterOptions" outlined dense dark label="Filter Scope" class="w-full md:w-48 bg-black/30" @update:model-value="applyFilters" />
-          <q-select v-model="topCount" :options="[{ label: 'Top 5', value: 5 }, { label: 'Top 10', value: 10 }]" outlined dense dark label="Show Places" class="w-full md:w-32 bg-black/30" emit-value map-options @update:model-value="applyFilters" />
-          <q-btn color="yellow-7" icon="refresh" label="Reset" @click="resetFilters" size="md" class="w-full md:w-auto" />
+          <q-select v-model="filterScope" :options="filterOptions" outlined dense dark :label="$t('rewardSys.leaderboard.filterScope')" class="w-full md:w-48 bg-black/30" @update:model-value="applyFilters" />
+          <q-select v-model="topCount" :options="[{ label: 'Top 5', value: 5 }, { label: 'Top 10', value: 10 }]" outlined dense dark :label="$t('rewardSys.leaderboard.showPlaces')" class="w-full md:w-32 bg-black/30" emit-value map-options @update:model-value="applyFilters" />
+          <q-btn color="yellow-7" icon="refresh" :label="$t('rewardSys.leaderboard.reset')" @click="resetFilters" size="md" class="w-full md:w-auto" />
         </div>
         <p class="text-sm text-yellow-200 mt-3 font-bold tracking-widest uppercase opacity-80">
-          {{ filterScope.label }} • Top {{ topCount }}
+          {{ filterScope.label }} • {{ $t('rewardSys.leaderboard.topN', { n: topCount }) }}
         </p>
       </q-card-section>
 
@@ -69,11 +91,24 @@
       <!-- Full Leaderboard List -->
       <q-card-section ref="leaderboardList" v-if="listGroups.length > 0" class="p-4 md:p-8 pt-0 relative z-10">
         <div class="bg-gradient-to-b from-gray-800 to-gray-900 rounded-2xl p-6 border-2 border-gray-700">
-          <div class="flex items-center justify-between mb-6">
-            <h3 class="text-2xl font-bold text-yellow-400 text-center flex-1">🏆 Complete Leaderboard 🏆</h3>
-            <q-btn color="green" icon="screenshot" label="Share" @click="captureScreenshot" :loading="capturingScreenshot" class="shadow-lg">
-              <q-tooltip>Capture & Share on WhatsApp</q-tooltip>
-            </q-btn>
+          <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+            <h3 class="text-2xl font-bold text-yellow-400 text-center flex-1">🏆 {{ $t('rewardSys.leaderboard.completeLeaderboard') }} 🏆</h3>
+            
+            <!-- Selection Controls -->
+            <div class="flex gap-2">
+              <q-btn 
+                outline 
+                dense 
+                color="yellow-500" 
+                :icon="selectedStudents.size === allStudents.length ? 'check_box' : 'check_box_outline_blank'"
+                :label="selectedStudents.size === allStudents.length ? $t('rewardSys.leaderboard.deselectAll') : $t('rewardSys.leaderboard.selectAll')"
+                @click="toggleSelectAll"
+                size="sm"
+              />
+              <q-btn color="green" icon="screenshot" :label="$t('rewardSys.leaderboard.share')" @click="captureScreenshot" :loading="capturingScreenshot" class="shadow-lg">
+                <q-tooltip>{{ $t('rewardSys.leaderboard.shareOnWhatsApp') }}</q-tooltip>
+              </q-btn>
+            </div>
           </div>
           <div class="space-y-3">
             <div v-for="group in listGroups" :key="group.rank" class="bg-gradient-to-r from-gray-700 to-gray-800 rounded-xl p-5 border border-gray-600 hover:border-yellow-500 hover:shadow-yellow-500/30 transition-all duration-300">
@@ -83,6 +118,12 @@
                 </div>
                 <div class="flex-1 flex flex-wrap gap-4">
                   <div v-for="student in group.students" :key="student.id" class="flex items-center gap-3 bg-black/50 rounded-lg px-4 py-3 backdrop-blur-sm">
+                    <q-checkbox 
+                      :model-value="selectedStudents.has(student.id)" 
+                      @update:model-value="toggleStudent(student)"
+                      color="yellow-500"
+                      dark
+                    />
                     <q-avatar size="48px" class="border-2 border-yellow-500/40">
                       <img :src="student.avatar || getPlaceholder(student.name)" />
                     </q-avatar>
@@ -94,7 +135,7 @@
                       <div class="text-yellow-300 text-sm font-semibold">{{ student.total }} pts</div>
                     </div>
                     <q-btn flat round dense color="yellow-500" icon="card_membership" @click="openCertificate(student)">
-                      <q-tooltip>Print Certificate</q-tooltip>
+                      <q-tooltip>{{ $t('rewardSys.leaderboard.printCertificate') }}</q-tooltip>
                     </q-btn>
                   </div>
                 </div>
@@ -106,7 +147,9 @@
     <CertificateGenerator 
       v-model="showCertificateDialog" 
       :student="selectedStudentForCertificate"
+      :students="studentsForBulkCertificate"
       :default-date="date"
+      :school-logo="schoolLogo"
     />
     </q-card>
   </div>
@@ -116,25 +159,28 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import html2canvas from 'html2canvas'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import CertificateGenerator from './CertificateGenerator.vue'
 
 const $q = useQuasar()
+const { t: $t } = useI18n()
 
 const props = defineProps({
   students: { type: Array, default: () => [] },
   studentBehaviors: { type: Object, default: () => ({}) },
   periodCode: { type: String, default: '' },
-  date: { type: String, default: '' }
+  date: { type: String, default: '' },
+  schoolLogo: { type: String, default: null }
 })
 
 const filterScope = ref({ label: 'Current Session', value: 'session' })
 const topCount = ref(5)
-const filterOptions = [
-  { label: 'Current Session', value: 'session' },
-  { label: 'Today', value: 'today' },
-  { label: 'This Week', value: 'week' },
-  { label: 'All Time', value: 'all' }
-]
+const filterOptions = computed(() => [
+  { label: $t('rewardSys.leaderboard.currentSession'), value: 'session' },
+  { label: $t('rewardSys.leaderboard.today'), value: 'today' },
+  { label: $t('rewardSys.leaderboard.thisWeek'), value: 'week' },
+  { label: $t('rewardSys.leaderboard.allTime'), value: 'all' }
+])
 
 // Preferences persistence
 onMounted(() => {
@@ -273,13 +319,54 @@ function getPlaceholder(name = 'S') {
 
 // End of script
 
+// Selection state
+const selectedStudents = ref(new Set())
+
+// All students flattened from groups
+const allStudents = computed(() => {
+  return rankedGroups.value.flatMap(group => group.students)
+})
+
+function toggleStudent(student) {
+  if (selectedStudents.value.has(student.id)) {
+    selectedStudents.value.delete(student.id)
+  } else {
+    selectedStudents.value.add(student.id)
+  }
+  // Trigger reactivity
+  selectedStudents.value = new Set(selectedStudents.value)
+}
+
+function toggleSelectAll() {
+  if (selectedStudents.value.size === allStudents.value.length) {
+    selectedStudents.value.clear()
+  } else {
+    selectedStudents.value = new Set(allStudents.value.map(s => s.id))
+  }
+}
+
 const showCertificateDialog = ref(false)
 const selectedStudentForCertificate = ref(null)
+const studentsForBulkCertificate = ref([])
 
 function openCertificate(student) {
   selectedStudentForCertificate.value = student
+  studentsForBulkCertificate.value = []
   showCertificateDialog.value = true
 }
+
+function openBulkCertificates() {
+  if (selectedStudents.value.size > 0) {
+    // Print selected
+    studentsForBulkCertificate.value = allStudents.value.filter(s => selectedStudents.value.has(s.id))
+  } else {
+    // Print all
+    studentsForBulkCertificate.value = allStudents.value
+  }
+  selectedStudentForCertificate.value = null
+  showCertificateDialog.value = true
+}
+
 </script>
 
 <style scoped>

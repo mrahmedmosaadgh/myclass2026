@@ -503,5 +503,146 @@
     "notifications": {
       "loadFailed": "فشل تحميل البيانات"
     }
+  },
+  "rewardSys": {
+    "tabs": {
+      "attendance": "الحضور",
+      "behaviorIncidents": "سجل السلوك",
+      "positivePoints": "+ نقاط",
+      "negativePoints": "- نقاط",
+      "cancel": "إلغاء",
+      "oldCard": "البطاقة القديمة",
+      "champions": "الأبطال",
+      "behaviors": "السلوكيات",
+      "history": "السجل",
+      "settingsReports": "الإعدادات والتقارير"
+    },
+    "attendance": {
+      "manage": "إدارة الحضور",
+      "markAllPresent": "تحديد الكل كحاضر",
+      "markAllAbsent": "تحديد الكل كغائب",
+      "present": "حاضر",
+      "absent": "غائب"
+    },
+    "layout": "التخطيط:",
+    "manageGroups": "إدارة المجموعات",
+    "selected": "المحدد",
+    "selection": {
+      "all": "الكل",
+      "inv": "عكس",
+      "clear": "مسح"
+    },
+    "points": {
+      "title": "النقاط",
+      "add": "إضافة نقاط",
+      "deduct": "خصم نقاط",
+      "applyPositive": "تطبيق مكافأة",
+      "applyNegative": "تطبيق عقوبة",
+      "selectStudentsNegative": "اختر الطلاب واختر سلوكاً سلبياً",
+      "selectNegativeBehavior": "اختر سلوكاً سلبياً",
+      "applyToSelected": "تطبيق على المحدد",
+      "positiveTitle": "إضافة نقاط إيجابية",
+      "negativeTitle": "خصم نقاط",
+      "positive": "إيجابي",
+      "negative": "سلبي",
+      "total": "الإجمالي"
+    },
+    "behaviors": {
+      "management": "إدارة السلوك",
+      "addNew": "إضافة سلوك جديد",
+      "positiveSection": "سلوكيات إيجابية / مكافآت",
+      "negativeSection": "سلوكيات سلبية / عقوبات",
+      "noPositive": "لا توجد سلوكيات إيجابية بعد. انقر على \"إضافة سلوك جديد\" لإنشاء واحد.",
+      "noNegative": "لا توجد سلوكيات سلبية بعد. انقر على \"إضافة سلوك جديد\" لإنشاء واحد.",
+      "schoolDefault": "افتراضي للمدرسة",
+      "readOnlyWarning": "هذا سلوك افتراضي للمدرسة. يمكن للمسؤولين فقط تعديله.",
+      "edit": "تعديل سلوك",
+      "create": "إضافة سلوك جديد",
+      "form": {
+        "nameEn": "اسم السلوك (إنجليزي)",
+        "nameAr": "اسم السلوك (عربي)",
+        "type": "النوع",
+        "points": "قيمة النقاط",
+        "icon": "أيقونة (رموز تعبيرية)",
+        "types": {
+          "positive": "إيجابي / مكافأة",
+          "negative": "سلبي / عقوبة"
+        }
+      }
+    },
+    "history": {
+      "title": "الإجراءات الأخيرة",
+      "refresh": "تحديث",
+      "empty": "لا توجد إجراءات حديثة",
+      "unknown": "غير معروف",
+      "unknownBehavior": "سلوك غير معروف",
+      "note": "ملاحظة:",
+      "canceled": "ملغى:",
+      "undo": "تراجع"
+    },
+    "messages": {
+      "selectClassroom": "اختر فصلاً وانقر على \"بدء الجلسة\" للبدء",
+      "clickToSelect": "انقر على الطلاب لتحديدهم"
+    },
+    "session": {
+      "setup": "إعداد الجلسة",
+      "current": "الجلسة الحالية",
+      "noClassroom": "لم يتم اختيار فصل",
+      "setupButton": "إعداد الجلسة",
+      "timePeriod": "الوقت والحصة",
+      "activePeriodCode": "رمز الحصة النشطة:",
+      "classroom": "الفصل الدراسي",
+      "unknownClass": "فصل غير معروف",
+      "subject": "المادة",
+      "selectSubject": "اختر مادة لعرض الفصول",
+      "date": "التاريخ",
+      "semester": "الفصل الدراسي",
+      "week": "الأسبوع",
+      "day": "اليوم",
+      "periodNumber": "رقم الحصة",
+      "selectClassroomTitle": "اختر الفصل",
+      "noClassroomsAvailable": "لا توجد فصول متاحة",
+      "enableAvatarEdit": "تفعيل تعديل الصورة الرمزية",
+      "initSession": "بدء الجلسة",
+      "selected": "محدد",
+      "classroomFallback": "فصل",
+      "summary": "ملخص الحضور",
+      "present": "حضور",
+      "absent": "غياب",
+      "absentees": "الغائبون",
+      "copyToClipboard": "نسخ القائمة",
+      "copied": "تم نسخ القائمة"
+    },
+    "certificate": {
+      "editLayout": "تعديل التخطيط",
+      "editModeActive": "وضع التعديل مفعل",
+      "dragInstruction": "اسحب العناصر على الشهادة لتحريكها.",
+      "logoHeight": "ارتفاع الشعار",
+      "resetLayout": "إعادة تعيين التخطيط"
+    },
+    "leaderboard": {
+      "champions": "الأبطال",
+      "printCertificates": "طباعة الشهادات",
+      "printAllCertificates": "طباعة جميع الشهادات",
+      "printSelected": "طباعة {count} شهادة",
+      "generateFor": "إنشاء شهادات لـ {target}",
+      "selectedStudents": "الطلاب المحددين",
+      "allChampions": "جميع الأبطال",
+      "completeLeaderboard": "لوحة المتصدرين الكاملة",
+      "selectAll": "تحديد الكل",
+      "deselectAll": "إلغاء التحديد",
+      "printCertificate": "طباعة الشهادة",
+      "share": "مشاركة",
+      "shareOnWhatsApp": "التقاط ومشاركة على واتساب",
+      "filterScope": "نطاق التصفية",
+      "showPlaces": "عرض المراكز",
+      "reset": "إعادة تعيين",
+      "currentSession": "الجلسة الحالية",
+      "today": "اليوم",
+      "thisWeek": "هذا الأسبوع",
+      "allTime": "كل الوقت",
+      "topN": "أفضل {n}",
+      "studentOf": "طالب {current} من {total}"
+    }
   }
 }

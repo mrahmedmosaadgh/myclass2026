@@ -495,5 +495,146 @@
     "notifications": {
       "loadFailed": "Failed to load data"
     }
+  },
+  "rewardSys": {
+    "tabs": {
+      "attendance": "Attendance",
+      "behaviorIncidents": "Behavior Incidents",
+      "positivePoints": "+ Points",
+      "negativePoints": "- Points",
+      "cancel": "Cancel",
+      "oldCard": "Old Card",
+      "champions": "Champions",
+      "behaviors": "Behaviors",
+      "history": "History",
+      "settingsReports": "Settings & Reports"
+    },
+    "attendance": {
+      "manage": "Manage Attendance",
+      "markAllPresent": "Mark All Present",
+      "markAllAbsent": "Mark All Absent",
+      "present": "Present",
+      "absent": "Absent"
+    },
+    "layout": "Layout:",
+    "manageGroups": "Manage Groups",
+    "selected": "Selected",
+    "selection": {
+      "all": "All",
+      "inv": "Inverse",
+      "clear": "Clear"
+    },
+    "points": {
+      "title": "Points",
+      "add": "Add Points",
+      "deduct": "Deduct Points",
+      "applyPositive": "Apply Reward",
+      "applyNegative": "Apply Penalty",
+      "selectStudentsNegative": "Select students and choose a negative behavior",
+      "selectNegativeBehavior": "Select negative behavior",
+      "applyToSelected": "Apply to Selected",
+      "positiveTitle": "Add Positive Points",
+      "negativeTitle": "Deduct Points",
+      "positive": "Positive",
+      "negative": "Negative",
+      "total": "Total"
+    },
+    "behaviors": {
+      "management": "Behavior Management",
+      "addNew": "Add New Behavior",
+      "positiveSection": "Positive Behaviors / Rewards",
+      "negativeSection": "Negative Behaviors / Penalties",
+      "noPositive": "No positive behaviors yet. Click \"Add New Behavior\" to create one.",
+      "noNegative": "No negative behaviors yet. Click \"Add New Behavior\" to create one.",
+      "schoolDefault": "School Default",
+      "readOnlyWarning": "This is a school-wide default behavior. Only administrators can edit it.",
+      "edit": "Edit Behavior",
+      "create": "Add New Behavior",
+      "form": {
+        "nameEn": "Behavior Name (English)",
+        "nameAr": "Behavior Name (Arabic)",
+        "type": "Type",
+        "points": "Points Value",
+        "icon": "Icon (Emoji)",
+        "types": {
+          "positive": "Positive / Reward",
+          "negative": "Negative / Penalty"
+        }
+      }
+    },
+    "history": {
+      "title": "Recent Actions",
+      "refresh": "Refresh",
+      "empty": "No recent actions",
+      "unknown": "Unknown",
+      "unknownBehavior": "Unknown Behavior",
+      "note": "Note:",
+      "canceled": "Canceled:",
+      "undo": "Undo"
+    },
+    "messages": {
+      "selectClassroom": "Select a classroom and click \"Init Session\" to get started",
+      "clickToSelect": "Click students to select them"
+    },
+    "session": {
+      "setup": "Session Setup",
+      "current": "Current Session",
+      "noClassroom": "No classroom selected",
+      "setupButton": "Setup Session",
+      "timePeriod": "Time & Period",
+      "activePeriodCode": "Active Period Code:",
+      "classroom": "Classroom",
+      "unknownClass": "Unknown Class",
+      "subject": "Subject",
+      "selectSubject": "Select a subject to view classrooms",
+      "date": "Date",
+      "semester": "Semester",
+      "week": "Week",
+      "day": "Day",
+      "periodNumber": "Period Number",
+      "selectClassroomTitle": "Select Classroom",
+      "noClassroomsAvailable": "No classrooms available",
+      "enableAvatarEdit": "Enable Avatar Edit",
+      "initSession": "Init Session",
+      "selected": "Selected",
+      "classroomFallback": "Classroom",
+      "summary": "Classroom Summary",
+      "present": "Present",
+      "absent": "Absent",
+      "absentees": "Absentees",
+      "copyToClipboard": "Copy List",
+      "copied": "Copied to clipboard"
+    },
+    "certificate": {
+      "editLayout": "Edit Layout",
+      "editModeActive": "Edit Mode Active",
+      "dragInstruction": "Drag elements on the certificate to move them.",
+      "logoHeight": "Logo Height",
+      "resetLayout": "Reset Layout"
+    },
+    "leaderboard": {
+      "champions": "CHAMPIONS",
+      "printCertificates": "Print Certificates",
+      "printAllCertificates": "Print All Certificates",
+      "printSelected": "Print {count} Certificate{plural}",
+      "generateFor": "Generate certificates for {target}",
+      "selectedStudents": "selected students",
+      "allChampions": "all champions",
+      "completeLeaderboard": "Complete Leaderboard",
+      "selectAll": "Select All",
+      "deselectAll": "Deselect All",
+      "printCertificate": "Print Certificate",
+      "share": "Share",
+      "shareOnWhatsApp": "Capture & Share on WhatsApp",
+      "filterScope": "Filter Scope",
+      "showPlaces": "Show Places",
+      "reset": "Reset",
+      "currentSession": "Current Session",
+      "today": "Today",
+      "thisWeek": "This Week",
+      "allTime": "All Time",
+      "topN": "Top {n}",
+      "studentOf": "Student {current} of {total}"
+    }
   }
 }
