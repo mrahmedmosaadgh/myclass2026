@@ -250,13 +250,22 @@ class Student extends Model
      * Get the avatar URL with file existence check
      * Returns null if avatar doesn't exist to allow frontend fallback
      */
+    /**
+     * Get the avatar URL with file existence check
+     * Returns null if avatar doesn't exist to allow frontend fallback
+     */
     public function getAvatarUrlAttribute()
     {
         if (!$this->avatar) {
             return null;
         }
 
-        // Check if the file exists in storage
+        // Check if it's a direct public upload
+        if (strpos($this->avatar, 'uploads/') === 0) {
+            return asset($this->avatar);
+        }
+
+        // Check if the file exists in storage (Legacy URL handling)
         $path = str_replace('/storage/', '', $this->avatar);
         if (\Storage::disk('public')->exists($path)) {
             return $this->avatar;

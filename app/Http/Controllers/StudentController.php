@@ -144,6 +144,9 @@ class StudentController extends Controller
     /**
      * Upload or update student avatar
      */
+    /**
+     * Upload or update student avatar
+     */
     public function uploadAvatar(Request $request, Student $student)
     {
         $request->validate([
@@ -154,13 +157,35 @@ class StudentController extends Controller
             $file = $request->file('avatar');
             $ext = $file->getClientOriginalExtension() ?: 'png';
             $filename = 'student_' . $student->id . '_' . time() . '.' . $ext;
-            $path = $file->storeAs('avatars', $filename, 'public');
+            
+            // Save directly to public/uploads/avatars
+            $destinationPath = public_path('uploads/avatars');
+            if (!file_exists($destinationPath)) {
+                mkdir($destinationPath, 0755, true);
+            }
+            
+            $file->move($destinationPath, $filename);
+            $relativePath = 'uploads/avatars/' . $filename;
 
-            // Save public URL to student
-            $student->avatar = '/storage/' . $path;
+            // Delete old avatar if exists
+            if ($student->avatar) {
+                 $oldPath = public_path($student->avatar); // Try absolute public path
+                 if (file_exists($oldPath) && is_file($oldPath)) {
+                     unlink($oldPath);
+                 } elseif (strpos($student->avatar, '/storage/') === 0) {
+                     // Fallback for legacy storage path
+                     $storagePath = str_replace('/storage/', '', $student->avatar);
+                     if (Storage::disk('public')->exists($storagePath)) {
+                         Storage::disk('public')->delete($storagePath);
+                     }
+                 }
+            }
+
+            // Save public relative path to student
+            $student->avatar = $relativePath;
             $student->save();
 
-            return response()->json(['avatar' => $student->avatar]);
+            return response()->json(['avatar' => $student->avatar_url]);
         } catch (\Exception $e) {
             \Log::error('Avatar upload failed: ' . $e->getMessage());
             return response()->json(['message' => 'Failed to upload avatar'], 500);
@@ -174,8 +199,17 @@ class StudentController extends Controller
     {
         try {
             if ($student->avatar) {
-                // Optional: Delete file from storage if needed
-                // Storage::disk('public')->delete(str_replace('/storage/', '', $student->avatar));
+                 $path = public_path($student->avatar);
+                 
+                 if (file_exists($path) && is_file($path)) {
+                     unlink($path);
+                 } else {
+                     // Legacy storage cleanup
+                     $storagePath = str_replace('/storage/', '', $student->avatar);
+                     if (Storage::disk('public')->exists($storagePath)) {
+                         Storage::disk('public')->delete($storagePath);
+                     }
+                 }
                 
                 $student->avatar = null;
                 $student->save();
