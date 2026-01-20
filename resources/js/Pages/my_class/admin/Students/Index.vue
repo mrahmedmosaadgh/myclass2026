@@ -1,5 +1,6 @@
 <template>
   <div class="q-pa-md">
+    <Head title="Student Management"  />
     <!-- Header Section -->
     <div class="row items-center q-mb-md">
       <div class="col">

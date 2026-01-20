@@ -55,31 +55,10 @@ class ClassroomLayoutController extends Controller
                         'updated_at' => now()
                     ]);
             } else {
-                // No classroom_subject_teacher record found
-                // Store in a dedicated table for user preferences
-                
-                // Check if classroom exists
-                $classroom = DB::table('classrooms')->where('id', $classroomId)->first();
-                
-                if (!$classroom) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Classroom not found'
-                    ], 404);
-                }
-                
-                // Store using teacher_id
-                DB::table('user_classroom_data')->updateOrInsert(
-                    [
-                        'teacher_id' => $teacherId,
-                        'classroom_id' => $classroomId
-                    ],
-                    [
-                        'data' => json_encode(['student_layouts' => $layouts]),
-                        'updated_at' => now(),
-                        'created_at' => now()
-                    ]
-                );
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Teacher is not assigned to this classroom (No subject associated).'
+                ], 403);
             }
 
             return response()->json([
@@ -141,22 +120,6 @@ class ClassroomLayoutController extends Controller
                         'data' => $layouts
                     ]);
                 }
-            }
-
-            // If not found, try user_classroom_data table
-            $userRecord = DB::table('user_classroom_data')
-                ->where('teacher_id', $teacherId)
-                ->where('classroom_id', $classroomId)
-                ->first();
-
-            if ($userRecord && $userRecord->data) {
-                $data = json_decode($userRecord->data, true);
-                $layouts = $data['student_layouts'] ?? [];
-                
-                return response()->json([
-                    'success' => true,
-                    'data' => $layouts
-                ]);
             }
 
             // No layouts found

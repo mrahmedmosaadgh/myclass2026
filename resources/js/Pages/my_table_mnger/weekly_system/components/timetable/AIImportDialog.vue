@@ -263,8 +263,7 @@ const props = defineProps({
   modelValue: Boolean,
   classroomId: Number,
   classroomName: String,
-  subjects: Array,
-  copyId: Number
+  subjects: Array
 })
 
 const emit = defineEmits(['update:modelValue', 'applied'])
@@ -430,8 +429,7 @@ const applyImport = async () => {
   try {
     // Always use Update mode to preserve Weekly Plan data
     const response = await axios.post('/weekly-system/api/ai-import/update', {
-      data: parsedData.value,
-      copy_id: props.copyId
+      data: parsedData.value
     })
 
     applyResult.value = response.data

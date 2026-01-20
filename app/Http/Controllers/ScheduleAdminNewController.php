@@ -85,7 +85,7 @@ class ScheduleAdminNewController extends Controller
     }
 
     /**
-     * Find a conflicting schedule entry for the same teacher at the given period code within the same copy.
+     * Find a conflicting schedule entry for the same teacher at the given period code within the active schedules.
      *
      * @param Schedule $schedule The schedule being updated.
      * @param string|null $newPeriodCode The target period code.
@@ -98,29 +98,25 @@ class ScheduleAdminNewController extends Controller
             return null;
         }
 
-        // Ensure the cst relationship is loaded to get the teacher_id
-        // If not already loaded, load it. Consider adding 'cst' to $with in Schedule model if always needed.
+        // Ensure the cst relationship is loaded
         $schedule->loadMissing('cst');
 
         // Check if cst relationship exists and has a teacher_id
         if (!$schedule->cst || !$schedule->cst->teacher_id) {
-            // Log this situation as it might indicate data integrity issues
             Log::warning('Schedule missing CST or teacher_id during conflict check.', ['schedule_id' => $schedule->id]);
-            // Treat as no conflict for now, as we can't determine the teacher.
             return null;
         }
 
         $teacherId = $schedule->cst->teacher_id;
-        $copyId = $schedule->copy_id; // Get the copy_id from the schedule being updated
-
-        // Query for conflicting schedules
-        $conflictingSchedule = Schedule::where('copy_id', $copyId) // <<< Only check within the same schedule copy
+        
+        // Query for conflicting schedules in ACTIVE set
+        $conflictingSchedule = Schedule::where('active', true) 
             ->where('id', '!=', $schedule->id) // Exclude the current schedule
             ->where('period_code', $newPeriodCode)
             ->whereHas('cst', function ($query) use ($teacherId) {
                 $query->where('teacher_id', $teacherId);
             })
-            ->first(); // Use first() to get the model or null
+            ->first();
 
         return $conflictingSchedule;
     }
@@ -245,33 +241,23 @@ class ScheduleAdminNewController extends Controller
 
     static function schedule_new_data()
     {
-   // Get the active copy ID
-   $activeCopy = \App\Models\ScheduleCopy::where('active', true)->first();
-   $activeCopyId = $activeCopy ? $activeCopy->id : null;
+        // Get teachers with their relationships, filtering schedules by active status
+        $teachers = Teacher::with([
+            'classroomSubjectTeachers.subject',
+            'classroomSubjectTeachers.classroom',
+            'classroomSubjectTeachers' => function($query) {
+                // Filter schedules by active=true instead of copy_id
+                 $query->with(['schedules' => function($query) {
+                    // $query->where('copy_id', $activeCopyId); // Removed
+                    $query->where('active', true);
+                 }]);
+            }
+        ])->get();
 
-   // If no active copy, return empty data
-   if (!$activeCopyId) {
-       return [
-           'teachers_data' => [],
-           'overall_conflict_counter' => 0
-       ];
-   }
+        // Track overall conflict count
+        $overallConflictCounter = 0;
 
-   // Get teachers with their relationships, filtering schedules by active copy ID
-   $teachers = Teacher::with([
-       'classroomSubjectTeachers.subject',
-       'classroomSubjectTeachers.classroom',
-       'classroomSubjectTeachers' => function($query) use ($activeCopyId) {
-           $query->with(['schedules' => function($query) use ($activeCopyId) {
-               $query->where('copy_id', $activeCopyId);
-           }]);
-       }
-   ])->get();
-
-   // Track overall conflict count
-   $overallConflictCounter = 0;
-
-        $data = $teachers->map(function ($teacher) use (&$overallConflictCounter,$activeCopyId) {
+        $data = $teachers->map(function ($teacher) use (&$overallConflictCounter) {
             // Generate teacher_cute: first 2 letters of each word
             $nameParts = explode(' ', $teacher->name);
             $cuteName = '';
@@ -300,12 +286,12 @@ class ScheduleAdminNewController extends Controller
 
             // --- Efficiently load schedules for all CSTs of this teacher ---
             $cstIds = $teacher->classroomSubjectTeachers->pluck('id')->all();
-            $schedulesForTeacher = Schedule::whereIn('cst_id', $cstIds)->get();
+            $schedulesForTeacher = Schedule::whereIn('cst_id', $cstIds)->where('active', true)->get();
             // --- End of efficient loading ---
 
             foreach ($teacher->classroomSubjectTeachers as $cst) {
                 // Get the schedule(s) for this specific CST
-                $schedules = Schedule::where('cst_id', $cst->id)->get();
+                $schedules = Schedule::where('cst_id', $cst->id)->where('active', true)->get();
 
                 // Prepare data common to this CST
                 $subject = $cst->subject->name ?? '';
@@ -319,18 +305,15 @@ class ScheduleAdminNewController extends Controller
                     $key = $schedule->period_code;
 
                     // Get classroom conflicts
-                    $classroomsConflicted = self::classrooms_conflicted_fun($cst->classroom->id, $schedule->period_code, $activeCopyId );
-                    // $schedules_activeCopy  = self::schedules_activeCopy_fun($cst->classroom->id, $schedule->period_code, $activeCopyId );
-
-// Update conflict counters
-$conflictCount = count($classroomsConflicted);
-if ($conflictCount > 1) {
-    // Only count conflicts once per classroom
-    // If there are N classrooms in conflict, we should add (N-1) to the counter
-    // because the current classroom is already counted
-    $row['classroom_conflicts_count'] += 1;  // Just count this as one conflict
-    $overallConflictCounter += 1;  // Just add one to the overall counter
-}
+                    $classroomsConflicted = self::classrooms_conflicted_fun($cst->classroom->id, $schedule->period_code);
+                    
+                    // Update conflict counters
+                    $conflictCount = count($classroomsConflicted);
+                    if ($conflictCount > 1) {
+                        // Only count conflicts once per classroom
+                        $row['classroom_conflicts_count'] += 1;  
+                        $overallConflictCounter += 1;  
+                    }
 
 
                     $my_data = [
@@ -342,8 +325,8 @@ if ($conflictCount > 1) {
                         'classroom' => $classroom,
                         // 'schedules_activeCopyCount' => $schedules_activeCopyCount,
                         'classrooms_conflicted' => $classroomsConflicted,
-                        'conflict_count_data' =>  [$cst->classroom->id, $schedule , $schedule->period_code, $activeCopyId ], // Add conflict count to each schedule
-                        'conflict_count' => $conflictCount-1 , // Add conflict count to each schedule
+                        'conflict_count_data' =>  [$cst->classroom->id, $schedule , $schedule->period_code, 'active' ], 
+                        'conflict_count' => $conflictCount-1 , 
                         'c_text' => $c_text,
                         'c_bg' => $c_bg,
                         'subject_cute' => mb_strimwidth($subject, 0, 2),
@@ -369,22 +352,13 @@ if ($conflictCount > 1) {
 
  /**
  * Find schedules that conflict with a given classroom at the specified period code.
- * A conflict occurs when the same classroom is scheduled with different teachers at the same period.
- *
- * @param int $classroomId The classroom ID to check for conflicts.
- * @param string|null $periodCode The period code to check (e.g., 'd1p2').
- * @param Collection $schedules Collection of schedules to check against.
- * @return array Array of conflicting schedules data.
  */
-
-
- static function schedules_activeCopy_fun($classroomId, $periodCode, $activeCopyId)
+ static function schedules_activeCopy_fun($classroomId, $periodCode, $ignoreConfig = null)
 {
     // Debug parameters
      Log::info('schedules_activeCopy_fun called with:', [
         'classroomId' => $classroomId,
-        'periodCode' => $periodCode,
-        'activeCopyId' => $activeCopyId
+        'periodCode' => $periodCode
     ]);
 
     // No results if parameters are invalid
@@ -393,73 +367,25 @@ if ($conflictCount > 1) {
         return [];
     }
 
-    if (!$activeCopyId) {
-        Log::info('schedules_activeCopy_fun: activeCopyId is null or empty');
-        return [];
-    }
-
-    // Get all schedules for the same period code and active copy
+    // Get all schedules for the same period code and active status
     $query = Schedule::where('period_code', $periodCode)
-        ->where('copy_id', $activeCopyId)
+        ->where('active', true) // Filter by active instead of copy_id
         ->whereHas('cst', function($query) use ($classroomId) {
             $query->where('classroom_id', $classroomId);
         });
 
-    // Debug the SQL query
-     Log::info('schedules_activeCopy_fun query:', [
-        'sql' => $query->toSql(),
-        'bindings' => $query->getBindings()
-    ]);
-
     $results = $query->with(['cst','cst.classroom', 'cst.teacher', 'cst.subject'])->get();
-
-    // Debug the results
-     Log::info('schedules_activeCopy_fun results count:', [
-        'count' => $results->count()
-    ]);
-
     return $results;
 }
- static function schedules_activeCopy_funold($classroomId, $periodCode, $activeCopyId)
- {
-    // Get all schedules for the same period code and active copy
-    return Schedule::where('period_code', $periodCode)
-    ->where('copy_id', $activeCopyId)
-    ->whereHas('cst', function($query) use ($classroomId) {
-        $query->where('classroom_id', $classroomId);
-    })
-        ->with(['cst','cst.classroom', 'cst.teacher', 'cst.subject']) // Eager load relationships
-        ->get();
- }
-static function classrooms_conflicted_fun($classroomId, $periodCode, $activeCopyId)
+
+static function classrooms_conflicted_fun($classroomId, $periodCode, $ignoreConfig = null)
 {
     // No conflicts if period code is null or empty
     if ($periodCode === null || empty($periodCode)) {
         return [];
     }
-    // If no active copy, return empty array
-    if (!$activeCopyId) {
-        return [];
-    }
 
-
-
-    // Get all schedules for the same period code
-    // $samePeriodsSchedules = Schedule::where('period_code', $periodCode)
-    //     // ->whereNotNull('period_code') // Ensure period_code is not null
-    //     ->where('period_code', '!=', '') // Ensure period_code is not empty
-    //     ->where('period_code', '!=', null) // Ensure period_code is not empty
-    //     ->with(['cst.classroom', 'cst.teacher', 'cst.subject']) // Eager load relationships
-    //     ->get();
-
-    // Find schedules that have the same classroom ID
-    // $conflicts = $samePeriodsSchedules->filter(function ($schedule) use ($classroomId,$periodCode) {
-    //     // Check if this schedule has the same classroom ID
-    //     return   $schedule->period_code ===$periodCode   && $schedule->cst->classroom_id === $classroomId;
-    // });
-
-
-    $conflicts = self::schedules_activeCopy_fun($classroomId, $periodCode, $activeCopyId);
+    $conflicts = self::schedules_activeCopy_fun($classroomId, $periodCode);
 
 
     // Map conflicts to a simplified data structure

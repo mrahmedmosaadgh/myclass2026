@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\ClassroomSubjectTeacher;
 use App\Models\Schedule;
-use App\Models\ScheduleCopy;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -17,17 +16,7 @@ class ScheduleController extends Controller
     public function load_data()
     {
         try {
-            $active_copy = ScheduleCopy::where('active', true)->first();
-
-            if (!$active_copy) {
-                return response()->json([
-                    'success' => false,
-                    'records' => [],
-                    'options' => [],
-                    'active_copy' => null,
-                    'message' => 'No active schedule copy found. Please activate one copy.'
-                ], 404);
-            }
+            $schoolId = auth()->user()->schoolId();
 
             $records = Schedule::with([
                 'cst',
@@ -35,18 +24,19 @@ class ScheduleController extends Controller
                 'cst.subject',
                 'cst.teacher',
             ])
-                ->where('copy_id', $active_copy->id)
+                ->where('school_id', $schoolId)
                 ->orderBy('period_code')
                 ->get();
 
-            $csts = ClassroomSubjectTeacher::with(['classroom', 'subject', 'teacher'])->get();
+            $csts = ClassroomSubjectTeacher::with(['classroom', 'subject', 'teacher'])
+                ->where('school_id', $schoolId)
+                ->get();
 
             return response()->json([
                 'success' => true,
                 'records' => $records,
                 'options' => [
                     'csts' => $csts,
-                    'activeCopy' => $active_copy
                 ],
                 'message' => 'Data loaded successfully'
             ]);
@@ -69,22 +59,9 @@ class ScheduleController extends Controller
             'cst.classroom',
             'cst.subject',
             'cst.teacher',
-        ]);
+        ])->where('school_id', $schoolId);
 
-        if ($request->has('copy_id')) {
-            $query->where('copy_id', $request->copy_id);
-        } else {
-            $active_copy = ScheduleCopy::where('active', true);
-            if ($schoolId) {
-                $active_copy->where('school_id', $schoolId);
-            }
-            $active_copy = $active_copy->first();
-            
-            if ($active_copy) {
-                $query->where('copy_id', $active_copy->id);
-            }
-        }
-
+        // Filter by classroom if requested
         if ($request->has('classroom_id')) {
             $query->whereHas('cst', function($q) use ($request) {
                 $q->where('classroom_id', $request->classroom_id);
@@ -95,7 +72,6 @@ class ScheduleController extends Controller
 
         if ($request->wantsJson()) {
             // Get total possible slots (e.g., 5 days × 8 periods = 40 slots)
-            // We'll calculate this from the schedule structure
             $totalPossibleSlots = 40; // Default assumption
             
             // Calculate classroom-specific statistics (current selection)
@@ -109,7 +85,7 @@ class ScheduleController extends Controller
                 'total_slots' => $totalPossibleSlots,
                 'assigned_slots' => $assignedCount,
                 'unassigned_slots' => $totalPossibleSlots - $assignedCount,
-                'conflict_count' => 0 // Classroom-specific conflicts
+                'conflict_count' => 0 
             ];
             
             // Calculate subject breakdown for classroom
@@ -120,7 +96,7 @@ class ScheduleController extends Controller
                         $subjectName = $schedule->cst->subject->name ?? 'Unknown';
                         $teacherName = $schedule->cst->teacher->name ?? 'Unknown';
                         $classesPerWeek = $schedule->cst->classes_per_week ?? 0;
-                        $key = $schedule->cst_id; // Use CST ID as unique key
+                        $key = $schedule->cst_id; 
                         
                         if (!isset($subjectBreakdown[$key])) {
                             $subjectBreakdown[$key] = [
@@ -134,7 +110,6 @@ class ScheduleController extends Controller
                     }
                 }
                 
-                // Convert to array and sort by subject name
                 $classroomStats['subject_breakdown'] = array_values($subjectBreakdown);
                 usort($classroomStats['subject_breakdown'], function($a, $b) {
                     return strcmp($a['subject_name'], $b['subject_name']);
@@ -142,58 +117,55 @@ class ScheduleController extends Controller
             }
             
             // Calculate classroom-specific conflicts if classroom_id is provided
-            if ($request->has('classroom_id') && $request->has('copy_id')) {
+            if ($request->has('classroom_id')) {
                 $classroomStats['conflict_count'] = $this->calculateClassroomConflictCount(
-                    $request->copy_id, 
+                    $schoolId, 
                     $request->classroom_id
                 );
             }
             
-            // Calculate overall statistics (all classrooms in the copy)
-            $overallStats = null;
-            if ($request->has('copy_id')) {
-                $allSchedules = Schedule::where('copy_id', $request->copy_id)
-                    ->with(['cst', 'cst.classroom', 'cst.subject', 'cst.teacher'])
-                    ->get();
-                
-                // Count unique classrooms to calculate total possible slots
-                $classroomCount = Schedule::where('copy_id', $request->copy_id)
-                    ->whereHas('cst')
-                    ->with('cst.classroom')
-                    ->get()
-                    ->pluck('cst.classroom.id')
-                    ->unique()
-                    ->count();
-                
-                $totalOverallSlots = $classroomCount * $totalPossibleSlots;
-                
-                $overallAssignedCount = $allSchedules->filter(function($schedule) {
-                    return !is_null($schedule->cst_id) 
-                        && !is_null($schedule->day_number) 
-                        && !is_null($schedule->period_number);
-                })->count();
-                
-                $overallStats = [
-                    'total_slots' => $totalOverallSlots,
-                    'assigned_slots' => $overallAssignedCount,
-                    'unassigned_slots' => $totalOverallSlots - $overallAssignedCount,
-                    'conflict_count' => $this->calculateConflictCount($request->copy_id)
-                ];
-            }
+            // Calculate overall statistics
+            // Get all schedules for this school
+            $allSchedules = Schedule::where('school_id', $schoolId)
+                ->with(['cst', 'cst.classroom', 'cst.subject', 'cst.teacher'])
+                ->get();
+            
+            // Count unique classrooms
+            $classroomCount = Schedule::where('school_id', $schoolId)
+                ->whereHas('cst')
+                ->with('cst.classroom')
+                ->get()
+                ->pluck('cst.classroom.id')
+                ->unique()
+                ->count();
+            
+            $totalOverallSlots = $classroomCount * $totalPossibleSlots;
+            
+            $overallAssignedCount = $allSchedules->filter(function($schedule) {
+                return !is_null($schedule->cst_id) 
+                    && !is_null($schedule->day_number) 
+                    && !is_null($schedule->period_number);
+            })->count();
+            
+            $overallStats = [
+                'total_slots' => $totalOverallSlots,
+                'assigned_slots' => $overallAssignedCount,
+                'unassigned_slots' => $totalOverallSlots - $overallAssignedCount,
+                'conflict_count' => $this->calculateConflictCount($schoolId)
+            ];
             
             return response()->json([
                 'success' => true,
                 'data' => $records,
-                'stats' => $classroomStats, // Keep for backward compatibility
+                'stats' => $classroomStats,
                 'classroom_stats' => $classroomStats,
                 'overall_stats' => $overallStats
             ]);
         }
 
-        $active_copy = ScheduleCopy::where('active', true)->first(); // Fallback for Inertia view
-
         $options = [
             'csts' => ClassroomSubjectTeacher::with(['classroom', 'subject', 'teacher'])
+                ->where('school_id', $schoolId)
                 ->get()
                 ->map(function ($cst) {
                     return [
@@ -213,8 +185,7 @@ class ScheduleController extends Controller
         return Inertia::render('my_class/admin/Schedules/Index', [
             'records' => $records,
             'records2' => $records,
-            'options' => $options,
-            'active_copy' => $active_copy
+            'options' => $options
         ]);
     }
     public function index2()
@@ -236,23 +207,23 @@ class ScheduleController extends Controller
                 'cst_id' => 'required|exists:classroom_subject_teachers,id',
                 'day' => 'required|integer|min:1|max:5',
                 'period_number' => 'required|integer|min:1|max:8',
-                'active' => 'boolean',
                 'notes' => 'nullable|string|max:1000',
-                'copy_id' => 'required|exists:schedule_copies,id',
                 'school_id' => 'nullable|exists:schools,id'
             ]);
 
-            // Set school_id from request, copy, or user
+            // Set school_id from request or user
             if (empty($validated['school_id'])) {
-                $copy = ScheduleCopy::find($validated['copy_id']);
-                $validated['school_id'] = $copy->school_id ?? auth()->user()->schoolId();
+                $validated['school_id'] = auth()->user()->schoolId();
             }
 
             // Use day and period_number directly as day_number and period_number
             $validated['day_number'] = $validated['day'];
-            $validated['period_number'] = $validated['period_number'];
-            unset($validated['day']); // Remove the original 'day' field
+            unset($validated['day']); 
 
+            // Check for existing schedule in this slot (implicit conflict for same classroom)
+            // But we'll rely on our checkForConflicts or DB constraints if any
+            // Actually, we should check for conflicts before creating
+            
             $schedule = Schedule::create($validated);
             $schedule->load(['cst.classroom', 'cst.subject', 'cst.teacher']);
 
@@ -298,10 +269,8 @@ class ScheduleController extends Controller
             $validated = $request->validate([
                 'cst_id' => 'required|exists:classroom_subject_teachers,id',
                 'day' => 'required|integer|min:1|max:7',
-                'period_number' => 'required|integer|min:1|max:12', // Adjusted max values reasonable for school
-                'active' => 'boolean',
+                'period_number' => 'required|integer|min:1|max:12', 
                 'notes' => 'nullable|string|max:1000',
-                'copy_id' => 'exists:schedule_copies,id'
             ]);
 
             // Map day to day_number
@@ -318,7 +287,8 @@ class ScheduleController extends Controller
                 'classroom_id' => $cst->classroom_id,
                 'teacher_id' => $cst->teacher_id,
                 'cst_id' => $validated['cst_id'],
-                'current_schedule_id' => $schedule->id
+                'current_schedule_id' => $schedule->id,
+                'school_id' => $schedule->school_id
             ]);
 
             if ($conflicts['exists']) {
@@ -375,7 +345,7 @@ class ScheduleController extends Controller
         try {
             // Log incoming request data
             \Log::info('Schedule update request:', $request->all());
-// return $request->all();
+
             $schedule = Schedule::find($request->id);
 
             if (!$schedule) {
@@ -430,9 +400,6 @@ class ScheduleController extends Controller
     public function destroy(Schedule $schedule)
     {
         try {
-            // Check for any dependencies before deletion
-            // Add any specific business logic checks here
-
             $schedule->delete();
 
             return response()->json([
@@ -459,19 +426,23 @@ class ScheduleController extends Controller
             'current_schedule_id' => $data['current_schedule_id'] ?? null
         ]);
 
+        $schoolId = $data['school_id'] ?? auth()->user()->schoolId();
+
         // Get the teacher_id from the CST record
         $cst = ClassroomSubjectTeacher::find($data['cst_id']);
         $teacher_id = $cst->teacher_id;
 
         // Check for classroom conflicts using day/period
-        $classroomConflict = Schedule::where('day_number', $data['day_number'])
+        $classroomConflict = Schedule::where('school_id', $schoolId)
+            ->where('day_number', $data['day_number'])
             ->where('period_number', $data['period_number'])
             ->whereHas('cst', function ($query) use ($data) {
                 $query->where('classroom_id', $data['classroom_id']);
             });
 
         // Check for teacher conflicts using day/period
-        $teacherConflict = Schedule::where('day_number', $data['day_number'])
+        $teacherConflict = Schedule::where('school_id', $schoolId)
+            ->where('day_number', $data['day_number'])
             ->where('period_number', $data['period_number'])
             ->whereHas('cst', function ($query) use ($teacher_id) {
                 $query->where('teacher_id', $teacher_id);
@@ -513,14 +484,15 @@ class ScheduleController extends Controller
     {
         try {
             $validated = $request->validate([
-                'copy_id' => 'required|exists:schedule_copies,id',
                 'classroom_id' => 'required|exists:classrooms,id',
                 'day' => 'required|integer|min:1|max:7',
                 'period' => 'required|integer|min:1|max:12'
             ]);
 
-            // Get all schedules for this day/period in this copy (all classrooms)
-            $existingAssignments = Schedule::where('copy_id', $validated['copy_id'])
+            $schoolId = auth()->user()->schoolId();
+
+            // Get all schedules for this day/period in this school (all classrooms)
+            $existingAssignments = Schedule::where('school_id', $schoolId)
                 ->where('day_number', $validated['day'])
                 ->where('period_number', $validated['period'])
                 ->whereNotNull('cst_id')
@@ -570,20 +542,21 @@ class ScheduleController extends Controller
     }
 
     /**
-     * Get all teacher conflicts for a schedule copy.
+     * Get all teacher conflicts for a school.
      * Returns teachers who are assigned to multiple classrooms at the same day/period.
      */
     public function getTeacherConflicts(Request $request)
     {
         try {
             $validated = $request->validate([
-                'copy_id' => 'required|exists:schedule_copies,id',
                 'classroom_id' => 'nullable|exists:classrooms,id'
             ]);
+            
+            $schoolId = auth()->user()->schoolId();
 
-            // Get all schedules for this copy with CST relationships
+            // Get all schedules for this school with CST relationships
             // Exclude schedules without proper day/period assignments
-            $allSchedules = Schedule::where('copy_id', $validated['copy_id'])
+            $allSchedules = Schedule::where('school_id', $schoolId)
                 ->whereNotNull('cst_id')
                 ->whereNotNull('day_number')
                 ->whereNotNull('period_number')
@@ -685,18 +658,18 @@ class ScheduleController extends Controller
     }
 
     /**
-     * Calculate the number of unique conflicts for a schedule copy.
+     * Calculate the number of unique conflicts for a school.
      * A conflict occurs when the same teacher is assigned to multiple classrooms at the same day/period.
      * 
-     * @param int $copyId The schedule copy ID
+     * @param int $schoolId The school ID
      * @return int The number of unique conflicts
      */
-    private function calculateConflictCount($copyId)
+    private function calculateConflictCount($schoolId)
     {
         try {
-            // Get all schedules for this copy with CST relationships
+            // Get all schedules for this school with CST relationships
             // Exclude schedules without proper day/period assignments
-            $allSchedules = Schedule::where('copy_id', $copyId)
+            $allSchedules = Schedule::where('school_id', $schoolId)
                 ->whereNotNull('cst_id')
                 ->whereNotNull('day_number')
                 ->whereNotNull('period_number')
@@ -740,16 +713,16 @@ class ScheduleController extends Controller
      * Calculate the number of conflicts for a specific classroom.
      * A conflict occurs when the same teacher is assigned to this classroom and another classroom at the same day/period.
      * 
-     * @param int $copyId The schedule copy ID
+     * @param int $schoolId The school ID
      * @param int $classroomId The classroom ID
      * @return int The number of conflicts for this classroom
      */
-    private function calculateClassroomConflictCount($copyId, $classroomId)
+    private function calculateClassroomConflictCount($schoolId, $classroomId)
     {
         try {
             // Get all schedules for this classroom
             // Exclude schedules without proper day/period assignments
-            $classroomSchedules = Schedule::where('copy_id', $copyId)
+            $classroomSchedules = Schedule::where('school_id', $schoolId)
                 ->whereNotNull('cst_id')
                 ->whereNotNull('day_number')
                 ->whereNotNull('period_number')
@@ -765,7 +738,7 @@ class ScheduleController extends Controller
                 if (!$schedule->cst || !$schedule->cst->teacher_id) continue;
 
                 // Check if this teacher is assigned elsewhere at the same time
-                $otherAssignments = Schedule::where('copy_id', $copyId)
+                $otherAssignments = Schedule::where('school_id', $schoolId)
                     ->where('id', '!=', $schedule->id)
                     ->where('day_number', $schedule->day_number)
                     ->where('period_number', $schedule->period_number)
@@ -908,12 +881,15 @@ class ScheduleController extends Controller
     /**
      * Apply AI import - Replace entire week for classroom
      */
+    /**
+     * Apply AI import - Replace entire week for classroom
+     */
     public function applyAIImport(Request $request)
     {
         try {
             $validated = $request->validate([
                 'data' => 'required',
-                'copy_id' => 'required|exists:schedule_copies,id'
+                'school_id' => 'nullable|exists:schools,id'
             ]);
 
             $data = $validated['data'];
@@ -921,16 +897,12 @@ class ScheduleController extends Controller
                 $data = json_decode($data, true);
             }
 
-            $copyId = $validated['copy_id'];
+            $schoolId = $validated['school_id'] ?? auth()->user()->schoolId();
             $classroomId = $data['classroom_id'];
 
-            // Get school_id from copy
-            $copy = ScheduleCopy::find($copyId);
-            $schoolId = $copy->school_id;
-
-            // Delete existing schedules for this classroom in this copy
-            // Force delete existing schedules for this classroom in this copy to prevent soft-delete conflicts
-            Schedule::where('copy_id', $copyId)
+            // Delete existing schedules for this classroom in this school
+            // Force delete existing schedules for this classroom in this school to prevent soft-delete conflicts
+            Schedule::where('school_id', $schoolId)
                 ->whereHas('cst', function($q) use ($classroomId) {
                     $q->where('classroom_id', $classroomId);
                 })
@@ -968,13 +940,11 @@ class ScheduleController extends Controller
                     }
 
                     $schedule = Schedule::create([
-                        'copy_id' => $copyId,
                         'school_id' => $schoolId,
                         'cst_id' => $cst->id,
                         'day_number' => $dayMap[$entry['day']],
                         'period_number' => $entry['period'],
                         'notes' => $entry['notes'] ?? null,
-                        'active' => true
                     ]);
 
                     $created[] = [
@@ -1020,7 +990,7 @@ class ScheduleController extends Controller
         try {
             $validated = $request->validate([
                 'data' => 'required',
-                'copy_id' => 'required|exists:schedule_copies,id'
+                'school_id' => 'nullable|exists:schools,id'
             ]);
 
             $data = $validated['data'];
@@ -1028,12 +998,8 @@ class ScheduleController extends Controller
                 $data = json_decode($data, true);
             }
 
-            $copyId = $validated['copy_id'];
+            $schoolId = $validated['school_id'] ?? auth()->user()->schoolId();
             $classroomId = $data['classroom_id'];
-
-            // Get school_id from copy
-            $copy = ScheduleCopy::find($copyId);
-            $schoolId = $copy->school_id;
 
             $dayMap = [
                 'Sunday' => 1,
@@ -1071,7 +1037,7 @@ class ScheduleController extends Controller
                     }
 
                     // Find existing schedule for this day/period/classroom
-                    $existingSchedule = Schedule::where('copy_id', $copyId)
+                    $existingSchedule = Schedule::where('school_id', $schoolId)
                         ->where('day_number', $dayNumber)
                         ->where('period_number', $periodNumber)
                         ->whereHas('cst', function($q) use ($classroomId) {
@@ -1094,13 +1060,11 @@ class ScheduleController extends Controller
                     } else {
                         // Create new
                         Schedule::create([
-                            'copy_id' => $copyId,
                             'school_id' => $schoolId,
                             'cst_id' => $cst->id,
                             'day_number' => $dayNumber,
                             'period_number' => $periodNumber,
                             'notes' => $entry['notes'] ?? null,
-                            'active' => true
                         ]);
 
                         $created[] = [
@@ -1149,15 +1113,15 @@ class ScheduleController extends Controller
     {
         try {
             $validated = $request->validate([
-                'copy_id' => 'required|exists:schedule_copies,id',
-                'classroom_id' => 'required|exists:classrooms,id'
+                'classroom_id' => 'required|exists:classrooms,id',
+                'school_id' => 'nullable|exists:schools,id'
             ]);
 
-            $copyId = $validated['copy_id'];
             $classroomId = $validated['classroom_id'];
+            $schoolId = $validated['school_id'] ?? auth()->user()->schoolId();
 
             // Get all existing schedules for this classroom
-            $existingSchedules = Schedule::where('copy_id', $copyId)
+            $existingSchedules = Schedule::where('school_id', $schoolId)
                 ->whereHas('cst', function($q) use ($classroomId) {
                     $q->where('classroom_id', $classroomId);
                 })
@@ -1229,7 +1193,7 @@ class ScheduleController extends Controller
                 $period = $slot['period'];
 
                 // Get all teachers busy at this slot in other classrooms
-                $busyTeacherIds = Schedule::where('copy_id', $copyId)
+                $busyTeacherIds = Schedule::where('school_id', $schoolId)
                     ->where('day_number', $day)
                     ->where('period_number', $period)
                     ->whereNotNull('cst_id')
@@ -1263,7 +1227,7 @@ class ScheduleController extends Controller
                         $selectedCst = $cstOptions->random();
                         
                         // Get conflict details
-                        $conflictSchedule = Schedule::where('copy_id', $copyId)
+                        $conflictSchedule = Schedule::where('school_id', $schoolId)
                             ->where('day_number', $day)
                             ->where('period_number', $period)
                             ->whereHas('cst', function($q) use ($selectedCst) {
@@ -1327,23 +1291,19 @@ class ScheduleController extends Controller
     {
         try {
             $validated = $request->validate([
-                'copy_id' => 'required|exists:schedule_copies,id',
                 'classroom_id' => 'required|exists:classrooms,id',
                 'assignments' => 'required|array',
                 'assignments.*.day' => 'required|integer|min:1|max:7',
                 'assignments.*.period' => 'required|integer|min:1|max:12',
                 'assignments.*.cst_id' => 'required|exists:classroom_subject_teachers,id',
-                'force_conflicts' => 'boolean'
+                'force_conflicts' => 'boolean',
+                'school_id' => 'nullable|exists:schools,id'
             ]);
 
-            $copyId = $validated['copy_id'];
             $classroomId = $validated['classroom_id'];
             $assignments = $validated['assignments'];
             $forceConflicts = $validated['force_conflicts'] ?? false;
-
-            // Get school_id from copy
-            $copy = ScheduleCopy::find($copyId);
-            $schoolId = $copy->school_id;
+            $schoolId = $validated['school_id'] ?? auth()->user()->schoolId();
 
             $created = [];
             $updated = [];
@@ -1355,7 +1315,7 @@ class ScheduleController extends Controller
                 $cstId = $assignment['cst_id'];
 
                 // Check if slot already exists
-                $existingSchedule = Schedule::where('copy_id', $copyId)
+                $existingSchedule = Schedule::where('school_id', $schoolId)
                     ->where('day_number', $day)
                     ->where('period_number', $period)
                     ->whereHas('cst', function($q) use ($classroomId) {
@@ -1366,7 +1326,7 @@ class ScheduleController extends Controller
                 // Check for teacher conflicts if not forcing
                 if (!$forceConflicts) {
                     $cst = ClassroomSubjectTeacher::find($cstId);
-                    $teacherConflict = Schedule::where('copy_id', $copyId)
+                    $teacherConflict = Schedule::where('school_id', $schoolId)
                         ->where('day_number', $day)
                         ->where('period_number', $period)
                         ->where('id', '!=', $existingSchedule?->id ?? 0)
@@ -1389,7 +1349,7 @@ class ScheduleController extends Controller
                     // Update existing schedule
                     $existingSchedule->update([
                         'cst_id' => $cstId,
-                        'active' => true
+                        // 'active' => true (removed)
                     ]);
                     $updated[] = [
                         'day' => $day,
@@ -1399,12 +1359,11 @@ class ScheduleController extends Controller
                 } else {
                     // Create new schedule
                     $schedule = Schedule::create([
-                        'copy_id' => $copyId,
                         'school_id' => $schoolId,
                         'cst_id' => $cstId,
                         'day_number' => $day,
                         'period_number' => $period,
-                        'active' => true
+                        // 'active' => true (removed)
                     ]);
                     $created[] = [
                         'day' => $day,
@@ -1437,6 +1396,148 @@ class ScheduleController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to apply random fill: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    /**
+     * Save current live schedule as a draft
+     */
+    public function saveDraft(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string|max:50',
+                'overwrite' => 'boolean'
+            ]);
+            
+            $draftName = $validated['name'];
+            $schoolId = auth()->user()->schoolId();
+
+            \DB::transaction(function () use ($schoolId, $draftName) {
+                // Get all CSTs for the school
+                $csts = ClassroomSubjectTeacher::where('school_id', $schoolId)->get();
+                
+                // Get all current schedules grouped by cst_id
+                $schedules = Schedule::where('school_id', $schoolId)
+                    ->get()
+                    ->groupBy('cst_id');
+
+                foreach ($csts as $cst) {
+                    $cstSchedules = $schedules->get($cst->id);
+                    
+                    $draftData = [];
+                    if ($cstSchedules) {
+                        foreach ($cstSchedules as $sch) {
+                            $draftData[] = [
+                                'day_number' => $sch->day_number,
+                                'period_number' => $sch->period_number,
+                                // Add other fields if necessary
+                            ];
+                        }
+                    }
+
+                    // Update drafts JSON column
+                    $drafts = $cst->drafts ?? [];
+                    $drafts[$draftName] = [
+                        'timestamp' => now()->toIso8601String(),
+                        'entries' => $draftData
+                    ];
+                    
+                    $cst->drafts = $drafts;
+                    $cst->save();
+                }
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => "Schedule saved as draft '{$draftName}'"
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to save draft: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Load a draft to the live schedule (replaces current)
+     */
+    public function loadDraft(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string'
+            ]);
+            
+            $draftName = $validated['name'];
+            $schoolId = auth()->user()->schoolId();
+
+            \DB::transaction(function () use ($schoolId, $draftName) {
+                // 1. Clear current live schedule
+                Schedule::where('school_id', $schoolId)->delete();
+
+                // 2. Load CSTs and apply draft
+                $csts = ClassroomSubjectTeacher::where('school_id', $schoolId)->get();
+                
+                foreach ($csts as $cst) {
+                    $drafts = $cst->drafts;
+                    if (isset($drafts[$draftName]) && isset($drafts[$draftName]['entries'])) {
+                        foreach ($drafts[$draftName]['entries'] as $entry) {
+                            Schedule::create([
+                                'cst_id' => $cst->id,
+                                'school_id' => $schoolId,
+                                'day_number' => $entry['day_number'],
+                                'period_number' => $entry['period_number'],
+                                // 'active' is implied true by existence in table
+                            ]);
+                        }
+                    }
+                }
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => "Draft '{$draftName}' loaded successfully"
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load draft: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get list of available drafts
+     */
+    public function getDrafts()
+    {
+        try {
+            $schoolId = auth()->user()->schoolId();
+            
+            // Heuristic: Check the first few CSTs to find common draft names
+            // Since drafts are saved globally, any Cst *should* have the keys
+            $someCst = ClassroomSubjectTeacher::where('school_id', $schoolId)
+                ->whereNotNull('drafts')
+                ->first();
+
+            $draftNames = [];
+            if ($someCst && $someCst->drafts) {
+                $draftNames = array_keys($someCst->drafts);
+            }
+
+            return response()->json([
+                'success' => true,
+                'drafts' => $draftNames
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve drafts'
             ], 500);
         }
     }

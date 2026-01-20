@@ -225,16 +225,13 @@ public function share(Request $request): array
             $teacher = \App\Models\Teacher::where('user_id', $user->id)->first();
             if (!$teacher) return null;
 
-            // Get active academic year and schedule copy
+            // Get active academic year
             $activeYear = \App\Models\AcademicYear::where('active', true)
                 ->where('school_id', $teacher->school_id)
                 ->first();
 
-            $activeCopy = \App\Models\ScheduleCopy::where('active', true)
-                ->where('school_id', $teacher->school_id)
-                ->first();
-
-            if (!$activeYear || !$activeCopy) return null;
+            // Check if active year exists
+            if (!$activeYear) return null;
 
             // Get all CSTs for this teacher in active academic year
             $cstIds = \App\Models\ClassroomSubjectTeacher::where('teacher_id', $teacher->id)
@@ -242,9 +239,8 @@ public function share(Request $request): array
                 ->where('school_id', $teacher->school_id)
                 ->pluck('id');
 
-            // Get schedules for these CSTs
+            // Get schedules for these CSTs (ignoring copy_id as it's being deprecated)
             return \App\Models\Schedule::whereIn('cst_id', $cstIds)
-                ->where('copy_id', $activeCopy->id)
                 ->where('active', true)
                 ->with([
                     'cst.classroom' => function ($query) {
@@ -270,16 +266,12 @@ public function share(Request $request): array
             $student = \App\Models\Student::where('user_id', $user->id)->first();
             if (!$student) return null;
 
-            // Get active academic year and schedule copy
+            // Get active academic year
             $activeYear = \App\Models\AcademicYear::where('active', true)
                 ->where('school_id', $student->school_id)
                 ->first();
 
-            $activeCopy = \App\Models\ScheduleCopy::where('active', true)
-                ->where('school_id', $student->school_id)
-                ->first();
-
-            if (!$activeYear || !$activeCopy) return null;
+            if (!$activeYear) return null;
 
             // Get all CSTs for student's classroom in active academic year
             $cstIds = \App\Models\ClassroomSubjectTeacher::where('classroom_id', $student->classroom_id)
@@ -289,7 +281,6 @@ public function share(Request $request): array
 
             // Get schedules for these CSTs
             return \App\Models\Schedule::whereIn('cst_id', $cstIds)
-                ->where('copy_id', $activeCopy->id)
                 ->where('active', true)
                 ->with([
                     'cst.classroom',

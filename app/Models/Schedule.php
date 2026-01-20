@@ -10,7 +10,6 @@ class Schedule extends Model
     use HasFactory;
 
     protected $fillable = [
-        'copy_id',
         'cst_id',
         'school_id',
         'teacher_substitute_id',
@@ -20,13 +19,13 @@ class Schedule extends Model
         'period_number',
         'place',
         'color_custom',
-        'active',
         'notes',
         'co_subject_id'
+        // 'active' removed
     ];
 
     protected $casts = [
-        'active' => 'boolean',
+        // 'active' => 'boolean', // Removed
     ];
 
     protected $appends = ['teacher_id', 'subject_id', 'classroom_id', 'grade_id', 'day', 'status'];
@@ -45,10 +44,7 @@ class Schedule extends Model
             return 'UNPLACED';
         }
         
-        if (!$this->active) {
-            return 'PLACED';
-        }
-        
+        // Active is now implied true
         return 'READY';
     }
 
@@ -90,10 +86,8 @@ class Schedule extends Model
     protected $with = ['cst'];
 
     // Relationships
-    public function copy()
-    {
-        return $this->belongsTo(ScheduleCopy::class, 'copy_id');
-    }
+    // public function copy() -- REMOVED
+
 
     public function school()
     {

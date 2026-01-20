@@ -16,7 +16,7 @@ return new class extends Migration
 
             $table->foreignId('schedule_id')->constrained('schedules')->onDelete('cascade');
             $table->foreignId('teacher_substitute_id')->nullable()->constrained('users')->onDelete('set null');
-            $table->foreignId('schedule_copy_id')->constrained('schedule_copies')->onDelete('cascade');
+            // $table->foreignId('schedule_copy_id')->constrained('schedule_copies')->onDelete('cascade');
             $table->unsignedTinyInteger('day')->comment('1-5: Sunday to Thursday');
             $table->unsignedTinyInteger('week')->comment('1-52: Week number in year');
             $table->unsignedTinyInteger('semester')->comment('1-2: First or Second semester');

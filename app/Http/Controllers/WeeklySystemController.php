@@ -4,10 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\WeeklyPlan;
 use App\Models\Schedule;
-use App\Models\ScheduleCopy;
 use App\Models\Teacher;
 use App\Services\WeeklyPlanService;
-use App\Services\ScheduleGenerationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -15,14 +13,11 @@ use Illuminate\Support\Facades\Auth;
 class WeeklySystemController extends Controller
 {
     protected WeeklyPlanService $weeklyPlanService;
-    protected ScheduleGenerationService $scheduleService;
 
     public function __construct(
-        WeeklyPlanService $weeklyPlanService,
-        ScheduleGenerationService $scheduleService
+        WeeklyPlanService $weeklyPlanService
     ) {
         $this->weeklyPlanService = $weeklyPlanService;
-        $this->scheduleService = $scheduleService;
     }
 
     /**
@@ -61,19 +56,23 @@ class WeeklySystemController extends Controller
     /**
      * Generate weekly plans for a specific week
      */
+    /**
+     * Generate weekly plans for a specific week
+     */
     public function generateWeeklyPlans(Request $request): JsonResponse
     {
         $request->validate([
-            'copy_id' => 'required|integer|exists:schedule_copies,id',
+            'school_id' => 'required|integer|exists:schools,id',
             'week_number' => 'required|integer|min:1',
-            'semester_number' => 'required|integer|min:1|max:2'
+            'semester_number' => 'required|integer|min:1|max:2',
+            'academic_year_id' => 'required|integer|exists:academic_years,id',
         ]);
  
         try {
-            $copy = ScheduleCopy::findOrFail($request->copy_id);
-            
+            // Updated to pass IDs directly to service instead of ScheduleCopy object
             $result = $this->weeklyPlanService->generateForWeek(
-                $copy,
+                $request->school_id,
+                $request->academic_year_id,
                 $request->week_number,
                 $request->semester_number
             );
@@ -107,14 +106,10 @@ class WeeklySystemController extends Controller
             ], 403);
         }
 
-        $schedules = Schedule::with(['cst.subject', 'cst.classroom', 'cst.teacher', 'copy'])
+        $schedules = Schedule::with(['cst.subject', 'cst.classroom', 'cst.teacher'])
             ->whereHas('cst', function ($query) use ($teacherId) {
                 $query->where('teacher_id', $teacherId);
             })
-            ->whereHas('copy', function ($query) {
-                $query->where('status', 'active');
-            })
-            ->where('active', true)
             ->get();
 
         return response()->json([
@@ -855,24 +850,30 @@ class WeeklySystemController extends Controller
     /**
      * Get sync analysis - shows alignment between schedules and weekly plans
      */
+    /**
+     * Get sync analysis - shows alignment between schedules and weekly plans
+     */
     public function getSyncAnalysis(Request $request): JsonResponse
     {
         $request->validate([
-            'copy_id' => 'required|integer|exists:schedule_copies,id',
+            // 'copy_id' => 'required|integer|exists:schedule_copies,id', // Removed
             'week_number' => 'required|integer|min:1',
             'academic_year_id' => 'required|integer|exists:academic_years,id',
-            'semester_number' => 'required|integer|min:1|max:2'
+            'semester_number' => 'required|integer|min:1|max:2',
+            'school_id' => 'required|integer|exists:schools,id' // Added required school_id
         ]);
 
-        $copyId = $request->copy_id;
+        // $copyId = $request->copy_id;
         $weekNumber = $request->week_number;
         $academicYearId = $request->academic_year_id;
         $semesterNumber = $request->semester_number;
+        $schoolId = $request->school_id;
 
-        // Get all schedules that are placed on the timetable (have day + period)
-        // Note: period_order is only for UI display, not a requirement for weekly plans
+        // Get all active schedules for this school
+        // Note: We assume active schedules belong to the active academic year context
         $schedules = Schedule::with(['cst.subject', 'cst.classroom', 'cst.teacher'])
-            ->where('copy_id', $copyId)
+            ->where('school_id', $schoolId)
+            // ->where('copy_id', $copyId) // Removed
             ->whereNotNull('day_number')
             ->whereNotNull('period_number')
             ->where('active', true)
@@ -1006,7 +1007,7 @@ class WeeklySystemController extends Controller
             if (!$exists) {
                 WeeklyPlan::create([
                     'schedule_id' => $schedule->id,
-                    'copy_id' => $schedule->copy_id,
+                    // 'copy_id' => $schedule->copy_id, // Removed
                     'week_number' => $request->week_number,
                     'academic_year_id' => $request->academic_year_id,
                     'semester_number' => $request->semester_number,

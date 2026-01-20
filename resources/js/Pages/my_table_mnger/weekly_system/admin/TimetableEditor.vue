@@ -18,31 +18,6 @@
     <!-- Filters Row -->
     <q-card flat bordered class="q-pa-md q-mb-lg">
       <div class="row q-gutter-md items-end">
-        <!-- Active Schedule Copy -->
-        <div class="col-12 col-sm-6 col-md-4">
-          <q-skeleton v-if="loadingCopies" type="rect" height="40px" />
-          <q-banner v-else-if="activeCopy" dense class="bg-grey-1" rounded>
-            <div class="row items-center no-wrap">
-              <q-icon name="content_copy" color="primary" class="q-mr-sm" />
-              <div class="col">
-                <div class="text-weight-medium">{{ activeCopy.name }}</div>
-                <div class="text-caption text-grey-7">
-                  {{ activeCopy.academic_year?.name }} - {{ activeCopy.semester?.name }}
-                </div>
-              </div>
-              <div class="col-auto">
-                <StatusBadge :status="activeCopy.status" />
-              </div>
-            </div>
-          </q-banner>
-          <q-banner v-else dense class="bg-red-1 text-red-9" rounded>
-            <div class="row items-center no-wrap">
-              <q-icon name="error" class="q-mr-sm" />
-              <div>{{ t('common.noActiveSchedule') }}</div>
-            </div>
-          </q-banner>
-        </div>
-
         <!-- Classroom Selector -->
         <div class="col-12 col-sm-6 col-md-4">
           <q-select
@@ -56,7 +31,6 @@
             emit-value
             map-options
             :loading="loadingClassrooms"
-            :disable="!activeCopy"
             @update:model-value="handleClassroomChange"
           >
             <template v-slot:prepend>
@@ -80,10 +54,10 @@
             icon="psychology"
             :label="t('common.aiGenerate')"
             outline
-            :disable="!activeCopy || !selectedClassroomId"
+            :disable="!selectedClassroomId"
             @click="showAIImportDialog = true"
           >
-            <q-tooltip v-if="!activeCopy || !selectedClassroomId">
+            <q-tooltip v-if="!selectedClassroomId">
               {{ t('common.selectClassroomFirst') }}
             </q-tooltip>
           </q-btn>
@@ -96,14 +70,104 @@
             icon="shuffle"
             label="Random Fill"
             outline
-            :disable="!activeCopy || !selectedClassroomId"
+            :disable="!selectedClassroomId"
             @click="showRandomFillDialog = true"
           >
-            <q-tooltip v-if="!activeCopy || !selectedClassroomId">
+            <q-tooltip v-if="!selectedClassroomId">
               {{ t('common.selectClassroomFirst') }}
             </q-tooltip>
           </q-btn>
         </div>
+
+        <!-- Draft Management -->
+        <div class="col-12 col-sm-auto">
+          <q-btn-dropdown
+            color="secondary"
+            icon="save"
+            label="Drafts"
+            outline
+          >
+            <q-list>
+              <q-item clickable v-close-popup @click="showSaveDraftDialog = true">
+                <q-item-section avatar>
+                  <q-icon name="save" color="primary" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Save Current as Draft</q-item-label>
+                </q-item-section>
+              </q-item>
+              
+              <q-item clickable v-close-popup @click="openLoadDraftDialog">
+                <q-item-section avatar>
+                  <q-icon name="restore" color="secondary" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Load Draft</q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-btn-dropdown>
+        </div>
+
+        <!-- Assignments Overview Button -->
+        <div class="col-12 col-sm-auto">
+          <q-btn
+            color="info"
+            icon="assignment_ind"
+            label="Assignments Overview"
+            outline
+            @click="showOverviewDialog = true"
+          />
+        </div>
+        
+        <!-- ... existing stats code ... -->
+
+    <!-- Save Draft Dialog -->
+    <q-dialog v-model="showSaveDraftDialog">
+      <q-card style="min-width: 350px">
+        <q-card-section>
+          <div class="text-h6">Save Schedule Draft</div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none">
+          <q-input dense v-model="draftName" autofocus label="Draft Name" @keyup.enter="saveDraft" />
+        </q-card-section>
+
+        <q-card-actions align="right" class="text-primary">
+          <q-btn flat label="Cancel" v-close-popup />
+          <q-btn flat label="Save" @click="saveDraft" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- Load Draft Dialog -->
+    <q-dialog v-model="showLoadDraftDialog">
+      <q-card style="min-width: 350px">
+        <q-card-section>
+          <div class="text-h6">Load Schedule Draft</div>
+          <p class="text-caption text-negative">Warning: This will replace the current live schedule.</p>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none">
+          <q-select
+            v-model="selectedDraft"
+            :options="availableDrafts"
+            label="Select Draft"
+            outlined
+            dense
+          />
+        </q-card-section>
+
+        <q-card-actions align="right" class="text-primary">
+          <q-btn flat label="Cancel" v-close-popup />
+          <q-btn flat label="Load" color="negative" @click="loadDraft" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- ... existing dialogs ... -->
+
+
 
         <!-- Statistics -->
         <div class="col-12">
@@ -214,13 +278,6 @@
       <q-spinner-dots size="50px" color="primary" />
     </div>
 
-    <!-- Empty State -->
-    <q-card v-else-if="!activeCopy" flat bordered class="text-center q-pa-xl">
-      <q-icon name="error" size="64px" color="red-5" />
-      <p class="text-h6 text-grey-7 q-mt-md">{{ t('common.noActiveSchedule') }}</p>
-      <p class="text-grey-6">{{ t('weeklySystem.timetableEditor.activateSchedule') }}</p>
-    </q-card>
-
     <q-card v-else-if="!selectedClassroomId" flat bordered class="text-center q-pa-xl">
       <q-icon name="touch_app" size="64px" color="grey-5" />
       <p class="text-h6 text-grey-7 q-mt-md">{{ t('weeklySystem.timetableEditor.selectClassroom') }}</p>
@@ -255,6 +312,7 @@
       :loading-availability="loadingAvailability"
       @submit="handleAssignSubmit"
       @filter-cst="handleFilterCST"
+      @close="showAssignDialog = false"
     />
 
     <!-- Conflict Details Dialog -->
@@ -301,7 +359,6 @@
       :classroom-id="selectedClassroomId"
       :classroom-name="selectedClassroomName"
       :subjects="subjects"
-      :copy-id="activeCopy?.id"
       @applied="handleAIImportApplied"
     />
 
@@ -310,8 +367,12 @@
       v-model="showRandomFillDialog"
       :classroom-id="selectedClassroomId"
       :classroom-name="selectedClassroomName"
-      :copy-id="activeCopy?.id"
       @applied="handleRandomFillApplied"
+    />
+
+    <!-- CST Overview Dialog -->
+    <CSTOverviewDialog
+      v-model="showOverviewDialog"
     />
   </div>
 </template>
@@ -327,13 +388,12 @@ import StatusBadge from '../components/shared/StatusBadge.vue'
 import WeeklyPlanMenu from '../WeeklyPlanMenu.vue'
 import AIImportDialog from '../components/timetable/AIImportDialog.vue'
 import RandomFillDialog from '../components/timetable/RandomFillDialog.vue'
+import CSTOverviewDialog from '../components/timetable/CSTOverviewDialog.vue'
 
 const { t } = useI18n()
-
 const $q = useQuasar()
 
 // Data
-const scheduleCopies = ref([])
 const classrooms = ref([])
 const schedules = ref([])
 const cstOptions = ref([])
@@ -343,9 +403,6 @@ const teacherConflicts = ref({})
 
 // Selected values
 const selectedClassroomId = ref(null)
-const activeCopy = computed(() => {
-  return scheduleCopies.value.find(c => c?.status === 'active' || c?.active === true) || null
-})
 const selectedClassroomName = computed(() => {
   const classroom = classrooms.value.find(c => c.id === selectedClassroomId.value)
   return classroom?.name || ''
@@ -358,9 +415,9 @@ const selectedDay = ref(null)
 const selectedPeriod = ref(null)
 const slotAvailability = ref(null)
 const loadingAvailability = ref(false)
+const showOverviewDialog = ref(false)
 
 // Loading states
-const loadingCopies = ref(false)
 const loadingClassrooms = ref(false)
 const loadingSchedules = ref(false)
 const loadingCST = ref(false)
@@ -368,8 +425,57 @@ const loadingTeachers = ref(false)
 const loadingSubjects = ref(false)
 const saving = ref(false)
 
+const showSaveDraftDialog = ref(false)
+const showLoadDraftDialog = ref(false)
+const draftName = ref('')
+const selectedDraft = ref(null)
+const availableDrafts = ref([])
+
+const saveDraft = async () => {
+  if (!draftName.value) return
+  
+  try {
+    await axios.post('/weekly-system/api/drafts/save', {
+      name: draftName.value
+    })
+    $q.notify({ type: 'positive', message: 'Draft saved successfully' })
+    showSaveDraftDialog.value = false
+    draftName.value = ''
+  } catch (error) {
+    console.error('Error saving draft:', error)
+    $q.notify({ type: 'negative', message: 'Failed to save draft' })
+  }
+}
+
+const openLoadDraftDialog = async () => {
+  try {
+    const response = await axios.get('/weekly-system/api/drafts')
+    availableDrafts.value = response.data.drafts || []
+    showLoadDraftDialog.value = true
+  } catch (error) {
+     console.error('Error fetching drafts:', error)
+    $q.notify({ type: 'negative', message: 'Failed to fetch drafts' })
+  }
+}
+
+const loadDraft = async () => {
+  if (!selectedDraft.value) return
+  
+  try {
+    await axios.post('/weekly-system/api/drafts/load', {
+      name: selectedDraft.value
+    })
+    $q.notify({ type: 'positive', message: 'Draft loaded successfully' })
+    showLoadDraftDialog.value = false
+    await fetchSchedules() // Refresh grid
+  } catch (error) {
+    console.error('Error loading draft:', error)
+    $q.notify({ type: 'negative', message: 'Failed to load draft' })
+  }
+}
+
 // Statistics
-const stats = ref(null) // Keep for backward compatibility
+const stats = ref(null) 
 const classroomStats = ref(null)
 const overallStats = ref(null)
 
@@ -377,33 +483,16 @@ const overallStats = ref(null)
 const showConflictDialog = ref(false)
 const loadingConflictDetails = ref(false)
 const conflictDetails = ref([])
-const conflictType = ref('overall') // 'overall' or 'classroom'
+const conflictType = ref('overall') 
 const showAIImportDialog = ref(false)
 const showRandomFillDialog = ref(false)
 
 // Methods
-const fetchScheduleCopies = async () => {
-  loadingCopies.value = true
-  try {
-    const response = await axios.get('/admin/schedule-copies')
-    const result = response.data.data || response.data || []
-    scheduleCopies.value = Array.isArray(result) ? result : (result.data || [])
-  } catch (error) {
-    console.error('Error fetching schedule copies:', error)
-    $q.notify({ type: 'negative', message: 'Failed to load schedule copies' })
-  } finally {
-    loadingCopies.value = false
-  }
-}
 
 const fetchClassrooms = async () => {
-  if (!activeCopy.value) return
-  const copy = activeCopy.value
-  if (!copy) return
-
   loadingClassrooms.value = true
   try {
-    const response = await axios.get(`/api/classrooms?school_id=${copy.school_id}`)
+    const response = await axios.get(`/api/classrooms`)
     const result = response.data.data || response.data || []
     classrooms.value = Array.isArray(result) ? result : []
     // Auto-select first classroom if not already set
@@ -419,13 +508,12 @@ const fetchClassrooms = async () => {
 }
 
 const fetchSchedules = async () => {
-  if (!activeCopy.value || !selectedClassroomId.value) return
+  if (!selectedClassroomId.value) return
 
   loadingSchedules.value = true
   try {
     const response = await axios.get('/admin/schedules', {
       params: {
-        copy_id: activeCopy.value.id,
         classroom_id: selectedClassroomId.value
       }
     })
@@ -439,17 +527,15 @@ const fetchSchedules = async () => {
     if (response.data.overall_stats) {
       overallStats.value = response.data.overall_stats
     }
-    // Backward compatibility
     if (response.data.stats) {
       stats.value = response.data.stats
     }
     
-    // Fallback to frontend calculation if no backend stats
+    // Fallback calculation
     if (!classroomStats.value && !overallStats.value) {
       calculateStats()
     }
     
-    // Fetch conflicts after loading schedules
     await fetchTeacherConflicts()
   } catch (error) {
     console.error('Error fetching schedules:', error)
@@ -460,14 +546,8 @@ const fetchSchedules = async () => {
 }
 
 const fetchTeacherConflicts = async () => {
-  if (!activeCopy.value) return
-  
   try {
-    const response = await axios.get('/weekly-system/api/teacher-conflicts', {
-      params: {
-        copy_id: activeCopy.value.id
-      }
-    })
+    const response = await axios.get('/weekly-system/api/teacher-conflicts')
     teacherConflicts.value = response.data.data?.conflicts || {}
   } catch (error) {
     console.error('Error fetching teacher conflicts:', error)
@@ -476,15 +556,12 @@ const fetchTeacherConflicts = async () => {
 }
 
 const fetchCSTOptions = async () => {
-  if (!activeCopy.value) return
-  const copy = activeCopy.value
-  if (!copy) return
+  if (!selectedClassroomId.value) return
 
   loadingCST.value = true
   try {
     const response = await axios.get('/api/classroom-subject-teachers', {
       params: {
-        school_id: copy.school_id,
         classroom_id: selectedClassroomId.value
       }
     })
@@ -500,15 +577,9 @@ const fetchCSTOptions = async () => {
 }
 
 const fetchTeachers = async () => {
-  if (!activeCopy.value) return
-  const copy = activeCopy.value
-  if (!copy) return
-
   loadingTeachers.value = true
   try {
-    const response = await axios.get('/api/teachers', {
-      params: { school_id: copy.school_id }
-    })
+    const response = await axios.get('/api/teachers')
     teachers.value = response.data.data || response.data || []
   } catch (error) {
     console.error('Error fetching teachers:', error)
@@ -530,7 +601,6 @@ const fetchSubjects = async () => {
 }
 
 const calculateStats = () => {
-  // Fallback calculation only if backend doesn't provide stats
   if (!Array.isArray(schedules.value) || schedules.value.length === 0) {
     stats.value = {
       total_slots: 0,
@@ -541,7 +611,6 @@ const calculateStats = () => {
     return
   }
   
-  // Count assigned: must have cst_id AND day_number AND period_number
   const assigned = schedules.value.filter(s => 
     s && s.cst_id && s.day_number != null && s.period_number != null
   ).length
@@ -566,14 +635,12 @@ const handleCellClick = async ({ day, period, schedule }) => {
   selectedPeriod.value = period
   selectedSchedule.value = schedule
   
-  // Fetch availability information before opening dialog
-  if (activeCopy.value && selectedClassroomId.value) {
+  if (selectedClassroomId.value) {
     loadingAvailability.value = true
     slotAvailability.value = null
     try {
       const response = await axios.get('/weekly-system/api/slot-availability', {
         params: {
-          copy_id: activeCopy.value.id,
           classroom_id: selectedClassroomId.value,
           day: day,
           period: period
@@ -620,22 +687,14 @@ const handleAssignSubmit = async (formData) => {
     const payload = {
       ...formData,
       day: formData.day,
-      period_number: formData.period // Map period to period_number matching backend expectation
+      period_number: formData.period 
     }
 
     if (formData.schedule_id) {
-      // Update existing schedule
       await axios.put(`/admin/schedules/${formData.schedule_id}`, payload)
     } else {
-      if (!activeCopy.value) {
-        $q.notify({ type: 'negative', message: 'No active schedule copy found' })
-        return
-      }
-      // Create new schedule
       await axios.post('/admin/schedules', {
         ...payload,
-        copy_id: activeCopy.value.id,
-        school_id: activeCopy.value.school_id,
         day_number: formData.day
       })
     }
@@ -652,10 +711,9 @@ const handleAssignSubmit = async (formData) => {
 }
 
 const handleFilterCST = (searchTerm) => {
-  // Could implement server-side filtering here if needed
+  // Client-side can be enough
 }
 
-// Show conflict details dialog (Added via update)
 const showConflictDetails = async (type) => {
   conflictType.value = type
   showConflictDialog.value = true
@@ -663,9 +721,7 @@ const showConflictDetails = async (type) => {
   conflictDetails.value = []
 
   try {
-    const params = {
-      copy_id: activeCopy.value?.id
-    }
+    const params = {}
     
     if (type === 'classroom' && selectedClassroomId.value) {
       params.classroom_id = selectedClassroomId.value
@@ -675,14 +731,7 @@ const showConflictDetails = async (type) => {
     
     if (response.data.success && response.data.data) {
       const conflicts = response.data.data.conflicts || []
-      
-      // Transform conflicts into display format
-      // The API returns an object where keys are either unique conflict keys (teacher-day-period)
-      // or schedule IDs. We only want the unique ones (without schedule_id property)
       const conflictsList = Array.isArray(conflicts) ? conflicts : Object.values(conflicts)
-      
-      // Filter out duplicates: only show unique conflicts that don't have schedule_id
-      // (schedule_id keyed entries are for cell display, not for the dialog)
       const uniqueConflicts = conflictsList.filter(c => !c.schedule_id)
       
       conflictDetails.value = uniqueConflicts.map(conflict => ({
@@ -700,16 +749,13 @@ const showConflictDetails = async (type) => {
   }
 }
 
-// Helper to get day name
 const getDayName = (dayNumber) => {
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
   return days[dayNumber - 1] || `Day ${dayNumber}`
 }
 
-// Handle AI Import completion
 const handleAIImportApplied = async () => {
-  // Do not close dialog automatically
-  schedules.value = [] // clear to force reactivity
+  schedules.value = [] 
   await fetchSchedules()
   $q.notify({ 
     type: 'positive', 
@@ -718,10 +764,8 @@ const handleAIImportApplied = async () => {
   })
 }
 
-// Handle Random Fill completion
 const handleRandomFillApplied = async () => {
-  // Do not close dialog automatically
-  schedules.value = [] // clear to force reactivity
+  schedules.value = [] 
   await fetchSchedules()
   $q.notify({ 
     type: 'positive', 
@@ -729,19 +773,6 @@ const handleRandomFillApplied = async () => {
     position: 'top'
   })
 }
-
-watch(activeCopy, async (newVal) => {
-  if (!newVal) return
-  selectedClassroomId.value = null
-  classrooms.value = []
-  schedules.value = []
-  stats.value = null
-  await Promise.all([
-    fetchClassrooms(),
-    fetchTeachers(),
-    fetchSubjects()
-  ])
-})
 
 watch(selectedClassroomId, async (newVal) => {
   if (newVal) {
@@ -754,7 +785,11 @@ watch(selectedClassroomId, async (newVal) => {
 
 // Lifecycle
 onMounted(async () => {
-  await fetchScheduleCopies()
+  await Promise.all([
+    fetchClassrooms(),
+    fetchTeachers(),
+    fetchSubjects()
+  ])
 })
 </script>
 

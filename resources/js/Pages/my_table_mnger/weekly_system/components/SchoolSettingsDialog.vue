@@ -68,24 +68,6 @@
                 </template>
               </q-select>
             </div>
-
-            <div class="col-12 col-md-4">
-              <q-select
-                v-model="selectedScheduleCopy"
-                :options="scheduleCopies"
-                option-value="id"
-                option-label="name"
-                label="Schedule Copy *"
-                outlined
-                dense
-                map-options
-                :rules="[val => !!val || 'Schedule copy is required']"
-              >
-                <template v-slot:prepend>
-                  <q-icon name="schedule" color="teal" />
-                </template>
-              </q-select>
-            </div>
           </div>
         </q-form>
       </q-card-section>
@@ -126,17 +108,6 @@
           >
             <q-icon name="event" size="18px" class="q-mr-xs" />
             <span class="text-weight-medium">{{ selectedSemester.name }}</span>
-          </q-badge>
-          
-          <q-badge 
-            v-if="selectedScheduleCopy" 
-            color="teal-6" 
-            size="lg"
-            class="q-px-lg q-py-xs"
-            style="height: 40px;"
-          >
-            <q-icon name="schedule" size="18px" class="q-mr-xs" />
-            <span class="text-weight-medium">{{ selectedScheduleCopy.name }}</span>
           </q-badge>
         </div>
       </q-card-section>
@@ -194,10 +165,8 @@ const showDialog = ref(false);
 const selectedSchool = ref(null);
 const selectedAcademicYear = ref(null);
 const selectedSemester = ref(null);
-const selectedScheduleCopy = ref(null);
 const academicYears = ref([]);
 const semesters = ref([]);
-const scheduleCopies = ref([]);
 
 // Watch for changes in modelValue to control dialog visibility
 watch(() => props.modelValue, (value) => {
@@ -227,8 +196,7 @@ watch(selectedSchool, async (newSchoolId) => {
 const isFormValid = computed(() => {
   return selectedSchool.value && 
          selectedAcademicYear.value && 
-         selectedSemester.value && 
-         selectedScheduleCopy.value;
+         selectedSemester.value;
 });
 
 // Helper function to get school name by ID
@@ -250,7 +218,6 @@ const loadOptions = async () => {
     // Load from store if available
     academicYears.value = schoolDataStore.academicYears;
     semesters.value = schoolDataStore.semesters;
-    scheduleCopies.value = schoolDataStore.scheduleCopies;
 
     // If store doesn't have the data, fetch it directly
     if (academicYears.value.length === 0) {
@@ -261,19 +228,6 @@ const loadOptions = async () => {
     if (semesters.value.length === 0) {
       const semestersResponse = await axios.get('/api/semesters');
       semesters.value = semestersResponse.data.data || semestersResponse.data;
-    }
-
-    // Only load schedule copies if a school is selected
-    if (selectedSchool.value) {
-      if (scheduleCopies.value.length === 0) {
-        const scheduleCopiesResponse = await axios.get('/api/schedule-copies', {
-          params: { school_id: selectedSchool.value }
-        });
-        scheduleCopies.value = scheduleCopiesResponse.data;
-      }
-    } else {
-      // If no school is selected, clear the schedule copies options
-      scheduleCopies.value = [];
     }
 
     // Load current school settings if a school is selected
@@ -299,9 +253,6 @@ const loadCurrentSettings = async () => {
     if (schoolDataStore.semesterId) {
       selectedSemester.value = semesters.value.find(s => s.id === schoolDataStore.semesterId) || null;
     }
-    if (schoolDataStore.scheduleCopyId) {
-      selectedScheduleCopy.value = scheduleCopies.value.find(sc => sc.id === schoolDataStore.scheduleCopyId) || null;
-    }
   } catch (error) {
     $q.notify({
       type: 'negative',
@@ -325,8 +276,7 @@ const saveSettings = async () => {
   try {
     await schoolDataStore.updateSchoolSettings({
       academic_year_id: selectedAcademicYear.value?.id || null,
-      semester_id: selectedSemester.value?.id || null,
-      schedule_copy_id: selectedScheduleCopy.value?.id || null
+      semester_id: selectedSemester.value?.id || null
     });
 
     $q.notify({

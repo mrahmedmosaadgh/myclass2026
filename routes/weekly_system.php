@@ -39,10 +39,12 @@ Route::middleware(['auth', 'verified'])->prefix('weekly-system')->name('weekly-s
     Route::get('/school-browser', [App\Http\Controllers\SchoolBrowserController::class, 'index'])
         ->name('school-browser');
     
-    // Schedule Copies Management
+    // Schedule Copies Management - DEPRECATED/REMOVED
+    /*
     Route::get('/schedule-copies', function () {
         return Inertia::render('my_table_mnger/weekly_system/admin/ScheduleCopiesIndex');
     })->name('schedule-copies.index');
+    */
     
     // Timetable Editor
     Route::get('/timetable-editor', function () {
@@ -145,15 +147,19 @@ Route::middleware(['auth', 'verified'])->prefix('weekly-system')->name('weekly-s
         Route::post('/random-fill/apply', [\App\Http\Controllers\ScheduleController::class, 'applyRandomFill'])
             ->name('api.random-fill.apply');
 
-        // Schedule Sync endpoints
-        Route::post('/schedule-copies/{copyId}/sync-status', [\App\Http\Controllers\ScheduleCopyController::class, 'getSyncStatus'])
-            ->name('api.schedule-copies.sync-status');
-        Route::post('/schedule-copies/{copyId}/apply-sync', [\App\Http\Controllers\ScheduleCopyController::class, 'applySyncFixes'])
-            ->name('api.schedule-copies.apply-sync');
+        // Draft Management endpoints
+        Route::post('/drafts/save', [\App\Http\Controllers\ScheduleController::class, 'saveDraft'])
+            ->name('api.drafts.save');
+        Route::post('/drafts/load', [\App\Http\Controllers\ScheduleController::class, 'loadDraft'])
+            ->name('api.drafts.load');
+        Route::get('/drafts', [\App\Http\Controllers\ScheduleController::class, 'getDrafts'])
+            ->name('api.drafts.index');
+
+        // Note: Schedule Sync endpoints removed as Schedule Copies are deprecated
 
         // CST Overview endpoint
-        Route::post('/schedule-copies/cst-overview', [\App\Http\Controllers\ScheduleCopyController::class, 'getCSTOverview'])
-            ->name('api.schedule-copies.cst-overview');
+        Route::post('/cst-overview', [\App\Http\Controllers\ClassroomSubjectTeacherController::class, 'getCSTOverview'])
+            ->name('api.cst-overview');
 
         // CST Management endpoints
         Route::put('/cst/{id}/classes-per-week', [\App\Http\Controllers\ClassroomSubjectTeacherController::class, 'updateClassesPerWeek'])

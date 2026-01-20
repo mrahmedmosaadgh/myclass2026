@@ -42,7 +42,6 @@ class ContextController extends Controller
         $validated = $request->validate([
             'academic_year_id' => 'nullable|exists:academic_years,id',
             'semester_id' => 'nullable|exists:semesters,id',
-            'schedule_copy_id' => 'nullable|exists:schedule_copies,id',
             'resolved_by' => 'nullable|exists:users,id'
         ]);
 

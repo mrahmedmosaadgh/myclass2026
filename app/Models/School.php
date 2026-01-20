@@ -19,7 +19,6 @@ class School extends Model
         'is_active',
         'academic_year_id',
         'semester_id',
-        'schedule_copy_id',
         'weekly_plan_settings',
         'resolved_by',
         'resolved_at',
@@ -92,16 +91,8 @@ class School extends Model
     {
         return $this->belongsTo(Semester::class, 'semester_id');
     }
-
-    public function activeScheduleCopy()
-    {
-        return $this->belongsTo(ScheduleCopy::class, 'schedule_copy_id');
-    }
     
-    public function scheduleCopies()
-    {
-        return $this->hasMany(ScheduleCopy::class);
-    }
+   
     
     public function users()
     {

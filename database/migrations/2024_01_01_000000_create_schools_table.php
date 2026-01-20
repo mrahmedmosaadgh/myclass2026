@@ -24,7 +24,7 @@ return new class extends Migration
             $table->integer('active_academic_year_id')->nullable();
             $table->integer('active_semester_id')->nullable();
             // $table->foreignId('semester_id')->nullable()->constrained('semesters')->onDelete('set null');
-            $table->integer('schedule_copy_id')->nullable();
+            // $table->integer('schedule_copy_id')->nullable();
             $table->foreignId('resolved_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamp('resolved_at')->nullable();
             $table->json('weekly_settings')->nullable();

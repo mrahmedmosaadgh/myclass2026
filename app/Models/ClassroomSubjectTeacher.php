@@ -19,11 +19,15 @@ class ClassroomSubjectTeacher extends Model
         'classes_per_week',
         'color_custom', // Added
         'color_custom_text', // Added
-        'data'          // Keep if still used for other things
+        'data',          // Keep if still used for other things
+        'drafts',
+        'history'
     ];
 
     protected $casts = [
         'data' => 'json',
+        'drafts' => 'json',
+        'history' => 'json',
     ];
 
     protected $appends = [

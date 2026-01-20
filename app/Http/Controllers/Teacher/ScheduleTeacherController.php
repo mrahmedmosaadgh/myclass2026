@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Teacher;
 use App\Http\Controllers\Controller;
 use App\Models\Schedule;
 use App\Models\Teacher;
-use App\Models\ScheduleCopy;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -24,16 +23,6 @@ class ScheduleTeacherController extends Controller
     public function getTeacherScheduleData(Request $request, $school_id, $teacher_id)
     {
         try {
-            // Get active schedule copy
-            $activeCopy = ScheduleCopy::where('active', true)->first();
-
-            if (!$activeCopy) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No active schedule copy found'
-                ], 404);
-            }
-
             // Get teacher info
             $teacher = Teacher::find($teacher_id);
 
@@ -45,12 +34,13 @@ class ScheduleTeacherController extends Controller
             }
 
             // Get teacher's schedule data
+            // Filter by school_id and active=true
             $scheduleData = Schedule::with(['cst.subject', 'cst.classroom'])
                 ->whereHas('cst', function($query) use ($teacher_id) {
                     $query->where('teacher_id', $teacher_id);
                 })
                 ->where('school_id', $school_id)
-                ->where('copy_id', $activeCopy->id)
+                ->where('active', true)
                 ->get();
 
             // Format data for the grid display

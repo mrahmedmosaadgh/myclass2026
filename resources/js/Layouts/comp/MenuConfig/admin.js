@@ -242,11 +242,7 @@ export default [
         icon: 'calendar_today',
         to: '/admin/schedule-dailies',
       },
-      {
-        title: 'Schedule Copies',
-        icon: 'content_copy',
-        to: '/admin/schedule-copies',
-      },
+
       {
         title: 'Period Details',
         icon: 'access_time',

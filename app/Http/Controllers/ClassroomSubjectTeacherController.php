@@ -556,4 +556,117 @@ $data= ClassroomSubjectTeacher::where('school_id', $school_id)->where('teacher_i
             ], 500);
         }
     }
+    /**
+     * Get CST (Classroom-Subject-Teacher) overview statistics
+     * Shows per-classroom count and total expected schedule entries
+     */
+    public function getCSTOverview(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'school_id' => 'required|exists:schools,id',
+                'academic_year_id' => 'required|exists:academic_years,id',
+                'include_deleted' => 'boolean'
+            ]);
+
+            $schoolId = $validated['school_id'];
+            $academicYearId = $validated['academic_year_id'];
+            $includeDeleted = $validated['include_deleted'] ?? false;
+
+            // Get all CSTs for this school and academic year
+            $query = ClassroomSubjectTeacher::where('school_id', $schoolId)
+                ->where('academic_year_id', $academicYearId)
+                ->with(['classroom', 'subject', 'teacher']);
+
+            if ($includeDeleted) {
+                $query->withTrashed();
+            }
+
+            $csts = $query->get();
+
+            if ($csts->isEmpty()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'No subject-teacher assignments found',
+                    'data' => [
+                        'by_classroom' => [],
+                        'summary' => [
+                            'total_classrooms' => 0,
+                            'total_csts' => 0,
+                            'total_deleted_csts' => 0,
+                            'total_expected_schedules' => 0
+                        ]
+                    ]
+                ]);
+            }
+
+            // Group by classroom
+            $byClassroom = [];
+            $totalExpectedSchedules = 0;
+            $totalDeletedCsts = 0;
+
+            foreach ($csts as $cst) {
+                $classroomId = $cst->classroom_id;
+                $classroomName = $cst->classroom->name ?? 'Unknown';
+                $classesPerWeek = $cst->classes_per_week ?? 0;
+                $isDeleted = !is_null($cst->deleted_at);
+
+                if ($isDeleted) {
+                    $totalDeletedCsts++;
+                }
+
+                if (!isset($byClassroom[$classroomId])) {
+                    $byClassroom[$classroomId] = [
+                        'classroom_id' => $classroomId,
+                        'classroom_name' => $classroomName,
+                        'cst_count' => 0,
+                        'cst_deleted_count' => 0,
+                        'total_classes_per_week' => 0,
+                        'subjects' => []
+                    ];
+                }
+
+                if (!$isDeleted) {
+                    $byClassroom[$classroomId]['cst_count']++;
+                    $byClassroom[$classroomId]['total_classes_per_week'] += $classesPerWeek;
+                    $totalExpectedSchedules += $classesPerWeek;
+                } else {
+                    $byClassroom[$classroomId]['cst_deleted_count']++;
+                }
+
+                $byClassroom[$classroomId]['subjects'][] = [
+                    'cst_id' => $cst->id,
+                    'subject_name' => $cst->subject->name ?? 'Unknown',
+                    'teacher_name' => $cst->teacher->name ?? 'Unknown',
+                    'classes_per_week' => $classesPerWeek,
+                    'deleted_at' => $cst->deleted_at ? $cst->deleted_at->toDateTimeString() : null,
+                    'is_deleted' => $isDeleted
+                ];
+            }
+
+            // Sort classrooms by name
+            usort($byClassroom, function($a, $b) {
+                return strcmp($a['classroom_name'], $b['classroom_name']);
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'by_classroom' => array_values($byClassroom),
+                    'summary' => [
+                        'total_classrooms' => count($byClassroom),
+                        'total_csts' => $csts->filter(fn($c) => is_null($c->deleted_at))->count(),
+                        'total_deleted_csts' => $totalDeletedCsts,
+                        'total_expected_schedules' => $totalExpectedSchedules
+                    ]
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get CST overview: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

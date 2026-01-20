@@ -13,36 +13,36 @@ class BehaviorSeeder extends Seeder
         $yearId = 2;
 
         $behaviors = [
-            // Positive Behaviors
-            ['name' => 'Brought the book', 'type' => 'positive', 'points' => 5],
-            ['name' => 'Did the homework', 'type' => 'positive', 'points' => 5],
-            ['name' => 'Helped a classmate', 'type' => 'positive', 'points' => 3],
-            ['name' => 'Answered actively', 'type' => 'positive', 'points' => 4],
-            ['name' => 'Participated in discussion', 'type' => 'positive', 'points' => 3],
-
-            // Negative Behaviors
-            ['name' => 'Sneaked information', 'type' => 'negative', 'points' => -3],
-            ['name' => 'Disturbed the class', 'type' => 'negative', 'points' => -4],
-            ['name' => 'Forgot the book', 'type' => 'negative', 'points' => -3],
-            ['name' => 'Did not do homework', 'type' => 'negative', 'points' => -3],
-            ['name' => 'Speak with no permission', 'type' => 'negative', 'points' => -3],
-            ['name' => 'Eat with no permission', 'type' => 'negative', 'points' => -3],
-            ['name' => 'Sleep', 'type' => 'negative', 'points' => -3],
+            ['name' => 'Helping Others', 'points' => 1, 'category' => 'Social'],
+            ['name' => 'On Task', 'points' => 1, 'category' => 'Academic'],
+            ['name' => 'Participating', 'points' => 2, 'category' => 'Academic'],
+            ['name' => 'Persistence', 'points' => 1, 'category' => 'Social-Emotional'],
+            ['name' => 'Teamwork', 'points' => 2, 'category' => 'Social'],
+            ['name' => 'Clean Workspace', 'points' => 1, 'category' => 'Organizational'],
+            ['name' => 'Creative Thinking', 'points' => 3, 'category' => 'Academic'],
+            ['name' => 'Prayer Etiquette', 'points' => 1, 'category' => 'Character'],
         ];
 
-        foreach ($behaviors as $behavior) {
-            Behavior::updateOrCreate(
-                [
-                    'school_id' => $schoolId,
-                    'year_id' => $yearId,
-                    'name' => $behavior['name'],
-                ],
-                [
-                    'type' => $behavior['type'],
-                    'points' => $behavior['points'],
-                    'is_active' => true,
-                ]
-            );
+        $schools = School::with('academic_years')->get();
+
+        foreach ($schools as $school) {
+            foreach ($school->academic_years as $academicYear) {
+                foreach ($behaviors as $behavior) {
+                    Behavior::updateOrCreate(
+                        [
+                            'school_id' => $school->id,
+                            'year_id' => $academicYear->id,
+                            'name' => $behavior['name'],
+                        ],
+                        [
+                            'type' => 'positive', // All provided points are positive
+                            'points' => $behavior['points'],
+                            'is_active' => true,
+                            'description' => $behavior['category'], // Storing category in description as requested
+                        ]
+                    );
+                }
+            }
         }
     }
 }

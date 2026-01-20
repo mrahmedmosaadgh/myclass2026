@@ -38,7 +38,7 @@ class ActiveContextSeeder extends Seeder
                             'academic_year_id' => $academicYear->id,
                             'semester_id' => $semester->id,
                             'week_number' => 1, // Default week number
-                            'schedule_copy_id' => null, // Initially no schedule copy
+                            // 'schedule_copy_id' => null, // Initially no schedule copy
                             'resolved_by' => null,
                             'resolved_at' => null,
                             'locked' => false,

@@ -116,11 +116,11 @@ return response()->json([
             'periodDetails' => PeriodDetail::orderBy('period')->get()
         ]);
     }
-    public function getScheduleData($school_id, $schedule_copy_id)
+    public function getScheduleData($school_id)
     {
         $scheduleData = Schedule::with(['cst.teacher', 'cst.subject', 'cst.classroom'])
             ->where('school_id', $school_id)
-            ->where('copy_id', $schedule_copy_id)
+            ->where('active', true)
             ->get();
 
         return response()->json($scheduleData);

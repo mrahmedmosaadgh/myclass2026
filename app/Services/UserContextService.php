@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\School;
 use App\Models\AcademicYear;
 use App\Models\Semester;
-use App\Models\ScheduleCopy;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
@@ -36,21 +35,12 @@ class UserContextService
 
         // Resolve semester context
         $semester = $this->resolveSemester($academicYear);
-        if (!$semester) {
-            return [
-                'school_id' => $school->id,
-                'academic_year_id' => $academicYear->id
-            ];
-        }
-
-        // Resolve schedule copy context
-        $scheduleCopy = $this->resolveScheduleCopy($school, $academicYear, $semester);
-
+        
         return [
             'school_id' => $school->id,
             'academic_year_id' => $academicYear->id,
-            'semester_id' => $semester->id,
-            'schedule_copy_id' => $scheduleCopy?->id,
+            'semester_id' => $semester?->id,
+          
         ];
     }
 
@@ -90,14 +80,14 @@ class UserContextService
             ];
         }
 
-        // Resolve schedule copy context
-        $scheduleCopy = $this->resolveScheduleCopy($school, $academicYear, $semester);
-
+        // Resolve semester context
+        $semester = $this->resolveSemester($academicYear);
+        
         return [
             'school_id' => $school->id,
             'academic_year_id' => $academicYear->id,
-            'semester_id' => $semester->id,
-            'schedule_copy_id' => $scheduleCopy?->id,
+            'semester_id' => $semester?->id,
+         
         ];
     }
 
@@ -155,30 +145,5 @@ class UserContextService
 
         // Fallback to most recent
         return $academicYear->semesters()->orderBy('created_at', 'desc')->first();
-    }
-
-    /**
-     * Resolve schedule copy for a school, academic year, and semester
-     */
-    private function resolveScheduleCopy(School $school, AcademicYear $academicYear, Semester $semester): ?ScheduleCopy
-    {
-        // Prefer active schedule copy
-        $scheduleCopy = $school->scheduleCopies()
-            ->where('academic_year_id', $academicYear->id)
-            ->where('semester_id', $semester->id)
-            ->where('active', true)
-            ->where('status', 'active')
-            ->first();
-            
-        if ($scheduleCopy) {
-            return $scheduleCopy;
-        }
-
-        // Fallback to most recent schedule copy for this school/year/semester
-        return $school->scheduleCopies()
-            ->where('academic_year_id', $academicYear->id)
-            ->where('semester_id', $semester->id)
-            ->orderBy('created_at', 'desc')
-            ->first();
     }
 }

@@ -324,8 +324,7 @@ import axios from 'axios'
 const props = defineProps({
   modelValue: Boolean,
   classroomId: Number,
-  classroomName: String,
-  copyId: Number
+  classroomName: String
 })
 
 const emit = defineEmits(['update:modelValue', 'applied'])
@@ -398,7 +397,6 @@ const generatePreview = async () => {
 
   try {
     const response = await axios.post('/weekly-system/api/random-fill/preview', {
-      copy_id: props.copyId,
       classroom_id: props.classroomId
     })
 
@@ -442,7 +440,6 @@ const applyRandomFill = async () => {
 
   try {
     const response = await axios.post('/weekly-system/api/random-fill/apply', {
-      copy_id: props.copyId,
       classroom_id: props.classroomId,
       assignments: allAssignments.value,
       force_conflicts: forceConflicts.value

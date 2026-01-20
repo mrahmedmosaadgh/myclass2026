@@ -27,7 +27,6 @@ class ScheduleDaily extends Model
                 $schedule = Schedule::find($scheduleDaily->schedule_id);
 
                 // Auto-populate from related Schedule
-                $scheduleDaily->schedule_copy_id = $schedule->copy_id;
                 $scheduleDaily->day = $schedule->day;
                 $scheduleDaily->week = $schedule->week;
                 $scheduleDaily->semester = $schedule->semester;
@@ -40,10 +39,7 @@ class ScheduleDaily extends Model
         return $this->belongsTo(Schedule::class);
     }
 
-    public function scheduleCopy()
-    {
-        return $this->belongsTo(ScheduleCopy::class, 'schedule_copy_id');
-    }
+ 
 
     public function teacherSubstitute()
     {

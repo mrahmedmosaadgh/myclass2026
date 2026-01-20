@@ -139,12 +139,15 @@ class SchoolController extends Controller
     /**
      * Get a single school by ID for API
      */
+    /**
+     * Get a single school by ID for API
+     */
     public function apiShow($id)
     {
         $school = School::with([
             'activeAcademicYear:id,name',
-            'activeSemester:id,name', 
-            'activeScheduleCopy:id,name'
+            'activeSemester:id,name'
+         
         ])->find($id);
         
         if (!$school) {
@@ -178,7 +181,7 @@ class SchoolController extends Controller
             'name' => 'sometimes|string|max:255',
             'academic_year_id' => 'nullable|exists:academic_years,id',
             'semester_id' => 'nullable|exists:semesters,id',
-            'schedule_copy_id' => 'nullable|exists:schedule_copies,id',
+          
         ]);
 
         $school->update($validated);

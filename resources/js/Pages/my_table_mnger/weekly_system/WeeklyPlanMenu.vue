@@ -69,7 +69,6 @@ const menuItems = [
   // Admin Routes
   { labelKey: 'weeklySystem.menu.schoolBrowser', route: 'weekly-system.school-browser', icon: 'school' },
   { labelKey: 'weeklySystem.menu.manager', route: 'weekly-system.weekly-plans-manager', icon: 'dashboard' },
-  { labelKey: 'weeklySystem.menu.scheduleCopies', route: 'weekly-system.schedule-copies.index', icon: 'content_copy' },
   { labelKey: 'weeklySystem.menu.timetable', route: 'weekly-system.timetable-editor', icon: 'edit_calendar' },
   
   // Teacher Routes
@@ -77,18 +76,20 @@ const menuItems = [
   { labelKey: 'weeklySystem.menu.myPlans', route: 'weekly-system.my-weekly-plans', icon: 'event_note' },
 ];
 
-const currentTab = computed(() => {
-  // Finds the first matching route from the menu items
-  // This allows the tab to be highlighted even if the current route is a child or related
-  // But for simple top-level nav, exact match on route name is usually fine.
-  // Using route().current() which supports wildcards if needed: route().current('admin.posts.*')
-  
-  for (const item of menuItems) {
-    if (route().current(item.route)) {
-        return item.route;
+const currentTab = computed({
+  get: () => {
+    // Finds the first matching route from the menu items
+    for (const item of menuItems) {
+      if (route().current(item.route)) {
+          return item.route;
+      }
     }
+    return null;
+  },
+  set: (val) => {
+    // No-op setter to avoid "computed value is readonly" warning
+    // Navigation is handled by the Link component or click handler
   }
-  return null;
 });
 </script>
 

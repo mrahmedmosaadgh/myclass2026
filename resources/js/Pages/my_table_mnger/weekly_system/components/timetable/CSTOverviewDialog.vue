@@ -53,10 +53,9 @@
             <template v-slot:avatar>
               <q-icon name="warning" color="white" />
             </template>
-            <div class="text-weight-bold">Schedule Sync Required</div>
+            <div class="text-weight-bold">Modifications Active</div>
             <div class="text-body2">
-              After making changes to classes per week, you must use the <strong>Schedule Sync</strong> feature 
-              on each affected schedule copy to update schedule records accordingly.
+              Changes to classes per week may require updates to the timetable.
             </div>
           </q-banner>
 
@@ -379,7 +378,7 @@ const fetchOverview = async () => {
   hasModifications.value = false
 
   try {
-    const response = await axios.post('/weekly-system/api/schedule-copies/cst-overview', {
+    const response = await axios.post('/weekly-system/api/cst-overview', {
       school_id: schoolDataStore.schoolId,
       academic_year_id: schoolDataStore.academicYearId,
       include_deleted: showDeleted.value

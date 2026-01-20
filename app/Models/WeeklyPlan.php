@@ -19,7 +19,6 @@ class WeeklyPlan extends Model
         'semester_number',
         'week_number',
         'schedule_id',
-        'copy_id',
         'cst_id',
         'cw',
         'hw',
@@ -79,13 +78,7 @@ class WeeklyPlan extends Model
         return $this->belongsTo(Schedule::class);
     }
 
-    /**
-     * Get the schedule copy that owns the weekly plan.
-     */
-    public function copy()
-    {
-        return $this->belongsTo(ScheduleCopy::class, 'copy_id');
-    }
+    // copy() relationship removed
 
     /**
      * Get the classroom subject teacher that owns the weekly plan.

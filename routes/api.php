@@ -75,8 +75,7 @@ Route::middleware(['auth:sanctum','web'])->put('/schools/{id}', [App\Http\Contro
 // Semesters API
 Route::middleware(['auth:sanctum','web'])->get('/semesters', [App\Http\Controllers\SemesterController::class, 'apiIndex']);
 
-// Schedule Copies API
-Route::middleware(['auth:sanctum','web'])->get('/schedule-copies', [App\Http\Controllers\ScheduleCopyController::class, 'apiIndex']);
+// Schedule Copies API - Removed
 
 // Classroom Subject Teachers API
 Route::middleware(['auth:sanctum','web'])->get('/classroom-subject-teachers/my-assignments', [App\Http\Controllers\ClassroomSubjectTeacherController::class, 'myAssignments']);

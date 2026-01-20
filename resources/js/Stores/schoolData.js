@@ -9,12 +9,9 @@ export const useSchoolDataStore = defineStore('schoolData', {
     academicYearName: null,
     semesterId: null,
     semesterName: null,
-    scheduleCopyId: null,
-    scheduleCopyName: null,
     schools: [],
     academicYears: [],
     semesters: [],
-    scheduleCopies: [],
     loading: false,
   }),
 
@@ -22,7 +19,6 @@ export const useSchoolDataStore = defineStore('schoolData', {
     isSchoolSelected: (state) => !!state.schoolId,
     isAcademicYearSet: (state) => !!state.academicYearId,
     isSemesterSet: (state) => !!state.semesterId,
-    isScheduleCopySet: (state) => !!state.scheduleCopyId,
     hasAllContext: (state) => !!state.schoolId && !!state.academicYearId && !!state.semesterId,
   },
 
@@ -32,7 +28,7 @@ export const useSchoolDataStore = defineStore('schoolData', {
       try {
         const response = await axios.get(route('weekly-system.api.school-data'));
         this.schools = response.data.schools || [];
-        
+
         // Automatically select the first school if none is selected
         if (!this.schoolId && this.schools.length > 0) {
           this.setSchool(this.schools[0].id);
@@ -56,12 +52,6 @@ export const useSchoolDataStore = defineStore('schoolData', {
         const semestersResponse = await axios.get('/api/semesters');
         this.semesters = semestersResponse.data.data || semestersResponse.data;
 
-        // Fetch schedule copies for this school
-        const scheduleCopiesResponse = await axios.get('/api/schedule-copies', {
-          params: { school_id: schoolId }
-        });
-        this.scheduleCopies = scheduleCopiesResponse.data;
-
       } catch (error) {
         console.error('Failed to fetch options:', error);
         throw error;
@@ -74,17 +64,16 @@ export const useSchoolDataStore = defineStore('schoolData', {
       if (!schoolId) return;
 
       this.schoolId = schoolId;
-      
+
       // Fetch school details to get the related data
       try {
         const response = await axios.get(`/api/schools/${schoolId}`);
         const school = response.data.data;
-        
+
         this.schoolName = school.name;
         this.academicYearId = school.academic_year_id;
         this.semesterId = school.semester_id;
-        this.scheduleCopyId = school.schedule_copy_id;
-        
+
         // Update names based on related data if available
         if (school.active_academic_year) {
           this.academicYearName = school.active_academic_year.name;
@@ -92,10 +81,7 @@ export const useSchoolDataStore = defineStore('schoolData', {
         if (school.active_semester) {
           this.semesterName = school.active_semester.name;
         }
-        if (school.active_schedule_copy) {
-          this.scheduleCopyName = school.active_schedule_copy.name;
-        }
-        
+
         // Fetch options for this school
         await this.fetchOptionsForSchool(schoolId);
       } catch (error) {
@@ -108,7 +94,7 @@ export const useSchoolDataStore = defineStore('schoolData', {
 
       try {
         const response = await axios.put(`/api/schools/${this.schoolId}`, settings);
-        
+
         // Update local state with new values
         if (settings.academic_year_id !== undefined) {
           this.academicYearId = settings.academic_year_id;
@@ -119,7 +105,7 @@ export const useSchoolDataStore = defineStore('schoolData', {
             this.academicYearName = null;
           }
         }
-        
+
         if (settings.semester_id !== undefined) {
           this.semesterId = settings.semester_id;
           if (settings.semester_id) {
@@ -129,17 +115,7 @@ export const useSchoolDataStore = defineStore('schoolData', {
             this.semesterName = null;
           }
         }
-        
-        if (settings.schedule_copy_id !== undefined) {
-          this.scheduleCopyId = settings.schedule_copy_id;
-          if (settings.schedule_copy_id) {
-            const copy = this.scheduleCopies.find(sc => sc.id === settings.schedule_copy_id);
-            this.scheduleCopyName = copy ? copy.name : null;
-          } else {
-            this.scheduleCopyName = null;
-          }
-        }
-        
+
         return response.data;
       } catch (error) {
         console.error('Failed to update school settings:', error);
@@ -154,8 +130,6 @@ export const useSchoolDataStore = defineStore('schoolData', {
       this.academicYearName = null;
       this.semesterId = null;
       this.semesterName = null;
-      this.scheduleCopyId = null;
-      this.scheduleCopyName = null;
     }
   },
 });
