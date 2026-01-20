@@ -340,8 +340,8 @@ Route::post('/admin/classroom-subject-teachers/import', [ClassroomSubjectTeacher
 Route::post('/admin/classroom-subject-teachers/validate', [ClassroomSubjectTeacherController::class, 'validateImport'])->name('admin.classroom-subject-teachers.validate');
 
 Route::get('/storage/{path}', function($path) {
-    if (Storage::exists($path)) {
-        return response()->file(Storage::path($path));
+    if (Storage::disk('public')->exists($path)) {
+        return response()->file(Storage::disk('public')->path($path));
     }
     return response()->json(['error' => 'File not found'], 404);
 })->where('path', '.*');
