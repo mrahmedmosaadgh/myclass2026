@@ -18,12 +18,22 @@ class BehaviorController extends Controller
             'name' => 'required|string|max:255',
             'type' => 'required|in:positive,negative',
             'points' => 'required|integer',
-            'school_id' => 'nullable|integer',
+            'school_id' => 'required|integer|exists:schools,id',
             'year_id' => 'nullable|integer',
         ]);
 
+        // Ensure we associate with the correct active academic year
+        $school = \App\Models\School::find($validated['school_id']);
+        if ($school) {
+            // Force the year_id to be the school's active year to avoid foreign key errors
+            // with stale frontend data (e.g. sending year_id=2 when only 1 exists)
+            $validated['year_id'] = $school->academic_year_id;
+        }
+
         $exists = Behavior::where('name', $validated['name'])
             ->where('type', $validated['type'])
+            ->where('school_id', $validated['school_id'])
+            ->where('year_id', $validated['year_id'])
             ->first();
 
         if ($exists) {

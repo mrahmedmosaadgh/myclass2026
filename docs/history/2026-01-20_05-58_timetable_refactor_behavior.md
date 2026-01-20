@@ -29,3 +29,6 @@
 ## 🔜 What's Next
 - Monitor the new draft system in production for any edge cases with large JSON payloads.
 - Allow schools to customize these default behaviors via a frontend interface (if not already present).
+
+### Fixes (Post-Release)
+- **Behavior Controller**: Fixed 500 error (`Integrity constraint violation`) when saving behaviors. The controller now automatically assigns the school's active `academic_year_id` if the provided `year_id` is invalid or refers to a non-existent year (resolving issues where frontend sent stale IDs).
