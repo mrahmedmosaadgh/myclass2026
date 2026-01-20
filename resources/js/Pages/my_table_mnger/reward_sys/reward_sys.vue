@@ -438,113 +438,111 @@ card2
        
 
 
-            <div class="flex flex-col md:flex-row gap-6 mt-6">
-              
-              <!-- Left Column: Selected Students (Sticky) -->
-              <div class="w-full md:w-fit flex-shrink-0">
-                <div class="sticky top-4">
-                  <div class="bg-blue-50 rounded-xl border border-blue-100 p-4 shadow-sm">
-                    <h4 class="font-bold text-blue-800 mb-3 flex items-center gap-2">
-                      <q-icon name="checklist" />
-                      {{ $t('rewardSys.selected') }} ({{ selectedIds.length }})
-                    </h4>
-                    
-                    <div v-if="selectedIds.length === 0" class="text-center py-8 text-gray-400 italic text-sm">
-                      {{ $t('rewardSys.messages.clickToSelect') }}
-                    </div>
-
-                    <div v-else class="flex flex-col gap-2 max-h-[calc(100vh-300px)] overflow-y-auto custom-scrollbar pr-1">
-                      <q-chip
-                        v-for="id in selectedIds"
-                        :key="id"
-                        removable
-                        @remove="toggleSelected(id)"
-                        color="white"
-                        text-color="primary"
-                        class="shadow-sm border border-blue-100 m-0 w-full  "
-                      >
-                        <q-avatar icon="person" color="primary" text-color="white" font-size="14px" />
-                        <div class=" leading-tight overflow-hidden w-full ">
-                          <span class="font-bold w-32   inline-block text-xl">{{ students.find(s => s.id === id)?.firstName }}</span>
-                          <span class="text-xs opacity-80 truncate">{{ students.find(s => s.id === id)?.lastName }}</span>
-                        </div>
-                      </q-chip>
-                    </div>
-                    
-                    <div class="mt-4 pt-3 border-t border-blue-200 space-y-2">
-                      <!-- Selection Tools -->
-                      <div class="grid grid-cols-3 gap-1">
-                        <q-btn 
-                          flat dense color="primary" :label="$t('rewardSys.selection.all')" size="sm" 
-                          @click="selectAllPresent"
-                          class="bg-blue-100/50"
-                        />
-                        <q-btn 
-                          flat dense color="primary" :label="$t('rewardSys.selection.inv')" size="sm" 
-                          @click="inverseSelection"
-                          class="bg-blue-100/50"
-                        />
-                        <q-btn 
-                          flat dense color="negative" :label="$t('rewardSys.selection.clear')" size="sm" 
-                          @click="clearSelection"
-                          class="bg-red-100/50"
-                        />
-                      </div>
-
-                      <!-- Action Buttons -->
-                      <div class="grid grid-cols-2 gap-2 pt-2">
-                        <q-btn 
-                          color="positive" icon="add" :label="$t('rewardSys.points.title')" 
-                          @click="openBehaviorDialog('positive')"
-                          :disable="selectedIds.length === 0"
-                        />
-                        <q-btn 
-                          color="negative" icon="remove" :label="$t('rewardSys.points.title')" 
-                          @click="openBehaviorDialog('negative')"
-                          :disable="selectedIds.length === 0"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Right Column: Student Grid -->
-              <div class="flex-1">
-                <div v-for="(group, index) in organizedStudents" :key="index" class="mb-6">
-                  <!-- Group Header (only if groups exist) -->
-                  <div v-if="group.name" class="mb-3 p-3 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-200">
-                    <h4 class="font-bold text-indigo-900 flex items-center gap-2">
-                      <q-icon name="groups" />
-                      {{ group.name }}
-                      <q-badge :label="group.students.length" color="indigo" />
-                    </h4>
+            <!-- Student Grid with Action Buttons -->
+            <div class="mt-6">
+              <!-- Action Buttons at Top -->
+              <div class="mb-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200 shadow-sm">
+                <div class="flex items-center justify-between flex-wrap gap-3">
+                  <div class="flex items-center gap-2">
+                    <q-icon name="checklist" class="text-blue-600" size="sm" />
+                    <span class="font-bold text-gray-700">{{ $t('rewardSys.selected') }}: </span>
+                    <q-badge :label="selectedIds.length" color="blue" class="text-lg" />
                   </div>
                   
-                  <!-- Student Cards -->
-                  <div class="flex flex-wrap justify-center gap-4">
-                    <StudentCard
-                      v-for="student in group.students"
-                      :key="student.id"
-                      :student="student"
-                      :selected="selectedIds.includes(student.id)"
-                      :selected-id="selectedIds.includes(student.id) ? student.id : null"
-                      :disable-behavior="!studentAttendance[student.id]"
-                      :is-absent="!studentAttendance[student.id]"
-                      :allow-disabled-click="false"
-                      :avatar-edit-enabled="avatarEditEnabled"
-                      :student-summary="{
-                        positive: studentBehaviors[student.id]?.points_plus || 0,
-                        negative: studentBehaviors[student.id]?.points_minus || 0,
-                        total: (studentBehaviors[student.id]?.points_plus || 0) - (studentBehaviors[student.id]?.points_minus || 0)
-                      }"
-                      @select="toggleSelected(student.id)"
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <!-- Selection Tools -->
+                    <q-btn 
+                      flat dense color="primary" :label="$t('rewardSys.selection.all')" size="sm" 
+                      @click="selectAllPresent"
+                      icon="check_box"
+                      class="bg-blue-100/50"
+                    />
+                    <q-btn 
+                      flat dense color="primary" :label="$t('rewardSys.selection.inv')" size="sm" 
+                      @click="inverseSelection"
+                      icon="swap_vert"
+                      class="bg-blue-100/50"
+                    />
+                    <q-btn 
+                      flat dense color="negative" :label="$t('rewardSys.selection.clear')" size="sm" 
+                      @click="clearSelection"
+                      icon="clear"
+                      class="bg-red-100/50"
+                    />
+                    
+                    <q-separator vertical inset class="mx-2" />
+                    
+                    <!-- Action Buttons -->
+                    <q-btn 
+                      color="positive" icon="add" :label="$t('rewardSys.points.title')" 
+                      @click="openBehaviorDialog('positive')"
+                      :disable="selectedIds.length === 0"
+                      size="sm"
+                    />
+                    <q-btn 
+                      color="negative" icon="remove" :label="$t('rewardSys.points.title')" 
+                      @click="openBehaviorDialog('negative')"
+                      :disable="selectedIds.length === 0"
+                      size="sm"
                     />
                   </div>
                 </div>
               </div>
 
-
+              <!-- Student Grid -->
+              <div v-for="(group, index) in organizedStudents" :key="index" class="mb-6">
+                <!-- Group Header (only if groups exist) -->
+                <div v-if="group.name" class="mb-3 p-3 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-200">
+                  <div class="flex items-center justify-between">
+                    <h4 class="font-bold text-indigo-900 flex items-center gap-2">
+                      <q-icon name="groups" />
+                      {{ group.name }}
+                      <q-badge :label="group.students.length" color="indigo" />
+                    </h4>
+                    <div class="flex gap-2">
+                      <q-btn
+                        dense
+                        size="sm"
+                        color="indigo"
+                        icon="check_box"
+                        :label="$t('rewardSys.selection.all')"
+                        @click="selectGroupStudents(group.students, true)"
+                        outline
+                      />
+                      <q-btn
+                        dense
+                        size="sm"
+                        color="grey"
+                        icon="check_box_outline_blank"
+                        :label="$t('rewardSys.selection.clear')"
+                        @click="selectGroupStudents(group.students, false)"
+                        outline
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Student Cards -->
+                <div class="flex flex-wrap justify-center gap-4">
+                  <StudentCard
+                    v-for="student in group.students"
+                    :key="student.id"
+                    :student="student"
+                    :selected="selectedIds.includes(student.id)"
+                    :selected-id="selectedIds.includes(student.id) ? student.id : null"
+                    :disable-behavior="!studentAttendance[student.id]"
+                    :is-absent="!studentAttendance[student.id]"
+                    :allow-disabled-click="false"
+                    :avatar-edit-enabled="avatarEditEnabled"
+                    :student-summary="{
+                      positive: studentBehaviors[student.id]?.points_plus || 0,
+                      negative: studentBehaviors[student.id]?.points_minus || 0,
+                      total: (studentBehaviors[student.id]?.points_plus || 0) - (studentBehaviors[student.id]?.points_minus || 0)
+                    }"
+                    @select="toggleSelected(student.id)"
+                  />
+                </div>
+              </div>
             </div>
 
           </div>
@@ -1818,6 +1816,24 @@ function toggleSelected(studentId) {
     selectedIds.value.push(studentId)
   } else {
     selectedIds.value.splice(idx, 1)
+  }
+}
+
+function selectGroupStudents(groupStudents, select) {
+  if (select) {
+    // Select all present students in the group
+    const presentStudentIds = groupStudents
+      .filter(student => studentAttendance.value[student.id])
+      .map(student => student.id)
+    
+    // Add to selectedIds (avoid duplicates)
+    const currentSet = new Set(selectedIds.value)
+    presentStudentIds.forEach(id => currentSet.add(id))
+    selectedIds.value = Array.from(currentSet)
+  } else {
+    // Deselect all students in the group
+    const groupStudentIds = new Set(groupStudents.map(s => s.id))
+    selectedIds.value = selectedIds.value.filter(id => !groupStudentIds.has(id))
   }
 }
 

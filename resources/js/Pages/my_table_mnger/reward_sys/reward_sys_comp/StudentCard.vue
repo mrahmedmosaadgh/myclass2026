@@ -420,17 +420,34 @@ const pointsBadgeClass = computed(() => {
 /* Absent Card Styles */
 .absent-card {
   transform: scale(0.85) !important;
-  filter: grayscale(100%) opacity(0.7);
+  filter: grayscale(100%) opacity(0.6);
   animation: none !important;
-  transition: all 0.3s ease;
+  transition: none !important;
+  cursor: not-allowed !important;
+  pointer-events: none;
 }
 
 .absent-card:hover {
-  transform: scale(0.9) !important;
-  filter: grayscale(0%) opacity(1);
+  transform: scale(0.85) !important;
+  filter: grayscale(100%) opacity(0.6);
+  box-shadow: 
+    0 8px 16px rgba(0, 0, 0, 0.12),
+    0 4px 8px rgba(59, 130, 246, 0.08),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.05),
+    inset 0 4px 8px rgba(255, 255, 255, 0.5) !important;
 }
 
-.absent-card .name-container .first-name,
+.absent-card::before {
+  animation: none !important;
+  opacity: 0.3 !important;
+}
+
+.absent-card .name-container .first-name {
+  animation: none !important;
+  background: linear-gradient(135deg, #9ca3af, #6b7280) !important;
+  opacity: 0.7;
+}
+
 .absent-card .name-container .last-name,
 .absent-card .points-badge,
 .absent-card .student-card {
