@@ -1,4 +1,5 @@
 <template>
+  <Head title="Reward System" />
   <div class="p-6 space-y-6 bg-gradient-to-br from-blue-50 to-indigo-50 min-h-screen">
 
 
@@ -21,9 +22,26 @@
 
     <!-- Header Card -->
     <q-card class="shadow-lg rounded-2xl overflow-hidden">
-      <q-card-section class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
-        <h1 class="text-3xl font-bold">🏆 Reward System</h1>
-        <p class="text-blue-100">Manage student behaviors and track achievements</p>
+      <q-card-section class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-bold">🏆 {{ $t('rewardSys.behaviors.management') }}</h1>
+          <p class="text-blue-100">{{ $t('rewardSys.behaviors.management') }}</p>
+        </div>
+        
+        <!-- Language Toggle -->
+        <q-btn-toggle
+          v-model="locale"
+          :options="[
+            { label: '🇬🇧 English', value: 'en' },
+            { label: '🇸🇦 العربية', value: 'ar' }
+          ]"
+          flat
+          color="white"
+          text-color="white"
+          toggle-color="white"
+          toggle-text-color="primary"
+          unelevated
+        />
       </q-card-section>
 
       <!-- Control Panel -->
@@ -35,12 +53,12 @@
               <q-icon name="event_note" size="md" />
             </div>
             <div>
-              <div class="text-sm text-gray-500 font-medium">Current Session</div>
+              <div class="text-sm text-gray-500 font-medium">{{ $t('rewardSys.session.current') }}</div>
               <div class="text-lg font-bold text-gray-800 flex items-center gap-2">
                 <span v-if="selectedClassroomId">
-                  {{ classrooms.find(c => c.classroom_id === selectedClassroomId)?.classroom_name || 'Unknown Class' }}
+                  {{ classrooms.find(c => c.classroom_id === selectedClassroomId)?.classroom_name || $t('rewardSys.session.unknownClass') }}
                 </span>
-                <span v-else class="text-gray-400 italic">No classroom selected</span>
+                <span v-else class="text-gray-400 italic">{{ $t('rewardSys.session.noClassroom') }}</span>
                 
                 <span class="text-gray-300">|</span>
                 
@@ -57,11 +75,90 @@
           <q-btn
             color="primary"
             icon="settings"
-            label="Setup Session"
+            :label="$t('rewardSys.session.setupButton')"
             @click="showSetupDialog = true"
             size="lg"
             class="shadow-md"
           />
+        </div>
+
+        <!-- Classroom Summary - Compact Design -->
+        <div v-if="selectedClassroomId" class="bg-gradient-to-r from-blue-50 to-indigo-50 p-3 rounded-lg border border-blue-200 shadow-sm">
+          <div class="flex items-center justify-between flex-wrap gap-3">
+            <!-- Title -->
+            <div class="flex items-center gap-2">
+              <q-icon name="groups" class="text-blue-600" size="sm" />
+              <span class="text-sm font-bold text-gray-700">{{ $t('rewardSys.session.classroomSummary') }}</span>
+            </div>
+            
+            <!-- Stats Row -->
+            <div class="flex items-center gap-3 flex-wrap">
+              <!-- Total Students -->
+              <div class="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-blue-200">
+                <q-icon name="people" class="text-blue-600" size="sm" />
+                <div class="flex flex-col">
+                  <span class="text-xs text-gray-500">{{ $t('rewardSys.session.total') }}</span>
+                  <span class="text-lg font-bold text-blue-600">{{ students.length }}</span>
+                </div>
+              </div>
+              
+              <!-- Present -->
+              <div class="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-green-200">
+                <q-icon name="check_circle" class="text-green-600" size="sm" />
+                <div class="flex flex-col">
+                  <span class="text-xs text-gray-500">{{ $t('rewardSys.session.present') }}</span>
+                  <span class="text-lg font-bold text-green-600">{{ attendanceSummary.present }}</span>
+                </div>
+              </div>
+              
+              <!-- Absent -->
+              <div class="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-red-200">
+                <q-icon name="cancel" class="text-red-600" size="sm" />
+                <div class="flex flex-col">
+                  <span class="text-xs text-gray-500">{{ $t('rewardSys.session.absent') }}</span>
+                  <span class="text-lg font-bold text-red-600">{{ attendanceSummary.absent }}</span>
+                </div>
+              </div>
+              
+              <!-- Copy Absent List Button -->
+              <q-btn 
+                dense 
+                color="primary" 
+                icon="content_copy" 
+                :label="$t('rewardSys.session.copyList')"
+                @click="copyToClipboard"
+                :disable="attendanceSummary.absent === 0"
+                size="sm"
+                class="shadow-sm"
+              >
+                <q-tooltip>{{ $t('rewardSys.session.copyToClipboard') }}</q-tooltip>
+              </q-btn>
+            </div>
+          </div>
+
+          <!-- Absent Students List -->
+          <div v-if="attendanceSummary.absent > 0" class="mt-3 pt-3 border-t border-blue-200">
+            <div class="text-xs font-semibold text-gray-600 mb-2 flex items-center gap-1">
+              <q-icon name="person_off" size="xs" color="red" />
+              <span>{{ $t('rewardSys.session.absentStudentsList') }}</span>
+              <q-badge color="red" :label="attendanceSummary.absent" class="ml-1" />
+            </div>
+            <div class="bg-white border border-red-200 rounded-lg p-2">
+              <div class="flex flex-wrap gap-1.5">
+                <q-chip
+                  v-for="student in attendanceSummary.absentList"
+                  :key="student.id"
+                  color="red"
+                  text-color="white"
+                  size="sm"
+                  dense
+                  icon="person"
+                >
+                  {{ locale === 'ar' && student.name_ar ? student.name_ar : student.name }}
+                </q-chip>
+              </div>
+            </div>
+          </div>
         </div>
       </q-card-section>
     </q-card>
@@ -72,7 +169,7 @@
         <q-toolbar class="bg-white border-b border-gray-200 p-4">
           <q-toolbar-title class="text-xl font-bold text-gray-800 flex items-center gap-2">
             <q-icon name="settings_suggest" color="primary" />
-            Session Setup
+            {{ $t('rewardSys.session.setup') }}
           </q-toolbar-title>
           <q-btn flat round dense icon="close" v-close-popup />
         </q-toolbar>
@@ -83,7 +180,7 @@
             <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
               <h3 class="text-lg font-bold text-gray-700 mb-4 flex items-center gap-2">
                 <q-icon name="schedule" class="text-blue-500" />
-                Time & Period
+                {{ $t('rewardSys.session.timePeriod') }}
               </h3>
               <PeriodSelectionRefactored
                 :date="selectedDate"
@@ -102,26 +199,59 @@
               />
               <div class="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100 flex justify-center">
                 <p class="text-sm text-gray-700">
-                  Active Period Code: <span class="font-bold text-blue-600 font-mono text-lg">{{ periodCode }}</span>
+                  {{ $t('rewardSys.session.activePeriodCode') }} <span class="font-bold text-blue-600 font-mono text-lg">{{ periodCode }}</span>
                 </p>
               </div>
             </div>
 
-            <!-- Classroom Selection -->
+            <!-- Subject & Classroom Selection -->
             <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
               <h3 class="text-lg font-bold text-gray-700 mb-4 flex items-center gap-2">
                 <q-icon name="school" class="text-blue-500" />
-                Classroom
+                {{ $t('rewardSys.session.subject') }}
               </h3>
-              <ClassroomSelection
-                v-model="selectedClassroomId"
-                :classrooms="classrooms"
-                :loading="loadingData"
-                :init-status="initStatus"
-                v-model:avatar-edit-enabled="avatarEditEnabled"
-                @change="handleClassroomChange"
-                @init="initClassroomSession"
-              />
+              
+              <!-- Subject Tabs -->
+              <q-tabs
+                v-model="selectedSubjectId"
+                dense
+                class="text-grey-7 mb-4"
+                active-color="primary"
+                indicator-color="primary"
+                align="left"
+                narrow-indicator
+              >
+                <q-tab
+                  v-for="subject in subjects"
+                  :key="subject.id"
+                  :name="subject.id"
+                  :label="locale === 'ar' && subject.name_ar ? subject.name_ar : subject.name"
+                  class="text-sm"
+                />
+              </q-tabs>
+              
+              <!-- Classroom Selection for Selected Subject -->
+              <div v-if="selectedSubjectId" class="mt-4">
+                <h4 class="text-md font-semibold text-gray-600 mb-3 flex items-center gap-2">
+                  <q-icon name="class" class="text-green-500" />
+                  {{ $t('rewardSys.session.classroom') }}
+                </h4>
+                <ClassroomSelection
+                  v-model="selectedClassroomId"
+                  :classrooms="classroomsBySubject"
+                  :loading="loadingData"
+                  :init-status="initStatus"
+                  v-model:avatar-edit-enabled="avatarEditEnabled"
+                  @change="handleClassroomChange"
+                  @init="initClassroomSession"
+                />
+              </div>
+              
+              <!-- Empty State -->
+              <div v-else class="text-center py-8 text-gray-400">
+                <q-icon name="subject" size="3rem" class="mb-2" />
+                <p>{{ $t('rewardSys.session.selectSubject') }}</p>
+              </div>
             </div>
           </div>
         </q-card-section>
@@ -213,14 +343,11 @@ card2
         indicator-color="primary"
         align="left"
       >
-        <q-tab name="attendance" icon="how_to_reg" label="Attendance" />
-        <q-tab name="behavior_incidents" icon="report_problem" label="Behavior Incidents" />
-        <q-tab name="positive" icon="add_circle" label="+ Points" />
-        <!-- <q-tab name="negative" icon="remove_circle" label="- Points" /> -->
-        <q-tab name="history" icon="cancel" label="Cancel" />
-        <!-- <q-tab name="old_card" icon="grid_view" label="Old Card" /> -->
-        <q-tab name="champions" icon="emoji_events" label="Champions" @click="showLeaderboard = true" />
-        <q-tab name="behaviors" icon="settings" label="Behaviors" />
+        <q-tab name="attendance" icon="how_to_reg" :label="$t('rewardSys.tabs.attendance')" />
+        <q-tab name="positive" icon="add_circle" :label="$t('rewardSys.tabs.positivePoints')" />
+        <q-tab name="history" icon="cancel" :label="$t('rewardSys.tabs.history')" />
+        <q-tab name="champions" icon="emoji_events" :label="$t('rewardSys.tabs.champions')" @click="showLeaderboard = true" />
+        <q-tab name="settings_reports" icon="settings_applications" :label="$t('rewardSys.tabs.settingsReports')" />
       </q-tabs>
 
       <q-separator />
@@ -230,17 +357,17 @@ card2
         <q-tab-panel name="attendance">
           <div class="space-y-4">
             <div class="flex justify-between items-center mb-4">
-              <h3 class="text-xl font-bold">Manage Attendance</h3>
+              <h3 class="text-xl font-bold">{{ $t('rewardSys.attendance.manage') }}</h3>
               <div class="flex gap-2">
                 <q-btn
                   color="positive"
-                  label="Mark All Present"
+                  :label="$t('rewardSys.attendance.markAllPresent')"
                   @click="markAllPresent"
                   :loading="bulkMarking"
                 />
                 <q-btn
                   color="warning"
-                  label="Mark All Absent"
+                  :label="$t('rewardSys.attendance.markAllAbsent')"
                   @click="markAllAbsent"
                   :loading="bulkMarking"
                 />
@@ -267,15 +394,7 @@ card2
         </q-tab-panel>
 
         <!-- BEHAVIOR INCIDENTS TAB -->
-        <q-tab-panel name="behavior_incidents">
-          <BehaviorIncidents
-            :students="students"
-            :classroom-id="selectedClassroomId"
-            :date="selectedDate"
-            :period-code="periodCode"
-            @incident-recorded="handleIncidentRecorded"
-          />
-        </q-tab-panel>
+
 
         <!-- POSITIVE POINTS TAB -->
         <q-tab-panel name="positive">
@@ -287,7 +406,7 @@ card2
                 <div class="flex items-center justify-between gap-4">
                   <div class="flex items-center gap-3 flex-1">
                     <q-icon name="view_module" size="sm" color="primary" />
-                    <span class="font-bold text-gray-700">Layout:</span>
+                    <span class="font-bold text-gray-700">{{ $t('rewardSys.layout') }}</span>
                     <q-select
                       v-model="selectedLayout"
                       :options="layoutOptions"
@@ -308,7 +427,7 @@ card2
                     flat
                     color="primary"
                     icon="settings"
-                    label="Manage Groups"
+                    :label="$t('rewardSys.manageGroups')"
                     @click="showGroupEditor = true"
                   />
                 </div>
@@ -327,11 +446,11 @@ card2
                   <div class="bg-blue-50 rounded-xl border border-blue-100 p-4 shadow-sm">
                     <h4 class="font-bold text-blue-800 mb-3 flex items-center gap-2">
                       <q-icon name="checklist" />
-                      Selected ({{ selectedIds.length }})
+                      {{ $t('rewardSys.selected') }} ({{ selectedIds.length }})
                     </h4>
                     
                     <div v-if="selectedIds.length === 0" class="text-center py-8 text-gray-400 italic text-sm">
-                      Click students to select them
+                      {{ $t('rewardSys.messages.clickToSelect') }}
                     </div>
 
                     <div v-else class="flex flex-col gap-2 max-h-[calc(100vh-300px)] overflow-y-auto custom-scrollbar pr-1">
@@ -356,17 +475,17 @@ card2
                       <!-- Selection Tools -->
                       <div class="grid grid-cols-3 gap-1">
                         <q-btn 
-                          flat dense color="primary" label="All" size="sm" 
+                          flat dense color="primary" :label="$t('rewardSys.selection.all')" size="sm" 
                           @click="selectAllPresent"
                           class="bg-blue-100/50"
                         />
                         <q-btn 
-                          flat dense color="primary" label="Inv" size="sm" 
+                          flat dense color="primary" :label="$t('rewardSys.selection.inv')" size="sm" 
                           @click="inverseSelection"
                           class="bg-blue-100/50"
                         />
                         <q-btn 
-                          flat dense color="negative" label="Clear" size="sm" 
+                          flat dense color="negative" :label="$t('rewardSys.selection.clear')" size="sm" 
                           @click="clearSelection"
                           class="bg-red-100/50"
                         />
@@ -375,12 +494,12 @@ card2
                       <!-- Action Buttons -->
                       <div class="grid grid-cols-2 gap-2 pt-2">
                         <q-btn 
-                          color="positive" icon="add" label="Points" 
+                          color="positive" icon="add" :label="$t('rewardSys.points.title')" 
                           @click="openBehaviorDialog('positive')"
                           :disable="selectedIds.length === 0"
                         />
                         <q-btn 
-                          color="negative" icon="remove" label="Points" 
+                          color="negative" icon="remove" :label="$t('rewardSys.points.title')" 
                           @click="openBehaviorDialog('negative')"
                           :disable="selectedIds.length === 0"
                         />
@@ -411,6 +530,7 @@ card2
                       :selected="selectedIds.includes(student.id)"
                       :selected-id="selectedIds.includes(student.id) ? student.id : null"
                       :disable-behavior="!studentAttendance[student.id]"
+                      :is-absent="!studentAttendance[student.id]"
                       :allow-disabled-click="false"
                       :avatar-edit-enabled="avatarEditEnabled"
                       :student-summary="{
@@ -434,8 +554,8 @@ card2
         <q-tab-panel name="negative">
           <div class="space-y-4">
             <div class="mb-4">
-              <h3 class="text-xl font-bold mb-2">Deduct Points</h3>
-              <p class="text-sm text-gray-600">Select students and choose a negative behavior</p>
+              <h3 class="text-xl font-bold mb-2">{{ $t('rewardSys.points.deduct') }}</h3>
+              <p class="text-sm text-gray-600">{{ $t('rewardSys.points.selectStudentsNegative') }}</p>
             </div>
 
             <!-- Behavior Selection -->
@@ -448,14 +568,14 @@ card2
                   option-label="name"
                   outlined
                   dense
-                  placeholder="Select negative behavior"
+                  :placeholder="$t('rewardSys.points.selectNegativeBehavior')"
                   emit-value
                   map-options
                 >
                   <template v-slot:option="scope">
                     <q-item v-bind="scope.itemProps">
                       <q-item-section>
-                        <q-item-label>{{ scope.opt.name }}</q-item-label>
+                        <q-item-label>{{ getBehaviorName(scope.opt) }}</q-item-label>
                         <q-item-label caption>{{ scope.opt.value || scope.opt.points || 0 }} points</q-item-label>
                       </q-item-section>
                     </q-item>
@@ -464,7 +584,7 @@ card2
                 <q-btn
                   color="negative"
                   icon="remove_circle"
-                  label="Apply to Selected"
+                  :label="$t('rewardSys.points.applyToSelected')"
                   @click="applyNegativeBehavior"
                   :disable="!selectedIds.length || !selectedNegativeBehaviorId"
                   :loading="applyingBehavior"
@@ -553,18 +673,18 @@ card2
         <q-tab-panel name="history">
           <div class="space-y-4">
             <div class="flex justify-between items-center mb-4">
-              <h3 class="text-xl font-bold">Recent Actions</h3>
+              <h3 class="text-xl font-bold">{{ $t('rewardSys.history.title') }}</h3>
               <q-btn
                 color="primary"
                 icon="refresh"
-                label="Refresh"
+                :label="$t('rewardSys.history.refresh')"
                 @click="loadHistory"
                 :loading="loadingHistory"
               />
             </div>
 
             <div v-if="!recentActions.length" class="text-center py-8">
-              <p class="text-gray-500 text-lg">No recent actions</p>
+              <p class="text-gray-500 text-lg">{{ $t('rewardSys.history.empty') }}</p>
             </div>
 
             <div v-for="action in recentActions" :key="action.id" class="p-4 bg-white rounded-lg border-l-4"
@@ -576,28 +696,28 @@ card2
               <div class="flex items-start justify-between">
                 <div class="flex-1">
                   <div class="flex items-center gap-2 mb-1">
-                    <span class="font-bold text-lg">{{ action.student_behavior?.student?.name || 'Unknown' }}</span>
+                    <span class="font-bold text-lg">{{ action.student_behavior?.student?.name || $t('rewardSys.history.unknown') }}</span>
                     <span class="text-2xl">{{ action.value > 0 ? '⭐' : '⚠️' }}</span>
                   </div>
                   <p class="text-sm text-gray-700">
-                    <strong>{{ action.behavior?.name || 'Unknown Behavior' }}</strong>
+                    <strong>{{ getBehaviorName(action.behavior) || $t('rewardSys.history.unknownBehavior') }}</strong>
                     <span :class="action.value > 0 ? 'text-green-600' : 'text-red-600'">
-                      ({{ action.value > 0 ? '+' : '' }}{{ action.value }} points)
+                      ({{ action.value > 0 ? '+' : '' }}{{ action.value }} {{ $t('rewardSys.points.title') }})
                     </span>
                   </p>
                   <p class="text-xs text-gray-500 mt-1">
-                    {{ formatDateTime(action.created_at) }} by {{ action.created_by?.name || 'Unknown' }}
+                    {{ formatDateTime(action.created_at) }} by {{ action.created_by?.name || $t('rewardSys.history.unknown') }}
                   </p>
-                  <p v-if="action.note" class="text-xs text-gray-600 mt-1 italic">Note: {{ action.note }}</p>
+                  <p v-if="action.note" class="text-xs text-gray-600 mt-1 italic">{{ $t('rewardSys.history.note') }} {{ action.note }}</p>
                   <p v-if="action.canceled" class="text-xs text-red-600 mt-1">
-                    ❌ Canceled: {{ action.cancel_reason }} ({{ formatDateTime(action.canceled_at) }})
+                    ❌ {{ $t('rewardSys.history.canceled') }} {{ action.cancel_reason }} ({{ formatDateTime(action.canceled_at) }})
                   </p>
                 </div>
                 <q-btn
                   v-if="!action.canceled"
                   color="warning"
                   icon="undo"
-                  label="Undo"
+                  :label="$t('rewardSys.history.undo')"
                   size="sm"
                   @click="undoAction(action.id)"
                   :loading="undoingAction === action.id"
@@ -608,141 +728,175 @@ card2
         </q-tab-panel>
 
         <!-- BEHAVIORS MANAGEMENT TAB -->
-        <q-tab-panel name="behaviors">
-          <div class="space-y-6">
-            <!-- Header -->
-            <div class="flex justify-between items-center mb-6">
-              <h3 class="text-2xl font-bold text-gray-800">Behavior Management</h3>
-              <q-btn
-                color="primary"
-                icon="add"
-                label="Add New Behavior"
-                @click="openBehaviorForm(null)"
-                size="md"
-                class="shadow-md"
-              />
-            </div>
-
-            <!-- Positive Behaviors Section -->
-            <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200">
-              <div class="flex items-center gap-3 mb-4">
-                <q-icon name="add_circle" size="md" color="positive" />
-                <h4 class="text-xl font-bold text-green-800">Positive Behaviors / Rewards</h4>
-                <q-badge :label="positiveBehaviors.length" color="positive" />
-              </div>
-
-              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div
-                  v-for="behavior in positiveBehaviors"
-                  :key="behavior.id"
-                  class="bg-white rounded-lg p-4 shadow-sm border border-green-100 hover:shadow-md transition-all"
+        <!-- SETTINGS AND REPORTS TAB -->
+        <q-tab-panel name="settings_reports" class="p-4">
+          <div class="flex flex-col h-full gap-4"> 
+            
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <q-tabs 
+                    v-model="settingsTab" 
+                    align="left"
+                    class="text-gray-600 bg-gray-50 border-b border-gray-200"
+                    active-color="primary"
+                    indicator-color="primary"
+                    dense
                 >
-                  <div class="flex items-start justify-between mb-2">
-                    <div class="flex items-center gap-2">
-                      <div class="text-3xl">{{ behavior.icon || '⭐' }}</div>
-                      <div>
-                        <h5 class="font-bold text-gray-800">{{ behavior.name }}</h5>
-                        <p class="text-xs text-gray-500">ID: {{ behavior.id }}</p>
+                    <q-tab name="behavior_incidents" icon="report_problem" :label="$t('rewardSys.tabs.behaviorIncidents')" />
+                    <q-tab name="behaviors" icon="settings" :label="$t('rewardSys.tabs.behaviors')" />
+                </q-tabs>
+
+                <q-tab-panels v-model="settingsTab" animated class="bg-transparent">
+                    <!-- BEHAVIOR INCIDENTS SUB-PANEL -->
+                    <q-tab-panel name="behavior_incidents">
+                      <BehaviorIncidents
+                        :students="students"
+                        :classroom-id="selectedClassroomId"
+                        :date="selectedDate"
+                        :period-code="periodCode"
+                        @incident-recorded="handleIncidentRecorded"
+                      />
+                    </q-tab-panel>
+
+                    <!-- BEHAVIORS SUB-PANEL -->
+                    <q-tab-panel name="behaviors">
+                      <div class="space-y-6">
+                        <!-- Header -->
+                        <div class="flex justify-between items-center mb-6">
+                          <h3 class="text-2xl font-bold text-gray-800">{{ $t('rewardSys.behaviors.management') }}</h3>
+                          <q-btn
+                            color="primary"
+                            icon="add"
+                            :label="$t('rewardSys.behaviors.addNew')"
+                            @click="openBehaviorForm(null)"
+                            size="md"
+                            class="shadow-md"
+                          />
+                        </div>
+
+                        <!-- Positive Behaviors Section -->
+                        <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200">
+                          <div class="flex items-center gap-3 mb-4">
+                            <q-icon name="add_circle" size="md" color="positive" />
+                            <h4 class="text-xl font-bold text-green-800">{{ $t('rewardSys.behaviors.positiveSection') }}</h4>
+                            <q-badge :label="positiveBehaviors.length" color="positive" />
+                          </div>
+
+                          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div
+                              v-for="behavior in positiveBehaviors"
+                              :key="behavior.id"
+                              class="bg-white rounded-lg p-4 shadow-sm border border-green-100 hover:shadow-md transition-all"
+                            >
+                              <div class="flex items-start justify-between mb-2">
+                                <div class="flex items-center gap-2">
+                                  <div class="text-3xl">{{ behavior.icon || '⭐' }}</div>
+                                  <div>
+                                    <h5 class="font-bold text-gray-800">{{ getBehaviorName(behavior) }}</h5>
+                                    <p class="text-xs text-gray-500">ID: {{ behavior.id }}</p>
+                                  </div>
+                                </div>
+                                <div class="flex gap-1">
+                                  <q-btn
+                                    flat
+                                    round
+                                    dense
+                                    icon="edit"
+                                    color="primary"
+                                    size="sm"
+                                    @click="openBehaviorForm(behavior)"
+                                  >
+                                    <q-tooltip>Edit</q-tooltip>
+                                  </q-btn>
+                                  <q-btn
+                                    flat
+                                    round
+                                    dense
+                                    icon="delete"
+                                    color="negative"
+                                    size="sm"
+                                    @click="confirmDeleteBehavior(behavior)"
+                                  >
+                                    <q-tooltip>Delete</q-tooltip>
+                                  </q-btn>
+                                </div>
+                              </div>
+                              
+                              <div class="flex items-center justify-between mt-3 pt-3 border-t border-green-100">
+                                <span class="text-sm text-gray-600">Points:</span>
+                                <span class="text-lg font-bold text-green-600">+{{ behavior.value || behavior.points || 0 }}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div v-if="positiveBehaviors.length === 0" class="text-center py-8 text-gray-400">
+                            <q-icon name="sentiment_neutral" size="3rem" class="mb-2" />
+                            <p>{{ $t('rewardSys.behaviors.noPositive') }}</p>
+                          </div>
+                        </div>
+
+                        <!-- Negative Behaviors Section -->
+                        <div class="bg-gradient-to-r from-red-50 to-rose-50 rounded-xl p-6 border border-red-200">
+                          <div class="flex items-center gap-3 mb-4">
+                            <q-icon name="remove_circle" size="md" color="negative" />
+                            <h4 class="text-xl font-bold text-red-800">{{ $t('rewardSys.behaviors.negativeSection') }}</h4>
+                            <q-badge :label="negativeBehaviors.length" color="negative" />
+                          </div>
+
+                          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div
+                              v-for="behavior in negativeBehaviors"
+                              :key="behavior.id"
+                              class="bg-white rounded-lg p-4 shadow-sm border border-red-100 hover:shadow-md transition-all"
+                            >
+                              <div class="flex items-start justify-between mb-2">
+                                <div class="flex items-center gap-2">
+                                  <div class="text-3xl">{{ behavior.icon || '⚠️' }}</div>
+                                  <div>
+                                    <h5 class="font-bold text-gray-800">{{ getBehaviorName(behavior) }}</h5>
+                                    <p class="text-xs text-gray-500">ID: {{ behavior.id }}</p>
+                                  </div>
+                                </div>
+                                <div class="flex gap-1">
+                                  <q-btn
+                                    flat
+                                    round
+                                    dense
+                                    icon="edit"
+                                    color="primary"
+                                    size="sm"
+                                    @click="openBehaviorForm(behavior)"
+                                  >
+                                    <q-tooltip>Edit</q-tooltip>
+                                  </q-btn>
+                                  <q-btn
+                                    flat
+                                    round
+                                    dense
+                                    icon="delete"
+                                    color="negative"
+                                    size="sm"
+                                    @click="confirmDeleteBehavior(behavior)"
+                                  >
+                                    <q-tooltip>Delete</q-tooltip>
+                                  </q-btn>
+                                </div>
+                              </div>
+                              
+                              <div class="flex items-center justify-between mt-3 pt-3 border-t border-red-100">
+                                <span class="text-sm text-gray-600">Points:</span>
+                                <span class="text-lg font-bold text-red-600">{{ behavior.value || behavior.points || 0 }}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div v-if="negativeBehaviors.length === 0" class="text-center py-8 text-gray-400">
+                            <q-icon name="sentiment_neutral" size="3rem" class="mb-2" />
+                            <p>{{ $t('rewardSys.behaviors.noNegative') }}</p>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <div class="flex gap-1">
-                      <q-btn
-                        flat
-                        round
-                        dense
-                        icon="edit"
-                        color="primary"
-                        size="sm"
-                        @click="openBehaviorForm(behavior)"
-                      >
-                        <q-tooltip>Edit</q-tooltip>
-                      </q-btn>
-                      <q-btn
-                        flat
-                        round
-                        dense
-                        icon="delete"
-                        color="negative"
-                        size="sm"
-                        @click="confirmDeleteBehavior(behavior)"
-                      >
-                        <q-tooltip>Delete</q-tooltip>
-                      </q-btn>
-                    </div>
-                  </div>
-                  
-                  <div class="flex items-center justify-between mt-3 pt-3 border-t border-green-100">
-                    <span class="text-sm text-gray-600">Points:</span>
-                    <span class="text-lg font-bold text-green-600">+{{ behavior.value || behavior.points || 0 }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div v-if="positiveBehaviors.length === 0" class="text-center py-8 text-gray-400">
-                <q-icon name="sentiment_neutral" size="3rem" class="mb-2" />
-                <p>No positive behaviors yet. Click "Add New Behavior" to create one.</p>
-              </div>
-            </div>
-
-            <!-- Negative Behaviors Section -->
-            <div class="bg-gradient-to-r from-red-50 to-rose-50 rounded-xl p-6 border border-red-200">
-              <div class="flex items-center gap-3 mb-4">
-                <q-icon name="remove_circle" size="md" color="negative" />
-                <h4 class="text-xl font-bold text-red-800">Negative Behaviors / Penalties</h4>
-                <q-badge :label="negativeBehaviors.length" color="negative" />
-              </div>
-
-              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div
-                  v-for="behavior in negativeBehaviors"
-                  :key="behavior.id"
-                  class="bg-white rounded-lg p-4 shadow-sm border border-red-100 hover:shadow-md transition-all"
-                >
-                  <div class="flex items-start justify-between mb-2">
-                    <div class="flex items-center gap-2">
-                      <div class="text-3xl">{{ behavior.icon || '⚠️' }}</div>
-                      <div>
-                        <h5 class="font-bold text-gray-800">{{ behavior.name }}</h5>
-                        <p class="text-xs text-gray-500">ID: {{ behavior.id }}</p>
-                      </div>
-                    </div>
-                    <div class="flex gap-1">
-                      <q-btn
-                        flat
-                        round
-                        dense
-                        icon="edit"
-                        color="primary"
-                        size="sm"
-                        @click="openBehaviorForm(behavior)"
-                      >
-                        <q-tooltip>Edit</q-tooltip>
-                      </q-btn>
-                      <q-btn
-                        flat
-                        round
-                        dense
-                        icon="delete"
-                        color="negative"
-                        size="sm"
-                        @click="confirmDeleteBehavior(behavior)"
-                      >
-                        <q-tooltip>Delete</q-tooltip>
-                      </q-btn>
-                    </div>
-                  </div>
-                  
-                  <div class="flex items-center justify-between mt-3 pt-3 border-t border-red-100">
-                    <span class="text-sm text-gray-600">Points:</span>
-                    <span class="text-lg font-bold text-red-600">{{ behavior.value || behavior.points || 0 }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div v-if="negativeBehaviors.length === 0" class="text-center py-8 text-gray-400">
-                <q-icon name="sentiment_neutral" size="3rem" class="mb-2" />
-                <p>No negative behaviors yet. Click "Add New Behavior" to create one.</p>
-              </div>
+                    </q-tab-panel>
+                </q-tab-panels>
             </div>
           </div>
         </q-tab-panel>
@@ -752,7 +906,7 @@ card2
     <!-- Empty State -->
     <q-card v-if="!students.length" class="shadow-lg rounded-2xl">
       <q-card-section class="text-center py-12">
-        <p class="text-2xl font-semibold text-gray-600">📚 Select a classroom and click "Init Session" to get started</p>
+        <p class="text-2xl font-semibold text-gray-600">📚 {{ $t('rewardSys.messages.selectClassroom') }}</p>
       </q-card-section>
     </q-card>
 
@@ -768,6 +922,7 @@ card2
             :student-behaviors="studentBehaviors"
             :period-code="periodCode"
             :date="selectedDate"
+            :school-logo="schoolLogo"
           />
         </q-card-section>
         <q-card-actions align="right">
@@ -785,13 +940,13 @@ card2
           <div class="p-4 border-b border-blue-200 bg-blue-100/50">
             <h4 class="font-bold text-blue-900 flex items-center gap-2 text-lg">
               <q-icon name="checklist" />
-              Selected ({{ selectedIds.length }})
+              {{ $t('rewardSys.selected') }} ({{ selectedIds.length }})
             </h4>
           </div>
 
           <div class="flex-1 overflow-y-auto p-4 custom-scrollbar">
             <div v-if="selectedIds.length === 0" class="text-center py-8 text-gray-400 italic text-sm">
-              Click students to select them
+              {{ $t('rewardSys.messages.clickToSelect') }}
             </div>
 
             <div v-else class="flex flex-col gap-2">
@@ -843,7 +998,7 @@ card2
             <div class="text-h6 font-bold flex items-center gap-2">
               <q-icon :name="behaviorDialogMode === 'positive' ? 'add_circle' : 'remove_circle'" 
                      :color="behaviorDialogMode === 'positive' ? 'positive' : 'negative'" />
-              {{ behaviorDialogMode === 'positive' ? 'Add Positive Points' : 'Deduct Points' }}
+              {{ behaviorDialogMode === 'positive' ? $t('rewardSys.points.positiveTitle') : $t('rewardSys.points.negativeTitle') }}
             </div>
           </q-card-section>
 
@@ -871,7 +1026,7 @@ card2
                   </div>
                   
                   <div class="font-bold text-xl leading-tight text-gray-800 line-clamp-2">
-                    {{ behavior.name }}
+                    {{ getBehaviorName(behavior) }}
                   </div>
                   
                   <div 
@@ -897,7 +1052,7 @@ card2
           <q-card-actions align="right" class="p-4 border-t border-gray-100 bg-gray-50 gap-3">
             <q-btn 
               flat 
-              label="Cancel" 
+              :label="$t('rewardSys.tabs.cancel')" 
               v-close-popup 
               color="grey-7" 
               size="lg"
@@ -905,7 +1060,7 @@ card2
             />
             <q-btn 
               :color="behaviorDialogMode === 'positive' ? 'positive' : 'negative'"
-              :label="behaviorDialogMode === 'positive' ? 'Apply Reward' : 'Apply Penalty'"
+              :label="behaviorDialogMode === 'positive' ? $t('rewardSys.points.applyPositive') : $t('rewardSys.points.applyNegative')"
               :icon="behaviorDialogMode === 'positive' ? 'check_circle' : 'warning'"
               @click="applyBehaviorFromDialog"
               :disable="!selectedBehaviorIdForDialog"
@@ -922,58 +1077,93 @@ card2
 
     <!-- Behavior Form Dialog -->
     <q-dialog v-model="showBehaviorForm" persistent>
-      <q-card class="min-w-[400px]">
+      <q-card class="min-w-[500px]">
         <q-card-section class="bg-primary text-white">
-          <div class="text-h6">{{ editingBehavior ? 'Edit Behavior' : 'Add New Behavior' }}</div>
+          <div class="flex justify-between items-center">
+            <div class="text-h6">{{ editingBehavior ? $t('rewardSys.behaviors.edit') : $t('rewardSys.behaviors.create') }}</div>
+            <q-badge v-if="editingBehavior && !editingBehavior.teacher_id" color="blue" :label="'🔒 ' + $t('rewardSys.behaviors.schoolDefault')" />
+          </div>
         </q-card-section>
 
         <q-card-section class="q-pt-md space-y-4">
+          <!-- Warning for School Defaults -->
+          <q-banner v-if="editingBehavior && !editingBehavior.teacher_id" class="bg-blue-50 text-blue-900" rounded dense>
+            <template v-slot:avatar>
+              <q-icon name="info" color="blue" />
+            </template>
+            {{ $t('rewardSys.behaviors.readOnlyWarning') }}
+          </q-banner>
+
+          <!-- English Name -->
           <q-input
             v-model="behaviorForm.name"
-            label="Behavior Name *"
+            :label="'🇬🇧 ' + $t('rewardSys.behaviors.form.nameEn') + ' *'"
             outlined
             dense
             :rules="[val => !!val || 'Name is required']"
-          />
+            :readonly="editingBehavior && !editingBehavior.teacher_id"
+          >
+            <template v-slot:prepend>
+              <q-icon name="translate" />
+            </template>
+          </q-input>
+
+          <!-- Arabic Name -->
+          <q-input
+            v-model="behaviorForm.name_ar"
+            :label="'🇸🇦 ' + $t('rewardSys.behaviors.form.nameAr')"
+            outlined
+            dense
+            dir="rtl"
+            :readonly="editingBehavior && !editingBehavior.teacher_id"
+          >
+            <template v-slot:prepend>
+              <q-icon name="translate" />
+            </template>
+          </q-input>
 
           <q-select
             v-model="behaviorForm.type"
             :options="[
-              { label: 'Positive / Reward', value: 'positive' },
-              { label: 'Negative / Penalty', value: 'negative' }
+              { label: $t('rewardSys.behaviors.form.types.positive'), value: 'positive' },
+              { label: $t('rewardSys.behaviors.form.types.negative'), value: 'negative' }
             ]"
-            label="Type *"
+            :label="$t('rewardSys.behaviors.form.type') + ' *'"
             outlined
             dense
             emit-value
             map-options
             :rules="[val => !!val || 'Type is required']"
+            :readonly="editingBehavior && !editingBehavior.teacher_id"
           />
 
           <q-input
             v-model.number="behaviorForm.points"
-            label="Points Value *"
+            :label="$t('rewardSys.behaviors.form.points') + ' *'"
             type="number"
             outlined
             dense
             :rules="[val => val !== null && val !== '' || 'Points are required']"
             :hint="behaviorForm.type === 'positive' ? 'Positive number (e.g., 5)' : 'Negative number (e.g., -3)'"
+            :readonly="editingBehavior && !editingBehavior.teacher_id"
           />
 
           <q-input
             v-model="behaviorForm.icon"
-            label="Icon (Emoji)"
+            :label="$t('rewardSys.behaviors.form.icon')"
             outlined
             dense
             hint="Optional emoji, e.g., ⭐ 🎉 ⚠️ 🚫"
+            :readonly="editingBehavior && !editingBehavior.teacher_id"
           />
         </q-card-section>
 
         <q-card-actions align="right" class="q-px-md q-pb-md">
-          <q-btn flat label="Cancel" v-close-popup />
+          <q-btn flat :label="$t('rewardSys.tabs.cancel')" v-close-popup />
           <q-btn
+            v-if="!editingBehavior || editingBehavior.teacher_id"
             color="primary"
-            :label="editingBehavior ? 'Update' : 'Create'"
+            :label="editingBehavior ? $t('common.update') : $t('common.create')"
             @click="saveBehavior"
             :loading="savingBehavior"
           />
@@ -999,6 +1189,8 @@ card2
 <script setup>
 import { ref, watch, onMounted, computed } from 'vue'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
+import { usePage } from '@inertiajs/vue3'
 import axios from 'axios'
 import rewardPointService from './reward_sys_comp/reward_sys_point_action.js'
 import PeriodSelectionRefactored from './reward_sys_comp/PeriodSelectionRefactored.vue'
@@ -1019,6 +1211,84 @@ import draw from './final/draw.vue'
 import draw2 from './final/draw2.vue'
 import draw3 from './final/draw3.vue'
 
+const { t, locale } = useI18n()
+
+const getBehaviorName = (behavior) => {
+  if (!behavior) return ''
+  return (locale.value === 'ar' && behavior.name_ar) ? behavior.name_ar : behavior.name
+}
+
+const page = usePage()
+const schoolLogo = computed(() => {
+   const schools = page.props.auth?.user?.school
+   if (Array.isArray(schools) && schools.length > 0) {
+     return schools[0].logo_url
+   }
+   return null
+})
+
+// Helper function to get localized subject name
+const getSubjectName = (classroom) => {
+  if (!classroom) return ''
+  return locale.value === 'ar' && classroom.subject_name_ar ? classroom.subject_name_ar : classroom.subject_name
+}
+
+// Computed: Extract unique subjects from classrooms
+const subjects = computed(() => {
+  const subjectMap = new Map()
+  classrooms.value.forEach(classroom => {
+    if (classroom.subject_id && !subjectMap.has(classroom.subject_id)) {
+      subjectMap.set(classroom.subject_id, {
+        id: classroom.subject_id,
+        name: classroom.subject_name,
+        name_ar: classroom.subject_name_ar
+      })
+    }
+  })
+  return Array.from(subjectMap.values())
+})
+
+// Computed: Group classrooms by subject
+const classroomsBySubject = computed(() => {
+  if (!selectedSubjectId.value) return []
+  return classrooms.value.filter(c => c.subject_id === selectedSubjectId.value)
+})
+
+// Attendance Summary Computed Property
+const attendanceSummary = computed(() => {
+  const total = students.value.length
+  if (total === 0) return { present: 0, absent: 0, absentList: [] }
+  
+  const presentCount = students.value.filter(s => studentAttendance.value[s.id]).length
+  const absentStudents = students.value.filter(s => !studentAttendance.value[s.id])
+  
+  return {
+    present: presentCount,
+    absent: total - presentCount,
+    absentList: absentStudents
+  }
+})
+
+// Function to copy absent students list to clipboard
+const copyToClipboard = () => {
+  const absentees = attendanceSummary.value.absentList
+    .map(s => locale.value === 'ar' && s.name_ar ? s.name_ar : s.name)
+    .join('\n')
+  
+  if (!absentees) return
+
+  navigator.clipboard.writeText(absentees).then(() => {
+    $q.notify({
+      message: t('rewardSys.session.copied'),
+      color: 'positive',
+      icon: 'content_copy',
+      position: 'top'
+    })
+  }).catch(err => {
+    console.error('Failed to copy: ', err)
+  })
+}
+
 const pdfUrl = ref('https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf')
 // or local file: '/pdfs/sample.pdf'
 // or base64: 'data:application/pdf;base64,JVBERi0x...'
@@ -1035,6 +1305,7 @@ const $q = useQuasar()
 
 // ============ REACTIVE STATE ============
 const activeTab = ref('attendance')
+const settingsTab = ref('behavior_incidents')
 
 // Watch for tab changes and clear selection
 watch(activeTab, (newTab, oldTab) => {
@@ -1046,6 +1317,7 @@ const classrooms = ref([])
 const students = ref([])
 const behaviors = ref([])
 const selectedClassroomId = ref(null)
+const selectedSubjectId = ref(null) // For subject tab selection
 const selectedDate = ref(new Date().toISOString().split('T')[0])
 const selectedSemester = ref(1)
 const selectedWeek = ref(1)
@@ -1088,6 +1360,51 @@ const behaviorForm = ref({
   type: 'positive',
   points: 0,
   icon: ''
+})
+
+// Watch selectedSubjectId and save to localStorage
+watch(selectedSubjectId, (newValue) => {
+  if (newValue !== null) {
+    localStorage.setItem('reward-system-selected-subject-id', newValue.toString())
+    console.log(`💾 Saved subject to localStorage: ${newValue}`)
+  }
+})
+
+// Watch selectedClassroomId and save to localStorage
+watch(selectedClassroomId, (newValue) => {
+  if (newValue !== null) {
+    localStorage.setItem('reward-system-selected-classroom-id', newValue.toString())
+    console.log(`💾 Saved classroom to localStorage: ${newValue}`)
+  }
+})
+
+// Watch period code components and save to localStorage
+watch(selectedSemester, (newValue) => {
+  if (newValue !== null) {
+    localStorage.setItem('reward-system-selected-semester', newValue.toString())
+    console.log(`💾 Saved semester to localStorage: ${newValue}`)
+  }
+})
+
+watch(selectedWeek, (newValue) => {
+  if (newValue !== null) {
+    localStorage.setItem('reward-system-selected-week', newValue.toString())
+    console.log(`💾 Saved week to localStorage: ${newValue}`)
+  }
+})
+
+watch(selectedDay, (newValue) => {
+  if (newValue !== null) {
+    localStorage.setItem('reward-system-selected-day', newValue.toString())
+    console.log(`💾 Saved day to localStorage: ${newValue}`)
+  }
+})
+
+watch(selectedPeriodNumber, (newValue) => {
+  if (newValue !== null) {
+    localStorage.setItem('reward-system-selected-period-number', newValue.toString())
+    console.log(`💾 Saved period number to localStorage: ${newValue}`)
+  }
 })
 
 // Computed period code generator
@@ -1395,6 +1712,7 @@ async function saveBehavior() {
   try {
     const behaviorData = {
       name: behaviorForm.value.name,
+      name_ar: behaviorForm.value.name_ar || null,
       type: behaviorForm.value.type,
       value: behaviorForm.value.points,
       points: behaviorForm.value.points,
@@ -1562,6 +1880,7 @@ async function initClassroomSession() {
       const mapped = items.map(b => ({
         id: b.student.id,
         name: b.student.name || `Student ${b.student_id}`,
+        name_ar: b.student.name_ar,
         firstName: b.student.first_name,
         secondName: b.student.second_name,
         lastName: b.student.last_name,
@@ -1875,6 +2194,51 @@ onMounted(async () => {
     const classRes = await axios.get('/my_classes_with_students')
     classrooms.value = classRes.data
     console.log(`✅ Loaded ${classrooms.value.length} classrooms`)
+    
+    // Restore from localStorage or auto-select first subject
+    const savedSubjectId = localStorage.getItem('reward-system-selected-subject-id')
+    const savedClassroomId = localStorage.getItem('reward-system-selected-classroom-id')
+    
+    if (savedSubjectId && subjects.value.some(s => s.id === parseInt(savedSubjectId))) {
+      selectedSubjectId.value = parseInt(savedSubjectId)
+      console.log(`📚 Restored subject from localStorage: ${savedSubjectId}`)
+    } else if (subjects.value.length > 0) {
+      selectedSubjectId.value = subjects.value[0].id
+      console.log(`📚 Auto-selected first subject: ${subjects.value[0].name}`)
+    }
+    
+    if (savedClassroomId && classrooms.value.some(c => c.classroom_id === parseInt(savedClassroomId))) {
+      selectedClassroomId.value = parseInt(savedClassroomId)
+      console.log(`🏫 Restored classroom from localStorage: ${savedClassroomId}`)
+    }
+
+    // Restore period code components from localStorage
+    const savedSemester = localStorage.getItem('reward-system-selected-semester')
+    const savedWeek = localStorage.getItem('reward-system-selected-week')
+    const savedDay = localStorage.getItem('reward-system-selected-day')
+    const savedPeriodNumber = localStorage.getItem('reward-system-selected-period-number')
+    
+    if (savedSemester) {
+      selectedSemester.value = parseInt(savedSemester)
+      console.log(`📅 Restored semester from localStorage: ${savedSemester}`)
+    }
+    
+    if (savedWeek) {
+      selectedWeek.value = parseInt(savedWeek)
+      console.log(`📅 Restored week from localStorage: ${savedWeek}`)
+    }
+    
+    if (savedDay) {
+      selectedDay.value = parseInt(savedDay)
+      console.log(`📅 Restored day from localStorage: ${savedDay}`)
+    }
+    
+    if (savedPeriodNumber) {
+      selectedPeriodNumber.value = parseInt(savedPeriodNumber)
+      console.log(`📅 Restored period number from localStorage: ${savedPeriodNumber}`)
+    }
+    
+    console.log(`🔢 Active Period Code: ${selectedSemester.value}.${selectedWeek.value}.${selectedDay.value}.${selectedPeriodNumber.value}`)
 
     // Load behaviors
     const behaviorRes = await rewardPointService.fetchBehaviors()

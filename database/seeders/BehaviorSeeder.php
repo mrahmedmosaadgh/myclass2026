@@ -13,14 +13,14 @@ class BehaviorSeeder extends Seeder
         $yearId = 2;
 
         $behaviors = [
-            ['name' => 'Helping Others', 'points' => 1, 'category' => 'Social'],
-            ['name' => 'On Task', 'points' => 1, 'category' => 'Academic'],
-            ['name' => 'Participating', 'points' => 2, 'category' => 'Academic'],
-            ['name' => 'Persistence', 'points' => 1, 'category' => 'Social-Emotional'],
-            ['name' => 'Teamwork', 'points' => 2, 'category' => 'Social'],
-            ['name' => 'Clean Workspace', 'points' => 1, 'category' => 'Organizational'],
-            ['name' => 'Creative Thinking', 'points' => 3, 'category' => 'Academic'],
-            ['name' => 'Prayer Etiquette', 'points' => 1, 'category' => 'Character'],
+            ['name' => 'Helping Others', 'name_ar' => 'مساعدة الآخرين', 'points' => 1, 'category' => 'Social'],
+            ['name' => 'On Task', 'name_ar' => 'التركيز على المهمة', 'points' => 1, 'category' => 'Academic'],
+            ['name' => 'Participating', 'name_ar' => 'المشاركة', 'points' => 2, 'category' => 'Academic'],
+            ['name' => 'Persistence', 'name_ar' => 'المثابرة', 'points' => 1, 'category' => 'Social-Emotional'],
+            ['name' => 'Teamwork', 'name_ar' => 'العمل الجماعي', 'points' => 2, 'category' => 'Social'],
+            ['name' => 'Clean Workspace', 'name_ar' => 'مكان عمل نظيف', 'points' => 1, 'category' => 'Organizational'],
+            ['name' => 'Creative Thinking', 'name_ar' => 'التفكير الإبداعي', 'points' => 3, 'category' => 'Academic'],
+            ['name' => 'Prayer Etiquette', 'name_ar' => 'آداب الصلاة', 'points' => 1, 'category' => 'Character'],
         ];
 
         $schools = School::with('academic_years')->get();
@@ -39,6 +39,7 @@ class BehaviorSeeder extends Seeder
                             'points' => $behavior['points'],
                             'is_active' => true,
                             'description' => $behavior['category'], // Storing category in description as requested
+                            'name_ar' => $behavior['name_ar'], // Arabic name
                         ]
                     );
                 }

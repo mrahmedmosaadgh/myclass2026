@@ -6,11 +6,17 @@
     :class="[
       'student-card',
       selected || selectedId === student.id ? 'selected' : '',
-      disableBehavior ? 'disabled-card' : ''
+      disableBehavior ? 'disabled-card' : '',
+      isAbsent ? 'absent-card' : ''
     ]"
     @click="handleCardClick"
-    :title="student.name "
   >
+    <q-tooltip anchor="top middle" self="bottom middle" :offset="[0, 45]" class="bg-gray-900 text-white shadow-xl border border-gray-700">
+      <div class="text-center p-1">
+        <div class="font-bold text-base">{{ student.name }}</div>
+        <div v-if="student.name_ar" class="text-sm text-yellow-300 font-arabic mt-1">{{ student.name_ar }}</div>
+      </div>
+    </q-tooltip>
 
     <!-- Name Layer Above Avatar -->
     <div class="absolute -top-10 text-center w-full z-20 name-container">
@@ -20,8 +26,8 @@
           selected || selectedId === student.id ? 'selected-name' : '', 
           disableBehavior ? 'disabled-first-name' : ''
         ]"
-      >{{ student.firstName }}</div>
-      <div class="last-name">{{ student.lastName }}</div>
+      >{{ localizedName.firstName }}</div>
+      <div class="last-name">{{ localizedName.lastName }}</div>
     </div>
 
     <!-- Avatar Manager Component -->
@@ -38,9 +44,9 @@
         {{ studentSummary.total }}
         <q-tooltip class="bg-white text-black shadow-lg border border-gray-200">
            <div class="flex flex-col gap-1 p-1">
-             <div class="text-green-600 font-bold">Positive: +{{ studentSummary.positive }}</div>
-             <div class="text-red-600 font-bold">Negative: -{{ studentSummary.negative }}</div>
-             <div class="border-t pt-1 font-bold">Total: {{ studentSummary.total }}</div>
+             <div class="text-green-600 font-bold">{{ $t('rewardSys.points.positive') }}: +{{ studentSummary.positive }}</div>
+             <div class="text-red-600 font-bold">{{ $t('rewardSys.points.negative') }}: -{{ studentSummary.negative }}</div>
+             <div class="border-t pt-1 font-bold">{{ $t('rewardSys.points.total') }}: {{ studentSummary.total }}</div>
            </div>
         </q-tooltip>
       </div>
@@ -52,7 +58,10 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import AvatarManager from './AvatarManager.vue'
+
+const { locale } = useI18n()
 
 const props = defineProps({
 	student: { type: Object, required: true },
@@ -63,7 +72,8 @@ const props = defineProps({
 	avatarEditEnabled: { type: Boolean, default: false },
 	showAvatarButtons: { type: Boolean, default: false },
 	disableBehavior: { type: Boolean, default: false },
-  allowDisabledClick: { type: Boolean, default: false }
+  allowDisabledClick: { type: Boolean, default: false },
+  isAbsent: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['select', 'open-camera', 'open-behavior'])
@@ -82,6 +92,16 @@ function parseName(fullName) {
 	return { firstName, secondName, lastName }
 }
 
+const localizedName = computed(() => {
+  if (locale.value === 'ar' && props.student.name_ar) {
+    return parseName(props.student.name_ar)
+  }
+  // Fallback to existing props or parse English name
+  return { 
+    firstName: props.student.firstName || parseName(props.student.name).firstName,
+    lastName: props.student.lastName || parseName(props.student.name).lastName
+  }
+})
 
 const pointsBadgeClass = computed(() => {
   const total = props.studentSummary?.total || 0
@@ -99,60 +119,117 @@ const pointsBadgeClass = computed(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: -0.3rem;
+  margin-top: -0.5rem;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
 }
 
 .first-name {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #1e3a8a;
-  background: #fde047;
-  padding: 0.1rem 0.6rem;
-  border-radius: 0.7rem;
-  box-shadow: 0 1px 5px rgba(0,0,0,0.1);
-  transition: all 0.3s ease;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #ffffff;
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 50%, #ffd93d 100%);
+  padding: 0.25rem 0.8rem;
+  border-radius: 1rem;
+  box-shadow: 
+    0 4px 8px rgba(255, 107, 107, 0.3),
+    0 2px 4px rgba(0, 0, 0, 0.1),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  transform: perspective(500px) rotateX(5deg);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  letter-spacing: 0.5px;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: perspective(500px) rotateX(5deg) translateY(0px); }
+  50% { transform: perspective(500px) rotateX(5deg) translateY(-3px); }
 }
 
 .first-name.selected-name {
-  background: linear-gradient(135deg, #2427fb, #510bf5);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
   color: white;
-  transform: scale(1.2);
-  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.5);
+  transform: perspective(500px) rotateX(5deg) scale(1.25);
+  box-shadow: 
+    0 8px 16px rgba(102, 126, 234, 0.5),
+    0 4px 8px rgba(118, 75, 162, 0.3),
+    0 0 20px rgba(240, 147, 251, 0.4),
+    inset 0 -2px 6px rgba(0, 0, 0, 0.15);
+  animation: rainbow-pulse 2s ease-in-out infinite, float 3s ease-in-out infinite;
+}
+
+@keyframes rainbow-pulse {
+  0%, 100% {
+    filter: hue-rotate(0deg) brightness(1.1);
+  }
+  50% {
+    filter: hue-rotate(20deg) brightness(1.2);
+  }
 }
 
 .disabled-first-name {
   font-size: 1.1rem;
- 
   color: #ffffff;
-  background: #424242;
-  padding: 0.1rem 0.6rem;
-  border-radius: 0.7rem;
-  box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+  background: linear-gradient(135deg, #636363, #424242);
+  padding: 0.25rem 0.7rem;
+  border-radius: 1rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  opacity: 0.7;
 }
+
 .last-name {
-  font-size: 0.75rem;
-  margin-top: -0.2rem;
-  color: #475569;
+  font-size: 0.85rem;
+  margin-top: 0.1rem;
+  font-weight: 600;
+  color: #4a5568;
+  background: linear-gradient(135deg, #f7fafc, #edf2f7);
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
 }
 
 /* Main Card Shell */
 .student-card {
-  width: 8rem;
-  height: 8rem;
+  width: 8.5rem;
+  height: 8.5rem;
   border-radius: 50%;
-  background: white;
+  background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-
-  /* Unselected State (Default) */
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  border: 4px solid #e2e8f0; /* Light gray border */
   
-  transition: all 0.3s ease;
-  cursor: pointer;
+  /* 3D Effect */
+  box-shadow: 
+    0 8px 16px rgba(0, 0, 0, 0.12),
+    0 4px 8px rgba(59, 130, 246, 0.08),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.05),
+    inset 0 4px 8px rgba(255, 255, 255, 0.5);
+  border: 5px solid transparent;
+  background-clip: padding-box;
   position: relative;
+  
+  transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  cursor: pointer;
   overflow: visible;
+  transform: perspective(1000px) rotateY(0deg);
+}
+
+/* Colorful border gradient */
+.student-card::before {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, 
+    #60a5fa 0%, 
+    #a78bfa 25%, 
+    #f472b6 50%, 
+    #fbbf24 75%, 
+    #34d399 100%);
+  z-index: -1;
+  opacity: 0.6;
+  transition: opacity 0.3s ease;
 }
 
 /* Avatar */
@@ -166,74 +243,202 @@ const pointsBadgeClass = computed(() => {
 
 /* Hover Interaction */
 .student-card:hover {
-  transform: scale(1.05);
-  box-shadow: 0 10px 15px rgba(0,0,0,0.1);
-  border-color: #93c5fd; /* Light blue on hover */
+  transform: perspective(1000px) rotateY(5deg) scale(1.08) translateY(-5px);
+  box-shadow: 
+    0 12px 24px rgba(0, 0, 0, 0.18),
+    0 6px 12px rgba(59, 130, 246, 0.15),
+    0 0 30px rgba(96, 165, 250, 0.3),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.08),
+    inset 0 4px 12px rgba(255, 255, 255, 0.6);
   z-index: 20;
 }
 
-/* Selected State (Case 1) */
-.student-card.selected {
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6, #ec4899);
-  box-shadow: 0 0 0 5px #3b82f6, /* Blue ring */
-              0 0 30px rgba(59, 130, 246, 0.8), /* Blue glow */
-              0 0 50px rgba(139, 92, 246, 0.5); /* Purple outer glow */
-  border-color: #ffffff; /* White border for contrast */
-  transform: scale(1.15);
-  z-index: 30;
-  animation: pulse-glow 2s ease-in-out infinite;
+.student-card:hover::before {
+  opacity: 1;
+  animation: rotate-gradient 3s linear infinite;
 }
 
-@keyframes pulse-glow {
+@keyframes rotate-gradient {
+  0% { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(360deg); }
+}
+
+/* Selected State */
+.student-card.selected {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #fcd34d 100%);
+  box-shadow: 
+    0 0 0 6px #fbbf24,
+    0 0 0 12px rgba(251, 191, 36, 0.3),
+    0 16px 32px rgba(251, 191, 36, 0.4),
+    0 8px 16px rgba(245, 158, 11, 0.3),
+    0 0 40px rgba(251, 191, 36, 0.6),
+    inset 0 -6px 12px rgba(217, 119, 6, 0.2),
+    inset 0 6px 12px rgba(255, 255, 255, 0.7);
+  border-color: #fbbf24;
+  transform: perspective(1000px) rotateY(0deg) scale(1.2) translateY(-8px);
+  z-index: 30;
+  animation: selected-bounce 0.6s ease-out, selected-glow 2s ease-in-out infinite;
+}
+
+.student-card.selected::before {
+  background: linear-gradient(135deg, 
+    #fbbf24 0%, 
+    #f59e0b 25%, 
+    #d97706 50%, 
+    #b45309 75%, 
+    #92400e 100%);
+  opacity: 1;
+  animation: rotate-gradient 2s linear infinite;
+}
+
+@keyframes selected-bounce {
+  0% { transform: perspective(1000px) scale(1) translateY(0); }
+  50% { transform: perspective(1000px) scale(1.25) translateY(-12px); }
+  100% { transform: perspective(1000px) scale(1.2) translateY(-8px); }
+}
+
+@keyframes selected-glow {
   0%, 100% {
-    box-shadow: 0 0 0 5px #3b82f6,
-                0 0 30px rgba(59, 130, 246, 0.8),
-                0 0 50px rgba(139, 92, 246, 0.5);
+    box-shadow: 
+      0 0 0 6px #fbbf24,
+      0 0 0 12px rgba(251, 191, 36, 0.3),
+      0 16px 32px rgba(251, 191, 36, 0.4),
+      0 0 40px rgba(251, 191, 36, 0.6),
+      inset 0 -6px 12px rgba(217, 119, 6, 0.2),
+      inset 0 6px 12px rgba(255, 255, 255, 0.7);
   }
   50% {
-    box-shadow: 0 0 0 5px #8b5cf6,
-                0 0 40px rgba(139, 92, 246, 0.9),
-                0 0 60px rgba(236, 72, 153, 0.6);
+    box-shadow: 
+      0 0 0 8px #f59e0b,
+      0 0 0 16px rgba(245, 158, 11, 0.4),
+      0 20px 40px rgba(245, 158, 11, 0.5),
+      0 0 60px rgba(251, 191, 36, 0.8),
+      inset 0 -6px 12px rgba(217, 119, 6, 0.3),
+      inset 0 6px 12px rgba(255, 255, 255, 0.8);
   }
 }
 
-/* Disabled/Absent State (Case 3) */
+/* Disabled/Absent State */
 .disabled-card {
-  /* pointer-events: none;  <-- Removed to allow optional interaction */
-  opacity: 0.6;
-  filter: grayscale(100%); /* Black and white */
-  border-color: #94a3b8; /* Gray border */
-  background-image: repeating-linear-gradient(
-    45deg,
-    transparent,
-    transparent 10px,
-    rgba(0, 0, 0, 0.05) 10px,
-    rgba(0, 0, 0, 0.05) 20px
-  );
+  opacity: 0.5;
+  filter: grayscale(100%) brightness(0.9);
+  border-color: #94a3b8;
+  background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+  transform: perspective(1000px) scale(0.95);
+}
+
+.disabled-card::before {
+  background: linear-gradient(135deg, #94a3b8, #64748b);
+  opacity: 0.4;
 }
 
 /* Points Badge */
 .points-badge {
   position: absolute;
-  top: 0;
-  right: 0;
-  width: 32px;
-  height: 32px;
-  background: #2ecc71;
+  top: -5px;
+  right: -5px;
+  min-width: 38px;
+  height: 38px;
+  padding: 0 6px;
+  background: linear-gradient(135deg, #10b981, #059669);
   color: white;
-  font-weight: bold;
-  font-size: 14px;
-  line-height: 32px;
+  font-weight: 900;
+  font-size: 15px;
+  line-height: 38px;
   border-radius: 50%;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-  z-index: 20;
+  box-shadow: 
+    0 4px 12px rgba(16, 185, 129, 0.4),
+    0 2px 6px rgba(0, 0, 0, 0.2),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.2),
+    inset 0 2px 4px rgba(255, 255, 255, 0.3);
+  z-index: 25;
   text-align: center;
-  border: 2px solid white;
+  border: 3px solid white;
+  transition: all 0.3s ease;
+  animation: badge-pop 0.5s ease-out;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
-.points-badge.badge-excellent { background: linear-gradient(135deg, #2ecc71, #27ae60); }
-.points-badge.badge-good { background: linear-gradient(135deg, #3498db, #2980b9); }
-.points-badge.badge-neutral { background: linear-gradient(135deg, #95a5a6, #7f8c8d); }
-.points-badge.badge-warning { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+@keyframes badge-pop {
+  0% { transform: scale(0); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.points-badge:hover {
+  transform: scale(1.15) rotate(5deg);
+}
+
+.points-badge.badge-excellent { 
+  background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
+  box-shadow: 
+    0 4px 12px rgba(16, 185, 129, 0.5),
+    0 0 20px rgba(16, 185, 129, 0.3);
+  animation: badge-pop 0.5s ease-out, excellent-shine 2s ease-in-out infinite;
+}
+
+@keyframes excellent-shine {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.2); }
+}
+
+.points-badge.badge-good { 
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%);
+  box-shadow: 
+    0 4px 12px rgba(59, 130, 246, 0.5),
+    0 0 20px rgba(59, 130, 246, 0.3);
+}
+
+.points-badge.badge-neutral { 
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%);
+  box-shadow: 
+    0 4px 12px rgba(139, 92, 246, 0.5),
+    0 0 20px rgba(139, 92, 246, 0.3);
+}
+
+.points-badge.badge-warning { 
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%);
+  box-shadow: 
+    0 4px 12px rgba(239, 68, 68, 0.5),
+    0 0 20px rgba(239, 68, 68, 0.3);
+  animation: badge-pop 0.5s ease-out, warning-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes warning-pulse {
+  0%, 100% { 
+    box-shadow: 
+      0 4px 12px rgba(239, 68, 68, 0.5),
+      0 0 20px rgba(239, 68, 68, 0.3);
+  }
+  50% { 
+    box-shadow: 
+      0 6px 16px rgba(239, 68, 68, 0.7),
+      0 0 30px rgba(239, 68, 68, 0.5);
+  }
+}
+
+/* Absent Card Styles */
+.absent-card {
+  transform: scale(0.85) !important;
+  filter: grayscale(100%) opacity(0.7);
+  animation: none !important;
+  transition: all 0.3s ease;
+}
+
+.absent-card:hover {
+  transform: scale(0.9) !important;
+  filter: grayscale(0%) opacity(1);
+}
+
+.absent-card .name-container .first-name,
+.absent-card .name-container .last-name,
+.absent-card .points-badge,
+.absent-card .student-card {
+  animation: none !important;
+}
+
+.absent-card .points-badge {
+  display: none;
+}
 
 </style>

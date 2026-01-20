@@ -607,9 +607,13 @@
       "selected": "محدد",
       "classroomFallback": "فصل",
       "summary": "ملخص الحضور",
+      "classroomSummary": "ملخص الفصل",
+      "total": "الإجمالي",
       "present": "حضور",
       "absent": "غياب",
       "absentees": "الغائبون",
+      "absentStudentsList": "الطلاب الغائبون:",
+      "copyList": "نسخ القائمة",
       "copyToClipboard": "نسخ القائمة",
       "copied": "تم نسخ القائمة"
     },

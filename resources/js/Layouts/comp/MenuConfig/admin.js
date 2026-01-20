@@ -295,6 +295,11 @@ export default [
         title: 'General Reports',
         icon: 'bar_chart',
         to: '/reports',
+      },
+      {
+        title: 'Behavior Management',
+        icon: 'emoji_events',
+        to: '/admin/behaviors',
       }
     ]
   },

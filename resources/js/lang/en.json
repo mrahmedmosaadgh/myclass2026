@@ -599,9 +599,13 @@
       "selected": "Selected",
       "classroomFallback": "Classroom",
       "summary": "Classroom Summary",
+      "classroomSummary": "Classroom Summary",
+      "total": "Total",
       "present": "Present",
       "absent": "Absent",
       "absentees": "Absentees",
+      "absentStudentsList": "Absent Students:",
+      "copyList": "Copy List",
       "copyToClipboard": "Copy List",
       "copied": "Copied to clipboard"
     },

@@ -516,6 +516,11 @@ Route::middleware([
         // my_table_mnger/reward_sys/reward_sys
     })->name('reward_sys'); 
 
+    // Admin Behavior Management
+    Route::get('/admin/behaviors', function () {
+        return Inertia::render('my_table_mnger/reward_sys/admin/BehaviorManagement');
+    })->name('admin.behaviors'); 
+
     // Reward system drawing tool
     Route::get('/reward-system/drawing', function () {
         return Inertia::render('my_table_mnger/reward_sys/drawing/DrawingMain');

@@ -1,7 +1,7 @@
 <template>
   <div class="w-full">
     <div class="mb-4 flex items-center justify-between">
-      <label class="text-lg font-bold text-gray-700">Select Classroom</label>
+      <label class="text-lg font-bold text-gray-700">{{ $t('rewardSys.session.selectClassroomTitle') }}</label>
 
     </div>
 
@@ -36,7 +36,7 @@
                 class="text-xs font-bold uppercase tracking-wider mb-1"
                 :style="{ color: classroom.subject?.color_bg || '#2563eb' }"
               >
-                {{ classroom.subject?.name || classroom.subject_name || 'Classroom' }}
+                {{ classroom.subject?.name || classroom.subject_name || $t('rewardSys.session.classroomFallback') }}
               </div>
               <div class="text-2xl font-bold text-gray-800 leading-tight">
                 {{ classroom.classroom_name }}
@@ -61,7 +61,7 @@
             </div>
             <div v-if="modelValue === classroom.classroom_id" class="font-bold flex items-center gap-1 text-primary">
               <q-icon name="check_circle" size="xs" />
-              Selected
+              {{ $t('rewardSys.session.selected') }}
             </div>
           </div>
         </q-card-section>
@@ -69,7 +69,7 @@
     </div>
 
     <div v-if="!classrooms.length" class="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-      No classrooms available
+      {{ $t('rewardSys.session.noClassroomsAvailable') }}
     </div>
 
 
@@ -81,7 +81,7 @@
         <q-toggle
           :model-value="avatarEditEnabled"
           @update:model-value="$emit('update:avatarEditEnabled', $event)"
-          label="Enable Avatar Edit"
+          :label="$t('rewardSys.session.enableAvatarEdit')"
           color="purple"
           left-label
         />
@@ -90,7 +90,7 @@
         </div>
         <q-btn
           color="primary"
-          label="Init Session"
+          :label="$t('rewardSys.session.initSession')"
           icon="play_arrow"
           :disable="!modelValue || loading"
           :loading="loading"
@@ -102,6 +102,10 @@
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+
 defineProps({
   modelValue: {
     type: [String, Number],

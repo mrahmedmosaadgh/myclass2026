@@ -1669,8 +1669,28 @@ const handleSchoolWideFileUpload = async (file) => {
   try {
     const data = await readExcelFile(file)
     
+    // Helper to find value case-insensitive
+    const findValue = (row, keys) => {
+      const rowKeys = Object.keys(row)
+      for (const key of keys) {
+        // Exact match
+        if (row[key] !== undefined) return row[key]
+        
+        // Case-insensitive match
+        const foundKey = rowKeys.find(k => k.toLowerCase().trim() === key.toLowerCase())
+        if (foundKey && row[foundKey] !== undefined) return row[foundKey]
+      }
+      return ''
+    }
+
     // Check if classroom column exists
-    if (data.length > 0 && !('classroom' in data[0]) && !('Classroom' in data[0])) {
+    const hasClassroom = data.length > 0 && (
+      'classroom' in data[0] || 
+      'Classroom' in data[0] || 
+      Object.keys(data[0]).some(k => k.toLowerCase().trim() === 'classroom')
+    )
+
+    if (data.length > 0 && !hasClassroom) {
       $q.notify({
         type: 'negative',
         message: 'Invalid file: Missing "classroom" column. Please download the correct template.'
@@ -1683,23 +1703,26 @@ const handleSchoolWideFileUpload = async (file) => {
     const invalidRows = []
 
     data.forEach((row, index) => {
-      const name = row.name || row.Name || ''
-      const classroom = row.classroom || row.Classroom || ''
+      const name = findValue(row, ['name', 'Name', 'Student Name'])
+      const classroom = findValue(row, ['classroom', 'Classroom'])
+      const nameAr = findValue(row, ['name_ar', 'Arabic Name', 'arabic name', 'Name Ar'])
+      const nameCute = findValue(row, ['name_cute', 'Nickname', 'nickname', 'Name Cute'])
+      const notes = findValue(row, ['notes', 'Notes'])
 
       // Check if required fields are empty
-      if (!name.trim() || !classroom.trim()) {
+      if (!name.toString().trim() || !classroom.toString().trim()) {
         invalidRows.push({
           row: index + 2, // Excel row number (1-indexed + header)
-          reason: !name.trim() ? 'Missing name' : 'Missing classroom'
+          reason: !name.toString().trim() ? 'Missing name' : 'Missing classroom'
         })
       } else {
         validRows.push({
           index,
-          name: name.trim(),
-          name_ar: (row.name_ar || row['Arabic Name'] || '').trim(),
-          name_cute: (row.name_cute || row.Nickname || '').trim(),
-          classroom: classroom.trim(),
-          notes: (row.notes || row.Notes || '').trim()
+          name: name.toString().trim(),
+          name_ar: nameAr.toString().trim(),
+          name_cute: nameCute.toString().trim(),
+          classroom: classroom.toString().trim(),
+          notes: notes.toString().trim()
         })
       }
     })

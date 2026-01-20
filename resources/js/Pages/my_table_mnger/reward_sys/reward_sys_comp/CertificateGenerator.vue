@@ -71,13 +71,13 @@
                  />
              </div>
 
-             <q-input v-model="certificateData.academicYear" label="Academic Year" dark outlined dense bg-color="white" color="black" label-color="grey-7">
+             <q-input v-model="certificateData.academicYear" label="Academic Year" dark outlined dense bg-color="gray-900" color="white" label-color="grey-4">
                <template v-slot:prepend><q-icon name="event" /></template>
              </q-input>
              
              <div class="grid grid-cols-2 gap-3">
-                <q-input v-model="certificateData.week" label="Week" dark outlined dense bg-color="white" color="black" label-color="grey-7" />
-                <q-input v-model="certificateData.date" label="Date" dark outlined dense bg-color="white" color="black" label-color="grey-7" />
+                <q-input v-model="certificateData.week" label="Week" dark outlined dense bg-color="gray-900" color="white" label-color="grey-4" />
+                <q-input v-model="certificateData.date" label="Date" dark outlined dense bg-color="gray-900" color="white" label-color="grey-4" />
              </div>
 
              <q-input 
@@ -85,7 +85,7 @@
                label="Custom Message" 
                dark outlined dense 
                autogrow 
-               bg-color="white" color="black" label-color="grey-7"
+               bg-color="gray-900" color="white" label-color="grey-4"
                hint="Short appreciation text"
              />
           </div>

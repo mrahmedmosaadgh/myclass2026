@@ -17,6 +17,7 @@ class Student extends Model
         'name',
         'name_ar',
         'name_cute',
+        'avatar',
         'order_1',
         'order_2',
         'notes',
@@ -44,7 +45,8 @@ class Student extends Model
         'school_name',
         'first_name',
         'second_name',
-        'last_name'
+        'last_name',
+        'avatar_url'
     ];
 
 
@@ -242,6 +244,26 @@ class Student extends Model
         $count = count($parts);
         if ($count > 2) return implode(' ', array_slice($parts, 1, $count - 2));
         return '';
+    }
+
+    /**
+     * Get the avatar URL with file existence check
+     * Returns null if avatar doesn't exist to allow frontend fallback
+     */
+    public function getAvatarUrlAttribute()
+    {
+        if (!$this->avatar) {
+            return null;
+        }
+
+        // Check if the file exists in storage
+        $path = str_replace('/storage/', '', $this->avatar);
+        if (\Storage::disk('public')->exists($path)) {
+            return $this->avatar;
+        }
+
+        // File doesn't exist, return null to trigger frontend fallback
+        return null;
     }
 
     /**

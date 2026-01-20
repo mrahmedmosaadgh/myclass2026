@@ -124,6 +124,8 @@ Route::middleware(['auth:sanctum','web'])->get('/subjects/{subject}/curricula', 
 // Route::middleware(['auth:sanctum','web'])->post('/worksheets', [App\Http\Controllers\WorksheetController::class, 'store']);
 
 
+// Bulk behavior creation (must come before apiResource)
+Route::post('behaviors/bulk', [BehaviorController::class, 'bulkStore']);
 
 Route::apiResource('behaviors', BehaviorController::class);
 // Route::apiResource('student-behaviors', StudentBehaviorController::class);

@@ -6,7 +6,7 @@
       filled
       v-model="localDate"
       type="date"
-      label="Date"
+      :label="$t('rewardSys.session.date')"
       class="rounded-lg bg-white"
       dense
     />
@@ -20,7 +20,7 @@
       option-label="label"
       emit-value
       map-options
-      label="Subject"
+      :label="$t('rewardSys.session.subject')"
       class="rounded-lg bg-white"
       dense
     />
@@ -34,7 +34,7 @@
       option-label="label"
       emit-value
       map-options
-      label="Semester"
+      :label="$t('rewardSys.session.semester')"
       class="rounded-lg bg-white"
       dense
     />
@@ -48,7 +48,7 @@
       option-label="label"
       emit-value
       map-options
-      label="Week"
+      :label="$t('rewardSys.session.week')"
       class="rounded-lg bg-white"
       dense
     />
@@ -62,7 +62,7 @@
       option-label="label"
       emit-value
       map-options
-      label="Day"
+      :label="$t('rewardSys.session.day')"
       class="rounded-lg bg-white"
       dense
     />
@@ -76,7 +76,7 @@
       option-label="label"
       emit-value
       map-options
-      label="Period Number"
+      :label="$t('rewardSys.session.periodNumber')"
       class="rounded-lg bg-white"
       dense
     />
@@ -85,6 +85,9 @@
 
 <script setup>
 import { computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps({
   date: { type: String, default: () => new Date().toISOString().split('T')[0] },

@@ -166,7 +166,8 @@ public function share(Request $request): array
                 return [
                     'id' => $school->id,
                     'name' => $school->name,
-                    'is_active' => $school->is_active ?? true
+                    'is_active' => $school->is_active ?? true,
+                    'logo_url' => $school->logo_url
                 ];
             })
             ->toArray();
@@ -181,7 +182,8 @@ public function share(Request $request): array
         return $student && $student->school ? [[
             'id' => $student->school->id,
             'name' => $student->school->name,
-            'is_active' => $student->school->is_active ?? true
+            'is_active' => $student->school->is_active ?? true,
+            'logo_url' => $student->school->logo_url
         ]] : [];
     }
 
