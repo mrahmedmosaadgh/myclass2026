@@ -74,21 +74,31 @@ class SchoolBrandingController extends Controller
         // Delete old logo if exists
         $currentBranding = $school->branding;
         if (!empty($currentBranding['logo_path'])) {
-            Storage::disk('public')->delete($currentBranding['logo_path']);
+            $oldPath = public_path($currentBranding['logo_path']);
+            if (file_exists($oldPath)) {
+                unlink($oldPath);
+            } elseif (Storage::disk('public')->exists($currentBranding['logo_path'])) {
+                 // Fallback delete for old storage system
+                 Storage::disk('public')->delete($currentBranding['logo_path']);
+            }
         }
 
-        // Store new logo
+        // Store new logo directly in public folder
         $file = $request->file('logo');
         $filename = 'logo_' . time() . '.' . $file->getClientOriginalExtension();
-        $path = $file->storeAs(
-            "school_branding/{$school->id}",
-            $filename,
-            'public'
-        );
+        $destinationPath = public_path("uploads/school_branding/{$school->id}");
+        
+        // Ensure directory exists
+        if (!file_exists($destinationPath)) {
+            mkdir($destinationPath, 0755, true);
+        }
+        
+        $file->move($destinationPath, $filename);
+        $relativePath = "uploads/school_branding/{$school->id}/{$filename}";
 
         // Update branding data
         $school->updateBranding([
-            'logo_path' => $path,
+            'logo_path' => $relativePath,
         ]);
 
         return redirect()->back()->with('success', 'Logo uploaded successfully');
@@ -106,21 +116,31 @@ class SchoolBrandingController extends Controller
         // Delete old background if exists
         $currentBranding = $school->branding;
         if (!empty($currentBranding['background_path'])) {
-            Storage::disk('public')->delete($currentBranding['background_path']);
+             $oldPath = public_path($currentBranding['background_path']);
+            if (file_exists($oldPath)) {
+                unlink($oldPath);
+            } elseif (Storage::disk('public')->exists($currentBranding['background_path'])) {
+                 // Fallback delete for old storage system
+                 Storage::disk('public')->delete($currentBranding['background_path']);
+            }
         }
 
-        // Store new background
+        // Store new background directly in public folder
         $file = $request->file('background');
         $filename = 'background_' . time() . '.' . $file->getClientOriginalExtension();
-        $path = $file->storeAs(
-            "school_branding/{$school->id}",
-            $filename,
-            'public'
-        );
+        $destinationPath = public_path("uploads/school_branding/{$school->id}");
+        
+        // Ensure directory exists
+        if (!file_exists($destinationPath)) {
+            mkdir($destinationPath, 0755, true);
+        }
+
+        $file->move($destinationPath, $filename);
+        $relativePath = "uploads/school_branding/{$school->id}/{$filename}";
 
         // Update branding data
         $school->updateBranding([
-            'background_path' => $path,
+            'background_path' => $relativePath,
         ]);
 
         return redirect()->back()->with('success', 'Background uploaded successfully');

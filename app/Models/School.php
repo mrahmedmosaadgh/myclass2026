@@ -178,6 +178,11 @@ class School extends Model
     {
         $branding = $this->branding;
         if (!empty($branding['logo_path'])) {
+            // Check if it's a direct public upload
+            if (strpos($branding['logo_path'], 'uploads/') === 0) {
+                return asset($branding['logo_path']);
+            }
+            // Fallback for legacy storage
             return asset('storage/' . $branding['logo_path']);
         }
         return null;
@@ -190,6 +195,11 @@ class School extends Model
     {
         $branding = $this->branding;
         if (!empty($branding['background_path'])) {
+            // Check if it's a direct public upload
+            if (strpos($branding['background_path'], 'uploads/') === 0) {
+                return asset($branding['background_path']);
+            }
+            // Fallback for legacy storage
             return asset('storage/' . $branding['background_path']);
         }
         return null;
