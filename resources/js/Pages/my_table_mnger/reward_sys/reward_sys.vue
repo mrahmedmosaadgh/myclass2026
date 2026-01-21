@@ -21,7 +21,7 @@
 
 
     <!-- Header Card -->
-    <q-card class="shadow-lg rounded-2xl overflow-hidden">
+    <q-card v-if="!isDialog" class="shadow-lg rounded-2xl overflow-hidden">
       <q-card-section class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white flex justify-between items-center">
         <div>
           <h1 class="text-3xl font-bold">🏆 {{ $t('rewardSys.behaviors.management') }}</h1>
@@ -1199,7 +1199,15 @@ card2
 </template>
 
 <script setup>
-import { ref, watch, onMounted, computed } from 'vue'
+import { ref, watch, onMounted, computed, defineProps } from 'vue' // update import
+
+const props = defineProps({
+  isDialog: {
+    type: Boolean,
+    default: false
+  }
+})
+
 import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { usePage } from '@inertiajs/vue3'
@@ -1372,6 +1380,7 @@ const settingsTab = ref('behavior_incidents')
 
 // Watch for tab changes and clear selection
 watch(activeTab, (newTab, oldTab) => {
+  localStorage.setItem('reward-system-active-tab', newTab)
   if (newTab !== oldTab) {
     selectedIds.value = []
   }
@@ -2308,6 +2317,12 @@ onMounted(async () => {
     if (savedClassroomId && classrooms.value.some(c => c.classroom_id === parseInt(savedClassroomId))) {
       selectedClassroomId.value = parseInt(savedClassroomId)
       console.log(`🏫 Restored classroom from localStorage: ${savedClassroomId}`)
+    }
+
+    // Restore active tab
+    const savedActiveTab = localStorage.getItem('reward-system-active-tab')
+    if (savedActiveTab) {
+      activeTab.value = savedActiveTab
     }
 
     // Restore period code components from localStorage
