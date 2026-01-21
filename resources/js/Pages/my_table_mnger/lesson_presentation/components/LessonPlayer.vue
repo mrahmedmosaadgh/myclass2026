@@ -33,11 +33,23 @@
             </div>
 
             <q-btn
+              flat
+              dense
+              round
+              :icon="viewMode === 'slide' ? 'view_agenda' : 'view_carousel'"
+              color="primary"
+              @click="() => { viewMode = viewMode === 'slide' ? 'scroll' : 'slide'; playClick(); }"
+              class="q-mr-sm"
+            >
+              <q-tooltip>{{ viewMode === 'slide' ? 'Switch to Scroll View' : 'Switch to Slide View' }}</q-tooltip>
+            </q-btn>
+
+            <q-btn
               unelevated
               color="primary"
               icon="fullscreen"
               label="Present"
-              @click="openFullscreenDialog"
+              @click="() => { openFullscreenDialog(); playClick(); }"
               class="q-px-md"
             >
               <q-tooltip>Enter Fullscreen Presentation Mode</q-tooltip>
@@ -78,43 +90,91 @@
               />
 
               <!-- Slide Content Card -->
-              <q-card v-if="currentSectionSlides.length > 0 && !showSpecialContent" flat bordered class="slide-card">
-                <q-card-section class="q-pa-lg">
-                  <div class="row items-center justify-between q-mb-md">
-                    <q-badge color="grey-4" text-color="grey-8" class="q-px-md q-py-sm">
-                      <q-icon name="article" size="16px" class="q-mr-xs" />
-                      Slide {{ currentSlideIndex + 1 }} of {{ currentSectionSlides.length }}
-                    </q-badge>
-                    
-                    <q-chip
-                      :icon="getSlideTypeIcon(currentSlide.slide_type)"
-                      :color="getSlideTypeColor(currentSlide.slide_type)"
-                      text-color="white"
-                      class="text-weight-bold"
-                    >
-                      {{ currentSlide.slide_type?.toUpperCase() }}
-                    </q-chip>
-                  </div>
+              <div v-if="currentSectionSlides.length > 0 && !showSpecialContent">
+                <!-- Slide Mode -->
+                <q-card v-if="viewMode === 'slide'" flat bordered class="slide-card">
+                  <q-card-section class="q-pa-lg">
+                    <div class="row items-center justify-between q-mb-md">
+                      <q-badge color="grey-4" text-color="grey-8" class="q-px-md q-py-sm">
+                        <q-icon name="article" size="16px" class="q-mr-xs" />
+                        Slide {{ currentSlideIndex + 1 }} of {{ currentSectionSlides.length }}
+                      </q-badge>
+                      
+                      <q-chip
+                        :icon="getSlideTypeIcon(currentSlide.slide_type)"
+                        :color="getSlideTypeColor(currentSlide.slide_type)"
+                        text-color="white"
+                        class="text-weight-bold"
+                      >
+                        {{ currentSlide.slide_type?.toUpperCase() }}
+                      </q-chip>
+                    </div>
 
-                  <SlideRenderer
-                    :slide="currentSlide"
-                    :attempt-id="generateAttemptId()"
-                    :legacy-mode="currentSection"
-                    @answer-selected="handleAnswerSelected"
-                    @quiz-completed="handleQuizCompleted"
-                    class="q-mt-lg"
+                    <SlideRenderer
+                      :slide="currentSlide"
+                      :attempt-id="generateAttemptId()"
+                      :legacy-mode="currentSection"
+                      @answer-selected="handleAnswerSelected"
+                      @quiz-completed="handleQuizCompleted"
+                      class="q-mt-lg"
+                    />
+                  </q-card-section>
+
+                  <NavigationFooter
+                    :current-slide="currentSlideIndex"
+                    :total-slides="currentSectionSlides.length"
+                    :can-proceed="isSlideCompleted"
+                    :is-last-slide="currentSlideIndex >= currentSectionSlides.length - 1"
+                    @prev="prevSlide"
+                    @next="nextSlide"
                   />
-                </q-card-section>
+                </q-card>
 
-                <NavigationFooter
-                  :current-slide="currentSlideIndex"
-                  :total-slides="currentSectionSlides.length"
-                  :can-proceed="isSlideCompleted"
-                  :is-last-slide="currentSlideIndex >= currentSectionSlides.length - 1"
-                  @prev="prevSlide"
-                  @next="nextSlide"
-                />
-              </q-card>
+                <!-- Scroll Mode -->
+                <div v-else class="scroll-mode-container">
+                  <q-card v-for="(slide, index) in currentSectionSlides" :key="slide.id || index" flat bordered class="slide-card q-mb-lg">
+                    <q-card-section class="q-pa-lg">
+                      <div class="row items-center justify-between q-mb-md">
+                        <q-badge color="grey-4" text-color="grey-8" class="q-px-md q-py-sm">
+                          <q-icon name="article" size="16px" class="q-mr-xs" />
+                          Slide {{ index + 1 }} of {{ currentSectionSlides.length }}
+                        </q-badge>
+                        
+                        <q-chip
+                          :icon="getSlideTypeIcon(slide.slide_type)"
+                          :color="getSlideTypeColor(slide.slide_type)"
+                          text-color="white"
+                          class="text-weight-bold"
+                        >
+                          {{ slide.slide_type?.toUpperCase() }}
+                        </q-chip>
+                      </div>
+
+                      <SlideRenderer
+                        :slide="slide"
+                        :attempt-id="`attempt_${presentation.id}_${slide.id || index}_${Date.now()}`"
+                        :legacy-mode="currentSection"
+                        @answer-selected="handleAnswerSelected"
+                        @quiz-completed="(result) => handleScrollQuizCompleted(result, index)"
+                        class="q-mt-lg"
+                      />
+                    </q-card-section>
+                  </q-card>
+
+                  <!-- Next Section Button (Scroll Mode) -->
+                  <div class="text-center q-pb-xl">
+                      <q-btn
+                        unelevated
+                        color="primary"
+                        icon-right="arrow_forward"
+                        label="Next Section"
+                        @click="() => { nextSectionFromScroll(); playClick(); }"
+                        size="lg"
+                        class="q-px-xl"
+                      />
+                  </div>
+                </div>
+              </div>
 
               <!-- Special Content -->
               <div v-else-if="showSpecialContent || currentSectionSlides.length === 0">
@@ -185,7 +245,7 @@
 
         <!-- Slide Content -->
         <div v-else-if="currentSectionSlides.length > 0" class="slide-wrapper">
-          <div class="slide-content-area">
+          <div class="slide-content-area" ref="slideContentAreaRef" @scroll="handleContentScroll">
             <SlideRenderer
               :slide="currentSlide"
               :attempt-id="generateAttemptId()"
@@ -193,6 +253,21 @@
               @answer-selected="handleAnswerSelected"
               @quiz-completed="handleQuizCompleted"
             />
+            
+            <!-- Scroll to Top FAB -->
+            <q-page-sticky position="bottom-right" :offset="[18, 18]" v-if="viewMode === 'scroll'">
+              <transition name="scale">
+                <q-btn
+                  v-show="showScrollTopBtn"
+                  fab
+                  icon="keyboard_arrow_up"
+                  color="secondary"
+                  @click="() => { scrollToTop(); playClick(); }"
+                >
+                  <q-tooltip>Back to Top</q-tooltip>
+                </q-btn>
+              </transition>
+            </q-page-sticky>
           </div>
 
           <!-- Floating Navigation Arrows -->
@@ -202,7 +277,7 @@
               fab
               color="primary"
               icon="chevron_left"
-              @click="prevSlide"
+              @click="() => { prevSlide(); playClick(); }"
               class="nav-arrow nav-arrow-left"
             >
               <q-tooltip>Previous</q-tooltip>
@@ -213,7 +288,7 @@
               fab
               :color="currentSlideIndex < currentSectionSlides.length - 1 ? 'primary' : 'positive'"
               :icon="currentSlideIndex < currentSectionSlides.length - 1 ? 'chevron_right' : 'check_circle'"
-              @click="nextSlide"
+              @click="() => { nextSlide(); playClick(); }"
               class="nav-arrow nav-arrow-right"
             >
               <q-tooltip>{{ currentSlideIndex < currentSectionSlides.length - 1 ? 'Next' : 'Complete' }}</q-tooltip>
@@ -305,7 +380,7 @@
             round
             icon="close"
             color="white"
-            @click="showFullscreenDialog = false"
+            @click="() => { showFullscreenDialog = false; playClick(); }"
             class="exit-fullscreen-btn"
           >
             <q-tooltip>Exit Presentation</q-tooltip>
@@ -318,7 +393,7 @@
             round
             :icon="showSlideAnnotations ? 'edit_off' : 'edit_note'"
             :color="showSlideAnnotations ? 'deep-orange' : 'white'"
-            @click="toggleSlideAnnotations"
+            @click="() => { toggleSlideAnnotations(); playClick(); }"
             class="slide-annotation-btn"
           >
             <q-tooltip>{{ showSlideAnnotations ? 'Hide Slide Annotations' : 'Show Slide Annotations' }}</q-tooltip>
@@ -358,7 +433,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, nextTick } from 'vue';
 import { useQuasar } from 'quasar';
 import axios from 'axios';
 import UniversalQuestionPlayer from '@/Components/QuestionSystem/UniversalQuestionPlayer.vue';
@@ -368,6 +443,7 @@ import SlideRenderer from './LessonPlayerComp/SlideRenderer.vue';
 import NavigationFooter from './LessonPlayerComp/NavigationFooter.vue';
 import DrawingOverlay from './LessonPlayerComp/DrawingOverlay.vue';
 import SlideAnnotationOverlay from './LessonPlayerComp/SlideAnnotationOverlay.vue';
+import { playClick } from '@/Utils/audio';
 
 const $q = useQuasar();
 
@@ -394,6 +470,7 @@ const showFullscreenDialog = ref(false);
 const showSectionMenu = ref(false);
 const drawingOverlayRef = ref(null);
 const showSlideAnnotations = ref(false);
+const viewMode = ref('scroll'); // 'slide' or 'scroll'
 
 // Computed
 const currentSectionSlides = computed(() => {
@@ -592,13 +669,86 @@ const handleSectionCompletion = () => {
   }
 };
 
-const onPracticeSubmitted = () => {
-  if (props.isPreview) {
-    $q.notify({ type: 'positive', message: '[Preview] Practice submitted' });
-  } else {
-    emit('submit-practice');
+
+const slideContentAreaRef = ref(null);
+const showScrollTopBtn = ref(false);
+
+const handleContentScroll = (e) => {
+  showScrollTopBtn.value = e.target.scrollTop > 300;
+};
+
+const scrollToTop = () => {
+  if (slideContentAreaRef.value) {
+    slideContentAreaRef.value.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
   }
 };
+
+const nextSectionFromScroll = () => {
+    // Check if we can proceed (e.g. check questions if strict mode, but for scroll view typically we allow free flow or check all)
+    // For now, let's assume scroll view is meaningful for reading/reviewing.
+    // If strict completion is required, we should check `isSlideCompleted` for all questions.
+    
+    // Check for unsolved questions if needed
+    const unsolvedSlides = currentSectionSlides.value.filter(slide => {
+        if (slide.slide_type !== 'question') return false;
+        const questions = slide.slide_content?.questions || [];
+        return !questions.every(q => questionSolved.value[q.id]);
+    });
+
+    if (unsolvedSlides.length > 0 && !props.isPreview) {
+         $q.notify({ 
+            type: 'warning', 
+            message: `Please complete all questions (${unsolvedSlides.length} remaining) before proceeding.`,
+            position: 'bottom'
+        });
+        // Scroll to first unsolved?
+        return;
+    }
+
+    const currentSectionIdx = props.sections.findIndex(s => s.id === currentSection.value);
+    const nextSection = props.sections[currentSectionIdx + 1];
+    
+    if (nextSection && canAccessSection(nextSection.id)) {
+      currentSection.value = nextSection.id;
+      currentSlideIndex.value = 0;
+      currentSection_data.value = nextSection;
+      
+      $q.notify({
+        type: 'positive',
+        message: `Moving to ${nextSection.title}`,
+        icon: 'arrow_forward',
+        position: 'top',
+        timeout: 1500
+      });
+      
+      // Scroll to top of the content area
+      nextTick(() => {
+        if (slideContentAreaRef.value) {
+            slideContentAreaRef.value.scrollTop = 0;
+        } else {
+             // Fallback
+             const el = document.querySelector('.slide-content-area');
+             if (el) el.scrollTop = 0;
+        }
+      });
+    } else {
+      handleSectionCompletion();
+    }
+};
+
+const handleScrollQuizCompleted = (result, index) => {
+    // Just mark as solved, no auto-advance in scroll mode
+    handleQuizCompleted(result); // Re-use logic to mark solved
+    // But prevent the auto-next-slide timeout if in scroll mode?
+    // Actually handleQuizCompleted calls nextSlide(); which changes currentSlideIndex.
+    // In scroll mode, changing currentSlideIndex might not be what we want, or it might be fine (it doesn't affect view much).
+    // Let's refactor handleQuizCompleted to check viewMode.
+};
+
+
 
 const generateAttemptId = () => {
   return `attempt_${props.presentation.id}_${currentSlide.value.id || currentSlideIndex.value}_${Date.now()}`;
@@ -630,10 +780,19 @@ const handleQuizCompleted = async (result) => {
     questionSolved.value[q.id] = true;
   });
 
-  // Automatically proceed to next slide after a short delay
-  setTimeout(() => {
-    nextSlide();
-  }, 1500);
+  // Automatically proceed to next slide after a short delay ONLY in slide mode
+  if (viewMode.value === 'slide') {
+      setTimeout(() => {
+        nextSlide();
+      }, 1500);
+  } else {
+      $q.notify({
+        type: 'positive',
+        message: 'Question Completed!',
+        position: 'top',
+        timeout: 1000
+      });
+  }
 };
 
 const fetchQuizInfo = async () => {

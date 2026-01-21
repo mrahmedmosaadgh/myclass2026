@@ -43,9 +43,9 @@
         class="time-remaining"
         :class="{ 'time-warning': timeRemaining < 120 }"
         role="timer"
-        :aria-label="timeRemaining(formatTime(timeRemaining))"
+        :aria-label="timeRemainingText(formatTime(timeRemaining))"
       >
-        <span aria-hidden="true">{{ timeRemaining(formatTime(timeRemaining)) }}</span>
+        <span aria-hidden="true">{{ timeRemainingText(formatTime(timeRemaining)) }}</span>
       </div>
       
       <!-- Live region for progress announcements -->
@@ -168,7 +168,7 @@
           class="nav-button prev-button"
           :disabled="currentIndex === 0"
           :aria-label="previous()"
-          @click="goTo(currentIndex - 1)"
+          @click="() => { goTo(currentIndex - 1); playClick(); }"
         >
           {{ isRtl ? `${previous()} ←` : `← ${previous()}` }}
         </button>
@@ -179,7 +179,7 @@
           :class="{ 'finish-button': isLast }"
           :disabled="!isAnswered && !quizConfig.allowReviewMode"
           :aria-label="isLast ? finish() : next()"
-          @click="goNext"
+          @click="() => { goNext(); playClick(); }"
         >
           {{ isLast ? finish() : (isRtl ? `${next()} ←` : `${next()} →`) }}
         </button>
@@ -216,6 +216,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { playClick } from '@/Utils/audio'
 import { useQuizI18n } from './composables/useQuizI18n'
 import type { 
   QuizQuestion, 
@@ -470,6 +471,8 @@ const selectOption = (index: number): void => {
   if (isAnswered.value && !quizConfig.value.allowReviewMode) {
     return
   }
+
+  playClick()
 
   const question = currentQuestion.value
   const selectedOption = question.answerOptions[index]

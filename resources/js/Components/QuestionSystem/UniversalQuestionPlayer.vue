@@ -21,7 +21,7 @@
       <!-- Single Choice -->
       <div v-if="question.type === 'single_choice'" class="space-y-2">
         <button v-for="option in question.options" :key="option.id"
-                @click="!submitted && updateAnswer(option.id)"
+                @click="() => { !submitted && updateAnswer(option.id); playClick(); }"
                 :class="['w-full text-left p-4 rounded-lg border transition-all flex items-center justify-between', getOptionClass(option.id)]">
           <span v-html="option.text"></span>
           <i v-if="isSelected(option.id)" class="fas fa-check-circle text-blue-500"></i>
@@ -31,7 +31,7 @@
       <!-- Multiple Choice -->
       <div v-else-if="question.type === 'multiple_choice'" class="space-y-2">
         <button v-for="option in question.options" :key="option.id"
-                @click="!submitted && toggleOption(option.id)"
+                @click="() => { !submitted && toggleOption(option.id); playClick(); }"
                 :class="['w-full text-left p-4 rounded-lg border transition-all flex items-center gap-3', getOptionClass(option.id)]">
           <div class="w-5 h-5 border rounded flex items-center justify-center"
                :class="isSelected(option.id) ? 'bg-blue-600 border-blue-600' : 'border-gray-300'">
@@ -43,11 +43,11 @@
 
       <!-- True / False -->
       <div v-else-if="question.type === 'true_false'" class="flex gap-4">
-        <button @click="!submitted && updateAnswer(true)"
+        <button @click="() => { !submitted && updateAnswer(true); playClick(); }"
                 :class="['flex-1 p-4 rounded-lg border text-center font-medium transition-all', getTrueFalseClass(true)]">
           True
         </button>
-        <button @click="!submitted && updateAnswer(false)"
+        <button @click="() => { !submitted && updateAnswer(false); playClick(); }"
                 :class="['flex-1 p-4 rounded-lg border text-center font-medium transition-all', getTrueFalseClass(false)]">
           False
         </button>
@@ -71,7 +71,7 @@
     <!-- Feedback / Actions -->
     <div class="mt-6 pt-4 border-t border-gray-100">
       <div v-if="!submitted">
-        <button @click="submit" :disabled="!hasAnswer"
+        <button @click="() => { submit(); playClick(); }" :disabled="!hasAnswer"
                 class="w-full sm:w-auto px-6 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
           Submit Answer
         </button>
@@ -128,9 +128,13 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { playClick, playSuccess, playError } from '@/Utils/audio';
 
 const props = defineProps({
   question: { type: Object, required: true },
+// ...
+// ...
+
   answer: { type: [String, Number, Array, Boolean], default: null },
   attempts: { type: Number, default: 0 },
   solved: { type: Boolean, default: false },
@@ -213,11 +217,15 @@ const submit = () => {
   emit('update:attempts', newAttempts);
   emit('update:submitted', true);
   if (checkCorrectness()) {
+    playSuccess();
     emit('update:solved', true);
     if (timerInterval) clearInterval(timerInterval);
-  } else if (newAttempts >= 3) {
-    emit('update:solved', true);
-    if (timerInterval) clearInterval(timerInterval);
+  } else {
+    playError();
+    if (newAttempts >= 3) {
+      emit('update:solved', true);
+      if (timerInterval) clearInterval(timerInterval);
+    }
   }
 };
 const retry = () => {
