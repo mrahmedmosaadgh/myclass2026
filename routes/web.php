@@ -44,6 +44,10 @@ Route::get('/api/school-branding/{school_slug}', [SchoolLoginController::class, 
 Route::post('/api/detect-school', [App\Http\Controllers\Auth\LoginRedirectController::class, 'detectSchool'])
     ->name('detect.school');
 
+// Validate school slug from localStorage (public)
+Route::post('/api/validate-school', [App\Http\Controllers\Auth\LoginRedirectController::class, 'getSchoolBySlug'])
+    ->name('validate.school');
+
 
 Route::middleware([
     'auth:sanctum',
@@ -302,6 +306,7 @@ Route::get('/sanctum/csrf-cookie', function () {
 // Auth status check route
 Route::get('/auth/status', [App\Http\Controllers\AuthStatusController::class, 'check']);
 
+include dirname(__DIR__) . '/routes/weekly_system.php';
 include dirname(__DIR__) . '/routes/admin.php';
 include dirname(__DIR__) . '/routes/r_hr.php';
 include dirname(__DIR__) . '/routes/r_teacher.php';
@@ -313,7 +318,7 @@ include dirname(__DIR__) . '/routes/acadimy.php';
 include dirname(__DIR__) . '/routes/qudrat_routes.php';
 include dirname(__DIR__) . '/routes/course_management.php';
 include dirname(__DIR__) . '/routes/dp.php';
-include dirname(__DIR__) . '/routes/weekly_system.php';
+// include dirname(__DIR__) . '/routes/weekly_system.php';
 
 // TickTick Task Management Routes
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {

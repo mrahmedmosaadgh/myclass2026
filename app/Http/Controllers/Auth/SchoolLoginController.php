@@ -124,6 +124,9 @@ class SchoolLoginController extends Controller
 
         $request->session()->regenerate();
 
+        // Save school slug to session for future redirects
+        $request->session()->put('last_school_slug', $slug);
+
         // Update last login
         $user->last_login = now();
         $user->save();

@@ -7,12 +7,18 @@ const props = defineProps({
     branding: Object,
 });
 
+// LocalStorage keys
+const STORAGE_KEYS = {
+    EMAIL: 'myclass_user_email',
+    SCHOOL_SLUG: 'myclass_school_slug',
+};
+
 // Get email from URL query parameter
 const urlParams = new URLSearchParams(window.location.search);
 const emailFromUrl = urlParams.get('email') || '';
 
 const form = useForm({
-    email: emailFromUrl,
+    email: emailFromUrl || localStorage.getItem(STORAGE_KEYS.EMAIL) || '',
     password: '',
     remember: false,
 });
@@ -34,8 +40,11 @@ onMounted(() => {
     document.documentElement.style.setProperty('--secondary-color', secondaryColor.value);
     document.documentElement.style.setProperty('--accent-color', accentColor.value);
     
+    // Save school slug to localStorage
+    localStorage.setItem(STORAGE_KEYS.SCHOOL_SLUG, props.schoolSlug);
+    
     // Auto-focus password field if email is pre-filled
-    if (emailFromUrl && passwordInput.value) {
+    if ((emailFromUrl || form.email) && passwordInput.value) {
         setTimeout(() => {
             passwordInput.value.focus();
         }, 100);
@@ -43,10 +52,23 @@ onMounted(() => {
 });
 
 const submit = () => {
+    // Save email to localStorage if "Remember me" is checked
+    if (form.remember) {
+        localStorage.setItem(STORAGE_KEYS.EMAIL, form.email);
+    } else {
+        localStorage.removeItem(STORAGE_KEYS.EMAIL);
+    }
+    
     form.post(route('school.login.authenticate', props.schoolSlug), {
         onFinish: () => form.reset('password'),
     });
 };
+
+// Change school functionality
+function changeSchool() {
+    localStorage.removeItem(STORAGE_KEYS.SCHOOL_SLUG);
+    window.location.href = route('login');
+}
 </script>
 
 <template>
@@ -195,6 +217,14 @@ const submit = () => {
                     <p class="footer-text">
                         Powered by MyClass2026
                     </p>
+                    <button 
+                        type="button" 
+                        @click="changeSchool" 
+                        class="change-school-link"
+                    >
+                        <i class="fas fa-exchange-alt"></i>
+                        Change School
+                    </button>
                 </div>
             </div>
         </div>
@@ -599,6 +629,31 @@ const submit = () => {
 
 .card-glassmorphism .footer-text {
     color: rgba(255, 255, 255, 0.6);
+}
+
+.change-school-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 12px;
+    background: none;
+    border: none;
+    color: var(--primary-color);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    padding: 8px;
+    width: 100%;
+}
+
+.change-school-link:hover {
+    opacity: 0.8;
+}
+
+.card-glassmorphism .change-school-link {
+    color: rgba(255, 255, 255, 0.9);
 }
 
 /* Responsive */

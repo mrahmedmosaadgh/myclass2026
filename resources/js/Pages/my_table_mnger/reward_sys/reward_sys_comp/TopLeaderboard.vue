@@ -156,11 +156,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, watch, nextTick, defineAsyncComponent } from 'vue'
 import html2canvas from 'html2canvas'
 import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
-import CertificateGenerator from './CertificateGenerator.vue'
+
+// Lazy-load CertificateGenerator (heavy PDF generation component)
+const CertificateGenerator = defineAsyncComponent(() => import('./CertificateGenerator.vue'))
 
 const $q = useQuasar()
 const { t: $t } = useI18n()

@@ -25,6 +25,11 @@ Route::middleware(['auth', 'verified'])->get('/teacher/my-weekly-plans', functio
     return Inertia::render('my_table_mnger/weekly_system/teacher/SimpleWeeklyPlans');
 })->name('teacher.my-weekly-plans');
 
+// Timetable Editor (Moved from inside weekly-system group)
+Route::middleware(['auth', 'verified'])->get('/admin/schedules/dashboard', function () {
+    return Inertia::render('my_table_mnger/weekly_system/admin/TimetableEditor');
+})->name('admin.schedules.dashboard');
+
 // =====================================================================
 // WEEKLY SYSTEM ROUTES (admin and teacher routes under /weekly-system)
 // =====================================================================
@@ -47,9 +52,12 @@ Route::middleware(['auth', 'verified'])->prefix('weekly-system')->name('weekly-s
     */
     
     // Timetable Editor
+    // Timetable Editor - MOVED to /admin/schedules/dashboard
+    /*
     Route::get('/timetable-editor', function () {
         return Inertia::render('my_table_mnger/weekly_system/admin/TimetableEditor');
     })->name('timetable-editor');
+    */
     
     // Weekly Plans Manager (Admin Dashboard)
     Route::get('/weekly-plans-manager', function () {
@@ -154,6 +162,10 @@ Route::middleware(['auth', 'verified'])->prefix('weekly-system')->name('weekly-s
             ->name('api.drafts.load');
         Route::get('/drafts', [\App\Http\Controllers\ScheduleController::class, 'getDrafts'])
             ->name('api.drafts.index');
+        Route::post('/drafts/delete', [\App\Http\Controllers\ScheduleController::class, 'deleteDraft'])
+            ->name('api.drafts.delete');
+        Route::post('/drafts/compare', [\App\Http\Controllers\ScheduleController::class, 'compareDrafts'])
+            ->name('api.drafts.compare');
 
         // Note: Schedule Sync endpoints removed as Schedule Copies are deprecated
 
@@ -164,6 +176,10 @@ Route::middleware(['auth', 'verified'])->prefix('weekly-system')->name('weekly-s
         // CST Management endpoints
         Route::put('/cst/{id}/classes-per-week', [\App\Http\Controllers\ClassroomSubjectTeacherController::class, 'updateClassesPerWeek'])
             ->name('api.cst.update-classes-per-week');
+        Route::post('/cst-bulk-update-classes-per-week', [\App\Http\Controllers\ClassroomSubjectTeacherController::class, 'bulkUpdateClassesPerWeek'])
+            ->name('api.cst.bulk-update-classes-per-week');
+        Route::post('/cst-sync-classes-per-week', [\App\Http\Controllers\ClassroomSubjectTeacherController::class, 'syncClassesPerWeek'])
+            ->name('api.cst.sync-classes-per-week');
         Route::post('/cst/{id}/restore', [\App\Http\Controllers\ClassroomSubjectTeacherController::class, 'restore'])
             ->name('api.cst.restore');
         Route::delete('/cst/{id}', [\App\Http\Controllers\ClassroomSubjectTeacherController::class, 'softDelete'])

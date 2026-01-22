@@ -63,4 +63,37 @@ class LoginRedirectController extends Controller
             'school_slug' => $school->school_slug,
         ]);
     }
+
+    /**
+     * Get school information by slug (for localStorage-based detection)
+     */
+    public function getSchoolBySlug(Request $request)
+    {
+        $request->validate([
+            'slug' => 'required|string',
+        ]);
+
+        $school = School::where('is_active', true)
+            ->get()
+            ->first(function ($school) use ($request) {
+                return $school->school_slug === $request->slug;
+            });
+
+        if (!$school) {
+            return response()->json([
+                'error' => 'School not found or inactive',
+                'valid' => false,
+            ], 404);
+        }
+
+        // Save to session for future redirects
+        session()->put('last_school_slug', $school->school_slug);
+
+        return response()->json([
+            'valid' => true,
+            'school_name' => $school->name,
+            'school_slug' => $school->school_slug,
+            'login_url' => route('school.login', ['school_slug' => $school->school_slug]),
+        ]);
+    }
 }

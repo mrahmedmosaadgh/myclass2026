@@ -500,6 +500,47 @@ $data= ClassroomSubjectTeacher::where('school_id', $school_id)->where('teacher_i
     }
 
     /**
+     * Bulk update classes_per_week for multiple CSTs
+     */
+    public function bulkUpdateClassesPerWeek(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'updates' => 'required|array',
+                'updates.*.cst_id' => 'required|exists:classroom_subject_teachers,id',
+                'updates.*.classes_per_week' => 'required|integer|min:1|max:20'
+            ]);
+
+            DB::beginTransaction();
+            $updatedCount = 0;
+
+            foreach ($validated['updates'] as $update) {
+                $cst = ClassroomSubjectTeacher::find($update['cst_id']);
+                if ($cst) {
+                    $cst->classes_per_week = $update['classes_per_week'];
+                    $cst->save();
+                    $updatedCount++;
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Successfully updated {$updatedCount} assignments",
+                'data' => ['updated_count' => $updatedCount]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to bulk update: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Restore a soft-deleted CST
      */
     public function restore($id)
@@ -666,6 +707,94 @@ $data= ClassroomSubjectTeacher::where('school_id', $school_id)->where('teacher_i
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to get CST overview: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    /**
+     * Sync classes_per_week from source source classroom to target classrooms
+     * Only updates matching subjects (by subject_id)
+     */
+    public function syncClassesPerWeek(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'source_classroom_id' => 'required|exists:classrooms,id',
+                'target_classroom_ids' => 'required|array',
+                'target_classroom_ids.*' => 'exists:classrooms,id',
+                'school_id' => 'required|exists:schools,id'
+            ]);
+
+            $sourceClassroomId = $validated['source_classroom_id'];
+            $targetClassroomIds = $validated['target_classroom_ids'];
+            $schoolId = $validated['school_id'];
+            
+            // Get source CSTs
+            // Only care about active ones (not deleted)
+            $sourceCSTs = ClassroomSubjectTeacher::where('school_id', $schoolId)
+                ->where('classroom_id', $sourceClassroomId)
+                ->select('subject_id', 'classes_per_week')
+                ->get()
+                ->keyBy('subject_id'); // Map by subject_id for easy lookup
+            
+            if ($sourceCSTs->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Source classroom has no active subjects to sync from'
+                ], 422);
+            }
+
+            DB::beginTransaction();
+            
+            $updatedCount = 0;
+            $updatedClassrooms = 0;
+
+            foreach ($targetClassroomIds as $targetId) {
+                // Skip if target is same as source
+                if ($targetId == $sourceClassroomId) continue;
+                
+                $classroomUpdated = false;
+
+                // Find matching CSTs in target classroom
+                $targetCSTs = ClassroomSubjectTeacher::where('school_id', $schoolId)
+                    ->where('classroom_id', $targetId)
+                    ->get();
+                
+                foreach ($targetCSTs as $targetCST) {
+                    // Check if this subject exists in source
+                    if ($sourceCSTs->has($targetCST->subject_id)) {
+                        $sourceValue = $sourceCSTs[$targetCST->subject_id]->classes_per_week;
+                        
+                        // Only update if different
+                        if ($targetCST->classes_per_week !== $sourceValue) {
+                            $targetCST->classes_per_week = $sourceValue;
+                            $targetCST->save();
+                            $updatedCount++;
+                            $classroomUpdated = true;
+                        }
+                    }
+                }
+                
+                if ($classroomUpdated) {
+                    $updatedClassrooms++;
+                }
+            }
+            
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Sync complete: Updated {$updatedCount} subject assignments across {$updatedClassrooms} classrooms",
+                'data' => [
+                    'updated_records' => $updatedCount,
+                    'updated_classrooms' => $updatedClassrooms
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Sync failed: ' . $e->getMessage()
             ], 500);
         }
     }

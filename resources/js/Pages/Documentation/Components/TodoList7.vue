@@ -192,7 +192,7 @@ v-if="selectedTab=='text'"
 
 <script setup>
 import { ref, computed, watch,onBeforeUnmount } from 'vue';
-import Editor7 from './Editor7tiptap.vue';
+// import Editor7 from './Editor7tiptap.vue'; // REMOVED - Editor deleted
 import TabButtons from './TabButtons.vue';
 
 // import Editor9 from './Editor9.vue';

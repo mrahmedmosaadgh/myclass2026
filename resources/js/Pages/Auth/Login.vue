@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import AuthenticationCard from '@/Components/AuthenticationCard.vue';
 import AuthenticationCardLogo from '@/Components/AuthenticationCardLogo.vue';
@@ -14,6 +14,12 @@ defineProps({
     status: String,
 });
 
+// LocalStorage keys
+const STORAGE_KEYS = {
+    EMAIL: 'myclass_user_email',
+    SCHOOL_SLUG: 'myclass_school_slug',
+};
+
 const form = useForm({
     email: '',
     password: '',
@@ -21,6 +27,57 @@ const form = useForm({
 });
 
 const detectingSchool = ref(false);
+const savedSchoolName = ref('');
+
+// Check for saved school on mount
+onMounted(async () => {
+    // Try to get saved email
+    const savedEmail = localStorage.getItem(STORAGE_KEYS.EMAIL);
+    if (savedEmail) {
+        form.email = savedEmail;
+    }
+
+    // Try to get saved school slug
+    const savedSlug = localStorage.getItem(STORAGE_KEYS.SCHOOL_SLUG);
+    if (savedSlug) {
+        // Validate the saved school slug
+        try {
+            const response = await axios.post(route('validate.school'), {
+                slug: savedSlug
+            });
+            
+            if (response.data.valid) {
+                // Build redirect URL with email and preserve intended URL
+                let redirectUrl = response.data.login_url;
+                const params = new URLSearchParams();
+                
+                if (savedEmail) {
+                    params.append('email', savedEmail);
+                }
+                
+                // Preserve intended URL from current query string
+                const currentParams = new URLSearchParams(window.location.search);
+                const intendedUrl = currentParams.get('intended');
+                if (intendedUrl) {
+                    params.append('intended', intendedUrl);
+                }
+                
+                if (params.toString()) {
+                    redirectUrl += '?' + params.toString();
+                }
+                
+                // Redirect to school-specific login
+                window.location.href = redirectUrl;
+            } else {
+                // Invalid school, clear localStorage
+                localStorage.removeItem(STORAGE_KEYS.SCHOOL_SLUG);
+            }
+        } catch (error) {
+            // School not found, clear localStorage
+            localStorage.removeItem(STORAGE_KEYS.SCHOOL_SLUG);
+        }
+    }
+});
 
 // Detect user's school when email is entered
 async function detectSchool() {
@@ -34,8 +91,28 @@ async function detectSchool() {
         });
         
         if (response.data.redirect) {
-            // Redirect to school-specific login page with email as query parameter
-            window.location.href = response.data.redirect + '?email=' + encodeURIComponent(form.email);
+            // Save email to localStorage
+            localStorage.setItem(STORAGE_KEYS.EMAIL, form.email);
+            
+            // Save school slug to localStorage
+            localStorage.setItem(STORAGE_KEYS.SCHOOL_SLUG, response.data.school_slug);
+            
+            // Build redirect URL with email and preserve intended URL
+            let redirectUrl = response.data.redirect;
+            const params = new URLSearchParams();
+            params.append('email', form.email);
+            
+            // Preserve intended URL from current query string
+            const currentParams = new URLSearchParams(window.location.search);
+            const intendedUrl = currentParams.get('intended');
+            if (intendedUrl) {
+                params.append('intended', intendedUrl);
+            }
+            
+            redirectUrl += '?' + params.toString();
+            
+            // Redirect to school-specific login page
+            window.location.href = redirectUrl;
         }
     } catch (error) {
         // User not found or no school - continue with default login
@@ -43,6 +120,12 @@ async function detectSchool() {
     } finally {
         detectingSchool.value = false;
     }
+}
+
+// Clear saved school (for "Change School" functionality)
+function clearSchool() {
+    localStorage.removeItem(STORAGE_KEYS.SCHOOL_SLUG);
+    savedSchoolName.value = '';
 }
 
 const submit = () => {

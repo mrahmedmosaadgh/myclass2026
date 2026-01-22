@@ -241,9 +241,8 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import html2canvas from 'html2canvas'
-import jsPDF from 'jspdf'
 import { useQuasar } from 'quasar'
+// Note: jsPDF and html2canvas are now dynamically imported in generatePDF()
 
 const $q = useQuasar()
 
@@ -421,6 +420,12 @@ async function generatePDF() {
   isEditMode.value = false // Ensure edit mode is off
   
   try {
+    // Dynamically import heavy PDF libraries only when needed
+    const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+      import('html2canvas'),
+      import('jspdf')
+    ])
+    
     const element = certificateRef.value
     if (!element) throw new Error('Certificate element not found')
 

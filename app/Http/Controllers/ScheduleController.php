@@ -1406,21 +1406,71 @@ class ScheduleController extends Controller
     {
         try {
             $validated = $request->validate([
-                'name' => 'required|string|max:50',
-                'overwrite' => 'boolean'
+                'name' => 'required|string|max:50|regex:/^[a-zA-Z0-9_\-\s]+$/',
+                'description' => 'nullable|string|max:500',
+                'overwrite' => 'boolean',
+                'schedules' => 'nullable|array' // Optional payload for sandbox data
             ]);
             
             $draftName = $validated['name'];
+            $description = $validated['description'] ?? '';
             $schoolId = auth()->user()->schoolId();
+            $userId = auth()->id();
+            $userName = auth()->user()->name;
 
-            \DB::transaction(function () use ($schoolId, $draftName) {
+            // Check if draft already exists and overwrite is not allowed
+            $existingDraft = ClassroomSubjectTeacher::where('school_id', $schoolId)
+                ->whereNotNull('drafts')
+                ->first();
+            
+            if ($existingDraft && isset($existingDraft->drafts[$draftName]) && !($validated['overwrite'] ?? false)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Draft '{$draftName}' already exists. Set overwrite=true to replace it.",
+                    'exists' => true
+                ], 409);
+            }
+
+            $stats = [
+                'total_assignments' => 0,
+                'conflict_count' => 0,
+                'classrooms_affected' => 0
+            ];
+
+            \DB::transaction(function () use ($schoolId, $draftName, $description, $userId, $userName, &$stats) {
                 // Get all CSTs for the school
                 $csts = ClassroomSubjectTeacher::where('school_id', $schoolId)->get();
                 
                 // Get all current schedules grouped by cst_id
-                $schedules = Schedule::where('school_id', $schoolId)
-                    ->get()
-                    ->groupBy('cst_id');
+                if ($request->has('schedules')) {
+                    // Use sandbox data from request
+                    $inputSchedules = collect($request->input('schedules'));
+                    
+                    // Filter for valid assignments and map to expected format
+                    $schedules = $inputSchedules->filter(function($s) {
+                        return !empty($s['cst_id']) && isset($s['day']) && isset($s['period_number']); // period_number might be period in frontend
+                    })->map(function($s) {
+                        return (object)[
+                            'cst_id' => $s['cst_id'],
+                            'day_number' => $s['day'],
+                            'period_number' => $s['period_number'] ?? $s['period'] // Handle key variation
+                        ];
+                    })->groupBy('cst_id');
+                    
+                    $stats['total_assignments'] = $inputSchedules->count();
+                } else {
+                    // Use live data from DB
+                    $schedules = Schedule::where('school_id', $schoolId)
+                        ->get()
+                        ->groupBy('cst_id');
+                        
+                    $stats['total_assignments'] = Schedule::where('school_id', $schoolId)->count();
+                }
+
+                // Calculate statistics
+                // $stats['total_assignments'] handled above based on source
+                $stats['conflict_count'] = $this->calculateConflictCount($schoolId);
+                $stats['classrooms_affected'] = $schedules->keys()->count();
 
                 foreach ($csts as $cst) {
                     $cstSchedules = $schedules->get($cst->id);
@@ -1431,15 +1481,22 @@ class ScheduleController extends Controller
                             $draftData[] = [
                                 'day_number' => $sch->day_number,
                                 'period_number' => $sch->period_number,
-                                // Add other fields if necessary
                             ];
                         }
                     }
 
-                    // Update drafts JSON column
+                    // Update drafts JSON column with enhanced metadata
                     $drafts = $cst->drafts ?? [];
                     $drafts[$draftName] = [
                         'timestamp' => now()->toIso8601String(),
+                        'created_by' => $userId,
+                        'created_by_name' => $userName,
+                        'description' => $description,
+                        'stats' => [
+                            'total_assignments' => count($draftData),
+                            'classroom_id' => $cst->classroom_id,
+                            'classroom_name' => $cst->classroom->name ?? 'Unknown'
+                        ],
                         'entries' => $draftData
                     ];
                     
@@ -1450,9 +1507,16 @@ class ScheduleController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Schedule saved as draft '{$draftName}'"
+                'message' => "Schedule saved as draft '{$draftName}'",
+                'stats' => $stats
             ]);
 
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1464,22 +1528,66 @@ class ScheduleController extends Controller
     /**
      * Load a draft to the live schedule (replaces current)
      */
+    /**
+     * Load a draft to the live schedule (replaces current)
+     * Automatically creates a backup of the current schedule before replacing.
+     */
     public function loadDraft(Request $request)
     {
         try {
             $validated = $request->validate([
-                'name' => 'required|string'
+                'name' => 'required|string',
+                'create_backup' => 'boolean'
             ]);
             
             $draftName = $validated['name'];
+            $createBackup = $validated['create_backup'] ?? true;
             $schoolId = auth()->user()->schoolId();
+            $userId = auth()->id();
+            $userName = auth()->user()->name;
 
-            \DB::transaction(function () use ($schoolId, $draftName) {
-                // 1. Clear current live schedule
+            \DB::transaction(function () use ($schoolId, $draftName, $createBackup, $userId, $userName) {
+                // 1. Create Auto-Backup of current schedule if requested
+                if ($createBackup) {
+                    $backupName = 'AUTO_BACKUP_' . now()->format('Y-m-d_H-i-s');
+                    
+                    // Create backup logic inline to avoid recursion/transaction issues
+                    $csts = ClassroomSubjectTeacher::where('school_id', $schoolId)->get();
+                    $schedules = Schedule::where('school_id', $schoolId)->get()->groupBy('cst_id');
+                    
+                    foreach ($csts as $cst) {
+                        $cstSchedules = $schedules->get($cst->id);
+                        $draftData = [];
+                        if ($cstSchedules) {
+                            foreach ($cstSchedules as $sch) {
+                                $draftData[] = [
+                                    'day_number' => $sch->day_number,
+                                    'period_number' => $sch->period_number,
+                                ];
+                            }
+                        }
+                        
+                        $drafts = $cst->drafts ?? [];
+                        $drafts[$backupName] = [
+                            'timestamp' => now()->toIso8601String(),
+                            'created_by' => $userId,
+                            'created_by_name' => 'System (Auto-Backup)',
+                            'description' => "Auto-backup before loading draft '{$draftName}'",
+                            'is_backup' => true,
+                            'entries' => $draftData
+                        ];
+                        $cst->drafts = $drafts;
+                        $cst->save();
+                    }
+                }
+
+                // 2. Clear current live schedule
                 Schedule::where('school_id', $schoolId)->delete();
 
-                // 2. Load CSTs and apply draft
+                // 3. Load CSTs and apply draft
+                // Re-fetch CSTs to ensure we have latest drafts if needed (though we just saved them)
                 $csts = ClassroomSubjectTeacher::where('school_id', $schoolId)->get();
+                $loadedCount = 0;
                 
                 foreach ($csts as $cst) {
                     $drafts = $cst->drafts;
@@ -1490,8 +1598,8 @@ class ScheduleController extends Controller
                                 'school_id' => $schoolId,
                                 'day_number' => $entry['day_number'],
                                 'period_number' => $entry['period_number'],
-                                // 'active' is implied true by existence in table
                             ]);
+                            $loadedCount++;
                         }
                     }
                 }
@@ -1499,7 +1607,7 @@ class ScheduleController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Draft '{$draftName}' loaded successfully"
+                'message' => "Draft '{$draftName}' loaded successfully. Auto-backup created."
             ]);
 
         } catch (\Exception $e) {
@@ -1511,33 +1619,175 @@ class ScheduleController extends Controller
     }
 
     /**
-     * Get list of available drafts
+     * Get list of available drafts with detailed metadata
      */
     public function getDrafts()
     {
         try {
             $schoolId = auth()->user()->schoolId();
             
-            // Heuristic: Check the first few CSTs to find common draft names
-            // Since drafts are saved globally, any Cst *should* have the keys
-            $someCst = ClassroomSubjectTeacher::where('school_id', $schoolId)
+            // Collect all drafts from all CSTs to ensure we see all available drafts
+            // In theory they should be synced, but we'll take the union of keys
+            $csts = ClassroomSubjectTeacher::where('school_id', $schoolId)
                 ->whereNotNull('drafts')
-                ->first();
+                ->get();
 
-            $draftNames = [];
-            if ($someCst && $someCst->drafts) {
-                $draftNames = array_keys($someCst->drafts);
+            $draftsMap = [];
+
+            foreach ($csts as $cst) {
+                if (!$cst->drafts) continue;
+                
+                foreach ($cst->drafts as $name => $data) {
+                    // Use the first occurrence of a draft to get its metadata
+                    if (!isset($draftsMap[$name])) {
+                        $draftsMap[$name] = [
+                            'name' => $name,
+                            'timestamp' => $data['timestamp'] ?? null,
+                            'created_by_name' => $data['created_by_name'] ?? 'Unknown',
+                            'description' => $data['description'] ?? '',
+                            'is_backup' => $data['is_backup'] ?? false,
+                            'total_assignments' => 0,
+                            'classrooms_count' => 0
+                        ];
+                    }
+                    
+                    // Aggregate stats
+                    if (isset($data['entries'])) {
+                        $draftsMap[$name]['total_assignments'] += count($data['entries']);
+                        $draftsMap[$name]['classrooms_count']++;
+                    }
+                }
             }
 
             return response()->json([
                 'success' => true,
-                'drafts' => $draftNames
+                'drafts' => array_values($draftsMap)
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve drafts'
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete a draft
+     */
+    public function deleteDraft(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string'
+            ]);
+            
+            $draftName = $validated['name'];
+            $schoolId = auth()->user()->schoolId();
+
+            \DB::transaction(function () use ($schoolId, $draftName) {
+                $csts = ClassroomSubjectTeacher::where('school_id', $schoolId)
+                    ->whereNotNull('drafts')
+                    ->get();
+
+                foreach ($csts as $cst) {
+                    $drafts = $cst->drafts;
+                    if (isset($drafts[$draftName])) {
+                        unset($drafts[$draftName]);
+                        $cst->drafts = $drafts;
+                        $cst->save();
+                    }
+                }
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => "Draft '{$draftName}' deleted successfully"
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete draft: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Compare a draft with the current live schedule
+     */
+    public function compareDrafts(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string'
+            ]);
+            
+            $draftName = $validated['name'];
+            $schoolId = auth()->user()->schoolId();
+
+            // 1. Get current schedule
+            $currentSchedules = Schedule::where('school_id', $schoolId)
+                ->get()
+                ->groupBy('cst_id');
+
+            // 2. Get draft schedule
+            $csts = ClassroomSubjectTeacher::where('school_id', $schoolId)->get();
+            
+            $comparison = [
+                'additions' => 0,
+                'deletions' => 0,
+                'modifications' => 0,
+                'unchanged' => 0,
+                'details' => []
+            ];
+
+            foreach ($csts as $cst) {
+                // Get current entries for this CST
+                $currentEntries = $currentSchedules->get($cst->id) ?? collect([]);
+                $currentMap = [];
+                foreach ($currentEntries as $sch) {
+                    $key = $sch->day_number . '-' . $sch->period_number;
+                    $currentMap[$key] = true;
+                }
+
+                // Get draft entries for this CST
+                $drafts = $cst->drafts ?? [];
+                $draftEntries = $drafts[$draftName]['entries'] ?? [];
+                $draftMap = [];
+                foreach ($draftEntries as $entry) {
+                    $key = $entry['day_number'] . '-' . $entry['period_number'];
+                    $draftMap[$key] = true;
+                }
+
+                // Compare
+                // Check for additions (in draft but not in current)
+                foreach ($draftMap as $key => $val) {
+                    if (!isset($currentMap[$key])) {
+                        $comparison['additions']++;
+                        // Add detail logic if needed
+                    } else {
+                        $comparison['unchanged']++;
+                    }
+                }
+
+                // Check for deletions (in current but not in draft)
+                foreach ($currentMap as $key => $val) {
+                    if (!isset($draftMap[$key])) {
+                        $comparison['deletions']++;
+                    }
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'comparison' => $comparison
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to compare drafts: ' . $e->getMessage()
             ], 500);
         }
     }

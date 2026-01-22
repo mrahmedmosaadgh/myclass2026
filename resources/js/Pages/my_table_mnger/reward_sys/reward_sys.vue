@@ -1199,7 +1199,7 @@ card2
 </template>
 
 <script setup>
-import { ref, watch, onMounted, computed, defineProps } from 'vue' // update import
+import { ref, watch, onMounted, computed, defineProps, defineAsyncComponent } from 'vue' // update import
 
 const props = defineProps({
   isDialog: {
@@ -1215,12 +1215,15 @@ import axios from 'axios'
 import rewardPointService from './reward_sys_comp/reward_sys_point_action.js'
 import PeriodSelectionRefactored from './reward_sys_comp/PeriodSelectionRefactored.vue'
 import ClassroomSelection from './reward_sys_comp/ClassroomSelection.vue'
-import TopLeaderboard from './reward_sys_comp/TopLeaderboard.vue'
+// Lazy-loaded heavy components (loaded on-demand)
+const TopLeaderboard = defineAsyncComponent(() => import('./reward_sys_comp/TopLeaderboard.vue'))
+const BehaviorIncidents = defineAsyncComponent(() => import('./reward_sys_comp/BehaviorIncidents.vue'))
+const StudentGrouping = defineAsyncComponent(() => import('./reward_sys_comp/StudentGrouping.vue'))
+
+// Static imports for lightweight, always-visible components
 import card2 from './final/card2.vue'; // Adjust path as needed
 import card3 from './final/card3.vue'; // Adjust path as needed
 import StudentCard from './reward_sys_comp/StudentCard.vue'
-import StudentGrouping from './reward_sys_comp/StudentGrouping.vue'
-import BehaviorIncidents from './reward_sys_comp/BehaviorIncidents.vue'
 import noise from './final/noise.vue'; // Adjust path as needed
 
 import pdf_main from './final/pdf_main.vue'
@@ -1231,6 +1234,9 @@ import draw from './final/draw.vue'
 import draw2 from './final/draw2.vue'
 import draw3 from './final/draw3.vue'
 
+// Import audio manager utility for lazy loading
+import { playSound as playSoundUtil, preloadSoundsWhenIdle } from '@/utils/audioManager'
+
 // Sound files
 const soundFiles = {
   select: '/audio/click-234708.mp3',
@@ -1238,18 +1244,13 @@ const soundFiles = {
   penalty: '/audio/error-010-206498.mp3'
 }
 
-const audioObjects = {}
 const bgMusic = ref(null)
 const isMusicEnabled = ref(false)
 
 // Initialize music settings
 onMounted(() => {
-  // Preload sound effects
-  for (const [key, src] of Object.entries(soundFiles)) {
-    const audio = new Audio(src)
-    audio.load() // Allow browser to load metadata/buffer
-    audioObjects[key] = audio
-  }
+  // Preload sound effects when browser is idle (lazy loading)
+  preloadSoundsWhenIdle(soundFiles)
 
   const storedMusicSetting = localStorage.getItem('reward-system-bg-music')
   isMusicEnabled.value = storedMusicSetting === 'true'
@@ -1273,13 +1274,9 @@ watch(isMusicEnabled, (newValue) => {
   }
 })
 
+// Use audioManager utility for sound effects
 const playSound = (type) => {
-  const audio = audioObjects[type]
-  if (audio) {
-    // Reset time to allow rapid playback
-    audio.currentTime = 0
-    audio.play().catch(e => console.log('Sound play error:', e))
-  }
+  playSoundUtil(type, soundFiles)
 }
 
 const { t, locale } = useI18n()

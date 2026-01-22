@@ -15,6 +15,17 @@
           dark
           class="q-mr-md"
         />
+        
+        <!-- Save Changes Button -->
+        <q-btn
+          v-if="editMode && hasModifications"
+          color="positive"
+          icon="save"
+          label="Save Changes"
+          class="q-mr-md"
+          @click="saveAllChanges"
+          :loading="savingAll"
+        />
         <!-- Show Deleted Toggle -->
         <q-toggle
           v-if="data"
@@ -33,7 +44,7 @@
       <!-- Main Content -->
       <q-card-section class="col scroll">
         <!-- Loading State -->
-        <div v-if="loading" class="row justify-center q-pa-xl">
+        <div v-if="loading && !data" class="row justify-center q-pa-xl">
           <q-spinner-dots size="50px" color="primary" />
           <div class="text-grey-7 q-mt-md">Loading data...</div>
         </div>
@@ -48,6 +59,10 @@
 
         <!-- Data View -->
         <template v-else-if="data">
+          <!-- Loading Overlay when refreshing -->
+          <q-inner-loading :showing="loading">
+             <q-spinner-gears size="50px" color="primary" />
+          </q-inner-loading>
           <!-- Warning Banner (Edit Mode) -->
           <q-banner v-if="editMode || hasModifications" class="bg-warning text-white q-mb-lg">
             <template v-slot:avatar>
@@ -116,6 +131,7 @@
             <q-list bordered separator class="rounded-borders q-mb-lg">
               <template v-for="classroom in activeClassrooms" :key="classroom.classroom_id">
                 <q-expansion-item
+                  v-model="expandedStates[classroom.classroom_id]"
                   :label="classroom.classroom_name"
                   :caption="`${classroom.cst_count} subjects → ${classroom.total_classes_per_week} schedule entries`"
                   icon="class"
@@ -162,6 +178,7 @@
                               max="20"
                               style="max-width: 80px"
                               :class="{ 'bg-yellow-1': props.row.modified }"
+                              @keyup.enter="saveAllChanges"
                             />
                             <q-chip v-else dense size="sm" color="green-2" text-color="green-9">
                               {{ props.row.classes_per_week }}
@@ -205,6 +222,19 @@
                           {{ classroom.cst_count }} subjects × avg {{ (classroom.total_classes_per_week / classroom.cst_count).toFixed(1) }} periods 
                           = <strong>{{ classroom.total_classes_per_week }} schedule entries</strong>
                         </div>
+                      </div>
+                      
+                      <!-- Sync Button -->
+                      <div class="row justify-end q-mt-md" v-if="editMode">
+                         <q-btn
+                          dense
+                          unelevated
+                          color="secondary"
+                          icon="sync_alt"
+                          label="Sync classes/week to other classrooms"
+                          size="sm"
+                          @click.stop="openSyncDialog(classroom)"
+                        />
                       </div>
                     </q-card-section>
                   </q-card>
@@ -307,6 +337,14 @@
         <q-btn flat label="Close" color="grey" v-close-popup />
       </q-card-actions>
     </q-card>
+
+    <!-- Sync Dialog -->
+    <CSTSyncDialog
+      v-model="showSyncDialog"
+      :source-classroom="selectedSourceClassroom"
+      :all-classrooms="activeClassrooms"
+      @synced="fetchOverview"
+    />
   </q-dialog>
 </template>
 
@@ -315,6 +353,7 @@ import { ref, computed, watch } from 'vue'
 import { useQuasar, date } from 'quasar'
 import { useSchoolDataStore } from '@/Stores/schoolData'
 import axios from 'axios'
+import CSTSyncDialog from './CSTSyncDialog.vue'
 
 const props = defineProps({
   modelValue: Boolean
@@ -332,6 +371,9 @@ const data = ref(null)
 const editMode = ref(false)
 const showDeleted = ref(false)
 const hasModifications = ref(false)
+const savingAll = ref(false)
+const showSyncDialog = ref(false)
+const selectedSourceClassroom = ref(null)
 
 // Table columns
 const subjectColumns = [
@@ -365,6 +407,8 @@ const deletedClassrooms = computed(() => {
   return data.value.by_classroom.filter(c => c.cst_deleted_count > 0)
 })
 
+const expandedStates = ref({})
+
 // Methods
 const fetchOverview = async () => {
   if (!schoolDataStore.schoolId || !schoolDataStore.academicYearId) {
@@ -374,7 +418,10 @@ const fetchOverview = async () => {
 
   loading.value = true
   error.value = null
-  data.value = null
+  // Only clear data if we don't have it (first load) to prevent UI flash/collapse
+  if (!data.value) {
+    data.value = null
+  }
   hasModifications.value = false
 
   try {
@@ -509,6 +556,61 @@ const restoreCST = async (cst) => {
       })
     }
   })
+}
+
+const saveAllChanges = async () => {
+  savingAll.value = true
+  try {
+    const updates = []
+    
+    // Collect updates
+    if (data.value && data.value.by_classroom) {
+      data.value.by_classroom.forEach(classroom => {
+        classroom.subjects.forEach(subject => {
+          if (!subject.is_deleted && subject.modified) {
+             updates.push({
+               cst_id: subject.cst_id,
+               classes_per_week: subject.classes_per_week
+             })
+          }
+        })
+      })
+    }
+    
+    if (updates.length === 0) {
+      savingAll.value = false
+      return
+    }
+
+    const response = await axios.post('/weekly-system/api/cst-bulk-update-classes-per-week', {
+      updates
+    })
+
+    if (response.data.success) {
+      $q.notify({
+        type: 'positive',
+        message: response.data.message,
+        position: 'top'
+      })
+      
+      // Refresh to update totals and reset modified state
+      await fetchOverview()
+    }
+  } catch (e) {
+    console.error(e)
+    $q.notify({
+      type: 'negative',
+      message: e.response?.data?.message || 'Failed to save changes',
+      position: 'top'
+    })
+  } finally {
+    savingAll.value = false
+  }
+}
+
+const openSyncDialog = (classroom) => {
+  selectedSourceClassroom.value = classroom
+  showSyncDialog.value = true
 }
 
 const formatDate = (dateStr) => {

@@ -1,3 +1,7 @@
+> [!WARNING]
+> **DEPRECATED (2026-01-22)**: The "Schedule Copies" architecture described here has been replaced by a "Single Live Schedule + JSON Drafts" model.
+> See `docs/history/2026-01-22_17-20_draft_schedules_implementation.md` for the current implementation details.
+
 I’ve summarized **the full understanding from this chat** into a clean **`.md-style document`** in the canvas.
 
 

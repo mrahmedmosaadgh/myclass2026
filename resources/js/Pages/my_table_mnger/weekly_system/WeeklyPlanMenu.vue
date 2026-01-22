@@ -69,7 +69,7 @@ const menuItems = [
   // Admin Routes
   { labelKey: 'weeklySystem.menu.schoolBrowser', route: 'weekly-system.school-browser', icon: 'school' },
   { labelKey: 'weeklySystem.menu.manager', route: 'weekly-system.weekly-plans-manager', icon: 'dashboard' },
-  { labelKey: 'weeklySystem.menu.timetable', route: 'weekly-system.timetable-editor', icon: 'edit_calendar' },
+  { labelKey: 'weeklySystem.menu.timetable', route: 'admin.schedules.dashboard', icon: 'edit_calendar' },
   
   // Teacher Routes
   { labelKey: 'weeklySystem.menu.mySchedule', route: 'weekly-system.my-schedule', icon: 'schedule' },

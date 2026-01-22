@@ -127,7 +127,7 @@
 
 <script setup>
 import { ref, computed, watch, nextTick, onMounted } from 'vue';
-import Editor7 from './Editor7tiptap.vue';
+// import Editor7 from './Editor7tiptap.vue'; // REMOVED - Editor deleted
 import TodoList7 from './TodoList7.vue';
 
 const props = defineProps({
