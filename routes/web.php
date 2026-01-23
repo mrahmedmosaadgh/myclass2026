@@ -306,6 +306,19 @@ Route::get('/sanctum/csrf-cookie', function () {
 // Auth status check route
 Route::get('/auth/status', [App\Http\Controllers\AuthStatusController::class, 'check']);
 
+// Student & Teacher Schedule Viewing Routes (Read-only)
+Route::middleware(['auth'])->group(function () {
+    // Student schedule view - read-only classroom timetable
+    Route::get('/schedules/classroom/{classroom_id}/{classroom_name?}', [App\Http\Controllers\ScheduleController::class, 'showClassroomSchedule'])
+        ->name('schedules.classroom.view')
+        ->where(['classroom_id' => '[0-9]+']);
+
+    // Teacher schedule view - read-only teacher assignments
+    Route::get('/schedules/teacher/{teacher_id}/{teacher_name?}', [App\Http\Controllers\ScheduleController::class, 'showTeacherSchedule'])
+        ->name('schedules.teacher.view')
+        ->where(['teacher_id' => '[0-9]+']);
+});
+
 include dirname(__DIR__) . '/routes/weekly_system.php';
 include dirname(__DIR__) . '/routes/admin.php';
 include dirname(__DIR__) . '/routes/r_hr.php';

@@ -65,7 +65,8 @@
     "archivedSuccessfully": "Archived successfully",
     "createdSuccessfully": "Created successfully",
     "updatedSuccessfully": "Updated successfully",
-    "deletedSuccessfully": "Deleted successfully"
+    "deletedSuccessfully": "Deleted successfully",
+    "autoOrder": "Auto-Order"
   },
   "permissions": {
     "dashboard": "Permissions Dashboard",

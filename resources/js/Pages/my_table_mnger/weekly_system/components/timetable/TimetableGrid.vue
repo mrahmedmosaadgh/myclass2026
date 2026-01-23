@@ -17,7 +17,8 @@ const props = defineProps({
   readonly: { type: Boolean, default: false },
   showClassroom: { type: Boolean, default: false },
   hideTeacher: { type: Boolean, default: false },
-  showFullName: { type: Boolean, default: false }
+  showFullName: { type: Boolean, default: false },
+  rewardSystemDisabled: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['cell-click', 'edit', 'clear', 'open-reward'])
@@ -160,6 +161,7 @@ const matchesFilters = (schedule) => {
           :show-classroom="showClassroom"
           :hide-teacher="hideTeacher"
           :show-full-name="showFullName"
+          :reward-system-disabled="rewardSystemDisabled"
           @click="handleCellClick(day.value, period)"
           @edit="handleEdit"
           @clear="handleClear"

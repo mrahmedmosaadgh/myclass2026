@@ -71,6 +71,7 @@ Route::middleware(['auth:sanctum','web'])->get('/academic-years', [App\Http\Cont
 Route::middleware(['auth:sanctum','web'])->get('/schools', [App\Http\Controllers\SchoolController::class, 'apiIndex']);
 Route::middleware(['auth:sanctum','web'])->get('/schools/{id}', [App\Http\Controllers\SchoolController::class, 'apiShow']);
 Route::middleware(['auth:sanctum','web'])->put('/schools/{id}', [App\Http\Controllers\SchoolController::class, 'apiUpdate']);
+Route::middleware(['auth:sanctum','web'])->get('/school/current-term', [App\Http\Controllers\SchoolController::class, 'currentTerm']);
 
 // Semesters API
 Route::middleware(['auth:sanctum','web'])->get('/semesters', [App\Http\Controllers\SemesterController::class, 'apiIndex']);

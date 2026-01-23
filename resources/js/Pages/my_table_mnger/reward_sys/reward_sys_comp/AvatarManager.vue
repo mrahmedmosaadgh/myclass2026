@@ -90,7 +90,17 @@ const showCamera = ref(false)
 const localAvatar = ref(null)
 
 const currentAvatar = computed(() => {
-  return localAvatar.value || props.student.avatar
+  const avatar = localAvatar.value || props.student.avatar
+  if (!avatar) return null
+  
+  // If full URL or data URI, return as is
+  if (avatar.startsWith('http') || avatar.startsWith('data:')) return avatar
+  
+  // If path doesn't start with /, prepend it to make it absolute relative to domain
+  // This prevents it from being appended to the current route (e.g. /schedules/teacher/17/...)
+  if (!avatar.startsWith('/')) return `/${avatar}`
+  
+  return avatar
 })
 
 const sizeClasses = computed(() => {

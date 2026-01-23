@@ -798,6 +798,12 @@ class ScheduleController extends Controller
                 $errors[] = 'Missing or invalid field: entries (must be an array)';
             }
 
+
+
+
+            if (!empty($errors)) {
+                return response()->json(['success' => false, 'errors' => $errors], 422);
+            }
             // If basic structure is invalid, return early
             if (!empty($errors)) {
                 return response()->json([
@@ -1790,6 +1796,175 @@ class ScheduleController extends Controller
                 'message' => 'Failed to compare drafts: ' . $e->getMessage()
             ], 500);
         }
+    }
+    /**
+     * Auto-fill period_order for all schedules in the school or specific classroom.
+     * Orders subjects chronologically (1, 2, 3...) per classroom.
+     */
+    public function autoFillPeriodOrder(Request $request)
+    {
+        try {
+            $schoolId = auth()->user()->schoolId();
+            $classroomId = $request->input('classroom_id');
+
+            \DB::transaction(function () use ($schoolId, $classroomId) {
+                // Get relevant CSTs
+                $query = ClassroomSubjectTeacher::query();
+                
+                // Filter by school via classroom relationship
+                $query->whereHas('classroom', function($q) use ($schoolId) {
+                    $q->where('school_id', $schoolId);
+                });
+
+                if ($classroomId) {
+                    $query->where('classroom_id', $classroomId);
+                }
+
+                $csts = $query->with('classroom', 'subject')->get();
+
+                foreach ($csts as $cst) {
+                    // Get all schedules for this specific CST, ordered chronologically
+                    $schedules = Schedule::where('cst_id', $cst->id)
+                        ->whereNotNull('day_number')
+                        ->whereNotNull('period_number')
+                        ->orderBy('day_number')
+                        ->orderBy('period_number')
+                        ->get();
+
+                    if ($schedules->isEmpty()) continue;
+
+                    $order = 1;
+                    foreach ($schedules as $schedule) {
+                        // Update directly
+                        Schedule::where('id', $schedule->id)->update(['period_order' => $order]);
+                        $order++;
+                    }
+                }
+            });
+
+            return response()->json([
+                'success' => true, 
+                'message' => 'Period orders auto-filled successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false, 
+                'message' => 'Failed to auto-fill period orders: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    /**
+     * Show read-only classroom schedule (Student View)
+     */
+    public function showClassroomSchedule($classroomId, $classroomName = null)
+    {
+        $schoolId = auth()->user()->schoolId();
+        
+        $classroom = \App\Models\Classroom::with('grade')
+            ->where('school_id', $schoolId)
+            ->findOrFail($classroomId);
+
+        // Get schedules with all necessary relations
+        $schedules = Schedule::with([
+            'cst.subject',
+            'cst.teacher'
+        ])
+        ->where('school_id', $schoolId)
+        ->whereHas('cst', function($q) use ($classroomId) {
+            $q->where('classroom_id', $classroomId);
+        })
+        ->get();
+
+        // Extract unique options for filters
+        $subjects = $schedules->map(function($schedule) {
+            return $schedule->cst->subject ? [
+                'id' => $schedule->cst->subject->id,
+                'name' => $schedule->cst->subject->name
+            ] : null;
+        })
+        ->filter()
+        ->unique('id')
+        ->values()
+        ->toArray();
+
+        $teachers = $schedules->map(function($schedule) {
+            return $schedule->cst->teacher ? [
+                'id' => $schedule->cst->teacher->id,
+                'name' => $schedule->cst->teacher->name
+            ] : null;
+        })
+        ->filter()
+        ->unique('id')
+        ->values()
+        ->toArray();
+
+        return \Inertia\Inertia::render('my_table_mnger/weekly_system/StudentScheduleView', [
+            'classroom' => $classroom,
+            'schedules' => $schedules,
+            'subjects' => $subjects,
+            'teachers' => $teachers,
+            'readonly' => true
+        ]);
+    }
+
+    /**
+     * Show read-only teacher schedule (Teacher View)
+     */
+    public function showTeacherSchedule($teacherId, $teacherName = null)
+    {
+        $schoolId = auth()->user()->schoolId();
+        
+        $teacher = \App\Models\Teacher::where('school_id', $schoolId)
+            ->findOrFail($teacherId);
+
+        // Get schedules where teacher is assigned (primary, co-teacher, or substitute)
+        // We need to load cst.subject and cst.classroom for display
+        $schedules = Schedule::with([
+            'cst.subject',
+            'cst.classroom',
+            'cst.classroom.grade'
+        ])
+        ->where('school_id', $schoolId)
+        ->where(function($q) use ($teacherId) {
+            $q->whereHas('cst', function($qn) use ($teacherId) {
+                $qn->where('teacher_id', $teacherId);
+            })
+            ->orWhere('teacher_substitute_id', $teacherId)
+            ->orWhere('co_teacher_id', $teacherId);
+        })
+        ->get();
+
+        // Extract unique options for filters
+        $subjects = $schedules->map(function($schedule) {
+            return $schedule->cst->subject ? [
+                'id' => $schedule->cst->subject->id,
+                'name' => $schedule->cst->subject->name
+            ] : null;
+        })
+        ->filter()
+        ->unique('id')
+        ->values()
+        ->toArray();
+
+        $classrooms = $schedules->map(function($schedule) {
+            return $schedule->cst->classroom ? [
+                'id' => $schedule->cst->classroom->id,
+                'name' => $schedule->cst->classroom->name
+            ] : null;
+        })
+        ->filter()
+        ->unique('id')
+        ->values()
+        ->toArray();
+
+        return \Inertia\Inertia::render('my_table_mnger/weekly_system/TeacherScheduleView', [
+            'teacher' => $teacher,
+            'schedules' => $schedules,
+            'subjects' => $subjects,
+            'classrooms' => $classrooms,
+            'readonly' => true
+        ]);
     }
 }
 

@@ -20,7 +20,22 @@
 
 
 
-    <!-- Header Card -->
+    <!-- Compact Header for Dialog Mode -->
+    <CompactSessionHeader
+      v-if="isDialog && selectedClassroomId"
+      :date="selectedDate"
+      :week="selectedWeek"
+      :period="selectedPeriodNumber"
+      :classroom-name="classrooms.find(c => c.classroom_id === selectedClassroomId)?.classroom_name || ''"
+      :stats="attendanceSummary"
+      :avatar-edit-enabled="avatarEditEnabled"
+      :init-status="initStatus.message ? `${initStatus.message} (Created: ${initStatus.created})` : ''"
+      @update:date="selectedDate = $event"
+      @update:week="selectedWeek = $event"
+      @update:avatarEdit="avatarEditEnabled = $event"
+    />
+
+    <!-- Header Card (Standalone Mode Only) -->
     <q-card v-if="!isDialog" class="shadow-lg rounded-2xl overflow-hidden">
       <q-card-section class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white flex justify-between items-center">
         <div>
@@ -71,15 +86,6 @@
               </div>
             </div>
           </div>
-          
-          <q-btn
-            color="primary"
-            icon="settings"
-            :label="$t('rewardSys.session.setupButton')"
-            @click="showSetupDialog = true"
-            size="lg"
-            class="shadow-md"
-          />
         </div>
 
         <!-- Classroom Summary - Compact Design -->
@@ -93,6 +99,22 @@
             
             <!-- Stats Row -->
             <div class="flex items-center gap-3 flex-wrap">
+              <!-- Avatar Edit Toggle -->
+              <q-toggle
+                v-model="avatarEditEnabled"
+                icon="edit"
+                label="Edit Avatars"
+                dense
+                color="secondary"
+                size="sm"
+                class="bg-white px-2 py-1 rounded-lg border border-gray-200"
+              />
+
+              <!-- Init Status -->
+              <div v-if="initStatus.message" class="text-xs text-gray-500 bg-white px-2 py-1 rounded border border-dashed border-gray-300">
+                 {{ initStatus.message }} ({{ initStatus.created }})
+              </div>
+
               <!-- Total Students -->
               <div class="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-blue-200">
                 <q-icon name="people" class="text-blue-600" size="sm" />
@@ -163,100 +185,7 @@
       </q-card-section>
     </q-card>
 
-    <!-- Session Setup Dialog -->
-    <q-dialog v-model="showSetupDialog" full-width full-height>
-      <q-card class="flex flex-col bg-gray-50">
-        <q-toolbar class="bg-white border-b border-gray-200 p-4">
-          <q-toolbar-title class="text-xl font-bold text-gray-800 flex items-center gap-2">
-            <q-icon name="settings_suggest" color="primary" />
-            {{ $t('rewardSys.session.setup') }}
-          </q-toolbar-title>
-          <q-btn flat round dense icon="close" v-close-popup />
-        </q-toolbar>
 
-        <q-card-section class="flex-1 overflow-auto p-6">
-          <div class="max-w-7xl mx-auto space-y-8">
-            <!-- Period Selection -->
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-              <h3 class="text-lg font-bold text-gray-700 mb-4 flex items-center gap-2">
-                <q-icon name="schedule" class="text-blue-500" />
-                {{ $t('rewardSys.session.timePeriod') }}
-              </h3>
-              <PeriodSelectionRefactored
-                :date="selectedDate"
-                :semester="selectedSemester"
-                :week="selectedWeek"
-                :day="selectedDay"
-                :period-number="selectedPeriodNumber"
-                @update:date="selectedDate = $event"
-                @update:semester="selectedSemester = $event"
-                @update:week="selectedWeek = $event"
-                @update:day="selectedDay = $event"
-                @update:periodNumber="selectedPeriodNumber = $event"
-                @change="handlePeriodChange"
-                :persist="true"
-                persistKey="reward-system-period-selection"
-              />
-              <div class="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100 flex justify-center">
-                <p class="text-sm text-gray-700">
-                  {{ $t('rewardSys.session.activePeriodCode') }} <span class="font-bold text-blue-600 font-mono text-lg">{{ periodCode }}</span>
-                </p>
-              </div>
-            </div>
-
-            <!-- Subject & Classroom Selection -->
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-              <h3 class="text-lg font-bold text-gray-700 mb-4 flex items-center gap-2">
-                <q-icon name="school" class="text-blue-500" />
-                {{ $t('rewardSys.session.subject') }}
-              </h3>
-              
-              <!-- Subject Tabs -->
-              <q-tabs
-                v-model="selectedSubjectId"
-                dense
-                class="text-grey-7 mb-4"
-                active-color="primary"
-                indicator-color="primary"
-                align="left"
-                narrow-indicator
-              >
-                <q-tab
-                  v-for="subject in subjects"
-                  :key="subject.id"
-                  :name="subject.id"
-                  :label="locale === 'ar' && subject.name_ar ? subject.name_ar : subject.name"
-                  class="text-sm"
-                />
-              </q-tabs>
-              
-              <!-- Classroom Selection for Selected Subject -->
-              <div v-if="selectedSubjectId" class="mt-4">
-                <h4 class="text-md font-semibold text-gray-600 mb-3 flex items-center gap-2">
-                  <q-icon name="class" class="text-green-500" />
-                  {{ $t('rewardSys.session.classroom') }}
-                </h4>
-                <ClassroomSelection
-                  v-model="selectedClassroomId"
-                  :classrooms="classroomsBySubject"
-                  :loading="loadingData"
-                  :init-status="initStatus"
-                  v-model:avatar-edit-enabled="avatarEditEnabled"
-                  @change="handleClassroomChange"
-                  @init="initClassroomSession"
-                />
-              </div>
-              
-              <!-- Empty State -->
-              <div v-else class="text-center py-8 text-gray-400">
-                <q-icon name="subject" size="3rem" class="mb-2" />
-                <p>{{ $t('rewardSys.session.selectSubject') }}</p>
-              </div>
-            </div>
-          </div>
-        </q-card-section>
-      </q-card>
-    </q-dialog>
 
 
 
@@ -1195,6 +1124,24 @@ card2
         @close="showGroupEditor = false"
       />
     </q-dialog>
+
+    <!-- Points Display Settings Dialog -->
+    <q-dialog v-model="showPointsSettings">
+      <PointsDisplaySettings
+        :mode="pointsDisplayMode"
+        :competition-start-time="competitionStartTime"
+        :date-from="customDateFrom"
+        :date-to="customDateTo"
+        :leaderboard-mode="leaderboardMode"
+        @update:mode="pointsDisplayMode = $event"
+        @update:competitionStartTime="competitionStartTime = $event"
+        @update:dateFrom="customDateFrom = $event"
+        @update:dateTo="customDateTo = $event"
+        @update:leaderboardMode="leaderboardMode = $event"
+        @apply="applyPointsSettings"
+        @reset="resetPointsSettings"
+      />
+    </q-dialog>
   </div>
 </template>
 
@@ -1221,6 +1168,10 @@ const props = defineProps({
   date: {
     type: String,
     default: null
+  },
+  week: {
+    type: Number,
+    default: null
   }
 })
 
@@ -1229,8 +1180,8 @@ import { useI18n } from 'vue-i18n'
 import { usePage } from '@inertiajs/vue3'
 import axios from 'axios'
 import rewardPointService from './reward_sys_comp/reward_sys_point_action.js'
-import PeriodSelectionRefactored from './reward_sys_comp/PeriodSelectionRefactored.vue'
-import ClassroomSelection from './reward_sys_comp/ClassroomSelection.vue'
+import CompactSessionHeader from './reward_sys_comp/CompactSessionHeader.vue'
+import PointsDisplaySettings from './reward_sys_comp/PointsDisplaySettings.vue'
 // Lazy-loaded heavy components (loaded on-demand)
 const TopLeaderboard = defineAsyncComponent(() => import('./reward_sys_comp/TopLeaderboard.vue'))
 const BehaviorIncidents = defineAsyncComponent(() => import('./reward_sys_comp/BehaviorIncidents.vue'))
@@ -1424,7 +1375,8 @@ const loadingHistory = ref(false)
 const undoingAction = ref(null)
 const studentBehaviorsMainId = ref(null)
 const initStatus = ref({ message: '', created: 0, skipped: 0 })
-const showSetupDialog = ref(true)
+const isInitialized = ref(false) // Track if component has been initialized
+
 const avatarEditEnabled = ref(false)
 const showBehaviorDialog = ref(false)
 const behaviorDialogMode = ref('positive') // 'positive' or 'negative'
@@ -1435,6 +1387,15 @@ const selectedLayout = ref('no_groups') // 'no_groups', 'name_asc', 'name_desc',
 const savedLayouts = ref([]) // Will be loaded from classroom_subject_teachers.data
 const showGroupEditor = ref(false)
 const editingLayout = ref(null)
+
+// Points Display Settings state
+const showPointsSettings = ref(false)
+const pointsDisplayMode = ref(localStorage.getItem('points-display-mode') || 'overall') // 'overall' | 'session' | 'competition' | 'custom'
+const competitionStartTime = ref(localStorage.getItem('competition-start-time') || null)
+const customDateFrom = ref(localStorage.getItem('custom-date-from') || null)
+const customDateTo = ref(localStorage.getItem('custom-date-to') || null)
+const leaderboardMode = ref(localStorage.getItem('leaderboard-mode') || 'top5') // 'top5' | 'top10' | 'groups'
+
 
 // Behavior Management state
 const showBehaviorForm = ref(false)
@@ -1489,6 +1450,15 @@ watch(selectedPeriodNumber, (newValue) => {
   if (newValue !== null) {
     localStorage.setItem('reward-system-selected-period-number', newValue.toString())
     console.log(`💾 Saved period number to localStorage: ${newValue}`)
+  }
+})
+
+// Watch for date changes to update day (moved here after declarations)
+watch(selectedDate, (newDate) => {
+  if (newDate) {
+    const d = new Date(newDate)
+    selectedDay.value = d.getDay() + 1
+    console.log(`📅 Date changed to ${newDate}, Day updated to ${selectedDay.value}`)
   }
 })
 
@@ -2014,7 +1984,6 @@ async function initClassroomSession() {
       
       // Load history after init
       await loadHistory()
-      showSetupDialog.value = false
     }
   } catch (err) {
     console.error('Failed to init classroom session:', err)
@@ -2294,6 +2263,68 @@ function handleStudentClick(student) {
   // For now, just log the click
 }
 
+// ============ POINTS DISPLAY SETTINGS ============
+function applyPointsSettings() {
+  // Save to localStorage
+  localStorage.setItem('points-display-mode', pointsDisplayMode.value)
+  if (competitionStartTime.value) {
+    localStorage.setItem('competition-start-time', competitionStartTime.value)
+  } else {
+    localStorage.removeItem('competition-start-time')
+  }
+  if (customDateFrom.value) {
+    localStorage.setItem('custom-date-from', customDateFrom.value)
+  }
+  if (customDateTo.value) {
+    localStorage.setItem('custom-date-to', customDateTo.value)
+  }
+  localStorage.setItem('leaderboard-mode', leaderboardMode.value)
+  
+  // Close dialog
+  showPointsSettings.value = false
+  
+  // Reload data with new filters
+  if (selectedClassroomId.value) {
+    initClassroomSession()
+  }
+  
+  $q.notify({
+    message: 'Points display settings applied',
+    color: 'positive',
+    position: 'top',
+    icon: 'check_circle'
+  })
+}
+
+function resetPointsSettings() {
+  pointsDisplayMode.value = 'overall'
+  competitionStartTime.value = null
+  customDateFrom.value = null
+  customDateTo.value = null
+  leaderboardMode.value = 'top5'
+  
+  // Clear localStorage
+  localStorage.removeItem('points-display-mode')
+  localStorage.removeItem('competition-start-time')
+  localStorage.removeItem('custom-date-from')
+  localStorage.removeItem('custom-date-to')
+  localStorage.removeItem('leaderboard-mode')
+  
+  // Close dialog
+  showPointsSettings.value = false
+  
+  // Reload data
+  if (selectedClassroomId.value) {
+    initClassroomSession()
+  }
+  
+  $q.notify({
+    message: 'Reset to normal view',
+    color: 'info',
+    position: 'top'
+  })
+}
+
 async function handleIncidentRecorded(incident) {
   console.log('Incident recorded:', incident)
   // Refresh student behaviors to reflect the -1 point
@@ -2307,6 +2338,12 @@ async function handleIncidentRecorded(incident) {
 
 // ============ LIFECYCLE ============
 onMounted(async () => {
+  // Skip initialization if already done (e.g., when restoring from minimize)
+  if (isInitialized.value) {
+    console.log('⏭️ Skipping re-initialization - component already initialized')
+    return
+  }
+
   try {
     console.log('🚀 Initializing reward system...')
 
@@ -2323,20 +2360,49 @@ onMounted(async () => {
       selectedClassroomId.value = props.classroomId
       selectedSubjectId.value = props.subjectId
       
+      // Fetch Active Semester
+      try {
+        // Try to get from inertia page props first if available
+        const page = usePage()
+        const schoolActiveSemester = page.props.auth?.school?.active_semester_id
+        
+        if (schoolActiveSemester) {
+           selectedSemester.value = parseInt(schoolActiveSemester)
+           console.log(`🏫 Active Semester from Inertia: ${selectedSemester.value}`)
+        } else {
+           // Fallback default
+           selectedSemester.value = 1 
+        }
+      } catch (err) {
+        console.warn('Could not fetch active semester, defaulting to 1', err)
+        selectedSemester.value = 1
+      }
+      
       if (props.date) {
         selectedDate.value = props.date
       } else {
         selectedDate.value = new Date().toISOString().split('T')[0]
       }
       
+      // Calculate Day from Date (Sunday=1, Monday=2...)
+      const d = new Date(selectedDate.value)
+      selectedDay.value = d.getDay() + 1
+      
+
       if (props.period) {
         selectedPeriodNumber.value = props.period
+      }
+      
+      if (props.week) {
+        selectedWeek.value = props.week
+        console.log(`📅 Props Week: ${props.week}`)
       }
       
       autoInit = true
       console.log(`📚 Props Subject: ${props.subjectId}`)
       console.log(`🏫 Props Classroom: ${props.classroomId}`)
       console.log(`📅 Props Date: ${selectedDate.value}`)
+      console.log(`⚡ Calc Day: ${selectedDay.value}`)
       console.log(`🔢 Props Period: ${props.period}`)
     }
     // Priority 2: URL query parameters (from teacher schedule link)
@@ -2449,6 +2515,9 @@ onMounted(async () => {
     }
 
     console.log('✅ Reward system initialized')
+    
+    // Mark as initialized to prevent re-initialization on restore
+    isInitialized.value = true
     
     // Auto-initialize session if props or URL params were provided
     if (autoInit && selectedClassroomId.value) {

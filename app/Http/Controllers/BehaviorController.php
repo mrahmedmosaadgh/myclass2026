@@ -60,7 +60,7 @@ class BehaviorController extends Controller
         // If user is not authenticated, default to null (school-wide)
         if (!$user) {
             $validated['teacher_id'] = null;
-        } elseif (method_exists($user, 'hasRole') && ($user->hasRole('admin') || $user->hasRole('super-admin'))) {
+        } elseif ((method_exists($user, 'hasRole') && ($user->hasRole('admin') || $user->hasRole('super-admin'))) || $user->role === 'admin' || $user->role === 'super-admin') {
             // Admin creates school-wide defaults
             $validated['teacher_id'] = null;
         } else {
@@ -102,7 +102,9 @@ class BehaviorController extends Controller
         $user = auth()->user();
         $teacherId = null;
         
-        if ($user && !method_exists($user, 'hasRole') || (!$user->hasRole('admin') && !$user->hasRole('super-admin'))) {
+        $isAdmin = ($user && ((method_exists($user, 'hasRole') && ($user->hasRole('admin') || $user->hasRole('super-admin'))) || $user->role === 'admin' || $user->role === 'super-admin'));
+        
+        if (!$isAdmin) {
             $teacherId = $this->getTeacherId();
         }
 
@@ -181,7 +183,8 @@ class BehaviorController extends Controller
         if ($user) {
             if ($behavior->teacher_id === null) {
                 // School default - only admin can edit
-                if (!method_exists($user, 'hasRole') || (!$user->hasRole('admin') && !$user->hasRole('super-admin'))) {
+                $isAdmin = (method_exists($user, 'hasRole') && ($user->hasRole('admin') || $user->hasRole('super-admin'))) || $user->role === 'admin' || $user->role === 'super-admin';
+                if (!$isAdmin) {
                     return response()->json(['message' => 'Unauthorized to edit school defaults.'], 403);
                 }
             } else {
@@ -206,7 +209,8 @@ class BehaviorController extends Controller
         // In production, you should enforce authentication
         if ($user) {
             if ($behavior->teacher_id === null) {
-                if (!method_exists($user, 'hasRole') || (!$user->hasRole('admin') && !$user->hasRole('super-admin'))) {
+                $isAdmin = (method_exists($user, 'hasRole') && ($user->hasRole('admin') || $user->hasRole('super-admin'))) || $user->role === 'admin' || $user->role === 'super-admin';
+                if (!$isAdmin) {
                     return response()->json(['message' => 'Unauthorized to delete school defaults.'], 403);
                 }
             } else {

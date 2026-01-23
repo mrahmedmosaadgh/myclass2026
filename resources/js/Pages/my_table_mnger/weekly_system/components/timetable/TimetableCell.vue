@@ -79,11 +79,12 @@
         dense
         size="xs"
         icon="stars"
-        color="amber"
+        :color="rewardSystemDisabled ? 'grey' : 'amber'"
+        :disable="rewardSystemDisabled"
         class="reward-btn"
         @click.stop="openRewardSystem"
       >
-        <q-tooltip>Reward System</q-tooltip>
+        <q-tooltip>{{ rewardSystemDisabled ? 'Select Date & Week first' : 'Reward System' }}</q-tooltip>
       </q-btn>
     </div>
 
@@ -126,7 +127,8 @@ const props = defineProps({
   hideTeacher: { type: Boolean, default: false },
   conflictInfo: { type: Object, default: null },
   readonly: { type: Boolean, default: false },
-  showFullName: { type: Boolean, default: false }
+  showFullName: { type: Boolean, default: false },
+  rewardSystemDisabled: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['click', 'edit', 'clear', 'open-reward'])
@@ -274,14 +276,8 @@ const openRewardSystem = () => {
         date: today,
         schedule: props.schedule
     })
-    
-    $q.notify({
-        type: 'positive',
-        message: 'Opening Reward System...',
-        position: 'top',
-        timeout: 1500
-    })
 }
+
 </script>
 
 <style scoped>

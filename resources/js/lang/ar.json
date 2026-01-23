@@ -73,7 +73,8 @@
     },
     "assigned": "مُعين",
     "conflicts": "التعارضات",
-    "noConflicts": "لا توجد تعارضات"
+    "noConflicts": "لا توجد تعارضات",
+    "autoOrder": "الترتيب التلقائي"
   },
   "permissions": {
     "dashboard": "لوحة الصلاحيات",

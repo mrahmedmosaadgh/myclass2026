@@ -101,4 +101,5 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Schedule Management Routes (Immediate Persistence)
     Route::post('/admin/schedules/store', [\App\Http\Controllers\ScheduleController::class, 'store']);
     Route::put('/admin/schedules/{schedule}', [\App\Http\Controllers\ScheduleController::class, 'update']);
+    Route::post('/admin/schedules/auto-fill-orders', [\App\Http\Controllers\ScheduleController::class, 'autoFillPeriodOrder']);
 });

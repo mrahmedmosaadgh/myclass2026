@@ -1,5 +1,23 @@
 <template>
- <div class="relative w-36 h-48 mt-14 flex flex-col items-center">
+ <div class="relative w-36 flex flex-col items-center">
+  
+   <!-- Name at Top of Card -->
+   <div class="text-center w-full mb-2 name-container">
+     <div 
+       class="first-name"
+       :class="[
+         selected || selectedId === student.id ? 'selected-name' : '', 
+         disableBehavior ? 'disabled-first-name' : ''
+       ]"
+     >
+       {{ localizedName.firstName }}
+       <span v-if="localizedName.secondName" class="block text-xs font-normal opacity-90 mt-0.5">
+         {{ localizedName.secondName }}
+       </span>
+     </div>
+     
+     <div class="last-name mt-1">{{ localizedName.lastName }}</div>
+   </div>
   
   <!-- Avatar Card (Clickable) -->
   <div
@@ -18,17 +36,7 @@
       </div>
     </q-tooltip>
 
-    <!-- Name Layer Above Avatar -->
-    <div class="absolute -top-10 text-center w-full z-20 name-container">
-      <div 
-        class="first-name"
-        :class="[
-          selected || selectedId === student.id ? 'selected-name' : '', 
-          disableBehavior ? 'disabled-first-name' : ''
-        ]"
-      >{{ localizedName.firstName }}</div>
-      <div class="last-name">{{ localizedName.lastName }}</div>
-    </div>
+
 
     <!-- Avatar Manager Component -->
     <div class="student-avatar-wrapper z-10 relative">
@@ -51,6 +59,11 @@
         </q-tooltip>
       </div>
     </div>
+  </div>
+
+  <!-- Full Name Display Below Card (Active Only) -->
+  <div v-if="selectedId === student.id" class="full-name-badge-bottom">
+    {{ localizedName.fullName }}
   </div>
 
 </div>
@@ -94,12 +107,16 @@ function parseName(fullName) {
 
 const localizedName = computed(() => {
   if (locale.value === 'ar' && props.student.name_ar) {
-    return parseName(props.student.name_ar)
+    const parsed = parseName(props.student.name_ar)
+    return { ...parsed, fullName: props.student.name_ar }
   }
   // Fallback to existing props or parse English name
+  const parsed = parseName(props.student.name)
   return { 
-    firstName: props.student.firstName || parseName(props.student.name).firstName,
-    lastName: props.student.lastName || parseName(props.student.name).lastName
+    firstName: props.student.firstName || parsed.firstName,
+    lastName: props.student.lastName || parsed.lastName,
+    secondName: parsed.secondName,
+    fullName: props.student.name
   }
 })
 
@@ -187,6 +204,29 @@ const pointsBadgeClass = computed(() => {
   border-radius: 0.5rem;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+.full-name-badge-bottom {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #333;
+  background: white;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e5e7eb;
+  z-index: 20;
+  white-space: nowrap;
+  max-width: 150%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: slide-up-fade 0.3s ease-out;
+}
+
+@keyframes slide-up-fade {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Main Card Shell */

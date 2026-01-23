@@ -60,50 +60,89 @@
           </q-select>
         </div>
         
-        <!-- Copy Classroom Link Button -->
+        <!-- Actions Menu -->
+        <div class="col-12 col-sm-auto">
+             <q-btn-dropdown
+                color="primary"
+                icon="settings"
+                label="Actions"
+                :disable="!selectedClassroomId"
+             >
+                <q-list style="min-width: 220px">
+                    <!-- Actions Header -->
+                    <q-item-label header class="text-weight-bold bg-grey-1">Tools</q-item-label>
+                    
+                    <q-item clickable v-close-popup @click="showAIImportDialog = true">
+                        <q-item-section avatar>
+                            <q-icon name="psychology" color="secondary" />
+                        </q-item-section>
+                        <q-item-section>
+                            <q-item-label>{{ t('common.aiGenerate') }}</q-item-label>
+                            <q-item-label caption>Generate schedule with AI</q-item-label>
+                        </q-item-section>
+                    </q-item>
+
+                    <q-item clickable v-close-popup @click="showRandomFillDialog = true">
+                        <q-item-section avatar>
+                            <q-icon name="shuffle" color="positive" />
+                        </q-item-section>
+                        <q-item-section>
+                            <q-item-label>Random Fill</q-item-label>
+                            <q-item-label caption>Auto-fill empty slots</q-item-label>
+                        </q-item-section>
+                    </q-item>
+
+                    <q-separator />
+
+                    <!-- Links Header -->
+                    <q-item-label header class="text-weight-bold bg-grey-1">Share Links</q-item-label>
+                    
+                    <q-item clickable v-close-popup @click="copyClassroomLink">
+                        <q-item-section avatar>
+                            <q-icon name="link" color="primary" />
+                        </q-item-section>
+                        <q-item-section>
+                            <q-item-label>Copy Student Link</q-item-label>
+                             <q-item-label caption>Classroom view URL</q-item-label>
+                        </q-item-section>
+                    </q-item>
+
+                    <q-item clickable v-close-popup @click="openClassroomPage">
+                        <q-item-section avatar>
+                            <q-icon name="open_in_new" color="secondary" />
+                        </q-item-section>
+                        <q-item-section>
+                            <q-item-label>Open Student Page</q-item-label>
+                            <q-item-label caption>Open in new tab</q-item-label>
+                        </q-item-section>
+                    </q-item>
+
+                    <q-item clickable v-close-popup @click="showTeacherLinkDialog = true">
+                        <q-item-section avatar>
+                            <q-icon name="person_search" color="accent" />
+                        </q-item-section>
+                        <q-item-section>
+                            <q-item-label>Get Teacher Link...</q-item-label>
+                            <q-item-label caption>Select teacher view</q-item-label>
+                        </q-item-section>
+                    </q-item>
+                </q-list>
+             </q-btn-dropdown>
+        </div>
+
+        <!-- Auto-Order Period Button -->
         <div class="col-12 col-sm-auto">
              <q-btn
-                flat
-                round
-                color="primary"
-                icon="link"
+                color="accent"
+                icon="format_list_numbered"
+                :label="t('common.autoOrder') || 'Auto-Order'"
+                outline
                 :disable="!selectedClassroomId"
-                @click="copyClassroomLink"
+                @click="handleAutoOrder"
+                :loading="loadingAutoOrder"
              >
-                <q-tooltip>Copy Classroom Schedule Link</q-tooltip>
+                <q-tooltip>Auto-fill period numbers (1, 2, 3...) for each subject</q-tooltip>
              </q-btn>
-        </div>
-
-        <!-- AI Import Button -->
-        <div class="col-12 col-sm-auto">
-          <q-btn
-            color="secondary"
-            icon="psychology"
-            :label="t('common.aiGenerate')"
-            outline
-            :disable="!selectedClassroomId"
-            @click="showAIImportDialog = true"
-          >
-            <q-tooltip v-if="!selectedClassroomId">
-              {{ t('common.selectClassroomFirst') }}
-            </q-tooltip>
-          </q-btn>
-        </div>
-
-        <!-- Random Fill Button -->
-        <div class="col-12 col-sm-auto">
-          <q-btn
-            color="positive"
-            icon="shuffle"
-            label="Random Fill"
-            outline
-            :disable="!selectedClassroomId"
-            @click="showRandomFillDialog = true"
-          >
-            <q-tooltip v-if="!selectedClassroomId">
-              {{ t('common.selectClassroomFirst') }}
-            </q-tooltip>
-          </q-btn>
         </div>
 
         <!-- Draft Management -->
@@ -523,7 +562,56 @@
     <!-- CST Overview Dialog -->
     <CSTOverviewDialog
       v-model="showOverviewDialog"
-    />
+    />    <!-- Teacher Link Dialog -->
+    <q-dialog v-model="showTeacherLinkDialog">
+      <q-card style="min-width: 400px">
+        <q-card-section>
+          <div class="text-h6">Get Teacher Schedule Link</div>
+        </q-card-section>
+
+        <q-card-section>
+          <q-select
+            v-model="selectedTeacherForLink"
+            :options="teachers"
+            option-value="id"
+            option-label="name"
+            label="Select Teacher"
+            outlined
+            dense
+            use-input
+            hide-selected
+            fill-input
+            input-debounce="0"
+            @filter="(val, update) => {
+              update(() => {
+                // Simple client-side filter if teachers list is loaded
+                // For now assuming 'teachers' ref is available and populated.
+                // If not, might need to rely on existing filter logic or backend search.
+                // TimetableEditor has 'teachers' ref? Check script.
+              })
+            }"
+            ref="teacherLinkSelect"
+          >
+             <template v-slot:no-option>
+              <q-item>
+                <q-item-section class="text-grey">
+                  No results
+                </q-item-section>
+              </q-item>
+            </template>
+          </q-select>
+          <div class="q-mt-sm text-caption text-grey">
+            Select a teacher to generate a read-only schedule link.
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" color="primary" v-close-popup />
+          <q-btn flat label="Open Page" color="secondary" @click="openSelectedTeacherPage" :disable="!selectedTeacherForLink" />
+          <q-btn flat label="Copy Link" color="primary" @click="copySelectedTeacherLink" :disable="!selectedTeacherForLink" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 
@@ -1142,26 +1230,151 @@ onMounted(async () => {
 })
 
 
+const loadingAutoOrder = ref(false)
+
+const handleAutoOrder = async () => {
+    if (!selectedClassroomId.value) return
+    
+    loadingAutoOrder.value = true
+    try {
+        await axios.post('/admin/schedules/auto-fill-orders', {
+            classroom_id: selectedClassroomId.value
+        })
+        
+        $q.notify({
+            type: 'positive', 
+            message: 'Period orders updated successfully',
+            position: 'top'
+        })
+        
+        // Refresh grid
+        await fetchSchedules()
+    } catch (error) {
+        console.error('Error auto-filling orders:', error)
+        $q.notify({
+            type: 'negative',
+            message: 'Failed to update Period orders'
+        })
+    } finally {
+        loadingAutoOrder.value = false
+    }
+}
+
+// Link Management
+const showTeacherLinkDialog = ref(false)
+const selectedTeacherForLink = ref(null)
+
+const openClassroomPage = () => {
+    if (!selectedClassroomId.value) return
+    
+    // Get classroom name and create URL-safe slug
+    const classroom = classrooms.value.find(c => c.id === selectedClassroomId.value)
+    const classroomName = classroom?.name || 'classroom'
+    const classroomSlug = classroomName
+      .toLowerCase()
+      .replace(/\s+/g, '-')           // Replace spaces with hyphens
+      .replace(/[^\w\-]+/g, '')       // Remove non-word chars except hyphens
+      .replace(/\-\-+/g, '-')         // Replace multiple hyphens with single hyphen
+      .replace(/^-+/, '')             // Trim hyphens from start
+      .replace(/-+$/, '');            // Trim hyphens from end
+    
+    // Generate URL
+    const url = route('schedules.classroom.view', { 
+        classroom_id: selectedClassroomId.value,
+        classroom_name: classroomSlug
+    })
+    
+    window.open(url, '_blank')
+}
+
+const openSelectedTeacherPage = () => {
+    if (!selectedTeacherForLink.value) return
+    
+    const teacher = typeof selectedTeacherForLink.value === 'object' 
+        ? selectedTeacherForLink.value 
+        : teachers.value.find(t => t.id === selectedTeacherForLink.value)
+        
+    if (!teacher) return
+
+    const teacherName = teacher.name || 'teacher'
+    const teacherSlug = teacherName
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^\w\-]+/g, '')
+      .replace(/\-\-+/g, '-')
+      .replace(/^-+/, '')
+      .replace(/-+$/, '')
+    
+    const url = route('schedules.teacher.view', { 
+        teacher_id: teacher.id,
+        teacher_name: teacherSlug
+    })
+    
+    window.open(url, '_blank')
+    
+    showTeacherLinkDialog.value = false
+    selectedTeacherForLink.value = null
+}
+
+const copySelectedTeacherLink = () => {
+    if (!selectedTeacherForLink.value) return
+    
+    const teacher = typeof selectedTeacherForLink.value === 'object' 
+        ? selectedTeacherForLink.value 
+        : teachers.value.find(t => t.id === selectedTeacherForLink.value)
+        
+    if (!teacher) return
+
+    const teacherName = teacher.name || 'teacher'
+    const teacherSlug = teacherName
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^\w\-]+/g, '')
+      .replace(/\-\-+/g, '-')
+      .replace(/^-+/, '')
+      .replace(/-+$/, '')
+    
+    const url = route('schedules.teacher.view', { 
+        teacher_id: teacher.id,
+        teacher_name: teacherSlug
+    })
+    
+    navigator.clipboard.writeText(url).then(() => {
+        $q.notify({
+            type: 'positive',
+            message: 'Teacher schedule link copied!',
+            position: 'top',
+            timeout: 2000
+        })
+        showTeacherLinkDialog.value = false
+        selectedTeacherForLink.value = null
+    })
+}
+
 const copyClassroomLink = () => {
     if (!selectedClassroomId.value) return
     
-    const urlParams = new URLSearchParams(window.location.search)
-    // Keep school param if exists
-    const schoolId = urlParams.get('school')
-    const schoolSlug = urlParams.get('school_slug')
+    // Get classroom name and create URL-safe slug
+    const classroom = classrooms.value.find(c => c.id === selectedClassroomId.value)
+    const classroomName = classroom?.name || 'classroom'
+    const classroomSlug = classroomName
+      .toLowerCase()
+      .replace(/\s+/g, '-')           // Replace spaces with hyphens
+      .replace(/[^\w\-]+/g, '')       // Remove non-word chars except hyphens
+      .replace(/\-\-+/g, '-')         // Replace multiple hyphens with single hyphen
+      .replace(/^-+/, '')             // Trim hyphens from start
+      .replace(/-+$/, '');            // Trim hyphens from end
     
-    let path = window.location.origin + window.location.pathname
-    const newParams = new URLSearchParams()
-    if (schoolId) newParams.set('school', schoolId)
-    if (schoolSlug) newParams.set('school_slug', schoolSlug)
-    newParams.set('classroom_id', selectedClassroomId.value)
+    // Generate student schedule view URL with optional slug
+    const url = route('schedules.classroom.view', { 
+        classroom_id: selectedClassroomId.value,
+        classroom_name: classroomSlug
+    })
     
-    const fullUrl = `${path}?${newParams.toString()}`
-    
-    navigator.clipboard.writeText(fullUrl).then(() => {
+    navigator.clipboard.writeText(url).then(() => {
         $q.notify({
             type: 'positive',
-            message: 'Classroom schedule link copied to clipboard!',
+            message: 'Student schedule link copied to clipboard!',
             position: 'top',
             timeout: 2000
         })

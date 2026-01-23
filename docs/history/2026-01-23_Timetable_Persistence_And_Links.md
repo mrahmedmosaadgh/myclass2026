@@ -35,9 +35,20 @@ This update transforms the Timetable Editor from a "Sandbox" model (local change
 - **Bulk Operations**: "Random Fill" and "AI Import" features currently do fully replace the `schedules` array locally. They may need refactoring to bulk-save to the backend if they don't already.
 - **Undo/Redo**: With immediate persistence, an Undo feature might be valuable since changes are permanent immediately.
 
+
+### 4. Period Order Management
+- **Frontend Display**: Added logic to `TimetableCell.vue` to display the `period_order` field as a numbered badge in the top-right corner of each cell.
+- **Auto-Fill Feature**:
+    - Implemented `autoFillPeriodOrder` in `ScheduleController.php` to sequentially order subjects (1, 2, 3...) within a classroom chronologically.
+    - Added UI button "Auto-Order" (icon `format_list_numbered`) to `TimetableEditor.vue` to trigger this action.
+    - Exposed `POST /admin/schedules/auto-fill-orders` route.
+- **Bug Fix**: Repaired a syntax error in `ScheduleController.php` caused by an incomplete method insertion during the implementation of the auto-fill feature.
+
 ## Verified Files
 - `resources/js/Pages/my_table_mnger/weekly_system/admin/TimetableEditor.vue`
 - `resources/js/Pages/my_table_mnger/weekly_system/components/timetable/TimetableGrid.vue`
 - `resources/js/Pages/my_table_mnger/weekly_system/components/timetable/TimetableCell.vue`
 - `resources/js/lang/en.json`
 - `routes/admin.php`
+- `app/Http/Controllers/ScheduleController.php`
+

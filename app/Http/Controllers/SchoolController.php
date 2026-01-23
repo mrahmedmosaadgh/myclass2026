@@ -192,4 +192,36 @@ class SchoolController extends Controller
             'data' => $school
         ]);
     }
+
+    /**
+     * Get current active term/semester for the user's school
+     */
+    public function currentTerm(Request $request)
+    {
+        $user = auth()->user();
+        $schoolId = $user->schoolId();
+        
+        if (!$schoolId) {
+            return response()->json(['message' => 'User not associated with a school'], 404);
+        }
+
+        $school = School::with('activeSemester')->find($schoolId);
+        
+        if (!$school || !$school->activeSemester) {
+            // If no active semester, try to find the latest semester for the active academic year
+            if ($school && $school->activeAcademicYear) {
+                $latestSemester = \App\Models\Semester::where('academic_year_id', $school->active_academic_year_id)
+                    ->orderBy('start_date', 'desc')
+                    ->first();
+                    
+                if ($latestSemester) {
+                    return response()->json($latestSemester);
+                }
+            }
+            
+            return response()->json(['message' => 'Active semester not found'], 404);
+        }
+
+        return response()->json($school->activeSemester);
+    }
 }
