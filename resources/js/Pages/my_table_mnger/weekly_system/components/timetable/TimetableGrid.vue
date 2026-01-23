@@ -12,10 +12,15 @@ const props = defineProps({
   visibleDays: { type: Array, default: () => [1, 2, 3, 4, 5] }, // Default Sun-Thu
   visiblePeriods: { type: Array, default: () => [1, 2, 3, 4, 5, 6, 7, 8] },
   filterSubjectIds: { type: Array, default: () => [] }, // Empty means show all
-  filterTeacherIds: { type: Array, default: () => [] }  // Empty means show all
+  filterTeacherIds: { type: Array, default: () => [] }, // Empty means show all
+  filterClassroomIds: { type: Array, default: () => [] },
+  readonly: { type: Boolean, default: false },
+  showClassroom: { type: Boolean, default: false },
+  hideTeacher: { type: Boolean, default: false },
+  showFullName: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['cell-click', 'edit', 'clear'])
+const emit = defineEmits(['cell-click', 'edit', 'clear', 'open-reward'])
 
 // Using translation for day names (excluding Friday=6 and Saturday=7)
 const allDays = [
@@ -38,8 +43,17 @@ const periods = computed(() => props.visiblePeriods)
 const scheduleMap = computed(() => {
   const map = {}
   props.schedules.forEach(schedule => {
-    const key = `${schedule.day}-${schedule.period_number}`
-    map[key] = schedule
+    const key = `${schedule.day}-${schedule.period_number}` || `${schedule.day_number}-${schedule.period_number}`
+    // Backwards compatibility with either day/day_number and period/period_number
+    // Ideally backend sends day_number, period_number.
+    // Let's ensure we use what's available.
+    // In TimetableEditor fetchSchedules: result is from /admin/schedules which returns ScheduleResource?
+    // Let's check keys.
+    const day = schedule.day || schedule.day_number
+    const period = schedule.period || schedule.period_number
+    if (day && period) {
+        map[`${day}-${period}`] = schedule
+    }
   })
   return map
 })
@@ -53,6 +67,8 @@ const getPeriodTime = (period) => {
 }
 
 const handleCellClick = (day, period) => {
+  // If readonly, we might want to prevent emission? 
+  // But parent can handle it.
   const schedule = getSchedule(day, period)
   emit('cell-click', { day, period, schedule })
 }
@@ -65,12 +81,16 @@ const handleClear = (schedule) => {
   emit('clear', schedule)
 }
 
+const handleOpenReward = (data) => {
+  emit('open-reward', data)
+}
+
 const getConflictInfo = (schedule) => {
   if (!schedule?.id) return null
   return props.teacherConflicts[schedule.id] || null
 }
 
-// Check if a schedule matches the active content filters (Subject/Teacher)
+// Check if a schedule matches theactive content filters (Subject/Teacher)
 const matchesFilters = (schedule) => {
     if (!props.filterSubjectIds?.length && !props.filterTeacherIds?.length) return true
     if (!schedule || !schedule.cst_id) return false // Empty slots don't match specific filters
@@ -88,7 +108,12 @@ const matchesFilters = (schedule) => {
                          (schedule.co_teacher_id && props.filterTeacherIds.includes(schedule.co_teacher_id))
     }
 
-    return matchesSubject && matchesTeacher
+    let matchesClassroom = true
+    if (props.filterClassroomIds?.length > 0) {
+        matchesClassroom = props.filterClassroomIds.includes(schedule.cst?.classroom_id)
+    }
+
+    return matchesSubject && matchesTeacher && matchesClassroom
 }
 </script>
 
@@ -131,9 +156,14 @@ const matchesFilters = (schedule) => {
         <TimetableCell
           :schedule="getSchedule(day.value, period)"
           :conflict-info="getConflictInfo(getSchedule(day.value, period))"
+          :readonly="readonly"
+          :show-classroom="showClassroom"
+          :hide-teacher="hideTeacher"
+          :show-full-name="showFullName"
           @click="handleCellClick(day.value, period)"
           @edit="handleEdit"
           @clear="handleClear"
+          @open-reward="handleOpenReward"
         />
       </div>
     </div>

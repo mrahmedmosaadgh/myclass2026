@@ -1205,6 +1205,22 @@ const props = defineProps({
   isDialog: {
     type: Boolean,
     default: false
+  },
+  classroomId: {
+    type: Number,
+    default: null
+  },
+  subjectId: {
+    type: Number,
+    default: null
+  },
+  period: {
+    type: Number,
+    default: null
+  },
+  date: {
+    type: String,
+    default: null
   }
 })
 
@@ -2299,53 +2315,112 @@ onMounted(async () => {
     classrooms.value = classRes.data
     console.log(`✅ Loaded ${classrooms.value.length} classrooms`)
     
-    // Restore from localStorage or auto-select first subject
-    const savedSubjectId = localStorage.getItem('reward-system-selected-subject-id')
-    const savedClassroomId = localStorage.getItem('reward-system-selected-classroom-id')
+    let autoInit = false
     
-    if (savedSubjectId && subjects.value.some(s => s.id === parseInt(savedSubjectId))) {
-      selectedSubjectId.value = parseInt(savedSubjectId)
-      console.log(`📚 Restored subject from localStorage: ${savedSubjectId}`)
-    } else if (subjects.value.length > 0) {
-      selectedSubjectId.value = subjects.value[0].id
-      console.log(`📚 Auto-selected first subject: ${subjects.value[0].name}`)
+    // Priority 1: Props (when used as dialog component)
+    if (props.classroomId && props.subjectId) {
+      console.log('🎯 Props detected (dialog mode) - auto-initializing...')
+      selectedClassroomId.value = props.classroomId
+      selectedSubjectId.value = props.subjectId
+      
+      if (props.date) {
+        selectedDate.value = props.date
+      } else {
+        selectedDate.value = new Date().toISOString().split('T')[0]
+      }
+      
+      if (props.period) {
+        selectedPeriodNumber.value = props.period
+      }
+      
+      autoInit = true
+      console.log(`📚 Props Subject: ${props.subjectId}`)
+      console.log(`🏫 Props Classroom: ${props.classroomId}`)
+      console.log(`📅 Props Date: ${selectedDate.value}`)
+      console.log(`🔢 Props Period: ${props.period}`)
     }
-    
-    if (savedClassroomId && classrooms.value.some(c => c.classroom_id === parseInt(savedClassroomId))) {
-      selectedClassroomId.value = parseInt(savedClassroomId)
-      console.log(`🏫 Restored classroom from localStorage: ${savedClassroomId}`)
-    }
+    // Priority 2: URL query parameters (from teacher schedule link)
+    else {
+      const urlParams = new URLSearchParams(window.location.search)
+      const urlClassroomId = urlParams.get('classroom_id')
+      const urlSubjectId = urlParams.get('subject_id')
+      const urlPeriod = urlParams.get('period')
+      const urlDate = urlParams.get('date')
+      
+      if (urlClassroomId && urlSubjectId) {
+        console.log('🔗 URL parameters detected - auto-initializing...')
+        selectedClassroomId.value = parseInt(urlClassroomId)
+        selectedSubjectId.value = parseInt(urlSubjectId)
+        
+        // Set date (default to today if not provided)
+        if (urlDate) {
+          selectedDate.value = urlDate
+        } else {
+          selectedDate.value = new Date().toISOString().split('T')[0]
+        }
+        
+        // Set period number if provided
+        if (urlPeriod) {
+          selectedPeriodNumber.value = parseInt(urlPeriod)
+        }
+        
+        autoInit = true
+        console.log(`📚 URL Subject: ${urlSubjectId}`)
+        console.log(`🏫 URL Classroom: ${urlClassroomId}`)
+        console.log(`📅 URL Date: ${selectedDate.value}`)
+        console.log(`🔢 URL Period: ${urlPeriod}`)
+      }
+      // Priority 3: localStorage
+      else {
+        // Restore from localStorage or auto-select first subject
+        const savedSubjectId = localStorage.getItem('reward-system-selected-subject-id')
+        const savedClassroomId = localStorage.getItem('reward-system-selected-classroom-id')
+        
+        if (savedSubjectId && subjects.value.some(s => s.id === parseInt(savedSubjectId))) {
+          selectedSubjectId.value = parseInt(savedSubjectId)
+          console.log(`📚 Restored subject from localStorage: ${savedSubjectId}`)
+        } else if (subjects.value.length > 0) {
+          selectedSubjectId.value = subjects.value[0].id
+          console.log(`📚 Auto-selected first subject: ${subjects.value[0].name}`)
+        }
+        
+        if (savedClassroomId && classrooms.value.some(c => c.classroom_id === parseInt(savedClassroomId))) {
+          selectedClassroomId.value = parseInt(savedClassroomId)
+          console.log(`🏫 Restored classroom from localStorage: ${savedClassroomId}`)
+        }
 
-    // Restore active tab
-    const savedActiveTab = localStorage.getItem('reward-system-active-tab')
-    if (savedActiveTab) {
-      activeTab.value = savedActiveTab
-    }
+        // Restore active tab
+        const savedActiveTab = localStorage.getItem('reward-system-active-tab')
+        if (savedActiveTab) {
+          activeTab.value = savedActiveTab
+        }
 
-    // Restore period code components from localStorage
-    const savedSemester = localStorage.getItem('reward-system-selected-semester')
-    const savedWeek = localStorage.getItem('reward-system-selected-week')
-    const savedDay = localStorage.getItem('reward-system-selected-day')
-    const savedPeriodNumber = localStorage.getItem('reward-system-selected-period-number')
-    
-    if (savedSemester) {
-      selectedSemester.value = parseInt(savedSemester)
-      console.log(`📅 Restored semester from localStorage: ${savedSemester}`)
-    }
-    
-    if (savedWeek) {
-      selectedWeek.value = parseInt(savedWeek)
-      console.log(`📅 Restored week from localStorage: ${savedWeek}`)
-    }
-    
-    if (savedDay) {
-      selectedDay.value = parseInt(savedDay)
-      console.log(`📅 Restored day from localStorage: ${savedDay}`)
-    }
-    
-    if (savedPeriodNumber) {
-      selectedPeriodNumber.value = parseInt(savedPeriodNumber)
-      console.log(`📅 Restored period number from localStorage: ${savedPeriodNumber}`)
+        // Restore period code components from localStorage
+        const savedSemester = localStorage.getItem('reward-system-selected-semester')
+        const savedWeek = localStorage.getItem('reward-system-selected-week')
+        const savedDay = localStorage.getItem('reward-system-selected-day')
+        const savedPeriodNumber = localStorage.getItem('reward-system-selected-period-number')
+        
+        if (savedSemester) {
+          selectedSemester.value = parseInt(savedSemester)
+          console.log(`📅 Restored semester from localStorage: ${savedSemester}`)
+        }
+        
+        if (savedWeek) {
+          selectedWeek.value = parseInt(savedWeek)
+          console.log(`📅 Restored week from localStorage: ${savedWeek}`)
+        }
+        
+        if (savedDay) {
+          selectedDay.value = parseInt(savedDay)
+          console.log(`📅 Restored day from localStorage: ${savedDay}`)
+        }
+        
+        if (savedPeriodNumber) {
+          selectedPeriodNumber.value = parseInt(savedPeriodNumber)
+          console.log(`📅 Restored period number from localStorage: ${savedPeriodNumber}`)
+        }
+      }
     }
     
     console.log(`🔢 Active Period Code: ${selectedSemester.value}.${selectedWeek.value}.${selectedDay.value}.${selectedPeriodNumber.value}`)
@@ -2374,6 +2449,20 @@ onMounted(async () => {
     }
 
     console.log('✅ Reward system initialized')
+    
+    // Auto-initialize session if props or URL params were provided
+    if (autoInit && selectedClassroomId.value) {
+      console.log('🚀 Auto-initializing classroom session...')
+      await handleClassroomChange(selectedClassroomId.value)
+      await initClassroomSession()
+      
+      $q.notify({
+        message: props.isDialog ? 'Session loaded!' : 'Session loaded from schedule!',
+        color: 'positive',
+        position: 'top',
+        icon: 'stars'
+      })
+    }
   } catch (error) {
     console.error('❌ Failed to initialize reward system:', error)
     $q.notify({

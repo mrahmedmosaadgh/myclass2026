@@ -2,27 +2,35 @@
   <div
     class="timetable-cell"
     :class="cellClasses"
-    @click="$emit('click', schedule)"
+    @click="handleClick"
   >
     <!-- Empty State -->
     <div v-if="!schedule?.cst_id" class="empty-cell">
-      <q-icon name="add" size="sm" color="grey-5" />
-      <span class="text-caption text-grey-6">Assign</span>
+      <q-icon v-if="!readonly" name="add" size="sm" color="grey-5" />
+      <span v-if="!readonly" class="text-caption text-grey-6">Assign</span>
+      <span v-else class="text-caption text-grey-4">-</span>
+      <div v-if="schedule?.period_order" class="period-order-badge">
+        {{ schedule.period_order }}
+      </div>
     </div>
 
     <!-- Assigned State -->
     <div v-else class="assigned-cell">
+      <div v-if="schedule.period_order" class="period-order-badge is-assigned">
+        {{ schedule.period_order }}
+      </div>
       <!-- Subject Badge -->
       <div
         class="subject-badge"
         :style="{ backgroundColor: subjectColor, color: textColor }"
         :title="fullSubjectName"
       >
-        {{ subjectName }}
+        {{ showFullName ? fullSubjectName : abbreviatedSubjectName }}
       </div>
 
       <!-- Teacher Name -->
       <div 
+        v-if="!hideTeacher"
         class="teacher-name text-caption scale-75"
         :title="fullTeacherName"
       >
@@ -63,10 +71,24 @@
           <q-tooltip>Has co-teacher</q-tooltip>
         </q-icon>
       </div>
+      
+      <!-- Reward System Button (Teacher View - Visible Icon) -->
+      <q-btn
+        v-if="readonly"
+        round
+        dense
+        size="xs"
+        icon="stars"
+        color="amber"
+        class="reward-btn"
+        @click.stop="openRewardSystem"
+      >
+        <q-tooltip>Reward System</q-tooltip>
+      </q-btn>
     </div>
 
-    <!-- Hover Overlay -->
-    <q-menu touch-position context-menu v-if="schedule?.cst_id">
+    <!-- Hover Overlay (Only if not readonly) -->
+    <q-menu touch-position context-menu v-if="schedule?.cst_id && !readonly">
       <q-list dense style="min-width: 150px">
         <q-item clickable v-close-popup @click="$emit('edit', schedule)">
           <q-item-section avatar>
@@ -88,6 +110,7 @@
         </q-item>
       </q-list>
     </q-menu>
+
   </div>
 </template>
 
@@ -100,10 +123,13 @@ const $q = useQuasar()
 const props = defineProps({
   schedule: { type: Object, default: null },
   showClassroom: { type: Boolean, default: false },
-  conflictInfo: { type: Object, default: null }
+  hideTeacher: { type: Boolean, default: false },
+  conflictInfo: { type: Object, default: null },
+  readonly: { type: Boolean, default: false },
+  showFullName: { type: Boolean, default: false }
 })
 
-defineEmits(['click', 'edit', 'clear'])
+const emit = defineEmits(['click', 'edit', 'clear', 'open-reward'])
 
 const subjectName = computed(() => {
   return props.schedule?.cst?.subject?.name ||
@@ -176,7 +202,8 @@ const cellClasses = computed(() => ({
   'is-assigned': !!props.schedule?.cst_id,
   'has-substitute': !!props.schedule?.teacher_substitute_id,
   'has-conflict': !!props.conflictInfo,
-  'cursor-pointer': true
+  'cursor-pointer': !props.readonly, // Only pointer if not readonly
+  'is-readonly': props.readonly
 }))
 
 const hasConflict = computed(() => !!props.conflictInfo)
@@ -190,28 +217,69 @@ const conflictTooltip = computed(() => {
 })
 
 const copyTeacherLink = () => {
-    if (!props.schedule?.cst?.teacher_id) return
+    if (!props.schedule?.cst?.teacher?.id) return
     
-    const urlParams = new URLSearchParams(window.location.search)
-    // Keep school param if exists
-    const schoolId = urlParams.get('school')
-    const schoolSlug = urlParams.get('school_slug')
+    // Create URL-safe slug from teacher name
+    const teacherName = props.schedule.cst.teacher.name || 'teacher'
+    const teacherSlug = teacherName
+      .toLowerCase()
+      .replace(/\s+/g, '-')           // Replace spaces with hyphens
+      .replace(/[^\w\-]+/g, '')       // Remove non-word chars except hyphens
+      .replace(/\-\-+/g, '-')         // Replace multiple hyphens with single hyphen
+      .replace(/^-+/, '')             // Trim hyphens from start
+      .replace(/-+$/, '');            // Trim hyphens from end
     
-    let path = window.location.origin + window.location.pathname
-    const newParams = new URLSearchParams()
-    if (schoolId) newParams.set('school', schoolId)
-    if (schoolSlug) newParams.set('school_slug', schoolSlug)
-    newParams.set('teacher_id', props.schedule.cst.teacher_id)
+    const url = route('schedules.teacher.view', { 
+        teacher_id: props.schedule.cst.teacher.id,
+        teacher_name: teacherSlug
+    })
     
-    const fullUrl = `${path}?${newParams.toString()}`
-    
-    navigator.clipboard.writeText(fullUrl).then(() => {
+    navigator.clipboard.writeText(url).then(() => {
         $q.notify({
             type: 'positive',
             message: 'Teacher schedule link copied to clipboard!',
             position: 'top',
             timeout: 2000
         })
+    })
+}
+
+const handleClick = () => {
+  if (!props.readonly) {
+    // Only emit click if not readonly to prevent opening assignment dialogs
+    // But maybe we want click for details? 
+    // For now, assume readonly means no interaction or view-only
+    // If we want details view in readonly, we can emit a different event or just let it bubble
+    // But parent TimetableGrid emits 'cell-click' which opens AssignDialog in Editor.
+    // So we should Block it if readonly.
+    // However, for StudentView, maybe we want to see details? 
+    // Let's block it for now.
+    emit('click', props.schedule)
+  }
+}
+
+const openRewardSystem = () => {
+    if (!props.schedule?.cst) return
+    
+    const classroomId = props.schedule.cst.classroom_id
+    const subjectId = props.schedule.cst.subject_id
+    const period = props.schedule.period_number || props.schedule.period
+    const today = new Date().toISOString().split('T')[0]
+    
+    // Emit event to parent instead of opening new tab
+    emit('open-reward', {
+        classroomId,
+        subjectId,
+        period,
+        date: today,
+        schedule: props.schedule
+    })
+    
+    $q.notify({
+        type: 'positive',
+        message: 'Opening Reward System...',
+        position: 'top',
+        timeout: 1500
     })
 }
 </script>
@@ -228,6 +296,24 @@ const copyTeacherLink = () => {
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  position: relative; /* Ensure cell is relative for absolute positioning */
+}
+
+.period-order-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #757575;
+  font-size: 0.65rem;
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.period-order-badge.is-assigned {
+  background-color: rgba(255, 255, 255, 0.8);
+  color: #333;
 }
 
 .timetable-cell:hover {
@@ -309,5 +395,23 @@ const copyTeacherLink = () => {
   0%, 100% { transform: translateX(0); }
   25% { transform: translateX(-2px); }
   75% { transform: translateX(2px); }
+}
+
+.reward-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 10;
+  opacity: 0.8;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.reward-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.timetable-cell:hover .reward-btn {
+  opacity: 1;
 }
 </style>
