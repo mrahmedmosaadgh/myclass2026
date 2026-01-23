@@ -14,42 +14,17 @@
         </p>
       </div>
       
-      <!-- Sandbox Toolbar -->
-      <div class="col-auto row q-gutter-sm">
+      <!-- Live Mode Indicator -->
+      <div class="col-auto row q-gutter-sm items-center">
          <q-chip 
-            v-if="hasUnsavedChanges" 
-            color="warning" 
-            text-color="dark" 
+            color="positive" 
+            text-color="white" 
             dense 
-            icon="edit"
+            icon="cloud_done"
             class="q-mr-md"
           >
-            Unscheduled Draft Changes
+            Live Mode: Changes scale immediately
           </q-chip>
-          
-          <q-btn
-            unelevated
-            color="white"
-            text-color="primary"
-            icon="save"
-            label="Save as Draft"
-            :disable="loadingSchedules"
-            @click="showSaveDraftDialog = true"
-          >
-            <q-tooltip>Save current changes to a named draft</q-tooltip>
-          </q-btn>
-
-          <q-btn
-            unelevated
-            color="secondary"
-            text-color="white"
-            icon="publish"
-            label="Publish to Live"
-            :disable="loadingSchedules"
-            @click="publishSandboxState"
-          >
-            <q-tooltip>Apply current changes to live schedule</q-tooltip>
-          </q-btn>
       </div>
     </div>
 
@@ -83,6 +58,20 @@
               </q-item>
             </template>
           </q-select>
+        </div>
+        
+        <!-- Copy Classroom Link Button -->
+        <div class="col-12 col-sm-auto">
+             <q-btn
+                flat
+                round
+                color="primary"
+                icon="link"
+                :disable="!selectedClassroomId"
+                @click="copyClassroomLink"
+             >
+                <q-tooltip>Copy Classroom Schedule Link</q-tooltip>
+             </q-btn>
         </div>
 
         <!-- AI Import Button -->
@@ -137,6 +126,129 @@
             outline
             @click="showOverviewDialog = true"
           />
+        </div>
+      </div>
+      
+      <q-separator class="q-my-md" />
+      
+      <!-- Advanced Filters -->
+      <div class="row q-gutter-md items-center">
+        <div class="col-12 col-md-auto">
+            <q-select
+                v-model="filterDays"
+                :options="dayOptions"
+                label="Days"
+                outlined
+                dense
+                multiple
+                emit-value
+                map-options
+                style="min-width: 150px"
+            >
+                <template v-slot:option="{ itemProps, opt, selected, toggleOption }">
+                    <q-item v-bind="itemProps">
+                    <q-item-section>
+                        <q-item-label>{{ opt.label }}</q-item-label>
+                    </q-item-section>
+                    <q-item-section side>
+                        <q-checkbox :model-value="selected" @update:model-value="toggleOption(opt)" />
+                    </q-item-section>
+                    </q-item>
+                </template>
+                <template v-slot:selected>
+                    <div v-if="filterDays.length === dayOptions.length">All Days</div>
+                    <div v-else>{{ filterDays.length }} Days Selected</div>
+                </template>
+            </q-select>
+        </div>
+        
+        <div class="col-12 col-md-auto">
+             <q-select
+                v-model="filterPeriods"
+                :options="periodOptions"
+                label="Periods"
+                outlined
+                dense
+                multiple
+                emit-value
+                map-options
+                style="min-width: 150px"
+            >
+             <template v-slot:option="{ itemProps, opt, selected, toggleOption }">
+                    <q-item v-bind="itemProps">
+                    <q-item-section>
+                        <q-item-label>{{ opt.label }}</q-item-label>
+                    </q-item-section>
+                    <q-item-section side>
+                        <q-checkbox :model-value="selected" @update:model-value="toggleOption(opt)" />
+                    </q-item-section>
+                    </q-item>
+                </template>
+                <template v-slot:selected>
+                    <div v-if="filterPeriods.length === periodOptions.length">All Periods</div>
+                    <div v-else>{{ filterPeriods.length }} Periods</div>
+                </template>
+            </q-select>
+        </div>
+
+        <div class="col-12 col-md-3">
+             <q-select
+                v-model="filterSubjectIds"
+                :options="subjects"
+                option-value="id"
+                option-label="name"
+                label="Filter Subjects"
+                outlined
+                dense
+                multiple
+                emit-value
+                map-options
+                clearable
+            >
+                <template v-slot:option="{ itemProps, opt, selected, toggleOption }">
+                    <q-item v-bind="itemProps">
+                    <q-item-section>
+                        <q-item-label>{{ opt.name }}</q-item-label>
+                    </q-item-section>
+                    <q-item-section side>
+                        <q-checkbox :model-value="selected" @update:model-value="toggleOption(opt)" />
+                    </q-item-section>
+                    </q-item>
+                </template>
+            </q-select>
+        </div>
+
+        <div class="col-12 col-md-3">
+            <q-select
+                v-model="filterTeacherIds"
+                :options="teachers"
+                option-value="id"
+                option-label="name"
+                label="Filter Teachers"
+                outlined
+                dense
+                multiple
+                emit-value
+                map-options
+                clearable
+            >
+               <template v-slot:option="{ itemProps, opt, selected, toggleOption }">
+                    <q-item v-bind="itemProps">
+                    <q-item-section>
+                        <q-item-label>{{ opt.name }}</q-item-label>
+                    </q-item-section>
+                    <q-item-section side>
+                        <q-checkbox :model-value="selected" @update:model-value="toggleOption(opt)" />
+                    </q-item-section>
+                    </q-item>
+                </template>
+            </q-select>
+        </div>
+        
+        <div class="col-auto">
+             <q-btn flat round icon="restart_alt" color="grey" @click="resetFilters">
+                <q-tooltip>Reset Filters</q-tooltip>
+             </q-btn>
         </div>
         
         <!-- ... existing stats code ... -->
@@ -323,6 +435,10 @@
       v-else
       :schedules="schedules"
       :teacher-conflicts="teacherConflicts"
+      :visible-days="filterDays"
+      :visible-periods="filterPeriods"
+      :filter-subject-ids="filterSubjectIds"
+      :filter-teacher-ids="filterTeacherIds"
       @cell-click="handleCellClick"
       @edit="handleEdit"
       @clear="handleClear"
@@ -439,6 +555,24 @@ const teacherConflicts = ref({})
 
 // Selected values
 const selectedClassroomId = ref(null)
+
+// Filters
+const filterDays = ref([1, 2, 3, 4, 5]) // Default Sun-Thu
+const filterPeriods = ref([1, 2, 3, 4, 5, 6, 7, 8])
+const filterSubjectIds = ref([])
+const filterTeacherIds = ref([])
+
+const dayOptions = [
+  { label: 'Sunday', value: 1 },
+  { label: 'Monday', value: 2 },
+  { label: 'Tuesday', value: 3 },
+  { label: 'Wednesday', value: 4 },
+  { label: 'Thursday', value: 5 },
+  { label: 'Friday', value: 6 },
+  { label: 'Saturday', value: 7 },
+]
+
+const periodOptions = Array.from({ length: 12 }, (_, i) => ({ label: `Period ${i+1}`, value: i+1 }))
 const selectedClassroomName = computed(() => {
   const classroom = classrooms.value.find(c => c.id === selectedClassroomId.value)
   return classroom?.name || ''
@@ -638,6 +772,13 @@ const conflictType = ref('overall')
 const showAIImportDialog = ref(false)
 const showRandomFillDialog = ref(false)
 
+const resetFilters = () => {
+    filterDays.value = [1, 2, 3, 4, 5];
+    filterPeriods.value = [1, 2, 3, 4, 5, 6, 7, 8];
+    filterSubjectIds.value = [];
+    filterTeacherIds.value = [];
+}
+
 // Methods
 
 const fetchClassrooms = async () => {
@@ -647,6 +788,16 @@ const fetchClassrooms = async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const schoolId = urlParams.get('school');
     
+    // Auto-select filter from URL
+    const teacherIdParam = urlParams.get('teacher_id');
+    if (teacherIdParam) {
+        // Ensure it's an integer
+        const tId = parseInt(teacherIdParam);
+        if (!isNaN(tId)) {
+            filterTeacherIds.value = [tId];
+        }
+    }
+    
     const params = {};
     if (schoolId) {
         params.school_id = schoolId;
@@ -655,8 +806,22 @@ const fetchClassrooms = async () => {
     const response = await axios.get(`/api/classrooms`, { params })
     const result = response.data.data || response.data || []
     classrooms.value = Array.isArray(result) ? result : []
-    // Auto-select first classroom if not already set
-    if (classrooms.value.length && !selectedClassroomId.value) {
+    
+    // Check for classroom_id in URL
+    const classroomIdParam = urlParams.get('classroom_id');
+    let selectedFromUrl = false;
+    
+    if (classroomIdParam) {
+        const cId = parseInt(classroomIdParam);
+        const exists = classrooms.value.find(c => c.id === cId);
+        if (exists) {
+            selectedClassroomId.value = cId;
+            selectedFromUrl = true;
+        }
+    }
+    
+    // Auto-select first classroom if not already set and not selected from URL
+    if (classrooms.value.length && !selectedClassroomId.value && !selectedFromUrl) {
       selectedClassroomId.value = classrooms.value[0].id
     }
   } catch (error) {
@@ -826,84 +991,68 @@ const handleEdit = (schedule) => {
 }
 
 const handleClear = async (schedule) => {
-  // Local update only (Sandbox Mode)
   try {
-    const idx = schedules.value.findIndex(s => 
-      s.day_number == schedule.day_number && 
-      s.period_number == schedule.period_number
-    )
-    
-    if (idx !== -1) {
-       // Clear assignment properties but keep slot
-       schedules.value[idx] = {
-         ...schedules.value[idx],
-         cst_id: null,
-         teacher_substitute_id: null,
-         co_teacher_id: null,
-         co_subject_id: null,
-         // Keeping display properties null for grid
-         subject_name: null,
-         teacher_name: null,
-         color: null
-       }
-       hasUnsavedChanges.value = true
-       calculateStats() // Recalc local stats
-       $q.notify({ type: 'info', message: 'Slot cleared (Sandbox)' })
+    const scheduleId = schedule.id
+    if (!scheduleId || scheduleId.toString().startsWith('temp_')) {
+        // If it's a temp slot or has no ID, just refresh/ignore
+        await fetchSchedules()
+        return
     }
+
+    // Call update endpoint with null cst_id to clear/delete
+    await axios.put(`/admin/schedules/${scheduleId}`, {
+        cst_id: null,
+        day: schedule.day_number || schedule.day, // Required validation fields even for delete? check controller
+        period_number: schedule.period_number
+    })
+    
+    $q.notify({ type: 'positive', message: 'Slot cleared successfully' })
+    await fetchSchedules() // Refresh to sync state
   } catch (error) {
     console.error('Error clearing schedule:', error)
+    $q.notify({ type: 'negative', message: 'Failed to clear slot' })
   }
 }
 
 const handleAssignSubmit = async (formData) => {
-  // Local update only (Sandbox Mode)
   saving.value = true
   try {
     const day = formData.day
-    const period = formData.period // This comes from CSTAssignDialog which emits 'period' not 'period_number'
+    const period = formData.period 
     
-    const idx = schedules.value.findIndex(s => 
-      s.day_number == day && 
-      s.period_number == period
-    )
+    // Check if updating existing or creating new
+    // We need to find if there is an existing schedule ID for this slot
+    const existingSchedule = schedules.value.find(s => {
+      const sDay = s.day_number || s.day
+      return sDay == day && s.period_number == period
+    })
     
-    // Find selected CST details to populate grid immediately
-    const cst = cstOptions.value.find(c => c.id === formData.cst_id)
-    
-    if (idx !== -1) {
-       // Update existing slot
-       schedules.value[idx] = {
-         ...schedules.value[idx],
-         cst_id: formData.cst_id,
-         teacher_substitute_id: formData.teacher_substitute_id,
-         co_teacher_id: formData.co_teacher_id,
-         co_subject_id: formData.co_subject_id,
-         // Add display props for Grid
-         subject_name: cst ? cst.subject_name : 'Unknown',
-         teacher_name: cst ? cst.teacher_name : 'Unknown',
-         color: cst ? cst.color : '#e0e0e0'
-       }
+    const payload = {
+        cst_id: formData.cst_id,
+        day: day,
+        period_number: period,
+        teacher_substitute_id: formData.teacher_substitute_id,
+        co_teacher_id: formData.co_teacher_id,
+        co_subject_id: formData.co_subject_id,
+        notes: formData.notes,
+        school_id: new URLSearchParams(window.location.search).get('school') // Ensure school context
+    }
+
+    if (existingSchedule && existingSchedule.id && !existingSchedule.id.toString().startsWith('temp_')) {
+        // Update existing
+        await axios.put(`/admin/schedules/${existingSchedule.id}`, payload)
     } else {
-       // Create new slot locally
-       schedules.value.push({
-         id: 'temp_' + Date.now(),
-         day_number: day,
-         period_number: period,
-         cst_id: formData.cst_id,
-         // ... other fields
-         subject_name: cst ? cst.subject_name : 'Unknown',
-         teacher_name: cst ? cst.teacher_name : 'Unknown'
-       })
+        // Create new
+        await axios.post('/admin/schedules/store', payload)
     }
     
-    hasUnsavedChanges.value = true
-    calculateStats() // Recalc local stats
-    $q.notify({ type: 'positive', message: 'Schedule updated (Sandbox)' })
+    $q.notify({ type: 'positive', message: 'Schedule updated successfully' })
     showAssignDialog.value = false
-    // await fetchSchedules() // DO NOT FETCH LIVE
+    await fetchSchedules() // Refresh state from backend
   } catch (error) {
     console.error('Error saving schedule:', error)
-    $q.notify({ type: 'negative', message: 'Failed to update sandbox' })
+    const msg = error.response?.data?.message || 'Failed to update schedule'
+    $q.notify({ type: 'negative', message: msg })
   } finally {
     saving.value = false
   }
@@ -989,7 +1138,35 @@ onMounted(async () => {
     fetchTeachers(),
     fetchSubjects()
   ])
+
 })
+
+
+const copyClassroomLink = () => {
+    if (!selectedClassroomId.value) return
+    
+    const urlParams = new URLSearchParams(window.location.search)
+    // Keep school param if exists
+    const schoolId = urlParams.get('school')
+    const schoolSlug = urlParams.get('school_slug')
+    
+    let path = window.location.origin + window.location.pathname
+    const newParams = new URLSearchParams()
+    if (schoolId) newParams.set('school', schoolId)
+    if (schoolSlug) newParams.set('school_slug', schoolSlug)
+    newParams.set('classroom_id', selectedClassroomId.value)
+    
+    const fullUrl = `${path}?${newParams.toString()}`
+    
+    navigator.clipboard.writeText(fullUrl).then(() => {
+        $q.notify({
+            type: 'positive',
+            message: 'Classroom schedule link copied to clipboard!',
+            position: 'top',
+            timeout: 2000
+        })
+    })
+}
 </script>
 
 <style scoped>

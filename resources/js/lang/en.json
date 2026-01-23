@@ -58,6 +58,7 @@
     "assigned": "Assigned",
     "total": "total",
     "allClassrooms": "All Classrooms",
+    "conflicts": "Conflicts",
     "confirmDelete": "Are you sure you want to delete",
     "actionCannotBeUndone": "This action cannot be undone.",
     "activatedSuccessfully": "Activated successfully",

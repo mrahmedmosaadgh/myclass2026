@@ -387,18 +387,18 @@ onMounted(() => {
     margin-top: 4px;
   }
   
-  &__questions {
+  :is(.quiz-preview__questions) {
     margin-bottom: 24px;
   }
   
-  &__section-title {
+  :is(.quiz-preview__section-title) {
     font-size: 1.25rem;
     font-weight: 600;
     color: #1a202c;
     margin: 0 0 16px 0;
   }
   
-  &__question-card {
+  :is(.quiz-preview__question-card) {
     margin-bottom: 16px;
     
     .q-card {

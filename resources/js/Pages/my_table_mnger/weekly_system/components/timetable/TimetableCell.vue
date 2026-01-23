@@ -74,6 +74,12 @@
           </q-item-section>
           <q-item-section>Edit</q-item-section>
         </q-item>
+        <q-item clickable v-close-popup @click="copyTeacherLink">
+          <q-item-section avatar>
+            <q-icon name="link" color="primary" />
+          </q-item-section>
+          <q-item-section>Link</q-item-section>
+        </q-item>
         <q-item clickable v-close-popup @click="$emit('clear', schedule)">
           <q-item-section avatar>
             <q-icon name="clear" color="negative" />
@@ -87,6 +93,9 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useQuasar } from 'quasar'
+
+const $q = useQuasar()
 
 const props = defineProps({
   schedule: { type: Object, default: null },
@@ -179,6 +188,32 @@ const conflictTooltip = computed(() => {
   const classroomNames = others.map(c => `${c.classroom_name} (${c.subject_name})`).join(', ')
   return `⚠️ Conflict: ${props.conflictInfo.teacher_name} is also assigned to: ${classroomNames}`
 })
+
+const copyTeacherLink = () => {
+    if (!props.schedule?.cst?.teacher_id) return
+    
+    const urlParams = new URLSearchParams(window.location.search)
+    // Keep school param if exists
+    const schoolId = urlParams.get('school')
+    const schoolSlug = urlParams.get('school_slug')
+    
+    let path = window.location.origin + window.location.pathname
+    const newParams = new URLSearchParams()
+    if (schoolId) newParams.set('school', schoolId)
+    if (schoolSlug) newParams.set('school_slug', schoolSlug)
+    newParams.set('teacher_id', props.schedule.cst.teacher_id)
+    
+    const fullUrl = `${path}?${newParams.toString()}`
+    
+    navigator.clipboard.writeText(fullUrl).then(() => {
+        $q.notify({
+            type: 'positive',
+            message: 'Teacher schedule link copied to clipboard!',
+            position: 'top',
+            timeout: 2000
+        })
+    })
+}
 </script>
 
 <style scoped>

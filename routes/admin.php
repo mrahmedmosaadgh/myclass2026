@@ -97,4 +97,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Add new school routes
     Route::get('/admin/schools', [LoadSchoolsController::class, 'adminSchools']);
     Route::get('/teacher/{teacher}/schools', [LoadSchoolsController::class, 'teacherSchools']);
+
+    // Schedule Management Routes (Immediate Persistence)
+    Route::post('/admin/schedules/store', [\App\Http\Controllers\ScheduleController::class, 'store']);
+    Route::put('/admin/schedules/{schedule}', [\App\Http\Controllers\ScheduleController::class, 'update']);
 });
