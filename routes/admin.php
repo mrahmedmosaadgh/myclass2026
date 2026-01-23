@@ -48,10 +48,7 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->group(fu
     Route::get('documentation-portal/search', [App\Http\Controllers\DocumentationPortalController::class, 'search'])->name('documentation-portal.search');
     Route::get('documentation-portal/file-content', [App\Http\Controllers\DocumentationPortalController::class, 'getFileContent'])->name('documentation-portal.file-content');
 
-    Route::get('attendance', function () {
-        // resources\js\Pages\my_class\admin\Attendance\Index.vue
-        return Inertia::render('my_class/admin/Attendance/Index');
-    })->name('admin.attendance');
+
 
     // Curriculum Management Routes
     Route::get('curriculum/management', [App\Http\Controllers\Curriculum\CurriculumController::class, 'index'])->name('admin.curriculum.management');

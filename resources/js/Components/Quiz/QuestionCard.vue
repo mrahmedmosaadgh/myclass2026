@@ -204,7 +204,7 @@ const truncateHtml = (html, maxLength) => {
     }
   }
   
-  &__actions {
+  :is(.question-card__actions) {
     display: flex;
     gap: 4px;
     flex-shrink: 0;

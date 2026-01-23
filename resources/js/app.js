@@ -13,17 +13,7 @@ const offlineMode = localStorage.getItem('offlineMode') === 'true';
 if (offlineMode) {
     // Lazy load offline functionality
     Promise.all([
-        import('./offline/dexie.js'),
-        import('nprogress').then(module => {
-            const NProgress = module.default;
-            import('nprogress/nprogress.css');
-            NProgress.configure({
-                showSpinner: false,
-                minimum: 0.2,
-                trickleSpeed: 200
-            });
-            return NProgress;
-        })
+        import('./offline/dexie.js')
     ]);
 
     // Lazy register service worker
@@ -62,7 +52,11 @@ import('./loadStyles.js');
 import enMessages from './lang/en.json';
 import arMessages from './lang/ar.json';
 
+// Import Pinia persistence plugin
+import piniaPluginPersistedstate from 'pinia-plugin-persistedstate';
+
 const pinia = createPinia();
+pinia.use(piniaPluginPersistedstate);
 
 // Configure NProgress
 NProgress.configure({

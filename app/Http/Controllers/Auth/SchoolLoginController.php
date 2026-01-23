@@ -131,10 +131,8 @@ class SchoolLoginController extends Controller
         $user->last_login = now();
         $user->save();
 
-        // Determine redirect based on role
-        $redirectUrl = $this->getRedirectUrlByRole($user);
-
-        return redirect()->intended($redirectUrl);
+        // Redirect to intended URL, fallback to dashboard if none
+        return redirect()->intended(route('dashboard'));
     }
 
     /**

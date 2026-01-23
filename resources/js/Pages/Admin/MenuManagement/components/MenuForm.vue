@@ -8,121 +8,164 @@
 
     <q-card-section>
       <q-form @submit="handleSubmit" class="q-gutter-md">
-        <!-- Label -->
-        <q-input
-          v-model="form.label"
-          label="Menu Label *"
-          hint="Display name for the menu item"
-          :rules="[val => !!val || 'Label is required']"
-          outlined
-        />
+        <!-- General Info Section -->
+        <div class="text-subtitle2 text-primary q-mb-sm">General Information</div>
+        <div class="row q-col-gutter-md">
+            <div class="col-12 col-md-6">
+                <q-input
+                v-model="form.label"
+                label="Menu Label *"
+                hint="Display name"
+                :rules="[val => !!val || 'Label is required']"
+                outlined
+                dense
+                />
+            </div>
+            <div class="col-12 col-md-6">
+                <q-input
+                v-model="form.label_ar"
+                label="Label (Arabic)"
+                hint="Arabic display name"
+                outlined
+                dir="rtl"
+                dense
+                />
+            </div>
+        </div>
 
-        <!-- Module -->
-        <q-select
-          v-model="form.module"
-          :options="moduleOptions"
-          label="Module *"
-          hint="Feature grouping for this menu"
-          :rules="[val => !!val || 'Module is required']"
-          outlined
-          emit-value
-          map-options
-        />
+        <div class="row q-col-gutter-md">
+            <div class="col-12 col-md-6">
+                 <q-select
+                v-model="form.module"
+                :options="moduleOptions"
+                label="Module *"
+                hint="Feature grouping"
+                :rules="[val => !!val || 'Module is required']"
+                outlined
+                dense
+                emit-value
+                map-options
+                />
+            </div>
+            <div class="col-12 col-md-6">
+               <q-input
+                v-model="form.icon"
+                label="Icon"
+                hint="Material icon name"
+                outlined
+                dense
+                >
+                <template v-slot:prepend>
+                    <q-icon :name="form.icon || 'help_outline'" />
+                </template>
+                </q-input>
+            </div>
+        </div>
 
-        <!-- Parent Menu -->
+        <q-separator class="q-my-sm" />
+
+        <!-- Routing & Hierarchy -->
+        <div class="text-subtitle2 text-primary q-mb-sm">Hierarchy & Routing</div>
+        
         <q-select
           v-model="form.parent_id"
           :options="parentOptions"
           label="Parent Menu"
           hint="Leave empty for root level menu"
           outlined
+          dense
           clearable
           emit-value
           map-options
           :loading="loadingParents"
         />
 
-        <!-- Route -->
-        <q-select
-          v-model="form.route"
-          :options="routeOptions"
-          label="Route"
-          hint="Named Laravel route (optional for parent menus)"
-          outlined
-          clearable
-          use-input
-          input-debounce="300"
-          @filter="filterRoutes"
-          :loading="loadingRoutes"
-        >
-          <template v-slot:no-option>
-            <q-item>
-              <q-item-section class="text-grey">
-                No routes found
-              </q-item-section>
-            </q-item>
-          </template>
-        </q-select>
+        <div class="row q-col-gutter-md">
+            <div class="col-12 col-md-6">
+                <q-select
+                v-model="form.route"
+                :options="routeOptions"
+                label="Route"
+                hint="Laravel named route"
+                outlined
+                dense
+                clearable
+                use-input
+                input-debounce="300"
+                @filter="filterRoutes"
+                :loading="loadingRoutes"
+                >
+                <template v-slot:no-option>
+                    <q-item>
+                    <q-item-section class="text-grey">No routes found</q-item-section>
+                    </q-item>
+                </template>
+                </q-select>
+            </div>
+            <div class="col-12 col-md-6">
+                <q-select
+                v-model="form.permission"
+                :options="permissionOptions"
+                label="Permission"
+                hint="Required permission"
+                outlined
+                dense
+                clearable
+                use-input
+                input-debounce="300"
+                @filter="filterPermissions"
+                :loading="loadingPermissions"
+                />
+            </div>
+        </div>
 
-        <!-- Permission -->
-        <q-select
-          v-model="form.permission"
-          :options="permissionOptions"
-          label="Permission"
-          hint="Spatie permission required to see this menu"
-          outlined
-          clearable
-          use-input
-          input-debounce="300"
-          @filter="filterPermissions"
-          :loading="loadingPermissions"
-        />
+        <q-separator class="q-my-sm" />
 
-        <!-- Icon -->
-        <q-input
-          v-model="form.icon"
-          label="Icon"
-          hint="Icon name (e.g., 'home', 'settings')"
-          outlined
-        >
-          <template v-slot:prepend>
-            <q-icon :name="form.icon || 'help_outline'" />
-          </template>
-        </q-input>
-
-        <!-- Order -->
-        <q-input
-          v-model.number="form.order"
-          type="number"
-          label="Order"
-          hint="Display order (lower numbers appear first)"
-          outlined
-          :rules="[val => val >= 0 || 'Order must be 0 or greater']"
-        />
-
-        <!-- Active Status -->
-        <q-toggle
-          v-model="form.is_active"
-          label="Active"
-          color="positive"
-        />
-
-        <!-- Feature Flag -->
-        <div class="q-gutter-sm">
-          <q-toggle
-            v-model="form.is_feature_flag"
-            label="Feature Flag"
-            color="purple"
-          />
-          
-          <q-input
-            v-if="form.is_feature_flag"
-            v-model="form.feature_flag_key"
-            label="Feature Flag Key *"
-            hint="Configuration key for feature flag"
-            :rules="[val => !form.is_feature_flag || !!val || 'Feature flag key is required']"
-            outlined
-          />
+        <!-- Settings -->
+        <div class="text-subtitle2 text-primary q-mb-sm">Settings</div>
+        
+        <div class="row items-center q-gutter-md">
+            <div class="col-auto">
+                 <q-input
+                v-model.number="form.order"
+                type="number"
+                label="Sort Order"
+                outlined
+                dense
+                style="width: 120px"
+                :rules="[val => val >= 0 || 'Order >= 0']"
+                />
+            </div>
+            <div class="col">
+                <q-toggle
+                v-model="form.is_active"
+                label="Active Status"
+                color="positive"
+                />
+            </div>
+        </div>
+        
+        <!-- Advanced Feature Flag -->
+        <div class="bg-grey-1 q-pa-sm rounded-borders">
+            <div class="row items-center">
+                 <q-toggle
+                    v-model="form.is_feature_flag"
+                    label="Enable Functionality Flag"
+                    color="purple"
+                    size="sm"
+                />
+            </div>
+             <q-slide-transition>
+                <div v-if="form.is_feature_flag" class="q-mt-sm">
+                    <q-input
+                        v-model="form.feature_flag_key"
+                        label="Feature Flag Key *"
+                        dense
+                        outlined
+                        :rules="[val => !form.is_feature_flag || !!val || 'Key required']"
+                    />
+                </div>
+            </q-slide-transition>
         </div>
       </q-form>
     </q-card-section>
@@ -173,6 +216,7 @@ const permissionOptions = ref([]);
 // Form data
 const form = reactive({
   label: '',
+  label_ar: '',
   module: '',
   parent_id: null,
   route: null,
@@ -211,6 +255,7 @@ onMounted(async () => {
   if (props.menu) {
     Object.assign(form, {
       label: props.menu.label,
+      label_ar: props.menu.label_ar,
       module: props.menu.module,
       parent_id: props.menu.parent_id,
       route: props.menu.route,

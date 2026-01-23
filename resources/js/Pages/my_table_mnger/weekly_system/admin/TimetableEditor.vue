@@ -643,7 +643,16 @@ const showRandomFillDialog = ref(false)
 const fetchClassrooms = async () => {
   loadingClassrooms.value = true
   try {
-    const response = await axios.get(`/api/classrooms`)
+    // Get school_id from URL query params if exists
+    const urlParams = new URLSearchParams(window.location.search);
+    const schoolId = urlParams.get('school');
+    
+    const params = {};
+    if (schoolId) {
+        params.school_id = schoolId;
+    }
+
+    const response = await axios.get(`/api/classrooms`, { params })
     const result = response.data.data || response.data || []
     classrooms.value = Array.isArray(result) ? result : []
     // Auto-select first classroom if not already set

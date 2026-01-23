@@ -118,9 +118,9 @@ import { ref, watch } from 'vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import Modal from '@/Components/Modal.vue';
-import NProgress from 'nprogress';
 import axios from 'axios';
 import * as XLSX from 'xlsx/xlsx.mjs'; // Changed to browser-compatible import
+import NProgress from 'nprogress'; // Statically imported for global usage
 
 const props = defineProps({
     // URLs
@@ -283,6 +283,7 @@ const validatePreviewData = async () => {
 
 const confirmImport = async () => {
     isUploading.value = true;
+    
     NProgress.start();
 
     try {
@@ -316,6 +317,7 @@ const undoImport = async () => {
     if (!importId.value || !props.undoUrl) return;
 
     isUndoing.value = true;
+    
     NProgress.start();
 
     try {

@@ -3,10 +3,17 @@
 namespace App\Observers;
 
 use App\Models\Menu;
-use Illuminate\Support\Facades\Cache;
+use App\Services\MenuService;
 
 class MenuObserver
 {
+    protected $menuService;
+
+    public function __construct(MenuService $menuService)
+    {
+        $this->menuService = $menuService;
+    }
+
     /**
      * Handle the Menu "created" event.
      */
@@ -44,12 +51,10 @@ class MenuObserver
      */
     protected function clearMenuCache(): void
     {
-        // Clear all menu caches using pattern matching
-        // This will clear caches for all users
-        Cache::flush(); // Simple approach - clears all cache
-        
-        // For more targeted cache clearing, you could use:
-        // Cache::tags(['menus'])->flush();
-        // But this requires a cache driver that supports tags (Redis, Memcached)
+        try {
+            $this->menuService->clearCache();  
+        } catch (\Exception $e) {
+            // Log error
+        } 
     }
 }

@@ -409,7 +409,7 @@ onMounted(() => {
   min-height: 100vh;
   background: #f7fafc;
   
-  &__header {
+  :is(.quiz-analytics__header) {
     background: white;
     border-bottom: 1px solid #e2e8f0;
     padding: 16px 24px;
@@ -421,29 +421,29 @@ onMounted(() => {
     z-index: 10;
   }
   
-  &__header-content {
+  :is(.quiz-analytics__header-content) {
     flex: 1;
   }
   
-  &__title {
+  :is(.quiz-analytics__title) {
     font-size: 1.5rem;
     font-weight: 700;
     color: #1a202c;
     margin: 0;
   }
   
-  &__subtitle {
+  :is(.quiz-analytics__subtitle) {
     font-size: 0.875rem;
-    color: #718096;
+    color: #718026;
     margin: 4px 0 0 0;
   }
   
-  &__header-actions {
+  :is(.quiz-analytics__header-actions) {
     display: flex;
     gap: 12px;
   }
   
-  &__loading {
+  :is(.quiz-analytics__loading) {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -456,27 +456,27 @@ onMounted(() => {
     }
   }
   
-  &__content {
+  :is(.quiz-analytics__content) {
     padding: 24px;
     max-width: 1400px;
     margin: 0 auto;
   }
   
-  &__overview {
+  :is(.quiz-analytics__overview) {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 20px;
     margin-bottom: 32px;
   }
   
-  &__charts {
+  :is(.quiz-analytics__charts) {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
     gap: 24px;
     margin-bottom: 32px;
   }
   
-  &__chart-card {
+  :is(.quiz-analytics__chart-card) {
     border-radius: 16px;
     
     h3 {
@@ -486,7 +486,7 @@ onMounted(() => {
     }
   }
   
-  &__chart {
+  :is(.quiz-analytics__chart) {
     height: 300px;
     display: flex;
     align-items: center;
@@ -494,12 +494,12 @@ onMounted(() => {
     color: #a0aec0;
   }
   
-  &__questions-card {
+  :is(.quiz-analytics__questions-card) {
     border-radius: 16px;
     margin-bottom: 32px;
   }
   
-  &__questions-header {
+  :is(.quiz-analytics__questions-header) {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -512,13 +512,13 @@ onMounted(() => {
     }
   }
   
-  &__questions-list {
+  :is(.quiz-analytics__questions-list) {
     display: flex;
     flex-direction: column;
     gap: 16px;
   }
   
-  &__question-item {
+  :is(.quiz-analytics__question-item) {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -528,7 +528,7 @@ onMounted(() => {
     gap: 24px;
   }
   
-  &__question-info {
+  :is(.quiz-analytics__question-info) {
     display: flex;
     align-items: center;
     gap: 16px;
@@ -536,7 +536,7 @@ onMounted(() => {
     min-width: 0;
   }
   
-  &__question-number {
+  :is(.quiz-analytics__question-number) {
     width: 40px;
     height: 40px;
     border-radius: 50%;
@@ -549,37 +549,37 @@ onMounted(() => {
     flex-shrink: 0;
   }
   
-  &__question-text {
+  :is(.quiz-analytics__question-text) {
     color: #1a202c;
     font-size: 0.875rem;
   }
   
-  &__question-stats {
+  :is(.quiz-analytics__question-stats) {
     display: flex;
     gap: 32px;
     align-items: center;
   }
   
-  &__stat-item {
+  :is(.quiz-analytics__stat-item) {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 8px;
   }
   
-  &__stat-value {
+  :is(.quiz-analytics__stat-value) {
     font-size: 1.25rem;
     font-weight: 700;
     color: #1a202c;
   }
   
-  &__performers {
+  :is(.quiz-analytics__performers) {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
     gap: 24px;
   }
   
-  &__performers-card {
+  :is(.quiz-analytics__performers-card) {
     border-radius: 16px;
     
     h3 {
@@ -589,13 +589,13 @@ onMounted(() => {
     }
   }
   
-  &__performers-list {
+  :is(.quiz-analytics__performers-list) {
     display: flex;
     flex-direction: column;
     gap: 12px;
   }
   
-  &__performer-item {
+  :is(.quiz-analytics__performer-item) {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -604,11 +604,11 @@ onMounted(() => {
     border-radius: 12px;
   }
   
-  &__performer-rank {
+  :is(.quiz-analytics__performer-rank) {
     flex-shrink: 0;
   }
   
-  &__rank-badge {
+  :is(.quiz-analytics__rank-badge) {
     width: 32px;
     height: 32px;
     border-radius: 50%;
@@ -618,34 +618,34 @@ onMounted(() => {
     font-weight: 700;
     font-size: 0.875rem;
     
-    &--1 {
+    :is(.quiz-analytics__rank-badge--1) {
       background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
       color: white;
     }
     
-    &--2 {
+    :is(.quiz-analytics__rank-badge--2) {
       background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
       color: white;
     }
     
-    &--3 {
+    :is(.quiz-analytics__rank-badge--3) {
       background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
       color: white;
     }
   }
   
-  &__performer-info {
+  :is(.quiz-analytics__performer-info) {
     flex: 1;
     min-width: 0;
   }
   
-  &__performer-name {
+  :is(.quiz-analytics__performer-name) {
     font-weight: 600;
     color: #1a202c;
     font-size: 0.875rem;
   }
   
-  &__performer-score {
+  :is(.quiz-analytics__performer-score) {
     font-size: 0.75rem;
     color: #718096;
     margin-top: 2px;
@@ -655,25 +655,25 @@ onMounted(() => {
 /* Responsive */
 @media (max-width: 960px) {
   .quiz-analytics {
-    &__header {
+    :is(.quiz-analytics__header) {
       flex-wrap: wrap;
     }
     
-    &__charts {
+    :is(.quiz-analytics__charts) {
       grid-template-columns: 1fr;
     }
     
-    &__question-item {
+    :is(.quiz-analytics__question-item) {
       flex-direction: column;
       align-items: flex-start;
     }
     
-    &__question-stats {
+    :is(.quiz-analytics__question-stats) {
       width: 100%;
       justify-content: space-around;
     }
     
-    &__performers {
+    :is(.quiz-analytics__performers) {
       grid-template-columns: 1fr;
     }
   }

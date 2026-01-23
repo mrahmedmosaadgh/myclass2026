@@ -307,6 +307,7 @@ Route::middleware(['auth:sanctum', 'web'])->group(function () {
 });
 
 // Navigation API
+Route::middleware(['auth:sanctum', 'web'])->get('/navigation', [NavigationController::class, 'index']);
 
 
 // Load Feature API Routes (Modules)

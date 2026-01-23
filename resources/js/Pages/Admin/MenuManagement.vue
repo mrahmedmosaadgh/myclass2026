@@ -1,49 +1,61 @@
 <template>
   <AdminLayout>
     <div class="q-pa-md">
-      <div class="row q-mb-md items-center">
+      <!-- Header Section -->
+      <div class="row q-mb-lg items-center justify-between">
         <div class="col">
-          <div class="text-h4">Menu Management</div>
-          <div class="text-subtitle2 text-grey-7">Manage navigation menus for your application</div>
+          <div class="row items-center q-gutter-x-sm text-grey-8 q-mb-xs">
+            <q-icon name="settings" size="sm" />
+            <div class="text-h5 text-weight-bold">Menu Management</div>
+          </div>
+          <div class="text-subtitle2 text-grey-7">Configure and organize application navigation menus</div>
         </div>
-        <div class="col-auto">
+        <div class="col-auto row q-gutter-sm">
+           <q-btn
+            color="secondary"
+            icon="upload"
+            label="Import"
+            outline
+            @click="showBulkImportDialog = true"
+          />
           <q-btn
             color="primary"
             icon="add"
             label="Create Menu"
+            unelevated
             @click="showCreateDialog = true"
-          />
-          <q-btn
-            color="secondary"
-            icon="upload"
-            label="Bulk Import"
-            class="q-ml-sm"
-            @click="showBulkImportDialog = true"
           />
         </div>
       </div>
 
-      <!-- Module Tabs -->
-      <q-tabs
-        v-model="activeModule"
-        dense
-        class="text-grey"
-        active-color="primary"
-        indicator-color="primary"
-        align="left"
-      >
-        <q-tab
-          v-for="module in modules"
-          :key="module"
-          :name="module"
-          :label="formatModuleName(module)"
-        />
-      </q-tabs>
+      <q-card flat bordered class="bg-white rounded-borders">
+          <!-- Module Tabs -->
+          <q-tabs
+            v-model="activeModule"
+            dense
+            class="text-grey-7 bg-grey-1"
+            active-color="primary"
+            indicator-color="primary"
+            align="left"
+            narrow-indicator
+          >
+            <q-tab
+              v-for="module in modules"
+              :key="module"
+              :name="module"
+              class="q-px-lg q-py-md"
+            >
+                <div class="row items-center no-wrap">
+                    <q-icon name="widgets" class="q-mr-sm" size="xs" />
+                    {{ formatModuleName(module) }}
+                </div>
+            </q-tab>
+          </q-tabs>
 
-      <q-separator />
+          <q-separator />
 
-      <q-tab-panels v-model="activeModule" animated>
-        <q-tab-panel v-for="module in modules" :key="module" :name="module">
+      <q-tab-panels v-model="activeModule" animated class="bg-transparent">
+        <q-tab-panel v-for="module in modules" :key="module" :name="module" class="q-pa-none">
           <MenuList
             :menus="getMenusByModule(module)"
             :module="module"
@@ -53,6 +65,7 @@
           />
         </q-tab-panel>
       </q-tab-panels>
+      </q-card>
 
       <!-- Create/Edit Dialog -->
       <q-dialog v-model="showFormDialog" persistent>
@@ -90,11 +103,12 @@ import MenuList from './MenuManagement/components/MenuList.vue';
 import MenuForm from './MenuManagement/components/MenuForm.vue';
 import MenuDeleteDialog from './MenuManagement/components/MenuDeleteDialog.vue';
 import BulkImportDialog from './MenuManagement/components/BulkImportDialog.vue';
-import { useNavigationStore } from '@/Stores/useNavigationStore';
+import { useMenuStore } from '@/Stores/useMenuStore';
 import axios from 'axios';
 
 const $q = useQuasar();
 const page = usePage();
+const menuStore = useMenuStore();
 
 // Props from Inertia
 const props = defineProps({
@@ -204,10 +218,9 @@ const handleReorder = async (items) => {
   }
 };
 
-const navigationStore = useNavigationStore();
-
 const handleBulkImported = async () => {
-  await navigationStore.invalidateCache();
+  // Invalidate menu store cache
+  menuStore.menus.clear();
   router.reload({ only: ['menus'] });
 };
 

@@ -388,6 +388,7 @@ class MenuController extends Controller
     {
         return [
             'label' => 'required|string|max:255',
+            'label_ar' => 'nullable|string|max:255',
             'route' => 'nullable|string|max:255',
             'permission' => 'nullable|string|exists:permissions,name',
             'module' => ['required', 'string', Rule::in(config('menus.modules'))],

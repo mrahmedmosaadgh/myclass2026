@@ -328,12 +328,12 @@ onMounted(() => {
     margin: 4px 0 0 0;
   }
   
-  &__header-actions {
+  :is(.quiz-preview__header-actions) {
     display: flex;
     gap: 12px;
   }
   
-  &__container {
+  .quiz-preview__container {
     display: flex;
     justify-content: center;
     padding: 40px 24px 100px;
@@ -362,7 +362,7 @@ onMounted(() => {
     border-radius: 16px;
   }
   
-  &__info-grid {
+  :is(.quiz-preview__info-grid) {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 24px;
@@ -406,33 +406,33 @@ onMounted(() => {
     }
   }
   
-  &__question-header {
+  :is(.quiz-preview__question-header) {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 16px;
   }
   
-  &__question-number {
+  :is(.quiz-preview__question-number) {
     font-size: 1rem;
     font-weight: 600;
     color: #667eea;
   }
   
-  &__question-text {
+  :is(.quiz-preview__question-text) {
     font-size: 1rem;
     color: #1a202c;
     margin-bottom: 16px;
     line-height: 1.6;
   }
   
-  &__options {
+  :is(.quiz-preview__options) {
     display: flex;
     flex-direction: column;
     gap: 12px;
   }
   
-  &__option {
+  :is(.quiz-preview__option) {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -440,14 +440,14 @@ onMounted(() => {
     border: 2px solid #e2e8f0;
     border-radius: 8px;
     transition: all 0.2s ease;
-    
-    &--correct {
-      background: rgba(34, 197, 94, 0.05);
-      border-color: #22c55e;
-    }
   }
   
-  &__option-label {
+  :is(.quiz-preview__option--correct) {
+    background: rgba(34, 197, 94, 0.05);
+    border-color: #22c55e;
+  }
+  
+  :is(.quiz-preview__option-label) {
     width: 32px;
     height: 32px;
     border-radius: 50%;
@@ -460,34 +460,33 @@ onMounted(() => {
     flex-shrink: 0;
   }
   
-  &__option-text {
+  :is(.quiz-preview__option-text) {
     flex: 1;
     color: #1a202c;
   }
   
-  &__explanation {
+  :is(.quiz-preview__explanation) {
     margin-top: 16px;
     padding: 16px;
     background: rgba(251, 191, 36, 0.05);
     border-left: 4px solid #fbbf24;
     border-radius: 8px;
-    
-    p {
-      margin: 8px 0 0 0;
-      color: #1a202c;
-      line-height: 1.6;
-    }
   }
   
-  &__explanation-header {
+  .quiz-preview__explanation p {
+    margin: 8px 0 0 0;
+    color: #1a202c;
+    line-height: 1.6;
+  }
+  
+  :is(.quiz-preview__explanation-header) {
     display: flex;
     align-items: center;
     gap: 8px;
     color: #d97706;
-    font-weight: 600;
   }
   
-  &__settings-card {
+  :is(.quiz-preview__settings-card) {
     border-radius: 16px;
     
     h4 {
@@ -497,13 +496,13 @@ onMounted(() => {
     }
   }
   
-  &__settings-list {
+  :is(.quiz-preview__settings-list) {
     display: flex;
     flex-direction: column;
     gap: 12px;
   }
   
-  &__setting-item {
+  :is(.quiz-preview__setting-item) {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -511,7 +510,7 @@ onMounted(() => {
     color: #1a202c;
   }
   
-  &__action-bar {
+  :is(.quiz-preview__action-bar) {
     position: fixed;
     bottom: 0;
     left: 0;
@@ -529,38 +528,34 @@ onMounted(() => {
 
  
 @media (max-width: 960px) {
-  .quiz-preview {
-    &__header {
-      flex-wrap: wrap;
-    }
-    
-    &__header-actions {
-      width: 100%;
-      justify-content: flex-end;
-    }
-    
-    &__info-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
+  :is(.quiz-preview__header) {
+    flex-wrap: wrap;
+  }
+  
+  :is(.quiz-preview__header-actions) {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  
+  :is(.quiz-preview__info-grid) {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 600px) {
-  .quiz-preview {
-    &__container {
-      padding: 20px 16px 100px;
-    }
+  .quiz-preview__container {
+    padding: 20px 16px 100px;
+  }
+  
+  .quiz-preview__info-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .quiz-preview__action-bar {
+    flex-wrap: wrap;
     
-    &__info-grid {
-      grid-template-columns: 1fr;
-    }
-    
-    &__action-bar {
-      flex-wrap: wrap;
-      
-      .q-space {
-        display: none;
-      }
+    .q-space {
+      display: none;
     }
   }
 }

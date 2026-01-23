@@ -138,7 +138,7 @@ const pointsBadgeClass = computed(() => {
   transform: perspective(500px) rotateX(5deg);
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   letter-spacing: 0.5px;
-  animation: float 3s ease-in-out infinite;
+  /* Removed infinite float animation for better performance */
 }
 
 @keyframes float {
@@ -155,7 +155,7 @@ const pointsBadgeClass = computed(() => {
     0 4px 8px rgba(118, 75, 162, 0.3),
     0 0 20px rgba(240, 147, 251, 0.4),
     inset 0 -2px 6px rgba(0, 0, 0, 0.15);
-  animation: rainbow-pulse 2s ease-in-out infinite, float 3s ease-in-out infinite;
+  /* Removed infinite animations for better performance */
 }
 
 @keyframes rainbow-pulse {
@@ -255,7 +255,7 @@ const pointsBadgeClass = computed(() => {
 
 .student-card:hover::before {
   opacity: 1;
-  animation: rotate-gradient 3s linear infinite;
+  /* Removed infinite rotate-gradient animation for better performance */
 }
 
 @keyframes rotate-gradient {
@@ -277,7 +277,7 @@ const pointsBadgeClass = computed(() => {
   border-color: #fbbf24;
   transform: perspective(1000px) rotateY(0deg) scale(1.2) translateY(-8px);
   z-index: 30;
-  animation: selected-bounce 0.6s ease-out, selected-glow 2s ease-in-out infinite;
+  animation: selected-bounce 0.6s ease-out; /* Removed infinite selected-glow for better performance */
 }
 
 .student-card.selected::before {
@@ -288,7 +288,7 @@ const pointsBadgeClass = computed(() => {
     #b45309 75%, 
     #92400e 100%);
   opacity: 1;
-  animation: rotate-gradient 2s linear infinite;
+  /* Removed infinite rotate-gradient animation for better performance */
 }
 
 @keyframes selected-bounce {
@@ -374,7 +374,7 @@ const pointsBadgeClass = computed(() => {
   box-shadow: 
     0 4px 12px rgba(16, 185, 129, 0.5),
     0 0 20px rgba(16, 185, 129, 0.3);
-  animation: badge-pop 0.5s ease-out, excellent-shine 2s ease-in-out infinite;
+  animation: badge-pop 0.5s ease-out; /* Removed infinite excellent-shine for better performance */
 }
 
 @keyframes excellent-shine {
@@ -401,7 +401,7 @@ const pointsBadgeClass = computed(() => {
   box-shadow: 
     0 4px 12px rgba(239, 68, 68, 0.5),
     0 0 20px rgba(239, 68, 68, 0.3);
-  animation: badge-pop 0.5s ease-out, warning-pulse 1.5s ease-in-out infinite;
+  animation: badge-pop 0.5s ease-out; /* Removed infinite warning-pulse for better performance */
 }
 
 @keyframes warning-pulse {

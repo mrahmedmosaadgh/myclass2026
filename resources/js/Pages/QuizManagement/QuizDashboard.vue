@@ -801,13 +801,12 @@ onMounted(() => {
 }
 .quiz-dashboard {
   min-height: 100vh;
-  
-  &__container {
-    max-width: 1400px;
-    margin: 0 auto;
-  }
 }
 
+.quiz-dashboard__container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
 .bg-gradient-primary {
   background: linear-gradient(135deg, #1976D2 0%, #64B5F6 100%);
 }

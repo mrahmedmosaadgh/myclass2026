@@ -179,7 +179,6 @@ import { ref, watch } from 'vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import Modal from '@/Components/Modal.vue';
-import NProgress from 'nprogress';
 import axios from 'axios';
 import * as XLSX from 'xlsx/xlsx.mjs'; // Changed to browser-compatible import
 

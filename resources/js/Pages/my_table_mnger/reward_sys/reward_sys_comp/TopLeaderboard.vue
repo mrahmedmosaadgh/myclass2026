@@ -372,8 +372,8 @@ function openBulkCertificates() {
 </script>
 
 <style scoped>
-.shiny-name { background: linear-gradient(135deg, #ffd700, #ffed4e, #ffd700, #ffed4e); background-size: 300% 300%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900; text-shadow: 0 0 20px rgba(255,215,0,0.8); animation: shimmer 4s ease-in-out infinite; }
-.shiny-name-small { background: linear-gradient(135deg, #ffffff, #e0e0e0, #ffffff); background-size: 200% 200%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; animation: shimmer 3s ease-in-out infinite; }
+.shiny-name { background: linear-gradient(135deg, #ffd700, #ffed4e, #ffd700, #ffed4e); background-size: 300% 300%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900; text-shadow: 0 0 20px rgba(255,215,0,0.8); /* Removed infinite shimmer animation for better performance */ }
+.shiny-name-small { background: linear-gradient(135deg, #ffffff, #e0e0e0, #ffffff); background-size: 200% 200%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; /* Removed infinite shimmer animation for better performance */ }
 @keyframes shimmer { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
 @keyframes shine-move { 0% { transform: translateX(-100%) skewX(-15deg); } 100% { transform: translateX(100%) skewX(-15deg); } }
 .animate-shine-move { animation: shine-move 4s infinite; }

@@ -702,11 +702,11 @@ onMounted(() => {
   min-height: 100vh;
   background: #f0f4f8;
   padding: 24px;
-  
-  &__container {
-    max-width: 1800px;
-    margin: 0 auto;
-  }
+}
+
+.quiz-builder__container {
+  max-width: 1800px;
+  margin: 0 auto;
 }
 
 .hover-scale {

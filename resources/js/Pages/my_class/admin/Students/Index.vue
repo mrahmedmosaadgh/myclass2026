@@ -895,7 +895,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import axios from 'axios'
-import * as XLSX from 'xlsx'
+// import * as XLSX from 'xlsx' // Dynamic import used instead
 import StudentPromotionDialog from './components/StudentPromotionDialog.vue'
 
 const props = defineProps({
@@ -1429,7 +1429,7 @@ const viewHistory = async (student) => {
   }
 }
 
-const handleExport = () => {
+const handleExport = async () => {
   if (students.value.length === 0) {
     $q.notify({
       type: 'warning',
@@ -1439,6 +1439,7 @@ const handleExport = () => {
   }
 
   try {
+    const XLSX = await import('xlsx');
     // Prepare data for export
     const exportData = students.value.map(student => ({
       'ID': student.s_id || '',
@@ -1486,7 +1487,7 @@ const bulkChangeClassroom = () => {
   })
 }
 
-const exportSelected = () => {
+const exportSelected = async () => {
   if (selected.value.length === 0) {
     $q.notify({
       type: 'warning',
@@ -1496,6 +1497,7 @@ const exportSelected = () => {
   }
 
   try {
+    const XLSX = await import('xlsx');
     // Prepare data for export
     const exportData = selected.value.map(student => ({
       'ID': student.s_id || '',
@@ -1593,8 +1595,9 @@ const readExcelFile = (file) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
+        const XLSX = await import('xlsx');
         const data = new Uint8Array(e.target.result)
         const workbook = XLSX.read(data, { type: 'array' })
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]]

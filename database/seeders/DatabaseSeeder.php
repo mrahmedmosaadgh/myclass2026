@@ -29,6 +29,9 @@ class DatabaseSeeder extends Seeder
             
             // Step 3: Create HR user, HR record, and first school
             InitialHRAndSchoolSeeder::class,
+
+            // Step 3.5: Create Menus
+            V2MenuSeeder::class,
             
             // Step 4: Create school structure (sections, stages, grades, subjects, etc.)
             // InitialSchoolStructureSeeder::class,

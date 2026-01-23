@@ -8,6 +8,7 @@ class Menu extends Model
 {
     protected $fillable = [
         'label',
+        'label_ar',
         'route',
         'permission',
         'module',

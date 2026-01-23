@@ -4,10 +4,13 @@ import { Link, usePage, router } from '@inertiajs/vue3';
 import { useAppStore } from '@/Stores/AppStore';
 import { useStringHelpers } from '@/composables/useStringHelpers';
 import InertiaLinkWrapper from '@/Components/InertiaLinkWrapper.vue';
-import menuConfig from './MenuConfig/index.js';
+import { useMenuStore } from '@/Stores/useMenuStore';
 import LanguageSwitcher from '@/Components/LanguageSwitcher.vue';
 import ToolsSwitcherPanel from '@/Components/ToolsSwitcherPanel.vue';
+import { useI18n } from 'vue-i18n';
+
 const Ap = useAppStore();
+const menuStore = useMenuStore();
 const { capitalizeFirst } = useStringHelpers();
 
 // Sidebar state
@@ -36,26 +39,38 @@ const onSchoolSelected = (value1) => {
 
 const loadSchool = () => {
   const School_id = localStorage.getItem('school_id');
-  if (School_id) {
-    selectedSchool_id.value = parseInt(School_id);
-  } else {
-    const School_id2 = usePage()?.props?.auth?.user?.teacher?.School_id;
-    if (School_id2) {
-      selectedSchool_id.value = School_id2;
-      localStorage.setItem('school_id', selectedSchool_id.value);
-      return;
-    }
+  let foundId = null;
 
-    const School_id3 = usePage()?.props?.auth?.user?.student?.School_id;
-    if (School_id3) {
-      selectedSchool_id.value = School_id3;
-      localStorage.setItem('school_id', selectedSchool_id.value);
-      return;
+  if (School_id) {
+    foundId = parseInt(School_id);
+  } else {
+    // Try to find default from user roles
+    const teacherSchoolId = usePage()?.props?.auth?.user?.teacher?.School_id;
+    const studentSchoolId = usePage()?.props?.auth?.user?.student?.School_id;
+    
+    if (teacherSchoolId) foundId = teacherSchoolId;
+    else if (studentSchoolId) foundId = studentSchoolId;
+  }
+
+  if (foundId) {
+    selectedSchool_id.value = foundId;
+    localStorage.setItem('school_id', foundId);
+    
+    // Find and set the school data object
+    const userSchools = usePage()?.props?.auth?.user?.schools || [];
+    const school = userSchools.find(s => s.id === foundId);
+    if (school) {
+        selectedSchool_data.value = school;
+        Ap.selectedSchool_data = school;
     }
   }
 };
 
-onMounted(loadSchool);
+onMounted(() => {
+    loadSchool();
+    // Initial fetch
+    fetchMenusForRole(selectedRole.value);
+});
 
 // No need to update localStorage for sidebar state
 
@@ -74,10 +89,16 @@ const selectedRole = ref(
 // Save selected role to localStorage and dispatch event
 watch(selectedRole, (newRole) => {
   localStorage.setItem('selectedRole', newRole);
+  fetchMenusForRole(newRole);
   document.dispatchEvent(new CustomEvent('role-changed', {
     detail: { role: newRole }
   }));
 });
+
+async function fetchMenusForRole(role, force = false) {
+    expandedMenus.value.clear();
+    await menuStore.fetchMenus(role, force);
+}
 
 // Check if user can switch roles
 const canSwitchRoles = computed(() => {
@@ -91,32 +112,55 @@ const canManageMenus = computed(() => {
   return roles.includes('admin') || roles.includes('superadmin') || permissions.includes('manage-menus');
 });
 
-// Cache for menu items
-const menuCache = ref({});
-const menuItems = ref([]);
+// Menu items derived from store
+const menuItems = computed(() => {
+    return menuStore.getMenusForRole(selectedRole.value);
+});
 const expandedMenus = ref(new Set());
 
-// Initialize menu items
-onMounted(() => {
-  menuItems.value = getMenuForRole(selectedRole.value);
-});
+// --- Search & Localization Logic ---
+const { locale } = useI18n();
+const searchTerm = ref('');
 
-// Update menu items when role changes
-watch(selectedRole, (newRole) => {
-  menuItems.value = getMenuForRole(newRole);
-  expandedMenus.value.clear();
-});
+const getLocalizedTitle = (item) => {
+    if (!item) return '';
+    if (locale.value === 'ar' && item.label_ar) {
+        return item.label_ar;
+    }
+    return item.title;
+};
 
-// Helper function to get menu items for a specific role with caching
-function getMenuForRole(role) {
-  const normalizedRole = role ? role.toLowerCase() : 'guest';
-  if (menuCache.value[normalizedRole]) {
-    return menuCache.value[normalizedRole];
-  }
-  let items = menuConfig[normalizedRole] || menuConfig.guest;
-  menuCache.value[normalizedRole] = items;
-  return items;
-}
+const filteredMenuItems = computed(() => {
+    if (!searchTerm.value || !searchTerm.value.trim()) {
+        return menuItems.value;
+    }
+    
+    const lower = searchTerm.value.toLowerCase();
+    
+    const filter = (items) => {
+        return items.reduce((acc, item) => {
+            const title = getLocalizedTitle(item);
+            const matches = title.toLowerCase().includes(lower);
+            
+            let childrenMatch = [];
+            if (item.children && item.children.length) {
+                childrenMatch = filter(item.children);
+            }
+            
+            if (matches || childrenMatch.length > 0) {
+                acc.push({
+                    ...item,
+                    children: childrenMatch
+                });
+            }
+            
+            return acc;
+        }, []);
+    };
+    
+    return filter(menuItems.value);
+});
+// -----------------------------------
 
 const logout = () => {
   if (hasRoute('logout')) {
@@ -126,6 +170,21 @@ const logout = () => {
   }
 };
 
+// Computed params for routes
+const currentRouteParams = computed(() => {
+    const params = {};
+    // Extract school slug if available
+    if (selectedSchool_data.value?.slug) {
+        params.school_slug = selectedSchool_data.value.slug;
+        params.school = selectedSchool_data.value.slug;
+    } else if (selectedSchool_data.value?.id) {
+        // Fallback to ID if slug missing (though route might demand slug)
+        params.school_slug = selectedSchool_data.value.id;
+        params.school = selectedSchool_data.value.id;
+    }
+    return params;
+});
+
 // Helper functions for routes
 const hasRoute = (name) => {
   try {
@@ -134,6 +193,22 @@ const hasRoute = (name) => {
   } catch (error) {
     return false;
   }
+};
+
+const isRouteMissing = (path) => {
+  // Handle null, undefined, or empty paths
+  if (!path) return true;
+
+  // Handle special paths
+  if (path === '#' || path === '/route-not-found') return true;
+
+  // Handle absolute paths without extensions (likely valid)
+  if (typeof path === 'string' && path.startsWith('/') && !path.includes('.')) {
+    return false;
+  }
+
+  // Check if route exists
+  return !hasRoute(path);
 };
 
 const safeRoute = (path, params = {}) => {
@@ -155,28 +230,13 @@ const safeRoute = (path, params = {}) => {
       return typeof path === 'string' && path.startsWith('/') ? path : '/route-not-found';
     }
 
-    // Return the route
-    return window.route(path, params);
+    // Return the route with context params merged
+    const mergedParams = { ...currentRouteParams.value, ...params };
+    return window.route(path, mergedParams);
   } catch (error) {
     console.warn(`Route error with ${path}:`, error);
     return typeof path === 'string' && path.startsWith('/') ? path : '/route-not-found';
   }
-};
-
-const isRouteMissing = (path) => {
-  // Handle null, undefined, or empty paths
-  if (!path) return true;
-
-  // Handle special paths
-  if (path === '#' || path === '/route-not-found') return true;
-
-  // Handle absolute paths without extensions (likely valid)
-  if (typeof path === 'string' && path.startsWith('/') && !path.includes('.')) {
-    return false;
-  }
-
-  // Check if route exists
-  return !hasRoute(path);
 };
 
 // Helper function to get a default icon if none is provided
@@ -238,6 +298,14 @@ const getDefaultIcon = (icon) => {
         :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-3'"
       >
     <div class="p-0  relative    ">
+            <!-- Offline Indicator -->
+            <q-banner v-if="menuStore.offline" dense class="bg-warning text-white q-mb-xs">
+                <template v-slot:avatar>
+                    <q-icon name="wifi_off" size="sm" color="white" />
+                </template>
+                <div class="text-caption">Offline Mode (Cached)</div>
+            </q-banner>
+
            <!-- Role indicator in sidebar -->
       <q-banner v-if="canSwitchRoles" class="  q-mb-sm mt-2">
           <template v-slot:avatar>
@@ -247,11 +315,6 @@ const getDefaultIcon = (icon) => {
             <div class="text-subtitle1 text-weight-bold text-primary">
             <!-- {{ capitalizeFirst(selectedRole) }} -->
             
-
-
-
-
-
   
     <!-- Role Switcher (Only visible for admin/superadmin) -->
     <div class="p-0 z-50   "> 
@@ -296,10 +359,6 @@ const getDefaultIcon = (icon) => {
       </q-btn-dropdown>
     </div>
 
-
-
-
-
 <!-- ========================================================= -->
 
                 <!-- Language Switcher -->
@@ -319,6 +378,20 @@ const getDefaultIcon = (icon) => {
                   <q-tooltip>Edit Menus</q-tooltip>
                 </q-btn>
 
+                <q-btn
+                  v-if="canManageMenus"
+                  round
+                  flat
+                  icon="refresh"
+                  :loading="menuStore.loading"
+                  color="grey-7"
+                  size="sm"
+                  class="q-mr-sm"
+                  @click="fetchMenusForRole(selectedRole, true)"
+                >
+                  <q-tooltip>Refresh Menus</q-tooltip>
+                </q-btn>
+
                 <!--    toolsSwitcher -->
                 <ToolsSwitcherPanel class="q-mr-sm" />
 
@@ -326,6 +399,22 @@ const getDefaultIcon = (icon) => {
 
         </div> 
         </q-banner>
+
+        <!-- Search Input -->
+        <div class="q-px-md q-pb-sm">
+          <q-input
+            v-model="searchTerm"
+            dense
+            outlined
+            placeholder="Search..."
+            clearable
+            class="full-width"
+          >
+            <template v-slot:prepend>
+              <q-icon name="search" />
+            </template>
+          </q-input>
+        </div>
 
 <div class="p-0 absolute -top-2">
 
@@ -341,15 +430,15 @@ const getDefaultIcon = (icon) => {
         <q-scroll-area class="col">
           <!-- Render menu items based on selected role -->
           <q-list padding>
-            <template v-for="(item, index) in menuItems" :key="index">
+            <template v-for="(item, index) in filteredMenuItems" :key="index">
               <!-- Menu item with children (submenu) -->
               <template v-if="item.children && item.children.length">
                 <q-expansion-item
                   :icon="getDefaultIcon(item.icon)"
-                  :label="item.title"
+                  :label="getLocalizedTitle(item)"
                   :caption="item.inactive ? 'Inactive' : ''"
                   :disable="item.inactive"
-                  :default-opened="expandedMenus.has(index)"
+                  :default-opened="expandedMenus.has(index) || !!searchTerm"
                   @update:model-value="(val) => val ? expandedMenus.add(index) : expandedMenus.delete(index)"
                   expand-separator
                 >
@@ -370,7 +459,7 @@ const getDefaultIcon = (icon) => {
                             <q-icon :name="getDefaultIcon(childItem.icon)" />
                           </q-item-section>
                           <q-item-section>
-                            <q-item-label>{{ childItem.title }}</q-item-label>
+                            <q-item-label>{{ getLocalizedTitle(childItem) }}</q-item-label>
                           </q-item-section>
                           <q-tooltip v-if="childItem.tooltip">{{ childItem.tooltip }}</q-tooltip>
                         </q-item>
@@ -389,7 +478,7 @@ const getDefaultIcon = (icon) => {
                           <q-icon :name="getDefaultIcon(disabledItem.icon)" />
                         </q-item-section>
                         <q-item-section>
-                          <q-item-label>{{ disabledItem.title }}</q-item-label>
+                          <q-item-label>{{ getLocalizedTitle(disabledItem) }}</q-item-label>
                           <q-item-label caption v-if="disabledItem.inactive">Inactive</q-item-label>
                           <q-item-label caption v-else-if="isRouteMissing(disabledItem?.to)">Coming Soon</q-item-label>
                         </q-item-section>
@@ -415,7 +504,7 @@ const getDefaultIcon = (icon) => {
                     <q-icon :name="getDefaultIcon(item.icon)" />
                   </q-item-section>
                   <q-item-section>
-                    <q-item-label>{{ item.title }}</q-item-label>
+                    <q-item-label>{{ getLocalizedTitle(item) }}</q-item-label>
                   </q-item-section>
                   <q-tooltip v-if="item.tooltip">{{ item.tooltip }}</q-tooltip>
                 </q-item>
@@ -432,7 +521,7 @@ const getDefaultIcon = (icon) => {
                   <q-icon :name="getDefaultIcon(item.icon)" />
                 </q-item-section>
                 <q-item-section>
-                  <q-item-label>{{ item.title }}</q-item-label>
+                  <q-item-label>{{ getLocalizedTitle(item) }}</q-item-label>
                   <q-item-label caption v-if="item.inactive">Inactive</q-item-label>
                   <q-item-label caption v-else-if="isRouteMissing(item.to)">Coming Soon</q-item-label>
                 </q-item-section>

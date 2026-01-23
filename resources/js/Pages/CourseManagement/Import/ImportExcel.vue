@@ -179,7 +179,6 @@ import { ref, watch } from 'vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import Modal from '@/Components/Modal.vue';
-import NProgress from 'nprogress';
 import axios from 'axios';
 import * as XLSX from 'xlsx/xlsx.mjs'; // Changed to browser-compatible import
 
@@ -346,9 +345,11 @@ const validatePreviewData = async () => {
 
 const confirmImport = async () => {
     isUploading.value = true;
-    NProgress.start();
 
     try {
+        const NProgress = (await import('nprogress')).default;
+        NProgress.start();
+
         const response = await axios.post(props.importUrl, {
             data: previewData.value.map(row => row.data),
             columns: props.columns // Add columns configuration
@@ -370,6 +371,7 @@ const confirmImport = async () => {
         showResults.value = true;
     } finally {
         isUploading.value = false;
+        const NProgress = (await import('nprogress')).default;
         NProgress.done();
         fileInput.value.value = '';
     }
@@ -379,6 +381,7 @@ const undoImport = async () => {
     if (!importId.value || !props.undoUrl) return;
 
     isUndoing.value = true;
+    const NProgress = (await import('nprogress')).default;
     NProgress.start();
 
     try {
@@ -390,6 +393,7 @@ const undoImport = async () => {
         alert('Failed to undo the import');
     } finally {
         isUndoing.value = false;
+        const NProgress = (await import('nprogress')).default;
         NProgress.done();
     }
 };

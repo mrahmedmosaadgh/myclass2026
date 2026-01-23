@@ -7,6 +7,4 @@ import('vue3-toastify/dist/index.css');
 import('quasar/dist/quasar.css');
 import('@quasar/extras/material-icons/material-icons.css');
 
-if (localStorage.getItem('offlineMode') === 'true') {
-    import('nprogress/nprogress.css');
-}
+// nprogress CSS is already imported in app.js

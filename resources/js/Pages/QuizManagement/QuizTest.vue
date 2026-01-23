@@ -32,73 +32,63 @@
               />
             </div>
             
- 
-            
+            <!-- Enhanced Quiz Question Options – Looks AMAZING in 2025 -->
+            <div class="quiz-test__question-wrapper">
+              <!-- Question Text with nice typography -->
+              <div 
+                class="quiz-test__question-text"
+                v-html="currentQuestion.question_text"
+              />
 
-<!-- Enhanced Quiz Question Options – Looks AMAZING in 2025 -->
-<div class="quiz-test__question-wrapper">
+              <!-- Beautiful Options Grid -->
+              <div class="quiz-test__options-grid">
+                <div
+                  v-for="(option, index) in currentQuestion.options"
+                  :key="option.id"
+                  class="quiz-test__option-card"
+                  :class="{
+                    'selected': selectedAnswer === option.id,
+                    'correct': showResult && option.is_correct,
+                    'incorrect': showResult && selectedAnswer === option.id && !option.is_correct
+                  }"
+                  @click="selectAnswer(option.id)"
+                  role="radio"
+                  :aria-checked="selectedAnswer === option.id"
+                  :tabindex="0"
+                  @keydown.enter.space.prevent="selectAnswer(option.id)"
+                >
+                  <!-- Custom Radio + Letter Badge -->
+                  <div class="quiz-test__option-prefix">
+                    <div class="quiz-test__option-letter">
+                      {{ String.fromCharCode(65 + index) }}
+                    </div>
+                    <!-- <div class="quiz-test__custom-radio">
+                      <div class="quiz-test__custom-radio-inner" />
+                    </div> -->
+                  </div>
 
-  <!-- Question Text with nice typography -->
-  <div 
-    class="quiz-test__question-text"
-    v-html="currentQuestion.question_text"
-  />
+                  <!-- Option Text -->
+                  <div class="quiz-test__option-text">
+                    {{ option.option_text }}
+                  </div>
 
-  <!-- Beautiful Options Grid -->
-  <div class="quiz-test__options-grid">
-    <div
-      v-for="(option, index) in currentQuestion.options"
-      :key="option.id"
-      class="quiz-test__option-card"
-      :class="{
-        'selected': selectedAnswer === option.id,
-        'correct': showResult && option.is_correct,
-        'incorrect': showResult && selectedAnswer === option.id && !option.is_correct
-      }"
-      @click="selectAnswer(option.id)"
-      role="radio"
-      :aria-checked="selectedAnswer === option.id"
-      :tabindex="0"
-      @keydown.enter.space.prevent="selectAnswer(option.id)"
-    >
-      <!-- Custom Radio + Letter Badge -->
-      <div class="quiz-test__option-prefix">
-        <div class="quiz-test__option-letter">
-          {{ String.fromCharCode(65 + index) }}
-        </div>
-        <!-- <div class="quiz-test__custom-radio">
-          <div class="quiz-test__custom-radio-inner" />
-        </div> -->
-      </div>
-
-      <!-- Option Text -->
-      <div class="quiz-test__option-text">
-        {{ option.option_text }}
-      </div>
-
-      <!-- Checkmark / Cross Feedback (appears after submit) -->
-      <transition name="fade-scale">
-        <div 
-          v-if="showResult && selectedAnswer === option.id"
-          class="quiz-test__feedback-icon"
-        >
-          <svg v-if="option.is_correct" class="icon-success" viewBox="0 0 24 24">
-            <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-          </svg>
-          <svg v-else class="icon-error" viewBox="0 0 24 24">
-            <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-          </svg>
-        </div>
-      </transition>
-    </div>
-  </div>
-</div>
-
-
-
-
-
-
+                  <!-- Checkmark / Cross Feedback (appears after submit) -->
+                  <transition name="fade-scale">
+                    <div 
+                      v-if="showResult && selectedAnswer === option.id"
+                      class="quiz-test__feedback-icon"
+                    >
+                      <svg v-if="option.is_correct" class="icon-success" viewBox="0 0 24 24">
+                        <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                      </svg>
+                      <svg v-else class="icon-error" viewBox="0 0 24 24">
+                        <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                      </svg>
+                    </div>
+                  </transition>
+                </div>
+              </div>
+            </div>
           </q-card-section>
         </q-card>
 
@@ -402,258 +392,258 @@ onUnmounted(() => {
 .quiz-test {
   min-height: 100vh;
   background: #f7fafc;
+}
+
+.quiz-test__header {
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.quiz-test__header-content {
+  flex: 1;
+}
+
+.quiz-test__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin: 0 0 4px 0;
+}
+
+.quiz-test__progress {
+  font-size: 0.875rem;
+  color: #718096;
+}
+
+.quiz-test__timer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #fef3c7;
+  border-radius: 8px;
+  font-weight: 600;
+  color: #92400e;
+}
+
+.quiz-test__container {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 24px;
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.quiz-test__question-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.quiz-test__question-card {
+  border-radius: 16px;
+}
+
+.quiz-test__question-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.quiz-test__question-number {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #667eea;
+}
+
+.quiz-test__question-text {
+  font-size: 1.125rem;
+  color: #1a202c;
+  margin-bottom: 32px;
+  line-height: 1.6;
+}
+
+.quiz-test__options {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.quiz-test__option {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
   
-  &__header {
-    background: white;
-    border-bottom: 1px solid #e2e8f0;
-    padding: 16px 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    position: sticky;
-    top: 0;
-    z-index: 10;
+  &:hover {
+    border-color: #667eea;
+    background: rgba(102, 126, 234, 0.05);
   }
   
-  &__header-content {
-    flex: 1;
-  }
-  
-  &__title {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #1a202c;
-    margin: 0 0 4px 0;
-  }
-  
-  &__progress {
-    font-size: 0.875rem;
-    color: #718096;
-  }
-  
-  &__timer {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    background: #fef3c7;
-    border-radius: 8px;
-    font-weight: 600;
-    color: #92400e;
-  }
-  
-  &__container {
-    display: grid;
-    grid-template-columns: 1fr 300px;
-    gap: 24px;
-    padding: 24px;
-    max-width: 1400px;
-    margin: 0 auto;
-  }
-  
-  &__question-container {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-  }
-  
-  &__question-card {
-    border-radius: 16px;
-  }
-  
-  &__question-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
-  }
-  
-  &__question-number {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #667eea;
-  }
-  
-  &__question-text {
-    font-size: 1.125rem;
-    color: #1a202c;
-    margin-bottom: 32px;
-    line-height: 1.6;
-  }
-  
-  &__options {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-  
-  &__option {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 16px;
-    border: 2px solid #e2e8f0;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    
-    &:hover {
-      border-color: #667eea;
-      background: rgba(102, 126, 234, 0.05);
-    }
-    
-    &--selected {
-      border-color: #667eea;
-      background: rgba(102, 126, 234, 0.1);
-    }
-  }
-  
-  &__option-radio {
-    flex-shrink: 0;
-  }
-  
-  &__option-label {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: #f7fafc;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    color: #667eea;
-    flex-shrink: 0;
-  }
-  
-  &__option-text {
-    flex: 1;
-    color: #1a202c;
-    font-size: 1rem;
-  }
-  
-  &__navigation {
-    display: flex;
-    gap: 16px;
-  }
-  
-  &__sidebar {
-    position: sticky;
-    top: 88px;
-    height: fit-content;
-    
-    .q-card {
-      border-radius: 16px;
-    }
-    
-    h4 {
-      margin: 0 0 16px 0;
-      font-size: 1rem;
-      font-weight: 600;
-    }
-  }
-  
-  &__question-grid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 8px;
-  }
-  
-  &__question-nav-item {
-    aspect-ratio: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid #e2e8f0;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 600;
-    color: #718096;
-    transition: all 0.2s ease;
-    
-    &:hover {
-      border-color: #667eea;
-      color: #667eea;
-    }
-    
-    &--current {
-      border-color: #667eea;
-      background: #667eea;
-      color: white;
-    }
-    
-    &--answered {
-      border-color: #22c55e;
-      background: rgba(34, 197, 94, 0.1);
-      color: #22c55e;
-    }
-  }
-  
-  &__results {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: calc(100vh - 80px);
-    padding: 24px;
-  }
-  
-  &__results-card {
-    max-width: 600px;
-    width: 100%;
-    border-radius: 16px;
-    
-    h2 {
-      margin: 16px 0 8px 0;
-      font-size: 2rem;
-      font-weight: 700;
-    }
-  }
-  
-  &__results-message {
-    color: #718096;
-    margin-bottom: 32px;
-  }
-  
-  &__results-stats {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 24px;
-    margin-bottom: 32px;
-  }
-  
-  &__stat {
-    padding: 16px;
-    background: #f7fafc;
-    border-radius: 12px;
-  }
-  
-  &__stat-value {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #1a202c;
-  }
-  
-  &__stat-label {
-    font-size: 0.875rem;
-    color: #718096;
-    margin-top: 4px;
-  }
-  
-  &__results-actions {
-    display: flex;
-    gap: 16px;
-    justify-content: center;
+  :is(.quiz-test__option--selected) {
+    border-color: #667eea;
+    background: rgba(102, 126, 234, 0.1);
   }
 }
 
+.quiz-test__option-radio {
+  flex-shrink: 0;
+}
+
+.quiz-test__option-label {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #f7fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #667eea;
+  flex-shrink: 0;
+}
+
+.quiz-test__option-text {
+  flex: 1;
+  color: #1a202c;
+  font-size: 1rem;
+}
+
+.quiz-test__navigation {
+  display: flex;
+  gap: 16px;
+}
+
+.quiz-test__sidebar {
+  position: sticky;
+  top: 88px;
+  height: fit-content;
+}
+
+.quiz-test__sidebar {
+  .q-card {
+    border-radius: 16px;
+  }
+}
+
+.quiz-test__sidebar h4 {
+  margin: 0 0 16px 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.quiz-test__question-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+.quiz-test__question-nav-item {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #718096;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    border-color: #667eea;
+    color: #667eea;
+  }
+  
+  :is(.quiz-test__question-nav-item--current) {
+    border-color: #667eea;
+    background: #667eea;
+    color: white;
+  }
+  
+  :is(.quiz-test__question-nav-item--answered) {
+    border-color: #22c55e;
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+  }
+}
+
+.quiz-test__results {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 80px);
+  padding: 24px;
+}
+
+.quiz-test__results-card {
+  max-width: 600px;
+  width: 100%;
+  border-radius: 16px;
+  
+  h2 {
+    margin: 16px 0 8px 0;
+    font-size: 2rem;
+    font-weight: 700;
+  }
+}
+
+.quiz-test__results-message {
+  color: #718096;
+  margin-bottom: 32px;
+}
+
+.quiz-test__results-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.quiz-test__stat {
+  padding: 16px;
+  background: #f7fafc;
+  border-radius: 12px;
+}
+
+.quiz-test__stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a202c;
+}
+
+.quiz-test__stat-label {
+  font-size: 0.875rem;
+  color: #718096;
+  margin-top: 4px;
+}
+
+.quiz-test__results-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
 @media (max-width: 1024px) {
-  .quiz-test {
-    &__container {
-      grid-template-columns: 1fr;
-    }
-    
-    &__sidebar {
-      position: static;
-    }
+  .quiz-test__container {
+    grid-template-columns: 1fr;
+  }
+  
+  .quiz-test__sidebar {
+    position: static;
   }
 }
 
@@ -702,18 +692,18 @@ onUnmounted(() => {
   border-color: #3b82f6;
 }
 
-.quiz-test__option-card.selected {
+.quiz-test__option-card--selected {
   background: #eff6ff;
   border-color: #3b82f6;
   box-shadow: 0 0 0 4px rgba(59,130,246,0.3);
 }
 
-.quiz-test__option-card.correct {
+.quiz-test__option-card--correct {
   background: #f0fdf4;
   border-color: #22c55e;
 }
 
-.quiz-test__option-card.incorrect {
+.quiz-test__option-card--incorrect {
   background: #fef2f2;
   border-color: #ef4444;
 }
@@ -753,7 +743,7 @@ onUnmounted(() => {
   transition: all 0.2s ease;
 }
 
-.quiz-test__option-card.selected .quiz-test__custom-radio {
+.quiz-test__option-card--selected .quiz-test__custom-radio {
   border-color: #3b82f6;
 }
 
@@ -765,7 +755,7 @@ onUnmounted(() => {
   transition: all 0.3s ease;
 }
 
-.quiz-test__option-card.selected .quiz-test__custom-radio-inner {
+.quiz-test__option-card--selected .quiz-test__custom-radio-inner {
   width: 12px;
   height: 12px;
 }

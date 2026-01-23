@@ -33,6 +33,7 @@ class RoleSeeder extends Seeder
             // System Management (Super Admin only)
             'manage app',
             'manage system settings',
+            'manage-menus',
             
             // User Management
             'manage users',
@@ -150,6 +151,7 @@ class RoleSeeder extends Seeder
             'view settings',
             'communicate with teachers',
             'communicate with parents',
+            'manage-menus',
         ]);
 
         // Create HR Admin Role

@@ -1,126 +1,125 @@
 <template>
   <div class="menu-list">
-    <div v-if="menus.length === 0" class="text-center q-pa-lg text-grey-6">
-      <q-icon name="menu" size="64px" class="q-mb-md" />
-      <div class="text-h6">No menus in this module</div>
-      <div class="text-subtitle2">Create your first menu to get started</div>
+    <div v-if="menus.length === 0" class="text-center q-pa-xl text-grey-6 bg-white rounded-borders">
+      <q-icon name="menu" size="64px" class="q-mb-md text-grey-4" />
+      <div class="text-h6 text-grey-7">No menus in this module</div>
+      <div class="text-subtitle2 text-grey-5">Create your first menu to get started</div>
     </div>
 
-    <q-list v-else bordered separator ref="sortableList">
+    <q-list v-else bordered separator class="rounded-borders overflow-hidden bg-white" ref="sortableList">
       <template v-for="menu in sortedMenus" :key="menu.id">
         <!-- Parent Menu Item -->
         <q-item
-          :class="['menu-item', { 'menu-inactive': !menu.is_active }]"
+          :class="['menu-item q-py-sm', { 'menu-inactive': !menu.is_active }]"
           :data-id="menu.id"
+          clickable
+          v-ripple
         >
           <q-item-section avatar>
-            <q-icon :name="menu.icon || 'folder'" size="sm" />
+            <q-avatar size="32px" color="grey-2" text-color="primary" :icon="menu.icon || 'folder'" />
           </q-item-section>
 
           <q-item-section>
-            <q-item-label>{{ menu.label }}</q-item-label>
-            <q-item-label caption>
-              <q-badge v-if="menu.route" color="blue-grey-5" class="q-mr-xs">
-                {{ menu.route }}
-              </q-badge>
-              <q-badge v-if="menu.permission" color="orange-5">
-                {{ menu.permission }}
-              </q-badge>
+            <q-item-label class="text-weight-bold text-subtitle1">{{ menu.label }}</q-item-label>
+            <q-item-label caption class="row items-center q-gutter-x-sm">
+                <span v-if="menu.route" class="text-code bg-grey-2 q-px-xs rounded-borders text-grey-8">
+                    {{ menu.route }}
+                </span>
+                <span v-if="menu.permission" class="text-code bg-orange-1 text-orange-9 q-px-xs rounded-borders">
+                    <q-icon name="lock" size="xs" />
+                    {{ menu.permission }}
+                </span>
             </q-item-label>
           </q-item-section>
 
           <q-item-section side>
-            <div class="row q-gutter-xs">
-              <q-badge v-if="!menu.is_active" color="red" label="Inactive" />
-              <q-badge v-if="menu.is_feature_flag" color="purple" label="Feature Flag" />
+            <div class="row items-center q-gutter-x-sm">
+               <!-- Status Indicators -->
+              <q-badge v-if="!menu.is_active" color="red-1" text-color="red-9" label="Inactive" />
+              <q-badge v-if="menu.is_feature_flag" color="purple-1" text-color="purple-9" label="Feature Flag" />
+              
+              <div class="q-separator vertical q-mx-sm" />
+
+              <!-- Actions -->
               <q-btn
-                flat
-                dense
-                round
+                flat dense round
                 icon="edit"
-                color="primary"
-                size="sm"
-                @click="$emit('edit', menu)"
-              >
-                <q-tooltip>Edit Menu</q-tooltip>
-              </q-btn>
-              <q-btn
-                flat
-                dense
-                round
-                icon="delete"
-                color="negative"
-                size="sm"
-                @click="$emit('delete', menu)"
-              >
-                <q-tooltip>Delete Menu</q-tooltip>
-              </q-btn>
-              <q-btn
-                flat
-                dense
-                round
-                icon="drag_indicator"
                 color="grey-7"
-                size="sm"
-                class="drag-handle"
+                class="hover_primary"
+                @click.stop="$emit('edit', menu)"
               >
-                <q-tooltip>Drag to reorder</q-tooltip>
+                <q-tooltip>Edit</q-tooltip>
               </q-btn>
+              
+              <q-btn
+                flat dense round
+                icon="delete"
+                color="grey-7"
+                class="hover_negative"
+                @click.stop="$emit('delete', menu)"
+              >
+                <q-tooltip>Delete</q-tooltip>
+              </q-btn>
+              
+              <q-icon name="drag_indicator" class="drag-handle cursor-move text-grey-5 hover_text_dark q-ml-sm" size="sm" />
             </div>
           </q-item-section>
         </q-item>
 
         <!-- Children Menu Items -->
-        <q-item
-          v-for="child in menu.children"
-          :key="child.id"
-          :class="['menu-item menu-child', { 'menu-inactive': !child.is_active }]"
-          :inset-level="1"
-        >
-          <q-item-section avatar>
-            <q-icon :name="child.icon || 'subdirectory_arrow_right'" size="sm" />
-          </q-item-section>
+        <div v-if="menu.children && menu.children.length" class="menu-children-container bg-grey-1 q-py-xs">
+            <q-item
+            v-for="child in menu.children"
+            :key="child.id"
+            :class="['menu-child-item q-py-xs', { 'menu-inactive': !child.is_active }]"
+            clickable
+            v-ripple
+            dense
+            >
+            
+            <!-- Tree Line Visual -->
+            <q-item-section avatar class="q-pl-lg" style="min-width: 60px;">
+                <div class="tree-line"></div>
+                 <q-icon :name="child.icon || 'subdirectory_arrow_right'" size="xs" color="grey-6" />
+            </q-item-section>
 
-          <q-item-section>
-            <q-item-label>{{ child.label }}</q-item-label>
-            <q-item-label caption>
-              <q-badge v-if="child.route" color="blue-grey-5" class="q-mr-xs">
-                {{ child.route }}
-              </q-badge>
-              <q-badge v-if="child.permission" color="orange-5">
-                {{ child.permission }}
-              </q-badge>
-            </q-item-label>
-          </q-item-section>
+            <q-item-section>
+                <q-item-label>{{ child.label }}</q-item-label>
+                <q-item-label caption class="row items-center q-gutter-x-sm">
+                 <span v-if="child.route" class="text-caption text-grey-6">{{ child.route }}</span>
+                 <span v-if="child.permission" class="text-caption text-orange-8">
+                     <q-icon name="lock" size="10px" /> {{ child.permission }}
+                 </span>
+                </q-item-label>
+            </q-item-section>
 
-          <q-item-section side>
-            <div class="row q-gutter-xs">
-              <q-badge v-if="!child.is_active" color="red" label="Inactive" />
-              <q-btn
-                flat
-                dense
-                round
-                icon="edit"
-                color="primary"
-                size="sm"
-                @click="$emit('edit', child)"
-              >
-                <q-tooltip>Edit Menu</q-tooltip>
-              </q-btn>
-              <q-btn
-                flat
-                dense
-                round
-                icon="delete"
-                color="negative"
-                size="sm"
-                @click="$emit('delete', child)"
-              >
-                <q-tooltip>Delete Menu</q-tooltip>
-              </q-btn>
-            </div>
-          </q-item-section>
-        </q-item>
+            <q-item-section side>
+                <div class="row q-gutter-x-xs opacity-hover-group">
+                <q-badge v-if="!child.is_active" color="red-1" text-color="red-9" label="Inactive" dense />
+                 <!-- Feature Flag Badge -->
+                 <q-icon v-if="child.is_feature_flag" name="flag" color="purple" size="xs">
+                    <q-tooltip>Feature Flagged</q-tooltip>
+                 </q-icon>
+
+                <q-btn
+                    flat dense round
+                    icon="edit"
+                    color="grey-7"
+                    size="sm"
+                    @click.stop="$emit('edit', child)"
+                />
+                <q-btn
+                    flat dense round
+                    icon="delete"
+                    color="grey-7"
+                    size="sm"
+                    class="hover_negative_text"
+                    @click.stop="$emit('delete', child)"
+                />
+                </div>
+            </q-item-section>
+            </q-item>
+        </div>
       </template>
     </q-list>
   </div>
@@ -173,31 +172,93 @@ onMounted(() => {
 
 <style scoped>
 .menu-item {
-  transition: all 0.3s ease;
+  transition: background-color 0.2s ease;
+}
+
+.menu-item:hover {
+  background-color: #f5f5f5;
+}
+
+.menu-child-item {
+    transition: background-color 0.2s ease;
+}
+.menu-child-item:hover {
+    background-color: #e0e0e0;
 }
 
 .menu-inactive {
-  opacity: 0.5;
-}
-
-.menu-child {
-  background-color: rgba(0, 0, 0, 0.02);
+  opacity: 0.6;
+  filter: grayscale(0.8);
 }
 
 .sortable-ghost {
   opacity: 0.4;
   background-color: #e3f2fd;
+  border: 2px dashed #1976d2;
 }
 
 .sortable-chosen {
-  background-color: #bbdefb;
+  background-color: #e3f2fd;
 }
 
 .sortable-drag {
   opacity: 1;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
 
-.drag-handle {
-  cursor: move;
+.hover_primary:hover {
+    color: var(--q-primary) !important;
+    background-color: rgba(25, 118, 210, 0.1);
+}
+
+.hover_negative:hover {
+    color: var(--q-negative) !important;
+    background-color: rgba(193, 7, 7, 0.1);
+}
+
+.hover_negative_text:hover {
+    color: var(--q-negative) !important;
+}
+
+.text-code {
+    font-family: monospace;
+    font-size: 0.85em;
+}
+
+.tree-line {
+    position: absolute;
+    left: 28px;
+    top: 0;
+    bottom: 0px;
+    width: 2px;
+    background-color: #e0e0e0;
+    z-index: 0;
+}
+/* Connect tree line horizontally to icon */
+.menu-child-item .q-item__section--avatar {
+    position: relative;
+    overflow: visible; 
+}
+.menu-child-item .q-item__section--avatar::before {
+    content: '';
+    position: absolute;
+    left: -14px; /* Adjust based on tree-line left */
+    top: 50%;
+    width: 14px;
+    height: 2px;
+    background-color: #e0e0e0;
+}
+
+.menu-children-container {
+    position: relative;
+}
+.menu-children-container::before {
+    content: '';
+    position: absolute;
+    left: 44px; /* Align with parent avatar center usually around 16px + 16px pad */
+    top: 0;
+    bottom: 15px; /* Stop before last item fully ends */
+    width: 2px;
+    background-color: #e0e0e0;
 }
 </style>

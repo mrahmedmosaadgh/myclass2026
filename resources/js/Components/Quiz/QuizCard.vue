@@ -283,7 +283,7 @@ const truncateText = (text, maxLength) => {
     color: #4a5568;
   }
   
-  &__actions {
+  :is(.quiz-card__actions) {
     display: flex;
     gap: 4px;
     opacity: 0.8;
@@ -337,7 +337,7 @@ const truncateText = (text, maxLength) => {
       font-size: 0.8125rem;
     }
     
-    &__actions {
+    :is(.quiz-card__actions) {
       opacity: 1; // Always show on mobile
     }
   }
