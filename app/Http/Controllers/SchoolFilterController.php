@@ -74,7 +74,7 @@ class SchoolFilterController extends Controller
     {
         try {
             $classrooms = Classroom::where('school_id', $schoolId)
-                                 ->select('id', 'name')
+                                 ->select('id', 'name', 'grade_id', 'stage_id')
                                  ->orderBy('name')
                                  ->get();
 

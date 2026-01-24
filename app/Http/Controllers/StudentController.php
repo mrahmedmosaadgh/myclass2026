@@ -91,18 +91,19 @@ class StudentController extends Controller
 
     public function store(Request $request)
     {
-        try {
-            $validated = $request->validate([
-                'name' => 'required|string|max:255',
-                'name_ar' => 'nullable|string|max:255',
-                'name_cute' => 'nullable|string|max:255',
-                'notes' => 'nullable|string',
-                'school_id' => 'required|exists:schools,id',
-                'stage_id' => 'required|exists:stages,id',
-                'grade_id' => 'required|exists:grades,id',
-                'classroom_id' => 'required|exists:classrooms,id',
-            ]);
+        // Validation will auto-throw ValidationException (422)
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'name_ar' => 'nullable|string|max:255',
+            'name_cute' => 'nullable|string|max:255',
+            'notes' => 'nullable|string',
+            'school_id' => 'required|exists:schools,id',
+            'stage_id' => 'required|exists:stages,id',
+            'grade_id' => 'required|exists:grades,id',
+            'classroom_id' => 'required|exists:classrooms,id',
+        ]);
 
+        try {
             $student = Student::create($validated);
 
             return response()->json([
@@ -1029,9 +1030,26 @@ class StudentController extends Controller
                 })
                 ->when($request->classroom_id, function ($query, $classroomId) {
                     return $query->where('classroom_id', $classroomId);
+                })
+                ->when($request->search, function ($query, $search) {
+                    return $query->search($search);
                 });
 
-            $records = $query->orderBy('name')->paginate(40);
+            // Sorting logic
+            $sortBy = $request->input('sort_by', 'name');
+            $sortDirection = $request->boolean('descending') ? 'desc' : 'asc';
+            
+            // Allow sorting by relation columns if needed, or just standard columns
+            // For simplicity, we'll sort by the main table columns or use joins for relations later if requested
+            // basic safety check to prevent SQL injection if column doesn't exist
+            $sortableColumns = ['name', 'name_ar', 's_id', 'created_at'];
+            if (in_array($sortBy, $sortableColumns)) {
+                $query->orderBy($sortBy, $sortDirection);
+            } else {
+                $query->orderBy('name', 'asc'); // Default
+            }
+
+            $records = $query->paginate($request->input('rows_per_page', 40));
 
             return response()->json([
                 'records' => $records

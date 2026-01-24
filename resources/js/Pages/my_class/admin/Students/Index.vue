@@ -23,7 +23,7 @@
             unelevated
           >
             <q-tooltip v-if="!canAddStudent">
-              Please select School, Grade, and Classroom first
+              Please select School and Classroom first
             </q-tooltip>
           </q-btn>
           <q-btn
@@ -42,7 +42,7 @@
             unelevated
           >
             <q-tooltip v-if="!canAddStudent">
-              Please select School, Grade, and Classroom first
+              Please select School and Classroom first
             </q-tooltip>
           </q-btn>
           <q-btn
@@ -127,7 +127,7 @@
         </div>
 
         <div class="row q-col-gutter-md">
-          <div class="col-12 col-md-3">
+          <div class="col-12 col-md-4">
             <q-select
               v-model="filters.school_id"
               :options="schools"
@@ -147,28 +147,7 @@
             </q-select>
           </div>
 
-          <div class="col-12 col-md-3">
-            <q-select
-              v-model="filters.stage_id"
-              :options="stages"
-              option-value="id"
-              option-label="name"
-              label="Stage"
-              outlined
-              dense
-              clearable
-              emit-value
-              map-options
-              :disable="!filters.school_id"
-              @update:model-value="onStageChange"
-            >
-              <template v-slot:prepend>
-                <q-icon name="layers" />
-              </template>
-            </q-select>
-          </div>
-
-          <div class="col-12 col-md-3">
+          <div class="col-12 col-md-4">
             <q-select
               v-model="filters.grade_id"
               :options="grades"
@@ -189,7 +168,7 @@
             </q-select>
           </div>
 
-          <div class="col-12 col-md-3">
+          <div class="col-12 col-md-4">
             <q-select
               v-model="filters.classroom_id"
               :options="classrooms"
@@ -202,7 +181,7 @@
               emit-value
               map-options
               :disable="!filters.school_id"
-              @update:model-value="applyFilters"
+              @update:model-value="resetPaginationAndFilter"
               @popup-show="onClassroomDropdownShow"
             >
               <template v-slot:prepend>
@@ -218,14 +197,15 @@
             </q-select>
           </div>
 
-          <div class="col-12 col-md-6">
+          <div class="col-12">
             <q-input
               v-model="filters.search"
               label="Search by name or ID"
               outlined
               dense
               clearable
-              @update:model-value="debouncedSearch"
+              @change="resetPaginationAndFilter"
+              @keydown.enter="resetPaginationAndFilter"
             >
               <template v-slot:prepend>
                 <q-icon name="search" />
@@ -243,7 +223,7 @@
         :columns="columns"
         row-key="id"
         :loading="loading"
-        :pagination="pagination"
+        v-model:pagination="pagination"
         @request="onRequest"
         selection="multiple"
         v-model:selected="selected"
@@ -447,9 +427,6 @@
                     <q-chip dense color="secondary" text-color="white" icon="business">
                       {{ editingStudent.school?.name || 'N/A' }}
                     </q-chip>
-                    <q-chip dense color="info" text-color="white" icon="layers">
-                      {{ editingStudent.stage?.name || 'N/A' }}
-                    </q-chip>
                     <q-chip dense color="primary" text-color="white" icon="school">
                       {{ editingStudent.grade?.name || 'N/A' }}
                     </q-chip>
@@ -476,36 +453,6 @@
               </div>
               <div class="col-12 col-md-6">
                 <q-select
-                  v-model="studentForm.stage_id"
-                  :options="formStages"
-                  option-value="id"
-                  option-label="name"
-                  label="Stage *"
-                  outlined
-                  emit-value
-                  map-options
-                  :disable="!studentForm.school_id"
-                  :rules="[val => !!val || 'Stage is required']"
-                  @update:model-value="onFormStageChange"
-                />
-              </div>
-              <div class="col-12 col-md-6">
-                <q-select
-                  v-model="studentForm.grade_id"
-                  :options="formGrades"
-                  option-value="id"
-                  option-label="name"
-                  label="Grade *"
-                  outlined
-                  emit-value
-                  map-options
-                  :disable="!studentForm.stage_id"
-                  :rules="[val => !!val || 'Grade is required']"
-                  @update:model-value="onFormGradeChange"
-                />
-              </div>
-              <div class="col-12">
-                <q-select
                   v-model="studentForm.classroom_id"
                   :options="formClassrooms"
                   option-value="id"
@@ -514,9 +461,9 @@
                   outlined
                   emit-value
                   map-options
-                  :disable="!studentForm.grade_id"
+                  :disable="!studentForm.school_id"
                   :rules="[val => !!val || 'Classroom is required']"
-                  @update:model-value="onClassroomChange"
+                  @update:model-value="onFormClassroomChange"
                 >
                   <template v-slot:prepend>
                     <q-icon name="meeting_room" />
@@ -910,8 +857,9 @@ const props = defineProps({
 const $q = useQuasar()
 
 // State
+// State
 const loading = ref(false)
-const students = ref([])
+const students = ref(props.records?.data || [])
 const selected = ref([])
 const showStudentDialog = ref(false)
 const showPromotionDialog = ref(false)
@@ -1006,9 +954,9 @@ const studentForm = ref({
 const pagination = ref({
   sortBy: 'name',
   descending: false,
-  page: 1,
-  rowsPerPage: 25,
-  rowsNumber: 0
+  page: props.records?.current_page || 1,
+  rowsPerPage: props.records?.per_page || 25,
+  rowsNumber: props.records?.total || 0
 })
 
 // Table columns
@@ -1082,9 +1030,9 @@ const selectedSchoolStudents = computed(() => {
 const filteredCount = computed(() => students.value.length)
 const selectedCount = computed(() => selected.value.length)
 
-// Check if user can add student (must have school, grade, and classroom selected)
+// Check if user can add student (must have school and classroom selected)
 const canAddStudent = computed(() => {
-  return filters.value.school_id && filters.value.grade_id && filters.value.classroom_id
+  return filters.value.school_id && filters.value.classroom_id
 })
 
 // Helper methods to get selected names
@@ -1129,58 +1077,33 @@ const getInitials = (name) => {
 }
 
 const onSchoolChange = async () => {
-  filters.value.stage_id = null
   filters.value.grade_id = null
   filters.value.classroom_id = null
-  stages.value = []
   grades.value = []
   classrooms.value = []
 
   if (filters.value.school_id) {
-    // Load stages but also load classrooms for the school directly
-    loadStages(filters.value.school_id)
+    // Load grades for the school directly
+    await loadGrades(filters.value.school_id)
     await loadClassrooms(filters.value.school_id, 'school')
   }
-  applyFilters()
+  resetPaginationAndFilter()
 }
 
-const onStageChange = async () => {
-  filters.value.grade_id = null
+const onGradeChange = async () => {
   filters.value.classroom_id = null
-  grades.value = []
-  // Don't clear classrooms, we might want to show stage-specific ones
-
-  if (filters.value.stage_id) {
-    await loadGrades(filters.value.stage_id)
-    await loadClassrooms(filters.value.stage_id, 'stage')
+  
+  if (filters.value.grade_id) {
+    await loadClassrooms(filters.value.grade_id, 'grade')
   } else {
-    // Revert to school classrooms if stage is cleared
+    // Revert to school classrooms if grade is cleared
     if (filters.value.school_id) {
       await loadClassrooms(filters.value.school_id, 'school')
     } else {
       classrooms.value = []
     }
   }
-  applyFilters()
-}
-
-const onGradeChange = async () => {
-  filters.value.classroom_id = null
-  // Don't clear classrooms immediately
-
-  if (filters.value.grade_id) {
-    await loadClassrooms(filters.value.grade_id, 'grade')
-  } else {
-    // Revert to stage or school classrooms
-    if (filters.value.stage_id) {
-      await loadClassrooms(filters.value.stage_id, 'stage')
-    } else if (filters.value.school_id) {
-      await loadClassrooms(filters.value.school_id, 'school')
-    } else {
-      classrooms.value = []
-    }
-  }
-  applyFilters()
+  resetPaginationAndFilter()
 }
 
 const onClassroomDropdownShow = async () => {
@@ -1188,27 +1111,18 @@ const onClassroomDropdownShow = async () => {
   if (classrooms.value.length === 0 && filters.value.school_id) {
     if (filters.value.grade_id) {
       await loadClassrooms(filters.value.grade_id, 'grade')
-    } else if (filters.value.stage_id) {
-      await loadClassrooms(filters.value.stage_id, 'stage')
     } else {
       await loadClassrooms(filters.value.school_id, 'school')
     }
   }
 }
 
-const loadStages = async (schoolId) => {
+const loadGrades = async (schoolId) => {
   try {
-    const response = await axios.get(`/admin/stages/by-school/${schoolId}`)
-    stages.value = response.data
-  } catch (error) {
-    console.error('Error loading stages:', error)
-  }
-}
-
-const loadGrades = async (stageId) => {
-  try {
-    const response = await axios.get(`/admin/grades/by-stage/${stageId}`)
+    // START: Fix for missing stage filter - load grades by school
+    const response = await axios.get(`/admin/grades/by-school/${schoolId}`)
     grades.value = response.data
+    // END: Fix for missing stage filter
   } catch (error) {
     console.error('Error loading grades:', error)
   }
@@ -1219,8 +1133,6 @@ const loadClassrooms = async (id, type) => {
     let url = ''
     if (type === 'school') {
       url = `/admin/classrooms/by-school/${id}`
-    } else if (type === 'stage') {
-      url = `/admin/classrooms/by-stage/${id}`
     } else {
       // Default to grade for backward compatibility or explicit 'grade' type
       url = `/admin/classrooms/by-grade/${id}`
@@ -1239,15 +1151,22 @@ const applyFilters = async () => {
   try {
     const params = {
       school_id: filters.value.school_id,
-      stage_id: filters.value.stage_id,
       grade_id: filters.value.grade_id,
       classroom_id: filters.value.classroom_id,
-      search: filters.value.search
+      search: filters.value.search,
+      page: pagination.value.page,
+      rows_per_page: pagination.value.rowsPerPage,
+      sort_by: pagination.value.sortBy,
+      descending: pagination.value.descending ? 1 : 0
     }
 
     const response = await axios.get('/admin/students/filtered', { params })
     students.value = response.data.records.data || []
+    
+    // Update pagination from response
     pagination.value.rowsNumber = response.data.records.total || 0
+    pagination.value.page = response.data.records.current_page || 1
+    pagination.value.rowsPerPage = response.data.records.per_page || 25
   } catch (error) {
     $q.notify({
       type: 'negative',
@@ -1261,31 +1180,35 @@ const applyFilters = async () => {
 const clearFilters = () => {
   filters.value = {
     school_id: null,
-    stage_id: null,
     grade_id: null,
     classroom_id: null,
     search: ''
   }
-  stages.value = []
   grades.value = []
   classrooms.value = []
   applyFilters()
 }
 
 let searchTimeout
-const debouncedSearch = () => {
-  clearTimeout(searchTimeout)
-  searchTimeout = setTimeout(() => {
-    applyFilters()
-  }, 500)
-}
-
-const onRequest = (props) => {
-  // Handle pagination, sorting, etc.
+const resetPaginationAndFilter = () => {
+  pagination.value.page = 1
   applyFilters()
 }
 
-const openStudentDialog = (student = null) => {
+const onRequest = (props) => {
+  const { page, rowsPerPage, sortBy, descending } = props.pagination
+  
+  // Update local pagination state
+  pagination.value.page = page
+  pagination.value.rowsPerPage = rowsPerPage
+  pagination.value.sortBy = sortBy
+  pagination.value.descending = descending
+
+  // Trigger fetch
+  applyFilters()
+}
+
+const openStudentDialog = async (student = null) => {
   classroomChanged.value = false
   originalClassroomId.value = null
   
@@ -1293,31 +1216,38 @@ const openStudentDialog = (student = null) => {
     editingStudent.value = student
     originalClassroomId.value = student.classroom_id
     studentForm.value = {
+      s_id: student.s_id, // Required for validation
       name: student.name,
       name_ar: student.name_ar,
       name_cute: student.name_cute,
       school_id: student.school_id,
-      stage_id: student.stage_id,
       grade_id: student.grade_id,
+      stage_id: student.stage_id,
       classroom_id: student.classroom_id,
       notes: student.notes
     }
     // Load cascading data for form
-    if (student.school_id) onFormSchoolChange()
-    if (student.stage_id) onFormStageChange()
-    if (student.grade_id) onFormGradeChange()
+    if (student.school_id) await onFormSchoolChange()
   } else {
-    // New student - pre-fill with selected filters
+    // New student - initialize with school context
     editingStudent.value = null
     studentForm.value = {
       name: '',
       name_ar: '',
       name_cute: '',
       school_id: filters.value.school_id,
-      stage_id: filters.value.stage_id,
-      grade_id: filters.value.grade_id,
-      classroom_id: filters.value.classroom_id,
+      grade_id: null,
+      stage_id: null,
+      classroom_id: filters.value.classroom_id, // Pre-fill from filter
       notes: ''
+    }
+    // Load classrooms for the selected school immediately
+    if (filters.value.school_id) {
+       await onFormSchoolChange()
+       // After loading, trigger classroom change to auto-fill details if classroom_id is pre-filled
+       if (studentForm.value.classroom_id) {
+           onFormClassroomChange()
+       }
     }
   }
   showStudentDialog.value = true
@@ -1331,30 +1261,47 @@ const onClassroomChange = () => {
 }
 
 const onFormSchoolChange = async () => {
-  studentForm.value.stage_id = null
   studentForm.value.grade_id = null
-  studentForm.value.classroom_id = null
+  // Do not clear classroom_id blindly here, as it might be pre-filled
+  // studentForm.value.classroom_id = null 
   
   if (studentForm.value.school_id) {
-    const response = await axios.get(`/admin/stages/by-school/${studentForm.value.school_id}`)
-    formStages.value = response.data
+    // Load all classrooms for the school
+    const response = await axios.get(`/admin/classrooms/by-school/${studentForm.value.school_id}`)
+    formClassrooms.value = response.data
   }
 }
 
-const onFormStageChange = async () => {
-  studentForm.value.grade_id = null
-  studentForm.value.classroom_id = null
-  
-  if (studentForm.value.stage_id) {
-    const response = await axios.get(`/admin/grades/by-stage/${studentForm.value.stage_id}`)
-    formGrades.value = response.data
-  }
+const onFormClassroomChange = () => {
+    // Auto-fill grade and stage from selected classroom
+    console.log('onFormClassroomChange triggered. Classroom ID:', studentForm.value.classroom_id)
+    console.log('Available classrooms:', formClassrooms.value)
+    
+    if (!studentForm.value.classroom_id) return
+
+    const selectedClassroom = formClassrooms.value.find(c => c.id == studentForm.value.classroom_id) // Match loose equality
+    console.log('Selected classroom found:', selectedClassroom)
+
+    if (selectedClassroom) {
+        studentForm.value.grade_id = selectedClassroom.grade_id
+        studentForm.value.stage_id = selectedClassroom.stage_id
+        console.log('Auto-filled Stage/Grade:', selectedClassroom.stage_id, selectedClassroom.grade_id)
+    } else {
+        console.warn('Classroom not found in list!')
+    }
 }
 
 const onFormGradeChange = async () => {
   studentForm.value.classroom_id = null
   
   if (studentForm.value.grade_id) {
+    // START: Fix for missing stage filter - auto-select stage based on grade
+    const selectedGrade = formGrades.value.find(g => g.id === studentForm.value.grade_id)
+    if (selectedGrade && selectedGrade.stage_id) {
+      studentForm.value.stage_id = selectedGrade.stage_id
+    }
+    // END: Fix for missing stage filter
+
     const response = await axios.get(`/admin/classrooms/by-grade/${studentForm.value.grade_id}`)
     formClassrooms.value = response.data
   }
@@ -1367,10 +1314,22 @@ const saveStudent = async () => {
       ? `/admin/students/${editingStudent.value.id}`
       : '/admin/students'
 
+    // Fallback: If stage_id or grade_id missing, try to find from classroom again
+    if (!studentForm.value.stage_id || !studentForm.value.grade_id) {
+        console.warn('Stage or Grade ID missing, attempting recalculation from classroom')
+        const selectedClassroom = formClassrooms.value.find(c => c.id == studentForm.value.classroom_id)
+        if (selectedClassroom) {
+            if (!studentForm.value.stage_id) studentForm.value.stage_id = selectedClassroom.stage_id
+            if (!studentForm.value.grade_id) studentForm.value.grade_id = selectedClassroom.grade_id
+        }
+    }
+
     const data = {
       ...studentForm.value,
       ...(editingStudent.value && { _method: 'PUT' })
     }
+
+    console.log('Saving student data:', data)
 
     await axios.post(url, data)
 
@@ -1382,6 +1341,11 @@ const saveStudent = async () => {
     showStudentDialog.value = false
     applyFilters()
   } catch (error) {
+    // If validation error mentions stage_id, it means we failed to set it
+    if (error.response?.data?.errors?.stage_id) {
+       console.error('Stage ID missing for grade', studentForm.value.grade_id)
+    }
+
     $q.notify({
       type: 'negative',
       message: error.response?.data?.message || 'Failed to save student'
@@ -1392,6 +1356,15 @@ const saveStudent = async () => {
 }
 
 const deleteStudent = async (student) => {
+  if (!student || !student.id || String(student.id).trim() === '' || String(student.id) === '0') {
+    console.error('Submission failed: Student ID invalid', student)
+    $q.notify({
+      type: 'negative',
+      message: 'Error: Cannot delete student - ID missing or invalid'
+    })
+    return
+  }
+
   $q.dialog({
     title: 'Confirm Delete',
     message: `Are you sure you want to delete ${student.name}?`,
@@ -1399,17 +1372,27 @@ const deleteStudent = async (student) => {
     persistent: true
   }).onOk(async () => {
     try {
-      await axios.delete(`/admin/students/${student.id}`)
+      const url = `/admin/students/${student.id}`
+      console.log('Attempting delete request to:', url)
+      await axios.delete(url)
       $q.notify({
         type: 'positive',
         message: 'Student deleted successfully'
       })
       applyFilters()
     } catch (error) {
-      $q.notify({
-        type: 'negative',
-        message: 'Failed to delete student'
-      })
+      if (error.response && error.response.status === 404) {
+        $q.notify({
+          type: 'warning',
+          message: 'Student already deleted or not found'
+        })
+        applyFilters() // Refresh list to remove stale item
+      } else {
+        $q.notify({
+          type: 'negative',
+          message: 'Failed to delete student'
+        })
+      }
     }
   })
 }
