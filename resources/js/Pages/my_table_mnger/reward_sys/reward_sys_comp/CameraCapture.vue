@@ -1,62 +1,172 @@
- <template>
-  <div class="camera-capture">
+<template>
+  <div class="camera-capture q-pa-md">
     <!-- Upload or Camera -->
-    <div v-if="!imageLoaded">
-      <div class="section">
-        <div class="section-title">📂 Upload Image</div>
-        <input type="file" accept="image/*" @change="onFileChange" />
-      </div>
-      <div class="section">
-        <div class="section-title">📸 Camera</div>
-        <div class="camera-controls">
-          <button class="touch-btn primary" @click="startCamera">Start Camera</button>
-          <button class="touch-btn warning" @click="toggleCamera">🔄 Switch Camera</button>
-          <video ref="video" autoplay playsinline v-show="showVideo" class="video"></video>
-          <button v-if="showVideo" class="touch-btn success" @click="captureFromCamera">Capture</button>
-        </div>
-      </div>
+    <div v-if="!imageLoaded" class="column items-center q-gutter-y-md full-width">
+      
+      <!-- Upload Section -->
+      <q-card flat bordered class="full-width">
+        <q-card-section>
+          <div class="text-subtitle1 text-primary text-center q-mb-sm font-bold">
+            <q-icon name="folder_open" class="q-mr-sm" />Upload Image
+          </div>
+          <q-file
+            filled
+            bottom-slots
+            v-model="file"
+            label="Choose image"
+            accept="image/*"
+            @update:model-value="onFileChange"
+            class="full-width"
+          >
+            <template v-slot:prepend>
+              <q-icon name="cloud_upload" @click.stop.prevent />
+            </template>
+            <template v-slot:append>
+              <q-icon name="close" @click.stop.prevent="file = null" class="cursor-pointer" />
+            </template>
+          </q-file>
+        </q-card-section>
+      </q-card>
+
+      <div class="text-caption text-grey-7">OR</div>
+
+      <!-- Camera Section -->
+      <q-card flat bordered class="full-width">
+        <q-card-section class="column items-center q-gutter-y-sm">
+          <div class="text-subtitle1 text-primary text-center font-bold">
+            <q-icon name="camera_alt" class="q-mr-sm" />Camera
+          </div>
+          
+          <div class="row q-gutter-sm full-width justify-center" v-if="!showVideo">
+            <q-btn
+              color="primary"
+              icon="videocam"
+              label="Start Camera"
+              class="col-12 col-sm-auto"
+              @click="startCamera"
+            />
+          </div>
+
+          <div v-show="showVideo" class="column items-center full-width q-gutter-y-sm">
+            <video ref="video" autoplay playsinline class="video rounded-borders shadow-2"></video>
+            
+            <div class="row q-gutter-sm full-width justify-center">
+              <q-btn
+                color="warning"
+                text-color="dark"
+                icon="cameraswitch"
+                label="Switch"
+                class="col-grow"
+                @click="toggleCamera"
+              />
+              <q-btn
+                color="positive"
+                icon="camera"
+                label="Capture"
+                class="col-grow"
+                @click="captureFromCamera"
+              />
+            </div>
+          </div>
+        </q-card-section>
+      </q-card>
     </div>
 
     <!-- Crop Area -->
-    <div v-show="true">
-      <div v-if="imageLoaded" class="section-title">✂️ Crop Image</div>
-      <div v-if="imageLoaded && !cropRect" class="crop-instruction">
-        👆 Drag on the image to select the area you want to crop
+    <div v-show="imageLoaded" class="full-width column items-center q-gutter-y-md">
+      <div v-if="!croppedDataUrl" class="text-h6 text-primary">
+        <q-icon name="crop" class="q-mr-sm" />Crop Image
       </div>
-      <div v-if="imageLoaded && cropRect" class="crop-instruction success">
-        ✅ Selection made! Adjust or tap "Crop" to continue
+      
+      <q-banner v-if="!croppedDataUrl && !cropRect" rounded class="bg-blue-1 text-blue-9 full-width text-center">
+        <template v-slot:avatar>
+          <q-icon name="touch_app" color="primary" />
+        </template>
+        Drag on image to crop
+      </q-banner>
+
+      <q-banner v-if="!croppedDataUrl && cropRect" rounded class="bg-green-1 text-green-9 full-width text-center">
+        <template v-slot:avatar>
+          <q-icon name="check_circle" color="positive" />
+        </template>
+        Ready to crop!
+      </q-banner>
+
+      <!-- Canvas Container -->
+      <div v-show="!croppedDataUrl" class="canvas-container relative-position flex flex-center full-width">
+        <canvas
+          ref="canvas"
+          :width="canvasWidth"
+          :height="canvasHeight"
+          @mousedown="startCrop"
+          @mousemove="moveCrop"
+          @mouseup="endCrop"
+          @touchstart.prevent="startCropTouch"
+          @touchmove.prevent="moveCropTouch"
+          @touchend.prevent="endCropTouch"
+          class="crop-canvas shadow-3 rounded-borders"
+        ></canvas>
       </div>
- 
- 
 
-      <canvas  v-if=" !croppedDataUrl"
-        ref="canvas"
-        :width="canvasWidth"
-        :height="canvasHeight"
-        v-show="imageLoaded"
-        @mousedown="startCrop"
-        @mousemove="moveCrop"
-        @mouseup="endCrop"
-        @touchstart.prevent="startCropTouch"
-        @touchmove.prevent="moveCropTouch"
-        @touchend.prevent="endCropTouch"
-        class="crop-canvas   "
-      ></canvas>
- <div v-if="imageLoaded&&!croppedDataUrl" class="crop-buttons">
-
-     
-        <button class="touch-btn success" @click="cropImage" :disabled="!canCrop">✂️ Crop</button>
-        <button class="touch-btn danger" @click="reset">❌ Cancel</button>
+      <!-- Edit Actions -->
+      <div v-if="!croppedDataUrl" class="column q-gutter-y-sm full-width">
+        <q-btn
+          color="positive"
+          icon="crop"
+          label="Crop Selection"
+          class="full-width"
+          @click="cropImage"
+          :disable="!canCrop"
+        />
+        <q-btn
+          color="primary"
+          outline
+          icon="skip_next"
+          label="Skip Crop (Use Original)"
+          class="full-width"
+          @click="useOriginal"
+        />
+        <q-btn
+          color="negative"
+          flat
+          icon="close"
+          label="Cancel"
+          class="full-width"
+          @click="reset"
+        />
       </div>
-   
 
-      <!-- Cropped Preview -->
-      <div v-if="croppedDataUrl " class="cropped-preview">
-        <div class="section-title">✅ Preview</div>
-        <img :src="croppedDataUrl" class="preview-img" />
-        <div class="cropped-actions">
-          <button class="touch-btn primary" @click="emitCropped">💾 Save</button>
-          <button class="touch-btn warning" @click="reset">🔄 Retake</button>
+      <!-- Preview Section -->
+      <div v-if="croppedDataUrl" class="column items-center q-gutter-y-md full-width">
+        <div class="text-h6 text-positive">
+          <q-icon name="preview" class="q-mr-sm" />Preview
+        </div>
+        
+        <q-img
+          :src="croppedDataUrl"
+          class="rounded-borders shadow-3"
+          style="max-width: 200px; max-height: 200px"
+          fit="contain"
+        />
+        
+        <div class="column q-gutter-y-sm full-width">
+          <q-btn
+            color="primary"
+            icon="save"
+            label="Save Photo"
+            class="full-width"
+            size="lg"
+            @click="emitCropped"
+          />
+          <q-btn
+            color="warning"
+            text-color="dark"
+            flat
+            icon="replay"
+            label="Retake"
+            class="full-width"
+            @click="reset"
+          />
         </div>
       </div>
     </div>
@@ -82,12 +192,13 @@ const canvasWidth = ref(300)
 const canvasHeight = ref(300)
 let stream = null
 
-function onFileChange(e) {
-  const file = e.target.files[0]
-  if (!file) return
+const file = ref(null)
+
+function onFileChange(newFile) {
+  if (!newFile) return
   const reader = new FileReader()
   reader.onload = ev => loadImage(ev.target.result)
-  reader.readAsDataURL(file)
+  reader.readAsDataURL(newFile)
 }
 
 
@@ -274,6 +385,23 @@ function updateCropRect() {
   drawImage()
 }
 const view_crop=ref(0)
+
+function useOriginal() {
+  if (!imageLoaded.value || !image.value) return
+  // Use original image directly
+  croppedDataUrl.value = image.value.src
+  
+  // Clear any crop selection
+  cropRect.value = null
+  cropping.value = false
+  
+  // Show preview state
+  view_crop.value = 1
+  
+  // Ensure drawn on canvas for visual consistency (though preview uses img tag)
+  nextTick(drawImage)
+}
+
 function cropImage() {
   if (!canCrop.value) return
   const c = document.createElement('canvas')
@@ -332,138 +460,17 @@ function reset() {
 </script>
  
 <style scoped>
-.camera-capture {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 12px;
-}
-
-.section {
-  margin-bottom: 18px;
-  text-align: center;
-}
-
-.section-title {
-  font-weight: bold;
-  margin-bottom: 8px;
-  font-size: 1.2em;
-  color: #1976d2;
-}
-
 .video {
   max-width: 100%;
-  border-radius: 8px;
-  border: 2px solid #ccc;
 }
 
 .crop-canvas {
-  border: 3px solid #4CAF50;
+  border: 3px solid #21ba45; /* Quasar 'positive' color */
   max-width: 100%;
   margin: 12px 0;
   border-radius: 12px;
   cursor: crosshair;
-  touch-action: none; /* Prevent default touch behaviors */
+  touch-action: none;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.crop-instruction {
-  padding: 12px 20px;
-  margin: 8px 0;
-  border-radius: 8px;
-  font-size: 1.1em;
-  font-weight: 500;
-  text-align: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-  animation: pulse 2s ease-in-out infinite;
-}
-
-.crop-instruction.success {
-  background: linear-gradient(135deg, #4CAF50 0%, #2e7d32 100%);
-  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
-  animation: none;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.02);
-    opacity: 0.95;
-  }
-}
-
-.crop-buttons,
-.cropped-actions {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-  margin: 10px 0;
-}
-
-.preview-img {
-  max-width: 200px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-  margin: 10px 0;
-}
-
-/* Touch-friendly buttons with playful colors */
-.touch-btn {
-  font-size: 1.1em;
-  padding: 12px 20px;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  transition: background 0.2s ease;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-}
-
-.touch-btn.primary {
-  background: #1976d2;
-  color: #fff;
-}
-.touch-btn.primary:hover {
-  background: #1565c0;
-}
-
-.touch-btn.success {
-  background: #2e7d32;
-  color: #fff;
-}
-.touch-btn.success:hover {
-  background: #1b5e20;
-}
-
-.touch-btn.danger {
-  background: #d32f2f;
-  color: #fff;
-}
-.touch-btn.danger:hover {
-  background: #b71c1c;
-}
-
-.touch-btn.warning {
-  background: #f9a825;
-  color: #fff;
-}
-.touch-btn.warning:hover {
-  background: #f57f17;
-}
-
-/* Responsive adjustments for mobile */
-@media (max-width: 600px) {
-  .touch-btn {
-    font-size: 1em;
-    padding: 10px 16px;
-    min-width: 100px;
-  }
-  .preview-img {
-    max-width: 150px;
-  }
 }
 </style>
