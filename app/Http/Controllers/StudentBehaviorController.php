@@ -55,7 +55,32 @@ class StudentBehaviorController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        $behavior = StudentBehavior::create($validated);
+        // Create behavior record (points columns removed)
+        $behavior = StudentBehavior::create([
+            'school_id' => $validated['school_id'],
+            'student_behaviors_mains_id' => $validated['student_behaviors_mains_id'],
+            'student_id' => $validated['student_id'],
+            'attend' => $validated['attend'] ?? true,
+            'notes' => $validated['notes'],
+        ]);
+
+        // Create Point Action if points are provided
+        $points = 0;
+        if (!empty($validated['points_plus']) && $validated['points_plus'] > 0) {
+            $points = $validated['points_plus'];
+        } elseif (!empty($validated['points_minus']) && $validated['points_minus'] > 0) {
+            $points = -1 * $validated['points_minus'];
+        }
+
+        if ($points != 0) {
+            \App\Models\StudentBehaviorsPointAction::create([
+                'student_behaviors_id' => $behavior->id,
+                'value' => $points,
+                'action_type' => $points > 0 ? 'positive' : 'negative',
+                'note' => $validated['points_details'] ?? 'Manual Entry',
+                'created_by' => auth()->id(),
+            ]);
+        }
 
         return response()->json($behavior->load(['student', 'behaviorMain', 'pointActions']), 201);
     }
@@ -208,19 +233,34 @@ class StudentBehaviorController extends Controller
                 'will_create_value' => ($type === 'positive' ? $points : -$points),
             ]);
 
-            // Derive classroom from student's current assignment
-            // First try to get from classroom_subject_teacher assignments
-            $classroomId = 1; // Fallback
+            // Derive classroom from student's actual enrollment
+            $classroomId = $student->classroom_id;
             $subjectId = 1; // Fallback
             
+            // Find subject assignment for this teacher in the student's classroom
             $studentClassroom = \DB::table('classroom_subject_teachers')
                 ->where('teacher_id', $teacher->id)
                 ->where('academic_year_id', $year->id)
+                ->where('classroom_id', $classroomId)
                 ->first();
             
             if ($studentClassroom) {
-                $classroomId = $studentClassroom->classroom_id ?? 1;
                 $subjectId = $studentClassroom->subject_id ?? 1;
+            } else {
+                 // Fallback: Check if teacher has ANY assignment (legacy support or cross-class behavior)
+                 // But prioritize preserving the Student's classroom ID to avoid fragmentation
+                 if (!$classroomId) {
+                      $anyClass = \DB::table('classroom_subject_teachers')
+                        ->where('teacher_id', $teacher->id)
+                        ->where('academic_year_id', $year->id)
+                        ->first();
+                      if ($anyClass) {
+                           $classroomId = $anyClass->classroom_id;
+                           $subjectId = $anyClass->subject_id;
+                      } else {
+                           $classroomId = 1;
+                      }
+                 }
             }
 
             \Log::debug('quickCreate: Resolved classroom context', [
@@ -230,7 +270,7 @@ class StudentBehaviorController extends Controller
 
             // Generate period codes using service
             $periodCodeMain = PeriodCodeService::generateMainCode($classroomId, $subjectId, $teacher->id);
-            $periodCode = $validated['period_code'] ?? '';
+            $periodCode = $validated['period_code'] ?? null;
 
             \Log::debug('quickCreate: Generated period codes', [
                 'period_code_main' => $periodCodeMain,
@@ -293,8 +333,8 @@ class StudentBehaviorController extends Controller
                 'student_id' => $validated['student_id'],
             ], [
                 'attend' => true,
-                'points_plus' => 0, // Default value, will be calculated by model accessor
-                'points_minus' => 0, // Default value, will be calculated by model accessor
+                // 'points_plus' => 0, // database column removed
+                // 'points_minus' => 0, // database column removed
                 'notes' => $validated['notes'],
             ]);
 
@@ -328,7 +368,24 @@ class StudentBehaviorController extends Controller
                 'points_minus' => $studentBehavior->points_minus,
             ]);
             
-            return response()->json($studentBehavior->load(['student', 'behaviorMain']), 201);
+            $studentBehavior->load(['student', 'behaviorMain', 'pointActions.behavior', 'pointActions.createdBy']);
+
+            if ($studentBehavior->student) {
+                // Keep essential student info
+                $studentBehavior->student->setVisible(['id', 's_id', 'name', 'name_ar', 'avatar_url', 'classroom_name', 'grade_name', 'level_name']); 
+            }
+            
+            // Optimize nested relations
+            foreach ($studentBehavior->pointActions as $action) {
+                if ($action->behavior) {
+                    $action->behavior->setVisible(['id', 'name', 'name_ar', 'type', 'points']);
+                }
+                if ($action->createdBy) {
+                    $action->createdBy->setVisible(['id', 'name']);
+                }
+            }
+            
+            return response()->json($studentBehavior, 201);
         } catch (\Exception $e) {
             \Log::error('quickCreate exception: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString(),

@@ -80,9 +80,9 @@ class AttendanceController extends Controller
                     'student_behaviors_mains_id' => $main->id,
                     'student_id' => $validated['student_id'],
                     'attend' => $validated['attend'],
-                    'points_plus' => 0,
-                    'points_minus' => 0,
-                    'points_details' => null,
+                    // 'points_plus' => 0, // removed
+                    // 'points_minus' => 0, // removed
+                    // 'points_details' => null, // removed
                     'notes' => null,
                 ]);
             }

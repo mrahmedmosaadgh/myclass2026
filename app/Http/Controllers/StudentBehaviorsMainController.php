@@ -218,8 +218,8 @@ class StudentBehaviorsMainController extends Controller
                     'student_behaviors_mains_id' => $main->id,
                     'student_id' => $student->id,
                     'attend' => true,
-                    'points_plus' => 0,
-                    'points_minus' => 0,
+                    // 'points_plus' => 0, // database column removed
+                    // 'points_minus' => 0, // database column removed
                      
                     'notes' => null
                 ]);
@@ -238,44 +238,59 @@ class StudentBehaviorsMainController extends Controller
 
             if ($pointsMode === 'all_subjects') {
                 foreach ($studentBehaviors as $sb) {
-                    $totals = \DB::table('student_behaviors')
-                        ->where('student_id', $sb->student_id)
-                        ->where('school_id', $school->id)
-                        ->selectRaw('SUM(points_plus) as total_plus, SUM(points_minus) as total_minus')
+                    $totals = \DB::table('student_behaviors_point_actions')
+                        ->join('student_behaviors', 'student_behaviors_point_actions.student_behaviors_id', '=', 'student_behaviors.id')
+                        ->where('student_behaviors.student_id', $sb->student_id)
+                        ->where('student_behaviors.school_id', $school->id) // School context
+                        ->where('student_behaviors_point_actions.canceled', false)
+                        ->selectRaw('
+                            SUM(CASE WHEN value > 0 THEN value ELSE 0 END) as total_plus,
+                            SUM(CASE WHEN value < 0 THEN ABS(value) ELSE 0 END) as total_minus
+                        ')
                         ->first();
                     
-                    $sb->points_plus = $totals->total_plus ?? 0;
-                    $sb->points_minus = $totals->total_minus ?? 0;
+                    $sb->points_plus = (int) ($totals->total_plus ?? 0);
+                    $sb->points_minus = (int) ($totals->total_minus ?? 0);
                 }
             } elseif ($pointsMode === 'overall') {
                 // Filter by Subject (All Time)
                 foreach ($studentBehaviors as $sb) {
-                    $totals = \DB::table('student_behaviors')
+                    $totals = \DB::table('student_behaviors_point_actions')
+                        ->join('student_behaviors', 'student_behaviors_point_actions.student_behaviors_id', '=', 'student_behaviors.id')
                         ->join('student_behaviors_mains', 'student_behaviors.student_behaviors_mains_id', '=', 'student_behaviors_mains.id')
                         ->where('student_behaviors.student_id', $sb->student_id)
-                        ->where('student_behaviors.school_id', $school->id)
+                        ->where('student_behaviors_mains.school_id', $school->id)
                         ->where('student_behaviors_mains.subject_id', $subjectId)
-                        ->selectRaw('SUM(student_behaviors.points_plus) as total_plus, SUM(student_behaviors.points_minus) as total_minus')
+                        ->where('student_behaviors_point_actions.canceled', false)
+                        ->selectRaw('
+                            SUM(CASE WHEN value > 0 THEN value ELSE 0 END) as total_plus,
+                            SUM(CASE WHEN value < 0 THEN ABS(value) ELSE 0 END) as total_minus
+                        ')
                         ->first();
                     
-                    $sb->points_plus = $totals->total_plus ?? 0;
-                    $sb->points_minus = $totals->total_minus ?? 0;
+                    $sb->points_plus = (int) ($totals->total_plus ?? 0);
+                    $sb->points_minus = (int) ($totals->total_minus ?? 0);
                 }
             } elseif ($pointsMode === 'competition') {
                 $startOfWeek = \Carbon\Carbon::parse($date)->startOfWeek();
                 $endOfWeek = \Carbon\Carbon::parse($date)->endOfWeek();
 
                 foreach ($studentBehaviors as $sb) {
-                     $totals = \DB::table('student_behaviors')
+                     $totals = \DB::table('student_behaviors_point_actions')
+                        ->join('student_behaviors', 'student_behaviors_point_actions.student_behaviors_id', '=', 'student_behaviors.id')
                         ->join('student_behaviors_mains', 'student_behaviors.student_behaviors_mains_id', '=', 'student_behaviors_mains.id')
                         ->where('student_behaviors.student_id', $sb->student_id)
-                        ->where('student_behaviors.school_id', $school->id)
+                        ->where('student_behaviors_mains.school_id', $school->id)
                         ->whereBetween('student_behaviors_mains.date', [$startOfWeek, $endOfWeek])
-                        ->selectRaw('SUM(student_behaviors.points_plus) as total_plus, SUM(student_behaviors.points_minus) as total_minus')
+                        ->where('student_behaviors_point_actions.canceled', false)
+                        ->selectRaw('
+                            SUM(CASE WHEN value > 0 THEN value ELSE 0 END) as total_plus,
+                            SUM(CASE WHEN value < 0 THEN ABS(value) ELSE 0 END) as total_minus
+                        ')
                         ->first();
 
-                    $sb->points_plus = $totals->total_plus ?? 0;
-                    $sb->points_minus = $totals->total_minus ?? 0;
+                    $sb->points_plus = (int) ($totals->total_plus ?? 0);
+                    $sb->points_minus = (int) ($totals->total_minus ?? 0);
                 }
             }
 

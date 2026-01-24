@@ -14,8 +14,8 @@ return new class extends Migration
             $table->foreignId('student_behaviors_mains_id')->constrained('student_behaviors_mains')->cascadeOnDelete();
             $table->foreignId('student_id')->constrained()->cascadeOnDelete();
             $table->tinyInteger('attend')->nullable();
-            $table->integer('points_plus')->nullable();
-            $table->integer('points_minus')->nullable();
+            // $table->integer('points_plus')->nullable();
+            // $table->integer('points_minus')->nullable();
             // $table->text('points_details');
             $table->text('notes')->nullable();
             $table->timestamps(); 

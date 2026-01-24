@@ -25,6 +25,12 @@ class StudentBehavior extends Model
         'attend' => 'boolean',
     ];
 
+    protected $appends = [
+        'points_plus',
+        'points_minus',
+        'total_points',
+    ];
+
     // Relationships
     public function school(): BelongsTo
     {
@@ -47,9 +53,14 @@ class StudentBehavior extends Model
     }
 
     // Dynamic Calculations (optimized to use loaded relationship if available)
-    public function getPointsPlusAttribute(): int
+    public function getPointsPlusAttribute()
     {
-        // If pointActions are already loaded, calculate from collection
+        // 1. Check if value was manually set (e.g., by "Overall" filter in Controller)
+        if (array_key_exists('points_plus', $this->attributes)) {
+             return (int) $this->attributes['points_plus'];
+        }
+
+        // 2. If pointActions are already loaded, calculate from collection
         if ($this->relationLoaded('pointActions')) {
             return $this->pointActions
                 ->where('canceled', false)
@@ -57,16 +68,21 @@ class StudentBehavior extends Model
                 ->sum('value');
         }
         
-        // Otherwise query database
+        // 3. Otherwise query database
         return $this->pointActions()
             ->where('canceled', false)
             ->where('value', '>', 0)
             ->sum('value');
     }
 
-    public function getPointsMinusAttribute(): int
+    public function getPointsMinusAttribute()
     {
-        // If pointActions are already loaded, calculate from collection
+        // 1. Check if value was manually set
+        if (array_key_exists('points_minus', $this->attributes)) {
+             return (int) $this->attributes['points_minus'];
+        }
+
+        // 2. If pointActions are already loaded, calculate from collection
         if ($this->relationLoaded('pointActions')) {
             return abs(
                 $this->pointActions
@@ -76,7 +92,7 @@ class StudentBehavior extends Model
             );
         }
         
-        // Otherwise query database
+        // 3. Otherwise query database
         return abs(
             $this->pointActions()
                 ->where('canceled', false)
