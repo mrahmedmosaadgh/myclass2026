@@ -1,13 +1,15 @@
 <template>
   <Head title="Reward System" />
-  <div class="p-6 space-y-6 bg-gradient-to-br from-blue-50 to-indigo-50 min-h-screen">
+  <div class="p-6 space-y-6 bg-gradient-to-br from-gray-800 to-gray-900 min-h-screen">
 
 
 
 
 
+<div class="p-1 scale-25">
 
 
+</div>
 
 
 
@@ -21,7 +23,7 @@
 
 
     <!-- Compact Header for Dialog Mode -->
-    <CompactSessionHeader
+    <!-- <CompactSessionHeader
       v-if="isDialog && selectedClassroomId"
       :date="selectedDate"
       :week="selectedWeek"
@@ -33,7 +35,7 @@
       @update:date="selectedDate = $event"
       @update:week="selectedWeek = $event"
       @update:avatarEdit="avatarEditEnabled = $event"
-    />
+    /> -->
 
     <!-- Header Card (Standalone Mode Only) -->
     <q-card v-if="!isDialog" class="shadow-lg rounded-2xl overflow-hidden">
@@ -41,8 +43,9 @@
         <div>
           <h1 class="text-3xl font-bold">🏆 {{ $t('rewardSys.behaviors.management') }}</h1>
           <p class="text-blue-100">{{ $t('rewardSys.behaviors.management') }}</p>
+
+           
         </div>
-        
         <!-- Language Toggle -->
         <q-btn-toggle
           v-model="locale"
@@ -269,29 +272,168 @@ card2
     <!-- Main Tabs -->
 
     <q-card class="shadow-lg rounded-2xl" v-if="students.length">
-      <q-tabs
-        v-model="activeTab"
-        dense
-        class="text-grey-7"
-        active-color="primary"
-        indicator-color="primary"
-        align="left"
-      >
-        <q-tab name="attendance" icon="how_to_reg" :label="$t('rewardSys.tabs.attendance')" />
-        <q-tab name="positive" icon="add_circle" :label="$t('rewardSys.tabs.positivePoints')" />
-        <q-tab name="history" icon="cancel" :label="$t('rewardSys.tabs.history')" />
-        <q-tab name="champions" icon="emoji_events" :label="$t('rewardSys.tabs.champions')" @click="showLeaderboard = true" />
-        <q-tab name="settings_reports" icon="settings_applications" :label="$t('rewardSys.tabs.settingsReports')" />
-        <div class="absolute-right q-pa-sm flex items-center">
-             <q-toggle
-              v-model="isMusicEnabled"
-              checked-icon="music_note"
-              unchecked-icon="music_off"
-              :label="isMusicEnabled ? $t('rewardSys.musicOn') : $t('rewardSys.musicOff')"
-              color="primary"
-            />
-        </div>
-      </q-tabs>
+
+      <!-- Main Dropdown Menu for Navigation (Replaces Tabs) -->
+      <!-- Main Dropdown Menu for Navigation (Replaces Tabs) -->
+      <div class="q-pa-sm bg-white border-b border-gray-200 flex justify-between items-center">
+         <div class="flex items-center gap-2">
+            <q-btn-dropdown 
+              color="primary" 
+              icon="menu" 
+              label="Menu" 
+              class="shadow-sm glossy"
+              content-class="bg-white"
+            >
+              <div class="row no-wrap q-pa-md">
+                <!-- Left Column: Navigation & Filters -->
+                <div class="column" style="min-width: 220px">
+                    <div class="text-subtitle1 text-weight-bold q-mb-sm text-grey-8">Navigation</div>
+                    
+                    <q-list dense>
+                        <q-item clickable v-close-popup @click="activeTab = 'positive'" :active="activeTab === 'positive'" active-class="bg-blue-50 text-primary">
+                           <q-item-section avatar><q-icon name="add_circle" /></q-item-section>
+                           <q-item-section>{{ $t('rewardSys.tabs.positivePoints') }}</q-item-section>
+                        </q-item>
+
+                        <q-item clickable v-close-popup @click="activeTab = 'attendance'" :active="activeTab === 'attendance'" active-class="bg-blue-50 text-primary">
+                          <q-item-section avatar><q-icon name="how_to_reg" /></q-item-section>
+                          <q-item-section>{{ $t('rewardSys.tabs.attendance') }}</q-item-section>
+                        </q-item>
+
+                        <q-item clickable v-close-popup @click="activeTab = 'history'" :active="activeTab === 'history'" active-class="bg-blue-50 text-primary">
+                           <q-item-section avatar><q-icon name="cancel" /></q-item-section>
+                           <q-item-section>{{ $t('rewardSys.tabs.history') }}</q-item-section>
+                        </q-item>
+                        
+                        <q-item clickable v-close-popup @click="showLeaderboard = true; activeTab = 'champions'" :active="activeTab === 'champions'" active-class="bg-blue-50 text-primary">
+                           <q-item-section avatar><q-icon name="emoji_events" /></q-item-section>
+                           <q-item-section>{{ $t('rewardSys.tabs.champions') }}</q-item-section>
+                        </q-item>
+
+                        <q-item clickable v-close-popup @click="activeTab = 'settings_reports'" :active="activeTab === 'settings_reports'" active-class="bg-blue-50 text-primary">
+                           <q-item-section avatar><q-icon name="settings_applications" /></q-item-section>
+                           <q-item-section>{{ $t('rewardSys.tabs.settingsReports') }}</q-item-section>
+                        </q-item>
+                    </q-list>
+
+                    <q-separator class="q-my-md" />
+                    
+                    <div class="text-subtitle2 text-grey-7 q-mb-xs">Points Filter</div>
+                    <q-list dense>
+                        <q-item clickable v-close-popup @click="pointsDisplayMode = 'overall'" :active="pointsDisplayMode === 'overall'" active-class="text-orange-9 text-weight-bold">
+                            <q-item-section avatar><q-icon name="functions" size="xs" /></q-item-section>
+                            <q-item-section>Overall (All Time)</q-item-section>
+                            <q-item-section side v-if="pointsDisplayMode === 'overall'"><q-icon name="check" size="xs" color="orange" /></q-item-section>
+                        </q-item>
+
+                        <q-item clickable v-close-popup @click="pointsDisplayMode = 'all_subjects'" :active="pointsDisplayMode === 'all_subjects'" active-class="text-orange-9 text-weight-bold">
+                            <q-item-section avatar><q-icon name="public" size="xs" /></q-item-section>
+                            <q-item-section>Overall (All Subjects)</q-item-section>
+                            <q-item-section side v-if="pointsDisplayMode === 'all_subjects'"><q-icon name="check" size="xs" color="orange" /></q-item-section>
+                        </q-item>
+                        
+                         <q-item clickable v-close-popup @click="pointsDisplayMode = 'session'" :active="pointsDisplayMode === 'session'" active-class="text-orange-9 text-weight-bold">
+                            <q-item-section avatar><q-icon name="timer" size="xs" /></q-item-section>
+                            <q-item-section>This Session</q-item-section>
+                            <q-item-section side v-if="pointsDisplayMode === 'session'"><q-icon name="check" size="xs" color="orange" /></q-item-section>
+                        </q-item>
+                        
+                        <q-item clickable v-close-popup @click="pointsDisplayMode = 'competition'" :active="pointsDisplayMode === 'competition'" active-class="text-orange-9 text-weight-bold">
+                            <q-item-section avatar><q-icon name="date_range" size="xs" /></q-item-section>
+                            <q-item-section>Competition (Week)</q-item-section>
+                            <q-item-section side v-if="pointsDisplayMode === 'competition'"><q-icon name="check" size="xs" color="orange" /></q-item-section>
+                        </q-item>
+
+                        <q-item clickable v-close-popup @click="pointsDisplayMode = 'from_now'" :active="pointsDisplayMode === 'from_now'" active-class="text-orange-9 text-weight-bold">
+                            <q-item-section avatar><q-icon name="restart_alt" size="xs" /></q-item-section>
+                            <q-item-section>From Now (Reset View)</q-item-section>
+                            <q-item-section side v-if="pointsDisplayMode === 'from_now'"><q-icon name="check" size="xs" color="orange" /></q-item-section>
+                        </q-item>
+                    </q-list>
+
+                    <q-separator class="q-my-md" />
+
+                    <div class="text-subtitle2 text-grey-7 q-mb-xs">Layout</div>
+                    <q-list dense>
+                        <q-item 
+                            clickable 
+                            v-close-popup 
+                            v-for="layout in layoutOptions" 
+                            :key="layout.value"
+                            @click="selectedLayout = layout.value"
+                            :active="selectedLayout === layout.value"
+                            active-class="text-orange-9 text-weight-bold"
+                        >
+                            <q-item-section avatar><q-icon :name="layout.icon" size="xs" /></q-item-section>
+                            <q-item-section>{{ layout.label }}</q-item-section>
+                            <q-item-section side v-if="selectedLayout === layout.value"><q-icon name="check" size="xs" color="orange" /></q-item-section>
+                        </q-item>
+                        
+                        <q-separator class="q-my-xs" />
+                        
+                        <q-item clickable v-close-popup @click="showGroupEditor = true">
+                            <q-item-section avatar><q-icon name="settings" size="xs" class="text-grey-7" /></q-item-section>
+                            <q-item-section class="text-grey-8">{{ $t('rewardSys.manageGroups') }}</q-item-section>
+                        </q-item>
+                    </q-list>
+                </div>
+
+                <q-separator vertical inset class="q-mx-lg" />
+
+                <!-- Right Column: Settings & Info -->
+                <div class="column items-center" style="min-width: 180px">
+                   <div class="text-subtitle1 text-weight-bold q-mb-md text-grey-8">Settings</div>
+                   
+                   <div class="column q-gutter-y-sm full-width">
+                       <q-toggle
+                           v-model="isMusicEnabled"
+                           checked-icon="music_note"
+                           unchecked-icon="music_off"
+                           label="Music On"
+                           color="primary"
+                           dense
+                         />
+                         
+                        <q-toggle
+                           v-model="avatarEditEnabled"
+                           icon="edit"
+                           label="Edit Avatars"
+                           color="secondary"
+                           dense
+                         />
+                   </div>
+                   
+                   <q-separator class="q-my-md full-width" />
+
+                   <!-- Noise Meter -->
+                   <div class="q-py-sm">
+                      <noise class="scale-90 transform-origin-center" />
+                   </div>
+                   
+                   <q-separator class="q-my-md full-width" />
+                   
+                   <!-- Session Info Removed (Moved to Header/Menu) -->
+                </div>
+              </div>
+            </q-btn-dropdown>
+            
+            <!-- Context Badge showing current Tab & Filter -->
+            <div class="flex items-center gap-2">
+                <q-badge color="blue-1" text-color="blue-9" class="q-py-xs q-px-sm text-subtitle2">
+                    {{ activeTab === 'positive' ? $t('rewardSys.tabs.positivePoints') : 
+                       activeTab === 'attendance' ? $t('rewardSys.tabs.attendance') :
+                       activeTab === 'history' ? $t('rewardSys.tabs.history') :
+                       activeTab === 'champions' ? $t('rewardSys.tabs.champions') : 
+                       $t('rewardSys.tabs.settingsReports') 
+                    }}
+                </q-badge>
+                
+                <q-badge v-if="activeTab === 'positive'" color="orange-1" text-color="orange-9" class="q-py-xs q-px-sm">
+                    Filter: {{ pointsDisplayMode === 'overall' ? 'Overall' : pointsDisplayMode === 'session' ? 'Session' : 'Week/Comp' }}
+                </q-badge>
+            </div>
+         </div>
+      </div>
 
       <q-separator />
 
@@ -317,7 +459,7 @@ card2
               </div>
             </div>
 
-            <div class="flex flex-wrap justify-center gap-6 p-4">
+            <div class="flex flex-wrap justify-center gap-6 p-4 bg-gray-400">
               <StudentCard
                 v-for="student in students"
                 :key="student.id"
@@ -326,9 +468,11 @@ card2
                 :allow-disabled-click="true"
                 :avatar-edit-enabled="avatarEditEnabled"
                 :student-summary="{
-                  positive: studentBehaviors[student.id]?.points_plus || 0,
-                  negative: studentBehaviors[student.id]?.points_minus || 0,
-                  total: (studentBehaviors[student.id]?.points_plus || 0) - (studentBehaviors[student.id]?.points_minus || 0)
+
+                  positive: (studentBehaviors[student.id]?.points_plus || 0) - (pointsDisplayMode === 'from_now' && pointsBaseline[student.id] ? pointsBaseline[student.id].plus : 0),
+                  negative: (studentBehaviors[student.id]?.points_minus || 0) - (pointsDisplayMode === 'from_now' && pointsBaseline[student.id] ? pointsBaseline[student.id].minus : 0),
+                  total: ((studentBehaviors[student.id]?.points_plus || 0) - (pointsDisplayMode === 'from_now' && pointsBaseline[student.id] ? pointsBaseline[student.id].plus : 0)) - 
+                         ((studentBehaviors[student.id]?.points_minus || 0) - (pointsDisplayMode === 'from_now' && pointsBaseline[student.id] ? pointsBaseline[student.id].minus : 0))
                 }"
                 @select="toggleAttendance(student.id)"
               />
@@ -343,39 +487,7 @@ card2
         <q-tab-panel name="positive">
           <div class=" ">
   
-            <!-- Layout Selector Toolbar -->
-            <q-card class="shadow-md rounded-xl mb-4">
-              <q-card-section class="p-3 bg-gradient-to-r from-blue-50 to-indigo-50">
-                <div class="flex items-center justify-between gap-4">
-                  <div class="flex items-center gap-3 flex-1">
-                    <q-icon name="view_module" size="sm" color="primary" />
-                    <span class="font-bold text-gray-700">{{ $t('rewardSys.layout') }}</span>
-                    <q-select
-                      v-model="selectedLayout"
-                      :options="layoutOptions"
-                      option-value="value"
-                      option-label="label"
-                      outlined
-                      dense
-                      emit-value
-                      map-options
-                      class="w-64"
-                    >
-                      <template v-slot:prepend>
-                        <q-icon :name="selectedLayoutIcon" />
-                      </template>
-                    </q-select>
-                  </div>
-                  <q-btn
-                    flat
-                    color="primary"
-                    icon="settings"
-                    :label="$t('rewardSys.manageGroups')"
-                    @click="showGroupEditor = true"
-                  />
-                </div>
-              </q-card-section>
-            </q-card>
+
 
             <!-- Behavior Selection -->
        
@@ -413,27 +525,149 @@ card2
                       class="bg-red-100/50"
                     />
                     
+                    <q-btn 
+                      flat dense color="negative" :label="$t('rewardSys.selection.clear')" size="sm" 
+                      @click="clearSelection"
+                      icon="clear"
+                      class="bg-red-100/50"
+                    />
+
+                    <Teleport to="#dialog-header-actions">
+                      <div class="row items-center q-gutter-x-sm">
+                        <!-- Attendance Summary Badges (Teleported to Header) -->
+                        <q-btn
+                            rounded
+                            dense
+                            no-caps
+                            color="positive"
+                            class="px-3 shadow-sm"
+                            @click="openAttendanceList('present')"
+                        >
+                            <q-icon name="check_circle" class="mr-1" size="xs" />
+                            <span class="font-bold">{{ presentCount }}</span>
+                        </q-btn>
+
+                        <q-btn
+                            rounded
+                            dense
+                            no-caps
+                            color="negative"
+                            class="px-3 shadow-sm"
+                            @click="openAttendanceList('absent')"
+                        >
+                            <q-icon name="cancel" class="mr-1" size="xs" />
+                            <span class="font-bold">{{ absentCount }}</span>
+                        </q-btn>
+                      </div>
+                    </Teleport>
+                    
                     <q-separator vertical inset class="mx-2" />
+
+                    <!-- Attendance List Dialog -->
+                    <q-dialog v-model="showAttendanceListDialog">
+                        <q-card style="min-width: 350px">
+                            <q-card-section class="row items-center">
+                                <div class="text-h6">
+                                    {{ attendanceListFilter === 'present' ? 'Present Students' : 'Absent Students' }}
+                                    <q-badge :color="attendanceListFilter === 'present' ? 'positive' : 'negative'" class="ml-2">
+                                        {{ displayedAttendanceList.length }}
+                                    </q-badge>
+                                </div>
+                                <q-space />
+                                <q-btn icon="close" flat round dense v-close-popup />
+                            </q-card-section>
+
+                            <q-card-section class="q-pt-none" style="max-height: 50vh; overflow-y: auto;">
+                                <div v-if="displayedAttendanceList.length === 0" class="text-gray-500 italic text-center py-4">
+                                    No students found.
+                                </div>
+                                <q-list bordered separator class="rounded-lg" v-else>
+                                    <q-item v-for="student in displayedAttendanceList" :key="student.id">
+                                        <q-item-section avatar>
+                                            <q-avatar size="sm">
+                                                <img :src="getAvatarUrl(student)" />
+                                            </q-avatar>
+                                        </q-item-section>
+                                        <q-item-section>{{ student.name }}</q-item-section>
+                                    </q-item>
+                                </q-list>
+                            </q-card-section>
+
+                            <q-card-actions align="right" class="bg-gray-50">
+                                <q-btn flat label="Close" color="primary" v-close-popup />
+                                <q-btn 
+                                    label="Copy List" 
+                                    color="primary" 
+                                    icon="content_copy" 
+                                    @click="copyStudentNames"
+                                    :disable="displayedAttendanceList.length === 0"
+                                />
+                            </q-card-actions>
+                        </q-card>
+                    </q-dialog>
                     
                     <!-- Action Buttons -->
-                    <q-btn 
-                      color="positive" icon="add" :label="$t('rewardSys.points.title')" 
-                      @click="openBehaviorDialog('positive')"
+                    <q-btn-dropdown 
+                      color="primary" 
+                      icon="stars" 
+                      label="Give Feedback" 
                       :disable="selectedIds.length === 0"
-                      size="sm"
-                    />
-                    <q-btn 
-                      color="negative" icon="remove" :label="$t('rewardSys.points.title')" 
-                      @click="openBehaviorDialog('negative')"
-                      :disable="selectedIds.length === 0"
-                      size="sm"
-                    />
+                      class="shadow-sm"
+                      content-class="rounded-xl"
+                    >
+                      <div style="width: 420px; max-width: 90vw;">
+                        <q-tabs 
+                          v-model="feedbackTab" 
+                          class="text-grey-7 bg-grey-1" 
+                          active-color="primary" 
+                          indicator-color="primary" 
+                          align="justify" 
+                          narrow-indicator 
+                          dense
+                        >
+                          <q-tab name="positive" icon="thumb_up" label="Positive" class="text-weight-bold" />
+                          <q-tab name="needs_work" icon="warning" label="Needs Work" class="text-weight-bold" />
+                        </q-tabs>
+
+                        <q-separator />
+
+                        <q-tab-panels v-model="feedbackTab" animated class="bg-white" style="max-height: 400px; overflow-y: auto;">
+                          <q-tab-panel name="positive" class="q-pa-md">
+                            <div class="row q-col-gutter-sm">
+                              <div class="col-4 cursor-pointer" v-for="behavior in positiveBehaviors" :key="behavior.id" @click="applyBehaviorToStudents(behavior.id)">
+                                 <div v-close-popup class="column items-center q-pa-sm bg-blue-50 rounded-xl border border-blue-100 shadow-sm hover:shadow-md hover:bg-blue-100 transition-all text-center h-full relative-position">
+                                    <q-icon :name="behavior.icon || 'star'" size="2em" class="q-mb-xs text-orange" />
+                                    <div class="text-caption text-weight-bold text-grey-9 ellipsis-2-lines leading-tight min-h-[2.5em] flex items-center justify-center">{{ behavior.name }}</div>
+                                    <div class="absolute-top-right q-ma-xs">
+                                        <q-badge color="green-1" text-color="green-9" class="text-xs font-bold border border-green-200 shadow-sm rounded-full px-1.5">+{{ behavior.points || behavior.value }}</q-badge>
+                                    </div>
+                                 </div>
+                              </div>
+                            </div>
+                          </q-tab-panel>
+
+                          <q-tab-panel name="needs_work" class="q-pa-md">
+                           <div class="row q-col-gutter-sm">
+                              <div class="col-4 cursor-pointer" v-for="behavior in negativeBehaviors" :key="behavior.id" @click="applyBehaviorToStudents(behavior.id)">
+                                 <div v-close-popup class="column items-center q-pa-sm bg-red-50 rounded-xl border border-red-100 shadow-sm hover:shadow-md hover:bg-red-100 transition-all text-center h-full relative-position">
+                                    <q-icon :name="behavior.icon || 'warning'" size="2em" class="q-mb-xs text-red" />
+                                    <div class="text-caption text-weight-bold text-grey-9 ellipsis-2-lines leading-tight min-h-[2.5em] flex items-center justify-center">{{ behavior.name }}</div>
+                                    <div class="absolute-top-right q-ma-xs">
+                                        <q-badge color="red-1" text-color="red-9" class="text-xs font-bold border border-red-200 shadow-sm rounded-full px-1.5">{{ behavior.points || behavior.value }}</q-badge>
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+                          </q-tab-panel>
+                        </q-tab-panels>
+                      </div>
+                    </q-btn-dropdown>
                   </div>
                 </div>
               </div>
 
               <!-- Student Grid -->
-              <div v-for="(group, index) in organizedStudents" :key="index" class="mb-6">
+              <div v-for="(group, index) in organizedStudents" :key="index" class="mb-6 bg-gray-400">
                 <!-- Group Header (only if groups exist) -->
                 <div v-if="group.name" class="mb-3 p-3 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-200">
                   <div class="flex items-center justify-between">
@@ -478,9 +712,11 @@ card2
                     :allow-disabled-click="false"
                     :avatar-edit-enabled="avatarEditEnabled"
                     :student-summary="{
-                      positive: studentBehaviors[student.id]?.points_plus || 0,
-                      negative: studentBehaviors[student.id]?.points_minus || 0,
-                      total: (studentBehaviors[student.id]?.points_plus || 0) - (studentBehaviors[student.id]?.points_minus || 0)
+
+                      positive: (studentBehaviors[student.id]?.points_plus || 0) - (pointsDisplayMode === 'from_now' && pointsBaseline[student.id] ? pointsBaseline[student.id].plus : 0),
+                      negative: (studentBehaviors[student.id]?.points_minus || 0) - (pointsDisplayMode === 'from_now' && pointsBaseline[student.id] ? pointsBaseline[student.id].minus : 0),
+                      total: ((studentBehaviors[student.id]?.points_plus || 0) - (pointsDisplayMode === 'from_now' && pointsBaseline[student.id] ? pointsBaseline[student.id].plus : 0)) - 
+                             ((studentBehaviors[student.id]?.points_minus || 0) - (pointsDisplayMode === 'from_now' && pointsBaseline[student.id] ? pointsBaseline[student.id].minus : 0))
                     }"
                     @select="toggleSelected(student.id)"
                   />
@@ -1172,6 +1408,10 @@ const props = defineProps({
   week: {
     type: Number,
     default: null
+  },
+  initialTab: {
+    type: String,
+    default: 'positive'
   }
 })
 
@@ -1193,13 +1433,13 @@ import card3 from './final/card3.vue'; // Adjust path as needed
 import StudentCard from './reward_sys_comp/StudentCard.vue'
 import noise from './final/noise.vue'; // Adjust path as needed
 
-import pdf_main from './final/pdf_main.vue'
-import PDFAnnotatorMain from './final/PDFAnnotatorMain.vue'
-import video_player from './final/video_player.vue'
-import video_player2 from './final/video_player2.vue'
-import draw from './final/draw.vue'
-import draw2 from './final/draw2.vue'
-import draw3 from './final/draw3.vue'
+// import pdf_main from './final/pdf_main.vue'
+// import PDFAnnotatorMain from './final/PDFAnnotatorMain.vue'
+// import video_player from './final/video_player.vue'
+// import video_player2 from './final/video_player2.vue'
+// import draw from './final/draw.vue'
+// import draw2 from './final/draw2.vue'
+// import draw3 from './final/draw3.vue'
 
 // Import audio manager utility for lazy loading
 import { playSound as playSoundUtil, preloadSoundsWhenIdle } from '@/utils/audioManager'
@@ -1339,7 +1579,13 @@ const handleError = (err ) => {
 const $q = useQuasar()
 
 // ============ REACTIVE STATE ============
-const activeTab = ref('attendance')
+const activeTab = ref(props.initialTab || 'positive')
+const feedbackTab = ref('positive')
+
+// Watch initialTab prop
+watch(() => props.initialTab, (val) => {
+    if (val) activeTab.value = val
+})
 const settingsTab = ref('behavior_incidents')
 
 // Watch for tab changes and clear selection
@@ -1390,7 +1636,8 @@ const editingLayout = ref(null)
 
 // Points Display Settings state
 const showPointsSettings = ref(false)
-const pointsDisplayMode = ref(localStorage.getItem('points-display-mode') || 'overall') // 'overall' | 'session' | 'competition' | 'custom'
+const pointsDisplayMode = ref(localStorage.getItem('points-display-mode') || 'overall') // 'overall' | 'session' | 'competition' | 'custom' | 'from_now'
+const pointsBaseline = ref({}) // Stores starting points for 'from_now' mode { student_id: { plus: 0, minus: 0 } }
 const competitionStartTime = ref(localStorage.getItem('competition-start-time') || null)
 const customDateFrom = ref(localStorage.getItem('custom-date-from') || null)
 const customDateTo = ref(localStorage.getItem('custom-date-to') || null)
@@ -1466,6 +1713,52 @@ watch(selectedDate, (newDate) => {
 const periodCode = computed(() => {
   return `${selectedSemester.value}.${selectedWeek.value}.${selectedDay.value}.${selectedPeriodNumber.value}`
 })
+
+const classroomName = computed(() => {
+  const c = classrooms.value.find(cw => cw.classroom_id === selectedClassroomId.value)
+  return c ? c.classroom_name : t('rewardSys.session.unknownClass')
+})
+
+const fullSubjectName = computed(() => {
+  const s = subjects.value.find(sub => sub.subject_id === selectedSubjectId.value)
+  return s ? (locale.value === 'ar' && s.subject_name_ar ? s.subject_name_ar : s.subject_name) : ''
+})
+
+// Attendance Summary Counts
+const presentCount = computed(() => {
+  return students.value.filter(s => studentAttendance.value[s.id]).length
+})
+
+const absentCount = computed(() => {
+  return students.value.filter(s => !studentAttendance.value[s.id]).length
+})
+
+const showAttendanceListDialog = ref(false)
+const attendanceListFilter = ref('present') // 'present' or 'absent'
+
+const displayedAttendanceList = computed(() => {
+  return students.value.filter(s => 
+    attendanceListFilter.value === 'present' 
+      ? studentAttendance.value[s.id] 
+      : !studentAttendance.value[s.id]
+  )
+})
+
+function openAttendanceList(type) {
+  attendanceListFilter.value = type
+  showAttendanceListDialog.value = true
+}
+
+function copyStudentNames() {
+  const names = displayedAttendanceList.value.map(s => s.name).join('\n')
+  navigator.clipboard.writeText(names).then(() => {
+  })
+}
+
+function getAvatarUrl(student) {
+  if (student.avatar) return student.avatar.startsWith('/') ? student.avatar : `/${student.avatar}`;
+  return '/images/avatars/default-avatar.svg';
+}
 
 // Computed behavior lists
 const positiveBehaviors = computed(() => {
@@ -1942,6 +2235,7 @@ async function initClassroomSession() {
       classroom_id: selectedClassroomId.value,
       date: selectedDate.value,
       period_code: periodCode.value,
+      points_mode: pointsDisplayMode.value === 'from_now' ? 'overall' : pointsDisplayMode.value
     }
 
     const res = await axios.post('/api/student-behaviors/init-classroom', payload)
@@ -1949,7 +2243,7 @@ async function initClassroomSession() {
       const d = res.data
       studentBehaviorsMainId.value = d.student_behaviors_mains_id
       initStatus.value = { 
-        message: `Session initialized (created ${d.created}, skipped ${d.skipped})`, 
+        message: `Session initialized (created ${d.created}, skipped ${d.skipped}, mode: ${d.points_mode})`, 
         created: d.created, 
         skipped: d.skipped 
       }
@@ -1997,6 +2291,24 @@ async function initClassroomSession() {
     loadingData.value = false
   }
 }
+
+// Watch pointsDisplayMode to reload data
+watch(pointsDisplayMode, (newVal) => {
+    if (newVal === 'from_now') {
+      // Capture current points as baseline
+      const baseline = {}
+      for (const [id, stats] of Object.entries(studentBehaviors.value)) {
+        baseline[id] = {
+          plus: stats.points_plus || 0,
+          minus: stats.points_minus || 0
+        }
+      }
+      pointsBaseline.value = baseline
+      // Don't reload, just re-render with subtraction
+    } else {
+      initClassroomSession();
+    }
+});
 
 async function applyPositiveBehavior() {
   await applyBehaviorToStudents(selectedPositiveBehaviorId.value)
@@ -2430,6 +2742,9 @@ onMounted(async () => {
           selectedPeriodNumber.value = parseInt(urlPeriod)
         }
         
+        
+
+
         autoInit = true
         console.log(`📚 URL Subject: ${urlSubjectId}`)
         console.log(`🏫 URL Classroom: ${urlClassroomId}`)

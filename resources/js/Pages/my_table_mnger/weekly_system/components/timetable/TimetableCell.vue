@@ -260,7 +260,7 @@ const handleClick = () => {
   }
 }
 
-const openRewardSystem = () => {
+const openRewardSystem = (tab = 'positive') => {
     if (!props.schedule?.cst) return
     
     const classroomId = props.schedule.cst.classroom_id
@@ -274,7 +274,8 @@ const openRewardSystem = () => {
         subjectId,
         period,
         date: today,
-        schedule: props.schedule
+        schedule: props.schedule,
+        initialTab: tab
     })
 }
 

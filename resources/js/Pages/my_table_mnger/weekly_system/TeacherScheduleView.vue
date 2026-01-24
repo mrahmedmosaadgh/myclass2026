@@ -192,6 +192,7 @@
             </span>
           </q-toolbar-title>
           <q-space />
+          <div id="dialog-header-actions" class="row items-center q-mr-sm"></div>
           <q-btn flat round dense icon="remove" @click="minimizeDialog">
             <q-tooltip>Minimize (Keep Session Active)</q-tooltip>
           </q-btn>
@@ -208,6 +209,7 @@
               :period="rewardContext?.period || 0"
               :date="rewardContext?.date || ''"
               :week="rewardContext?.week || 0"
+              :initial-tab="typeof rewardContext?.initialTab === 'string' ? rewardContext.initialTab : 'positive'"
               :is-dialog="true"
             />
           </div>

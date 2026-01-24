@@ -5,7 +5,7 @@
       class="avatar-container relative rounded-full border-4 transition-all duration-300 transform pointer-events-none"
       :class="[
         sizeClasses,
-        hover ? 'scale-105 shadow-xl border-yellow-400' : 'shadow-lg border-blue-300',
+        hover ? 'scale-105 shadow-xl border-yellow-400' : 'shadow-lg  ',
         editEnabled ? '' : ''
       ]"
     >

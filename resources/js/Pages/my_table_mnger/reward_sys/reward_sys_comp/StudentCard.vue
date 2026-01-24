@@ -3,7 +3,7 @@
   
    <!-- Name at Top of Card -->
    <div class="text-center w-full mb-2 name-container">
-     <div 
+     <!-- <div 
        class="first-name"
        :class="[
          selected || selectedId === student.id ? 'selected-name' : '', 
@@ -11,12 +11,28 @@
        ]"
      >
        {{ localizedName.firstName }}
-       <span v-if="localizedName.secondName" class="block text-xs font-normal opacity-90 mt-0.5">
+
+     </div> -->
+     
+     <div class="last-name mt-1 h-16" :class="{ 'selected-last-name': selected || selectedId === student.id , 'disabled-last-name': disableBehavior}">
+           <div 
+       class="first-name"
+       :class="[
+         selected || selectedId === student.id ? 'selected-name' : '', 
+         disableBehavior ? 'disabled-first-name' : ''
+       ]"
+     >
+       {{ localizedName.firstName }}
+
+     </div>
+      
+      <span v-if="localizedName.secondName" class="block text-xs font-normal opacity-90 mb-0.5">
          {{ localizedName.secondName }}
        </span>
+
+
+       {{ localizedName.lastName }}
      </div>
-     
-     <div class="last-name mt-1">{{ localizedName.lastName }}</div>
    </div>
   
   <!-- Avatar Card (Clickable) -->
@@ -61,10 +77,7 @@
     </div>
   </div>
 
-  <!-- Full Name Display Below Card (Active Only) -->
-  <div v-if="selectedId === student.id" class="full-name-badge-bottom">
-    {{ localizedName.fullName }}
-  </div>
+
 
 </div>
 </template>
@@ -142,15 +155,17 @@ const pointsBadgeClass = computed(() => {
 
 .first-name {
   font-size: 1.15rem;
-  font-weight: 800;
+  /* font-weight: 800; */
   color: #ffffff;
-  background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 50%, #ffd93d 100%);
+  /* background: linear-gradient(135deg, #120a5e 0%, #540379 50%, #02357d 100%); */
+   background: linear-gradient(135deg, #3e3a3a, #424242);
+  /* background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 50%, #ffd93d 100%); */
   padding: 0.25rem 0.8rem;
   border-radius: 1rem;
-  box-shadow: 
+  /* box-shadow: 
     0 4px 8px rgba(255, 107, 107, 0.3),
     0 2px 4px rgba(0, 0, 0, 0.1),
-    inset 0 -2px 4px rgba(0, 0, 0, 0.1);
+    inset 0 -2px 4px rgba(0, 0, 0, 0.1); */
   transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   transform: perspective(500px) rotateX(5deg);
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
@@ -164,15 +179,13 @@ const pointsBadgeClass = computed(() => {
 }
 
 .first-name.selected-name {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%); /* Cool Blue Gradient */
   color: white;
-  transform: perspective(500px) rotateX(5deg) scale(1.25);
+  font-weight: 800;
   box-shadow: 
-    0 8px 16px rgba(102, 126, 234, 0.5),
-    0 4px 8px rgba(118, 75, 162, 0.3),
-    0 0 20px rgba(240, 147, 251, 0.4),
-    inset 0 -2px 6px rgba(0, 0, 0, 0.15);
-  /* Removed infinite animations for better performance */
+    0 4px 12px rgba(0, 114, 255, 0.4),
+    0 2px 4px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px); /* Subtle lift */
 }
 
 @keyframes rainbow-pulse {
@@ -186,8 +199,8 @@ const pointsBadgeClass = computed(() => {
 
 .disabled-first-name {
   font-size: 1.1rem;
-  color: #ffffff;
-  background: linear-gradient(135deg, #636363, #424242);
+  color: #060606;
+  background: transparent;
   padding: 0.25rem 0.7rem;
   border-radius: 1rem;
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
@@ -199,11 +212,24 @@ const pointsBadgeClass = computed(() => {
   margin-top: 0.1rem;
   font-weight: 600;
   color: #4a5568;
-  background: linear-gradient(135deg, #f7fafc, #edf2f7);
+  background: transparent;
+  /* background: linear-gradient(135deg, #f7fafc, #edf2f7); */
   padding: 0.15rem 0.5rem;
   border-radius: 0.5rem;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+  transition: all 0.3s ease;
+}
+ .disabled-last-name  { 
+  color: #060606;
+  background: transparent;
+}
+
+.last-name.selected-last-name {
+  background: #0072ff;
+  color: white;
+  text-shadow: none;
+  box-shadow: 0 2px 6px rgba(0, 114, 255, 0.3);
 }
 
 .full-name-badge-bottom {
@@ -234,42 +260,28 @@ const pointsBadgeClass = computed(() => {
   width: 8.5rem;
   height: 8.5rem;
   border-radius: 50%;
-  background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%);
+  background: white;
   display: flex;
   align-items: center;
   justify-content: center;
   
-  /* 3D Effect */
-  box-shadow: 
-    0 8px 16px rgba(0, 0, 0, 0.12),
-    0 4px 8px rgba(59, 130, 246, 0.08),
-    inset 0 -4px 8px rgba(0, 0, 0, 0.05),
-    inset 0 4px 8px rgba(255, 255, 255, 0.5);
-  border: 5px solid transparent;
+  /* Nice Shadow */
+  /* box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.1), 
+    0 2px 4px -1px rgba(0, 0, 0, 0.06); */
+  border: none;
   background-clip: padding-box;
   position: relative;
   
-  transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
   overflow: visible;
   transform: perspective(1000px) rotateY(0deg);
 }
 
-/* Colorful border gradient */
+/* Removed colorful border gradient */
 .student-card::before {
-  content: '';
-  position: absolute;
-  inset: -5px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, 
-    #60a5fa 0%, 
-    #a78bfa 25%, 
-    #f472b6 50%, 
-    #fbbf24 75%, 
-    #34d399 100%);
-  z-index: -1;
-  opacity: 0.6;
-  transition: opacity 0.3s ease;
+  display: none;
 }
 
 /* Avatar */
@@ -305,58 +317,16 @@ const pointsBadgeClass = computed(() => {
 
 /* Selected State */
 .student-card.selected {
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #fcd34d 100%);
+  background: #f0f9ff; /* Very light blue tint */
+  border: 3px solid #00c6ff; /* Cool Cyan Border */
   box-shadow: 
-    0 0 0 6px #fbbf24,
-    0 0 0 12px rgba(251, 191, 36, 0.3),
-    0 16px 32px rgba(251, 191, 36, 0.4),
-    0 8px 16px rgba(245, 158, 11, 0.3),
-    0 0 40px rgba(251, 191, 36, 0.6),
-    inset 0 -6px 12px rgba(217, 119, 6, 0.2),
-    inset 0 6px 12px rgba(255, 255, 255, 0.7);
-  border-color: #fbbf24;
-  transform: perspective(1000px) rotateY(0deg) scale(1.2) translateY(-8px);
+    0 0 15px rgba(0, 198, 255, 0.4), /* Outer Glow */
+    inset 0 0 10px rgba(0, 114, 255, 0.1); /* Inner Glow */
   z-index: 30;
-  animation: selected-bounce 0.6s ease-out; /* Removed infinite selected-glow for better performance */
+  transform: scale(1.02); /* Very subtle scale to indicators selection without disrupting layout too much, or keep 1 if strict */
 }
 
-.student-card.selected::before {
-  background: linear-gradient(135deg, 
-    #fbbf24 0%, 
-    #f59e0b 25%, 
-    #d97706 50%, 
-    #b45309 75%, 
-    #92400e 100%);
-  opacity: 1;
-  /* Removed infinite rotate-gradient animation for better performance */
-}
-
-@keyframes selected-bounce {
-  0% { transform: perspective(1000px) scale(1) translateY(0); }
-  50% { transform: perspective(1000px) scale(1.25) translateY(-12px); }
-  100% { transform: perspective(1000px) scale(1.2) translateY(-8px); }
-}
-
-@keyframes selected-glow {
-  0%, 100% {
-    box-shadow: 
-      0 0 0 6px #fbbf24,
-      0 0 0 12px rgba(251, 191, 36, 0.3),
-      0 16px 32px rgba(251, 191, 36, 0.4),
-      0 0 40px rgba(251, 191, 36, 0.6),
-      inset 0 -6px 12px rgba(217, 119, 6, 0.2),
-      inset 0 6px 12px rgba(255, 255, 255, 0.7);
-  }
-  50% {
-    box-shadow: 
-      0 0 0 8px #f59e0b,
-      0 0 0 16px rgba(245, 158, 11, 0.4),
-      0 20px 40px rgba(245, 158, 11, 0.5),
-      0 0 60px rgba(251, 191, 36, 0.8),
-      inset 0 -6px 12px rgba(217, 119, 6, 0.3),
-      inset 0 6px 12px rgba(255, 255, 255, 0.8);
-  }
-}
+/* Cleaned up selected state animations */
 
 /* Disabled/Absent State */
 .disabled-card {

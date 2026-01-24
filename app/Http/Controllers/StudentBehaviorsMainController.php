@@ -233,6 +233,38 @@ class StudentBehaviorsMainController extends Controller
                 ->with(['student', 'pointActions']) // Eager load student and point actions
                 ->get();
 
+            // Handle Points Mode Filtering
+            $pointsMode = $request->input('points_mode', 'session');
+
+            if ($pointsMode === 'overall') {
+                foreach ($studentBehaviors as $sb) {
+                    $totals = \DB::table('student_behaviors')
+                        ->where('student_id', $sb->student_id)
+                        ->where('school_id', $school->id)
+                        ->selectRaw('SUM(points_plus) as total_plus, SUM(points_minus) as total_minus')
+                        ->first();
+                    
+                    $sb->points_plus = $totals->total_plus ?? 0;
+                    $sb->points_minus = $totals->total_minus ?? 0;
+                }
+            } elseif ($pointsMode === 'competition') {
+                $startOfWeek = \Carbon\Carbon::parse($date)->startOfWeek();
+                $endOfWeek = \Carbon\Carbon::parse($date)->endOfWeek();
+
+                foreach ($studentBehaviors as $sb) {
+                     $totals = \DB::table('student_behaviors')
+                        ->join('student_behaviors_mains', 'student_behaviors.student_behaviors_mains_id', '=', 'student_behaviors_mains.id')
+                        ->where('student_behaviors.student_id', $sb->student_id)
+                        ->where('student_behaviors.school_id', $school->id)
+                        ->whereBetween('student_behaviors_mains.date', [$startOfWeek, $endOfWeek])
+                        ->selectRaw('SUM(student_behaviors.points_plus) as total_plus, SUM(student_behaviors.points_minus) as total_minus')
+                        ->first();
+
+                    $sb->points_plus = $totals->total_plus ?? 0;
+                    $sb->points_minus = $totals->total_minus ?? 0;
+                }
+            }
+
             return response()->json([
                 'message' => 'Initialized classroom session',
                 'student_behaviors_mains_id' => $main->id,
@@ -240,6 +272,7 @@ class StudentBehaviorsMainController extends Controller
                 'created' => $created,
                 'skipped' => $skipped,
                 'created_ids' => $createdIds,
+                'points_mode' => $pointsMode
             ], 200);
 
         } catch (\Exception $e) {

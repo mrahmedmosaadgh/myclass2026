@@ -30,7 +30,7 @@
     </div>
 
     <!-- STUDENT GRID -->
-    <div class="q-gutter-md row wrap">
+    <div class="q-gutter-md row wrap bg-gray-400">
       <StudentCard
         v-for="student in students"
         :key="student.id"
