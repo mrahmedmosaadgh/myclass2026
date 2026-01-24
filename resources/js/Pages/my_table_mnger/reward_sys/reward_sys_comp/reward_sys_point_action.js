@@ -303,6 +303,7 @@ export async function applyBehaviorToStudents(studentIds, behaviorId, options = 
         behavior_id: actualBehaviorId,
         date: options.date || new Date().toISOString().split('T')[0],
         period_code: options.periodCode || null,
+        points_mode: options.points_mode || 'session',
         notes: options.notes || null,
       }
 
@@ -338,7 +339,7 @@ export async function applyBehaviorToStudents(studentIds, behaviorId, options = 
         console.error('   Full Response:', err.response?.data)
         console.error('   Sent Payload:', payload)
         console.error('═══════════════════════════════════════════════════════════')
-        
+
         errors.push({
           studentId,
           success: false,

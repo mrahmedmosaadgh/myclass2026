@@ -2351,6 +2351,7 @@ async function applyBehaviorToStudents(behaviorId) {
         date: selectedDate.value,
         periodCode: periodCode.value,
         classroomId: selectedClassroomId.value,
+        points_mode: pointsDisplayMode.value === 'from_now' ? 'overall' : pointsDisplayMode.value // Match init logic
       }
     )
 

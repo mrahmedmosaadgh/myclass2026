@@ -385,6 +385,75 @@ class StudentBehaviorController extends Controller
                 }
             }
             
+            // Recalculate points based on the requested mode (if provided)
+            $pointsMode = $request->input('points_mode', 'session');
+            
+            if ($pointsMode === 'overall') {
+                // Sum all points for this student in this school (All Time)
+                 // Note: Logic aligned with StudentBehaviorsMainController
+                 $totals = \DB::table('student_behaviors as sb')
+                    ->join('student_behaviors_point_actions as pa', 'sb.id', '=', 'pa.student_behaviors_id')
+                    ->join('student_behaviors_mains as sm', 'sb.student_behaviors_mains_id', '=', 'sm.id')
+                    ->where('sb.student_id', $validated['student_id'])
+                    ->where('sm.school_id', $school->id)
+                    // If filtering by subject for "Overall" (as refined in implementation plan)
+                    ->where('sm.subject_id', $subjectId)
+                    ->where('pa.canceled', false)
+                    ->selectRaw('
+                        SUM(CASE WHEN pa.value > 0 THEN pa.value ELSE 0 END) as points_plus,
+                        SUM(CASE WHEN pa.value < 0 THEN ABS(pa.value) ELSE 0 END) as points_minus
+                    ')
+                    ->first();
+
+                 $studentBehavior->setAppends(['total_points']); // Ensure appends are active
+                 $studentBehavior->points_plus = $totals->points_plus ?? 0;
+                 $studentBehavior->points_minus = $totals->points_minus ?? 0;
+
+            } elseif ($pointsMode === 'all_subjects') {
+                // Sum all points for this student in this school (All Subjects)
+                 $totals = \DB::table('student_behaviors as sb')
+                    ->join('student_behaviors_point_actions as pa', 'sb.id', '=', 'pa.student_behaviors_id')
+                    ->join('student_behaviors_mains as sm', 'sb.student_behaviors_mains_id', '=', 'sm.id')
+                    ->where('sb.student_id', $validated['student_id'])
+                    ->where('sm.school_id', $school->id)
+                    ->where('pa.canceled', false)
+                    ->selectRaw('
+                        SUM(CASE WHEN pa.value > 0 THEN pa.value ELSE 0 END) as points_plus,
+                        SUM(CASE WHEN pa.value < 0 THEN ABS(pa.value) ELSE 0 END) as points_minus
+                    ')
+                    ->first();
+                 
+                  $studentBehavior->points_plus = $totals->points_plus ?? 0;
+                  $studentBehavior->points_minus = $totals->points_minus ?? 0;
+
+            } elseif ($pointsMode === 'competition') {
+                // Sum points for this week
+                // Need to determine week range. Ideally pass from frontend or calculate standard week.
+                // For simplicity/robustness, we'll try to use the same logic as the main controller or just skip if complex.
+                // Assuming standard Iso week for now or passed dates? 
+                // Let's stick to standard ISO week of the *action date*
+                 $actionDate = \Carbon\Carbon::parse($validated['date']);
+                 $startOfWeek = $actionDate->copy()->startOfWeek();
+                 $endOfWeek = $actionDate->copy()->endOfWeek();
+
+                 $totals = \DB::table('student_behaviors as sb')
+                    ->join('student_behaviors_point_actions as pa', 'sb.id', '=', 'pa.student_behaviors_id')
+                    ->join('student_behaviors_mains as sm', 'sb.student_behaviors_mains_id', '=', 'sm.id')
+                    ->where('sb.student_id', $validated['student_id'])
+                    ->where('sm.school_id', $school->id)
+                    ->whereBetween('sm.date', [$startOfWeek, $endOfWeek])
+                    ->where('pa.canceled', false)
+                    ->selectRaw('
+                        SUM(CASE WHEN pa.value > 0 THEN pa.value ELSE 0 END) as points_plus,
+                        SUM(CASE WHEN pa.value < 0 THEN ABS(pa.value) ELSE 0 END) as points_minus
+                    ')
+                    ->first();
+
+                 $studentBehavior->points_plus = $totals->points_plus ?? 0;
+                 $studentBehavior->points_minus = $totals->points_minus ?? 0;
+            }
+            // else 'session': defaults to the model's own calculation which is correct for session
+
             return response()->json($studentBehavior, 201);
         } catch (\Exception $e) {
             \Log::error('quickCreate exception: ' . $e->getMessage(), [
