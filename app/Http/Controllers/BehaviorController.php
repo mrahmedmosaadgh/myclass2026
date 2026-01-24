@@ -96,7 +96,18 @@ class BehaviorController extends Controller
         ]);
 
         $school = \App\Models\School::find($validated['school_id']);
+        // Use school's active year, or fallback to 2 (2024-2025) or current year logic
+        // Use school's active year, or fallback to latest academic year
         $yearId = $school ? $school->academic_year_id : null;
+        
+        if (!$yearId) {
+            // Try to find any valid academic year
+            $latestYear = \App\Models\AcademicYear::latest('id')->first();
+            $yearId = $latestYear ? $latestYear->id : null;
+        }
+        
+        // If still null, we can't save. But validation should have caught this if 'school_id' was invalid.
+        // Assuming we have at least one academic year.
 
         // Determine teacher_id based on user role
         $user = auth()->user();

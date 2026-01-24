@@ -181,10 +181,14 @@ class SchoolController extends Controller
             'name' => 'sometimes|string|max:255',
             'academic_year_id' => 'nullable|exists:academic_years,id',
             'semester_id' => 'nullable|exists:semesters,id',
-          
         ]);
 
-        $school->update($validated);
+        $updateData = [];
+        if (isset($validated['name'])) $updateData['name'] = $validated['name'];
+        if (array_key_exists('academic_year_id', $validated)) $updateData['active_academic_year_id'] = $validated['academic_year_id'];
+        if (array_key_exists('semester_id', $validated)) $updateData['active_semester_id'] = $validated['semester_id'];
+
+        $school->update($updateData);
 
         return response()->json([
             'success' => true,

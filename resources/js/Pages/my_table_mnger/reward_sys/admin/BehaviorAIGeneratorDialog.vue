@@ -581,43 +581,45 @@ const bulkInsert = async () => {
   }
   
   try {
-    // Try bulk endpoint first, fall back to individual creation
-    let response
-    try {
-      response = await axios.post('/api/behaviors/bulk', {
-        behaviors: behaviorsToInsert,
-        school_id: props.schoolId || 1
+    // Try bulk endpoint first
+    const response = await axios.post('/api/behaviors/bulk', {
+      behaviors: behaviorsToInsert,
+      school_id: props.schoolId || 1
+    })
+
+    const summary = response.data.summary || {}
+    const errors = response.data.errors || []
+    
+    if (summary.created > 0) {
+      const msg = summary.errors > 0 
+        ? `Created ${summary.created} behaviors. ${summary.errors} failed.`
+        : `Successfully created ${summary.created} behaviors!`
+        
+      $q.notify({
+        type: summary.errors > 0 ? 'warning' : 'positive',
+        message: msg,
+        icon: 'check_circle',
+        position: 'top',
+        timeout: 5000
       })
-    } catch (bulkError) {
-      // Fallback: create individually
-      const created = []
-      for (const behavior of behaviorsToInsert) {
-        const result = await axios.post('/api/behaviors', {
-          ...behavior,
-          school_id: props.schoolId || 1,
-          year_id: 2 // TODO: Get from context
-        })
-        created.push(result.data)
-      }
-      response = { data: created }
+      
+      // Close dialog and emit success to refresh list
+      showDialog.value = false
+      emit('success')
+    } else {
+      // Nothing created
+      const errorMsg = errors.length > 0 ? errors[0].error : 'No behaviors were created.'
+      throw new Error(errorMsg)
     }
 
-    $q.notify({
-      type: 'positive',
-      message: `Successfully created ${behaviorsToInsert.length} behavior${behaviorsToInsert.length !== 1 ? 's' : ''}!`,
-      icon: 'check_circle',
-      position: 'top'
-    })
-    
-    // Close dialog and emit success
-    showDialog.value = false
-    emit('success')
   } catch (error) {
+    console.error('Bulk insert error:', error)
     $q.notify({
       type: 'negative',
       message: 'Failed to create behaviors',
       caption: error.response?.data?.message || error.message,
-      position: 'top'
+      position: 'top',
+      timeout: 5000
     })
   } finally {
     inserting.value = false

@@ -16,7 +16,11 @@
 
     <!-- Assigned State -->
     <div v-else class="assigned-cell">
-      <div v-if="schedule.period_order" class="period-order-badge is-assigned">
+      <div 
+        v-if="schedule.period_order" 
+        class="period-order-badge is-assigned"
+        :style="{ backgroundColor: subjectColor, color: textColor }"
+      >
         {{ schedule.period_order }}
       </div>
       <!-- Subject Badge -->
@@ -299,7 +303,7 @@ const openRewardSystem = (tab = 'positive') => {
 .period-order-badge {
   position: absolute;
   top: 2px;
-  right: 2px;
+  left: 2px;
   background-color: rgba(0, 0, 0, 0.05);
   color: #757575;
   font-size: 0.65rem;

@@ -2249,16 +2249,19 @@ async function initClassroomSession() {
       }
       
       const items = d.student_behaviors || []
-      const mapped = items.map(b => ({
-        id: b.student.id,
-        name: b.student.name || `Student ${b.student_id}`,
-        name_ar: b.student.name_ar,
-        firstName: b.student.first_name,
-        secondName: b.student.second_name,
-        lastName: b.student.last_name,
-        avatar: b.student.avatar,
-        behaviorRecordId: b.id,
-      }))
+      const mapped = items.map(b => {
+        if (!b.student) return null
+        return {
+          id: b.student.id,
+          name: b.student.name || `Student ${b.student_id}`,
+          name_ar: b.student.name_ar,
+          firstName: b.student.first_name,
+          secondName: b.student.second_name,
+          lastName: b.student.last_name,
+          avatar: b.student.avatar,
+          behaviorRecordId: b.id,
+        }
+      }).filter(item => item !== null)
 
       students.value = mapped
       selectedIds.value = []
@@ -2336,14 +2339,36 @@ async function applyBehaviorToStudents(behaviorId) {
       }
     )
 
-    if (result.success) {
-      $q.notify({
-        message: `Applied behavior to ${selectedIds.value.length} students`,
-        color: 'positive',
-        position: 'top'
+    // Always process successful updates, even if some failed (partial success)
+    if (result.results && result.results.length > 0) {
+      result.results.forEach(res => {
+        if (res.success && res.data) {
+          const sId = res.studentId
+          const updatedRecord = res.data
+          
+          // Ensure entry exists
+          if (!studentBehaviors.value[sId]) {
+             studentBehaviors.value[sId] = {
+                points_plus: 0,
+                points_minus: 0,
+                attend: true // default assumption if missing
+             }
+          }
+
+          if (studentBehaviors.value[sId]) {
+            studentBehaviors.value[sId].points_plus = updatedRecord.points_plus
+            studentBehaviors.value[sId].points_minus = updatedRecord.points_minus
+            
+            // Also update attendance if returned
+            if (updatedRecord.attend !== undefined) {
+              studentBehaviors.value[sId].attend = updatedRecord.attend
+              studentAttendance.value[sId] = updatedRecord.attend
+            }
+          }
+        }
       })
       
-      // Play appropriate sound
+      // Play sound if at least one success
       const behavior = behaviors.value.find(b => b.id === behaviorId)
       if (behavior) {
         const value = behavior.value || behavior.points || 0
@@ -2351,14 +2376,28 @@ async function applyBehaviorToStudents(behaviorId) {
         if (value < 0) playSound('penalty')
       }
 
-      await initClassroomSession()
-      selectedIds.value = []
-    } else {
       $q.notify({
-        message: result.error || 'Failed to apply behavior',
-        color: 'negative',
+        message: `Applied behavior to ${result.results.length} students` + (result.errors && result.errors.length ? ` (${result.errors.length} failed)` : ''),
+        color: result.errors && result.errors.length ? 'warning' : 'positive',
         position: 'top'
       })
+      
+      // Re-fetch only history, don't reload entire session
+      await loadHistory()
+      selectedIds.value = []
+    } 
+    
+    // Handle errors separately
+    if (result.errors && result.errors.length > 0) {
+      console.error('Partial or full failure:', result.errors)
+      if (result.results.length === 0) {
+         // Full failure
+         $q.notify({
+          message: result.error || 'Failed to apply behavior to selected students',
+          color: 'negative',
+          position: 'top'
+        })
+      }
     }
   } catch (error) {
     console.error('Error applying behavior:', error)

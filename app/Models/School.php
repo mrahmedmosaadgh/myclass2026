@@ -17,8 +17,8 @@ class School extends Model
         'h_r_id',
         'data',
         'is_active',
-        'academic_year_id',
-        'semester_id',
+        'active_academic_year_id',
+        'active_semester_id',
         'weekly_plan_settings',
         'resolved_by',
         'resolved_at',
@@ -84,12 +84,12 @@ class School extends Model
 
     public function activeAcademicYear()
     {
-        return $this->belongsTo(AcademicYear::class, 'academic_year_id');
+        return $this->belongsTo(AcademicYear::class, 'active_academic_year_id');
     }
 
     public function activeSemester()
     {
-        return $this->belongsTo(Semester::class, 'semester_id');
+        return $this->belongsTo(Semester::class, 'active_semester_id');
     }
     
    
