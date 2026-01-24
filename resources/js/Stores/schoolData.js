@@ -71,8 +71,8 @@ export const useSchoolDataStore = defineStore('schoolData', {
         const school = response.data.data;
 
         this.schoolName = school.name;
-        this.academicYearId = school.academic_year_id;
-        this.semesterId = school.semester_id;
+        this.academicYearId = school.active_academic_year_id || school.academic_year_id;
+        this.semesterId = school.active_semester_id || school.semester_id;
 
         // Update names based on related data if available
         if (school.active_academic_year) {
