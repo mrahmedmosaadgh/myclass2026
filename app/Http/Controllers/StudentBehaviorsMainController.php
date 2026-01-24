@@ -236,12 +236,26 @@ class StudentBehaviorsMainController extends Controller
             // Handle Points Mode Filtering
             $pointsMode = $request->input('points_mode', 'session');
 
-            if ($pointsMode === 'overall') {
+            if ($pointsMode === 'all_subjects') {
                 foreach ($studentBehaviors as $sb) {
                     $totals = \DB::table('student_behaviors')
                         ->where('student_id', $sb->student_id)
                         ->where('school_id', $school->id)
                         ->selectRaw('SUM(points_plus) as total_plus, SUM(points_minus) as total_minus')
+                        ->first();
+                    
+                    $sb->points_plus = $totals->total_plus ?? 0;
+                    $sb->points_minus = $totals->total_minus ?? 0;
+                }
+            } elseif ($pointsMode === 'overall') {
+                // Filter by Subject (All Time)
+                foreach ($studentBehaviors as $sb) {
+                    $totals = \DB::table('student_behaviors')
+                        ->join('student_behaviors_mains', 'student_behaviors.student_behaviors_mains_id', '=', 'student_behaviors_mains.id')
+                        ->where('student_behaviors.student_id', $sb->student_id)
+                        ->where('student_behaviors.school_id', $school->id)
+                        ->where('student_behaviors_mains.subject_id', $subjectId)
+                        ->selectRaw('SUM(student_behaviors.points_plus) as total_plus, SUM(student_behaviors.points_minus) as total_minus')
                         ->first();
                     
                     $sb->points_plus = $totals->total_plus ?? 0;
