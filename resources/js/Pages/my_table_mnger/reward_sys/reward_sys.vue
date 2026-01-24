@@ -274,19 +274,22 @@ card2
     <q-card class="shadow-lg rounded-2xl" v-if="students.length">
 
       <!-- Main Dropdown Menu for Navigation (Replaces Tabs) -->
-      <!-- Main Dropdown Menu for Navigation (Replaces Tabs) -->
-      <div class="q-pa-sm bg-white border-b border-gray-200 flex justify-between items-center">
-         <div class="flex items-center gap-2">
+      <!-- Main Sticky Header for Navigation & Actions -->
+      <div class="sticky top-0 z-50 bg-white shadow-md border-b border-gray-200">
+        <div class="q-pa-sm flex justify-between items-center flex-nowrap gap-2">
+          <!-- Left: Menu & Context -->
+          <div class="flex items-center gap-2 flex-nowrap overflow-hidden">
             <q-btn-dropdown 
               color="primary" 
               icon="menu" 
-              label="Menu" 
+              :label="$q.screen.gt.xs ? 'Menu' : ''"
               class="shadow-sm glossy"
               content-class="bg-white"
+              dense
             >
               <div class="row no-wrap q-pa-md">
                 <!-- Left Column: Navigation & Filters -->
-                <div class="column" style="min-width: 220px">
+                <div class="column" :style="$q.screen.lt.sm ? 'min-width: 250px' : 'min-width: 220px'">
                     <div class="text-subtitle1 text-weight-bold q-mb-sm text-grey-8">Navigation</div>
                     
                     <q-list dense>
@@ -376,12 +379,20 @@ card2
                             <q-item-section class="text-grey-8">{{ $t('rewardSys.manageGroups') }}</q-item-section>
                         </q-item>
                     </q-list>
+                    
+                    <!-- Mobile: Embed Settings Here if screen is small -->
+                    <div v-if="$q.screen.lt.sm">
+                        <q-separator class="q-my-md" />
+                        <div class="text-subtitle1 text-weight-bold q-mb-md text-grey-8">Settings</div>
+                        <q-toggle v-model="isMusicEnabled" checked-icon="music_note" unchecked-icon="music_off" label="Music On" color="primary" dense />
+                        <q-toggle v-model="avatarEditEnabled" icon="edit" label="Edit Avatars" color="secondary" dense />
+                    </div>
                 </div>
 
-                <q-separator vertical inset class="q-mx-lg" />
+                <q-separator vertical inset class="q-mx-lg" v-if="$q.screen.gt.xs" />
 
-                <!-- Right Column: Settings & Info -->
-                <div class="column items-center" style="min-width: 180px">
+                <!-- Right Column: Settings & Info (Hidden on mobile, merged into left) -->
+                <div class="column items-center" style="min-width: 180px" v-if="$q.screen.gt.xs">
                    <div class="text-subtitle1 text-weight-bold q-mb-md text-grey-8">Settings</div>
                    
                    <div class="column q-gutter-y-sm full-width">
@@ -409,17 +420,13 @@ card2
                    <div class="q-py-sm">
                       <noise class="scale-90 transform-origin-center" />
                    </div>
-                   
-                   <q-separator class="q-my-md full-width" />
-                   
-                   <!-- Session Info Removed (Moved to Header/Menu) -->
                 </div>
               </div>
             </q-btn-dropdown>
             
-            <!-- Context Badge showing current Tab & Filter -->
-            <div class="flex items-center gap-2">
-                <q-badge color="blue-1" text-color="blue-9" class="q-py-xs q-px-sm text-subtitle2">
+            <!-- Context Badge showing current Tab (Compact on mobile) -->
+            <div class="flex items-center gap-1 overflow-hidden" v-if="activeTab !== 'positive' || $q.screen.gt.xs">
+                <q-badge color="blue-1" text-color="blue-9" class="q-py-xs q-px-sm text-subtitle2 whitespace-nowrap">
                     {{ activeTab === 'positive' ? $t('rewardSys.tabs.positivePoints') : 
                        activeTab === 'attendance' ? $t('rewardSys.tabs.attendance') :
                        activeTab === 'history' ? $t('rewardSys.tabs.history') :
@@ -427,12 +434,74 @@ card2
                        $t('rewardSys.tabs.settingsReports') 
                     }}
                 </q-badge>
-                
-                <q-badge v-if="activeTab === 'positive'" color="orange-1" text-color="orange-9" class="q-py-xs q-px-sm">
-                    Filter: {{ pointsDisplayMode === 'overall' ? 'Overall' : pointsDisplayMode === 'session' ? 'Session' : 'Week/Comp' }}
-                </q-badge>
             </div>
-         </div>
+          </div>
+
+          <!-- Right: Feedback Button (Moved from body) -->
+          <div class="flex items-center gap-2">
+              <q-btn-dropdown 
+              color="primary" 
+              icon="stars" 
+              :label="$q.screen.gt.xs ? 'Give Feedback' : ''" 
+              :disable="selectedIds.length === 0"
+              class="shadow-sm glossy"
+              content-class="rounded-xl"
+              dense
+            >
+              <div style="width: 420px; max-width: 90vw;">
+                <q-tabs 
+                  v-model="feedbackTab" 
+                  class="text-grey-7 bg-grey-1" 
+                  active-color="primary" 
+                  indicator-color="primary" 
+                  align="justify" 
+                  narrow-indicator 
+                  dense
+                >
+                  <q-tab name="positive" icon="thumb_up" label="Positive" class="text-weight-bold" />
+                  <q-tab name="needs_work" icon="warning" label="Needs Work" class="text-weight-bold" />
+                </q-tabs>
+
+                <q-separator />
+
+                <q-tab-panels v-model="feedbackTab" animated class="bg-white" style="max-height: 400px; overflow-y: auto;">
+                  <q-tab-panel name="positive" class="q-pa-md">
+                    <div class="row q-col-gutter-sm">
+                      <div class="col-4 cursor-pointer" v-for="behavior in positiveBehaviors" :key="behavior.id" @click="applyBehaviorToStudents(behavior.id)">
+                         <div v-close-popup class="column items-center q-pa-sm bg-blue-50 rounded-xl border border-blue-100 shadow-sm hover:shadow-md hover:bg-blue-100 transition-all text-center h-full relative-position">
+                            <q-icon :name="behavior.icon || 'star'" size="2em" class="q-mb-xs text-orange" />
+                            <div class="text-caption text-weight-bold text-grey-9 ellipsis-2-lines leading-tight min-h-[2.5em] flex items-center justify-center">{{ behavior.name }}</div>
+                            <div class="absolute-top-right q-ma-xs">
+                                <q-badge color="green-1" text-color="green-9" class="text-xs font-bold border border-green-200 shadow-sm rounded-full px-1.5">+{{ behavior.points || behavior.value }}</q-badge>
+                            </div>
+                         </div>
+                      </div>
+                    </div>
+                  </q-tab-panel>
+
+                  <q-tab-panel name="needs_work" class="q-pa-md">
+                   <div class="row q-col-gutter-sm">
+                      <div class="col-4 cursor-pointer" v-for="behavior in negativeBehaviors" :key="behavior.id" @click="applyBehaviorToStudents(behavior.id)">
+                         <div v-close-popup class="column items-center q-pa-sm bg-red-50 rounded-xl border border-red-100 shadow-sm hover:shadow-md hover:bg-red-100 transition-all text-center h-full relative-position">
+                            <q-icon :name="behavior.icon || 'warning'" size="2em" class="q-mb-xs text-red" />
+                            <div class="text-caption text-weight-bold text-grey-9 ellipsis-2-lines leading-tight min-h-[2.5em] flex items-center justify-center">{{ behavior.name }}</div>
+                            <div class="absolute-top-right q-ma-xs">
+                                <q-badge color="red-1" text-color="red-9" class="text-xs font-bold border border-red-200 shadow-sm rounded-full px-1.5">{{ behavior.points || behavior.value }}</q-badge>
+                            </div>
+                         </div>
+                      </div>
+                   </div>
+                  </q-tab-panel>
+                </q-tab-panels>
+              </div>
+            </q-btn-dropdown>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Filter Badge Row (Secondary Sticky if needed, or just scrolling) -->
+      <div v-if="activeTab === 'positive' && pointsDisplayMode !== 'session'" class="bg-orange-50 p-1 text-center border-b border-orange-100 text-xs text-orange-800 font-bold">
+        Viewing: {{ pointsDisplayMode === 'overall' ? 'Overall (All Time)' : pointsDisplayMode === 'all_subjects' ? 'Overall (All Subjects)' :  pointsDisplayMode === 'from_now' ? 'From Now (Temporary)' : 'Competition (Week)' }}
       </div>
 
       <q-separator />
@@ -607,61 +676,7 @@ card2
                     </q-dialog>
                     
                     <!-- Action Buttons -->
-                    <q-btn-dropdown 
-                      color="primary" 
-                      icon="stars" 
-                      label="Give Feedback" 
-                      :disable="selectedIds.length === 0"
-                      class="shadow-sm"
-                      content-class="rounded-xl"
-                    >
-                      <div style="width: 420px; max-width: 90vw;">
-                        <q-tabs 
-                          v-model="feedbackTab" 
-                          class="text-grey-7 bg-grey-1" 
-                          active-color="primary" 
-                          indicator-color="primary" 
-                          align="justify" 
-                          narrow-indicator 
-                          dense
-                        >
-                          <q-tab name="positive" icon="thumb_up" label="Positive" class="text-weight-bold" />
-                          <q-tab name="needs_work" icon="warning" label="Needs Work" class="text-weight-bold" />
-                        </q-tabs>
-
-                        <q-separator />
-
-                        <q-tab-panels v-model="feedbackTab" animated class="bg-white" style="max-height: 400px; overflow-y: auto;">
-                          <q-tab-panel name="positive" class="q-pa-md">
-                            <div class="row q-col-gutter-sm">
-                              <div class="col-4 cursor-pointer" v-for="behavior in positiveBehaviors" :key="behavior.id" @click="applyBehaviorToStudents(behavior.id)">
-                                 <div v-close-popup class="column items-center q-pa-sm bg-blue-50 rounded-xl border border-blue-100 shadow-sm hover:shadow-md hover:bg-blue-100 transition-all text-center h-full relative-position">
-                                    <q-icon :name="behavior.icon || 'star'" size="2em" class="q-mb-xs text-orange" />
-                                    <div class="text-caption text-weight-bold text-grey-9 ellipsis-2-lines leading-tight min-h-[2.5em] flex items-center justify-center">{{ behavior.name }}</div>
-                                    <div class="absolute-top-right q-ma-xs">
-                                        <q-badge color="green-1" text-color="green-9" class="text-xs font-bold border border-green-200 shadow-sm rounded-full px-1.5">+{{ behavior.points || behavior.value }}</q-badge>
-                                    </div>
-                                 </div>
-                              </div>
-                            </div>
-                          </q-tab-panel>
-
-                          <q-tab-panel name="needs_work" class="q-pa-md">
-                           <div class="row q-col-gutter-sm">
-                              <div class="col-4 cursor-pointer" v-for="behavior in negativeBehaviors" :key="behavior.id" @click="applyBehaviorToStudents(behavior.id)">
-                                 <div v-close-popup class="column items-center q-pa-sm bg-red-50 rounded-xl border border-red-100 shadow-sm hover:shadow-md hover:bg-red-100 transition-all text-center h-full relative-position">
-                                    <q-icon :name="behavior.icon || 'warning'" size="2em" class="q-mb-xs text-red" />
-                                    <div class="text-caption text-weight-bold text-grey-9 ellipsis-2-lines leading-tight min-h-[2.5em] flex items-center justify-center">{{ behavior.name }}</div>
-                                    <div class="absolute-top-right q-ma-xs">
-                                        <q-badge color="red-1" text-color="red-9" class="text-xs font-bold border border-red-200 shadow-sm rounded-full px-1.5">{{ behavior.points || behavior.value }}</q-badge>
-                                    </div>
-                                 </div>
-                              </div>
-                           </div>
-                          </q-tab-panel>
-                        </q-tab-panels>
-                      </div>
-                    </q-btn-dropdown>
+                    <!-- Give Feedback Button Moved to Sticky Header -->
                   </div>
                 </div>
               </div>
