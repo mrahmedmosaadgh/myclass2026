@@ -165,6 +165,9 @@ Route::middleware(['auth:sanctum', 'web'])->group(function () {
     Route::post('/classroom-layouts/save', [App\Http\Controllers\Api\ClassroomLayoutController::class, 'saveLayouts']);
     Route::get('/classroom-layouts/load', [App\Http\Controllers\Api\ClassroomLayoutController::class, 'loadLayouts']);
 
+    // 🛠️ Tracker Updates (Classroom Helper)
+    Route::post('/student-behaviors/update-tracker', [StudentBehaviorController::class, 'updateTracker']);
+
     // 🏆 Leaderboard
     Route::get('/leaderboard', [StudentBehaviorController::class, 'leaderboard']);
 

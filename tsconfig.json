@@ -9,7 +9,6 @@
         ],
         "moduleResolution": "bundler",
         "resolveJsonModule": true,
-        "allowImportingTsExtensions": true,
         "strict": true,
         "noUnusedLocals": true,
         "noUnusedParameters": true,

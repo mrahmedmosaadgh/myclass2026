@@ -17,6 +17,9 @@ return new class extends Migration
             // $table->integer('points_plus')->nullable();
             // $table->integer('points_minus')->nullable();
             // $table->text('points_details');
+            $table->json('academic_tracker')->nullable(); // Stores Period Readiness data
+            $table->json('behavior_tracker')->nullable(); // Stores Behavior Logs data
+            $table->json('logistics_tracker')->nullable(); // Stores Logistics/Movement Logs data
             $table->text('notes')->nullable();
             $table->timestamps(); 
         });

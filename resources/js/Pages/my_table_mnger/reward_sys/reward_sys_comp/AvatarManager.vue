@@ -43,7 +43,7 @@
     </div>
 
     <!-- Camera/Upload Dialog -->
-    <q-dialog v-model="showCamera" maximized="$q.screen.lt.sm">
+    <q-dialog v-model="showCamera" :maximized="$q.screen.lt.sm">
       <q-card style="width: 100%; max-width: 500px; max-height: 90vh; display: flex; flex-direction: column;" class="rounded-2xl overflow-hidden">
         <q-card-section class="bg-blue-500 text-white p-4 q-pa-sm">
           <div class="text-h6 font-bold">📸 Update Photo</div>

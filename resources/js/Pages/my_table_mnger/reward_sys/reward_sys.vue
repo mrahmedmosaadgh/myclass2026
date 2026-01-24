@@ -307,6 +307,16 @@ card2
                            <q-item-section avatar><q-icon name="cancel" /></q-item-section>
                            <q-item-section>{{ $t('rewardSys.tabs.history') }}</q-item-section>
                         </q-item>
+
+                        <q-item clickable v-close-popup @click="activeTab = 'classroom_helper'" :active="activeTab === 'classroom_helper'" active-class="bg-blue-50 text-primary">
+                           <q-item-section avatar><q-icon name="assignment" /></q-item-section>
+                           <q-item-section>Classroom Helper</q-item-section>
+                        </q-item>
+
+                        <q-item clickable v-close-popup @click="activeTab = 'timer_random'" :active="activeTab === 'timer_random'" active-class="bg-blue-50 text-primary">
+                           <q-item-section avatar><q-icon name="timer" /></q-item-section>
+                           <q-item-section>Timer & Random</q-item-section>
+                        </q-item>
                         
                         <q-item clickable v-close-popup @click="showLeaderboard = true; activeTab = 'champions'" :active="activeTab === 'champions'" active-class="bg-blue-50 text-primary">
                            <q-item-section avatar><q-icon name="emoji_events" /></q-item-section>
@@ -431,6 +441,8 @@ card2
                        activeTab === 'attendance' ? $t('rewardSys.tabs.attendance') :
                        activeTab === 'history' ? $t('rewardSys.tabs.history') :
                        activeTab === 'champions' ? $t('rewardSys.tabs.champions') : 
+                       activeTab === 'classroom_helper' ? 'Classroom Helper' :
+                       activeTab === 'timer_random' ? 'Timer & Random' :
                        $t('rewardSys.tabs.settingsReports') 
                     }}
                 </q-badge>
@@ -551,6 +563,25 @@ card2
 
         <!-- BEHAVIOR INCIDENTS TAB -->
 
+
+        <!-- CLASSROOM HELPER TAB -->
+        <q-tab-panel name="classroom_helper">
+           <ClassroomHelper 
+              :students="students"
+              :student-behaviors="studentBehaviors"
+              :student-attendance="studentAttendance"
+              :period-info="{
+                 date: selectedDate,
+                 periodCode: periodCode,
+                 classroomId: selectedClassroomId
+              }"
+           />
+        </q-tab-panel>
+
+        <!-- TIMER & RANDOM TAB -->
+        <q-tab-panel name="timer_random">
+           <TimerRandomTools :students="students" />
+        </q-tab-panel>
 
         <!-- POSITIVE POINTS TAB -->
         <q-tab-panel name="positive">
@@ -1437,6 +1468,8 @@ import axios from 'axios'
 import rewardPointService from './reward_sys_comp/reward_sys_point_action.js'
 import CompactSessionHeader from './reward_sys_comp/CompactSessionHeader.vue'
 import PointsDisplaySettings from './reward_sys_comp/PointsDisplaySettings.vue'
+import TimerRandomTools from './reward_sys_comp/TimerRandomTools.vue'
+import ClassroomHelper from './reward_sys_comp/ClassroomHelper.vue'
 // Lazy-loaded heavy components (loaded on-demand)
 const TopLeaderboard = defineAsyncComponent(() => import('./reward_sys_comp/TopLeaderboard.vue'))
 const BehaviorIncidents = defineAsyncComponent(() => import('./reward_sys_comp/BehaviorIncidents.vue'))
@@ -2288,6 +2321,9 @@ async function initClassroomSession() {
           attend: b.attend === undefined ? true : b.attend,
           points_plus: b.points_plus || 0,
           points_minus: b.points_minus || 0,
+          academic_tracker: b.academic_tracker || {},
+          behavior_tracker: b.behavior_tracker || [],
+          logistics_tracker: b.logistics_tracker || {}
         }
       }
       studentBehaviors.value = newStudentBehaviors

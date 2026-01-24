@@ -18,11 +18,17 @@ class StudentBehavior extends Model
         'student_behaviors_mains_id',
         'student_id',
         'attend',
+        'academic_tracker',
+        'behavior_tracker',
+        'logistics_tracker',
         'notes',
     ];
 
     protected $casts = [
         'attend' => 'boolean',
+        'academic_tracker' => 'array',
+        'behavior_tracker' => 'array',
+        'logistics_tracker' => 'array',
     ];
 
     protected $appends = [

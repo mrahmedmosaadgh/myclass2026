@@ -497,6 +497,77 @@ class StudentBehaviorController extends Controller
     }
 
     /**
+     * Update tracker columns (academic, behavior, logistics).
+     */
+    public function updateTracker(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'student_id' => 'required|integer|exists:students,id',
+            'tracker_type' => 'required|in:academic_tracker,behavior_tracker,logistics_tracker',
+            'data' => 'nullable|array', // The JSON data to store
+            'date' => 'required|date',
+            'period_code' => 'nullable|string',
+            'classroom_id' => 'nullable|integer',
+        ]);
+
+        try {
+            $user = auth()->user();
+            $teacher = \App\Models\Teacher::where('user_id', $user->id)->first();
+            
+            if (!$teacher) {
+                return response()->json(['message' => 'User is not a teacher'], 422);
+            }
+
+            $year = \App\Models\AcademicYear::where('active', 1)->first();
+            if (!$year) {
+                return response()->json(['message' => 'No active academic year'], 422);
+            }
+
+            // Find the student behavior record for this date/period
+            $query = StudentBehavior::where('student_id', $validated['student_id'])
+                ->whereHas('behaviorMain', function($q) use ($validated, $teacher, $year) {
+                    $q->where('school_id', $teacher->school_id)
+                      ->where('year_id', $year->id)
+                      ->where('date', $validated['date']);
+                    
+                    if (!empty($validated['period_code'])) {
+                        $q->where('period_code', $validated['period_code']);
+                    }
+                    if (!empty($validated['classroom_id'])) {
+                        $q->where('classroom_id', $validated['classroom_id']);
+                    }
+                });
+
+            $studentBehavior = $query->first();
+
+            if ($studentBehavior) {
+                // Update the specific tracker column
+                $studentBehavior->{$validated['tracker_type']} = $validated['data'];
+                $studentBehavior->save();
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Tracker updated successfully',
+                    'data' => $studentBehavior
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Student behavior record not found for this period'
+            ], 404);
+
+        } catch (\Exception $e) {
+            \Log::error('updateTracker error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update tracker',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Update the specified student behavior.
      */
     public function update(Request $request, StudentBehavior $studentBehavior): JsonResponse
