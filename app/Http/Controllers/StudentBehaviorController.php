@@ -449,10 +449,25 @@ class StudentBehaviorController extends Controller
                     ')
                     ->first();
 
-                 $studentBehavior->points_plus = $totals->points_plus ?? 0;
                  $studentBehavior->points_minus = $totals->points_minus ?? 0;
+            } else {
+                 // Session Mode (Default)
+                 // Explicitly calculate from the loaded relationship to ensure it's set
+                 $studentBehavior->setAppends(['total_points']);
+                 
+                 $plus = $studentBehavior->pointActions
+                    ->where('canceled', false)
+                    ->where('value', '>', 0)
+                    ->sum('value');
+                    
+                 $minus = abs($studentBehavior->pointActions
+                    ->where('canceled', false)
+                    ->where('value', '<', 0)
+                    ->sum('value'));
+                    
+                 $studentBehavior->points_plus = $plus;
+                 $studentBehavior->points_minus = $minus;
             }
-            // else 'session': defaults to the model's own calculation which is correct for session
 
             return response()->json($studentBehavior, 201);
         } catch (\Exception $e) {
