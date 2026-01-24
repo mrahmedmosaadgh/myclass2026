@@ -48,7 +48,6 @@
           </div>
 
           <div v-show="showVideo" class="column items-center full-width q-gutter-y-sm">
-            <video ref="video" autoplay playsinline class="video rounded-borders shadow-2"></video>
             
             <div class="row q-gutter-sm full-width justify-center">
               <q-btn
@@ -67,6 +66,8 @@
                 @click="captureFromCamera"
               />
             </div>
+
+            <video ref="video" autoplay playsinline class="video rounded-borders shadow-2"></video>
           </div>
         </q-card-section>
       </q-card>
