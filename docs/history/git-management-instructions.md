@@ -1,5 +1,5 @@
 # Git Management Instructions for myclass2026_build Repository
-
+/Users/ahmedmosaad/Herd/myclass2026-main/public/build
 ## Overview
 This document provides comprehensive instructions for an AI assistant to check git status and manage changes in the myclass2026_build repository. This repository contains build assets including CSS files, JavaScript files, fonts, and manifest files.
 
