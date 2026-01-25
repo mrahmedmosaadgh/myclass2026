@@ -442,6 +442,49 @@ card2
                 </div>
               </div>
             </q-btn-dropdown>
+            
+            <!-- Persistent Attendance Summary -->
+            <div class="flex items-center gap-1 mx-2">
+                <!-- Total -->
+                <q-btn
+                    rounded
+                    dense
+                    no-caps
+                    color="grey-3"
+                    text-color="grey-9"
+                    class="px-2 shadow-sm text-xs border border-gray-300"
+                    @click="openAttendanceList('all')"
+                >
+                    <q-icon name="groups" size="xs" class="mr-1" />
+                    <span class="font-bold">{{ students.length }}</span>
+                </q-btn>
+
+                <!-- Present -->
+                <q-btn
+                    rounded
+                    dense
+                    no-caps
+                    color="positive"
+                    class="px-2 shadow-sm text-xs"
+                    @click="openAttendanceList('present')"
+                >
+                    <q-icon name="how_to_reg" class="mr-1" size="xs" />
+                    <span class="font-bold">{{ presentCount }}</span>
+                </q-btn>
+
+                <!-- Absent -->
+                <q-btn
+                    rounded
+                    dense
+                    no-caps
+                    color="negative"
+                    class="px-2 shadow-sm text-xs"
+                    @click="openAttendanceList('absent')"
+                >
+                    <q-icon name="person_off" class="mr-1" size="xs" />
+                    <span class="font-bold">{{ absentCount }}</span>
+                </q-btn>
+            </div>
                         
             <!-- Context Badge showing current Tab (Compact on mobile) -->
             <div class="flex items-center gap-1 overflow-hidden" v-if="activeTab !== 'positive' || $q.screen.gt.xs">
@@ -749,32 +792,7 @@ card2
                             class="mr-2 text-white font-bold"
                           />
 
-                        <q-separator vertical inset class="mx-2" />
 
-                        <!-- Attendance Summary Badges (Teleported to Header) -->
-                        <q-btn
-                            rounded
-                            dense
-                            no-caps
-                            color="positive"
-                            class="px-3 shadow-sm"
-                            @click="openAttendanceList('present')"
-                        >
-                            <q-icon name="check_circle" class="mr-1" size="xs" />
-                            <span class="font-bold">{{ presentCount }}</span>
-                        </q-btn>
-
-                        <q-btn
-                            rounded
-                            dense
-                            no-caps
-                            color="negative"
-                            class="px-3 shadow-sm"
-                            @click="openAttendanceList('absent')"
-                        >
-                            <q-icon name="cancel" class="mr-1" size="xs" />
-                            <span class="font-bold">{{ absentCount }}</span>
-                        </q-btn>
                       </div>
                     </Teleport>
                     
@@ -785,8 +803,8 @@ card2
                         <q-card style="min-width: 350px">
                             <q-card-section class="row items-center">
                                 <div class="text-h6">
-                                    {{ attendanceListFilter === 'present' ? 'Present Students' : attendanceListFilter === 'selected' ? 'Selected Students' : 'Absent Students' }}
-                                    <q-badge :color="attendanceListFilter === 'present' ? 'positive' : attendanceListFilter === 'selected' ? 'blue' : 'negative'" class="ml-2">
+                                    {{ attendanceListFilter === 'all' ? 'All Students' : attendanceListFilter === 'present' ? 'Present Students' : attendanceListFilter === 'selected' ? 'Selected Students' : 'Absent Students' }}
+                                    <q-badge :color="attendanceListFilter === 'all' ? 'grey-7' : attendanceListFilter === 'present' ? 'positive' : attendanceListFilter === 'selected' ? 'blue' : 'negative'" class="ml-2">
                                         {{ displayedAttendanceList.length }}
                                     </q-badge>
                                 </div>
@@ -2106,6 +2124,9 @@ const showAttendanceListDialog = ref(false)
 const attendanceListFilter = ref('present') // 'present', 'absent', or 'selected'
 
 const displayedAttendanceList = computed(() => {
+  if (attendanceListFilter.value === 'all') {
+    return students.value
+  }
   if (attendanceListFilter.value === 'selected') {
     return students.value.filter(s => selectedIds.value.includes(s.id))
   }
