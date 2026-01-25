@@ -1,6 +1,6 @@
 <template>
   <Head title="Reward System" />
-  <div class="p-6 space-y-6 bg-gradient-to-br from-gray-800 to-gray-900 min-h-screen">
+  <div class="  bg-gradient-to-br from-gray-800 to-gray-900  h-full">
 
 
 
@@ -396,6 +396,7 @@ card2
                         <div class="text-subtitle1 text-weight-bold q-mb-md text-grey-8">Settings</div>
                         <q-toggle v-model="isMusicEnabled" checked-icon="music_note" unchecked-icon="music_off" label="Music On" color="primary" dense />
                         <q-toggle v-model="avatarEditEnabled" icon="edit" label="Edit Avatars" color="secondary" dense />
+                        <q-toggle v-model="isReadAloudEnabled" icon="volume_up" label="Read Aloud" color="purple" dense />
                     </div>
                 </div>
 
@@ -422,6 +423,14 @@ card2
                            color="secondary"
                            dense
                          />
+
+                        <q-toggle
+                           v-model="isReadAloudEnabled"
+                           icon="volume_up"
+                           label="Read Aloud"
+                           color="purple"
+                           dense
+                         />
                    </div>
                    
                    <q-separator class="q-my-md full-width" />
@@ -433,7 +442,7 @@ card2
                 </div>
               </div>
             </q-btn-dropdown>
-            
+                        
             <!-- Context Badge showing current Tab (Compact on mobile) -->
             <div class="flex items-center gap-1 overflow-hidden" v-if="activeTab !== 'positive' || $q.screen.gt.xs">
                 <q-badge color="blue-1" text-color="blue-9" class="q-py-xs q-px-sm text-subtitle2 whitespace-nowrap">
@@ -447,6 +456,39 @@ card2
                     }}
                 </q-badge>
             </div>
+             <!-- Header Info / Hint Area -->
+             <div class="flex items-center ml-4 transition-all duration-300">
+                 <!-- Default Hint (Only if no preview AND no selection) -->
+                 <div v-if="!previewData && selectedIds.length === 0" class="flex items-center text-gray-400 text-xs italic">
+                     <q-icon name="touch_app" size="xs" class="mr-1" />
+                     mouse on or active card
+                 </div>
+                 
+                 <!-- Student Preview Or Selection Info -->
+                 <div v-else class="flex items-center gap-3 bg-gray-100 px-3 py-1 rounded-full border border-gray-200 shadow-sm animate-fade-in overflow-hidden">
+                    <template v-if="previewData || (selectedIds.length > 0 && students.find(s => s.id === selectedIds[selectedIds.length-1]))">
+                        <!-- Use previewData if available, otherwise fallback to last selected student -->
+                        <q-avatar size="24px">
+                           <img :src="(previewData || students.find(s => s.id === selectedIds[selectedIds.length-1]))?.avatar || 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent('<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\'><rect width=\'24\' height=\'24\' fill=\'#e2e8f0\'/><text x=\'50%\' y=\'50%\' dy=\'.3em\' text-anchor=\'middle\' font-size=\'12\' fill=\'#64748b\'>ST</text></svg>')" 
+                                @error="$event.target.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent('<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\'><rect width=\'24\' height=\'24\' fill=\'#e2e8f0\'/><text x=\'50%\' y=\'50%\' dy=\'.3em\' text-anchor=\'middle\' font-size=\'12\' fill=\'#64748b\'>ST</text></svg>')"
+                           />
+                        </q-avatar>
+                        
+                        <div class="flex flex-col leading-none overflow-hidden">
+                           <span class="text-sm font-bold text-gray-900 truncate max-w-[150px]">{{ (previewData || students.find(s => s.id === selectedIds[selectedIds.length-1]))?.name }}</span>
+                           <span v-if="(previewData || students.find(s => s.id === selectedIds[selectedIds.length-1]))?.name_ar" class="text-xs text-blue-800 font-arabic font-bold mt-0.5 truncate max-w-[150px]">{{ (previewData || students.find(s => s.id === selectedIds[selectedIds.length-1]))?.name_ar }}</span>
+                        </div>
+
+                        <div class="h-4 w-px bg-gray-300 mx-1 flex-shrink-0"></div>
+
+                        <div class="bg-white px-2 py-0.5 rounded text-xs font-mono font-bold border border-gray-200 flex-shrink-0"
+                            :class="((studentBehaviors[(previewData || students.find(s => s.id === selectedIds[selectedIds.length-1]))?.id]?.points_plus || 0) - (studentBehaviors[(previewData || students.find(s => s.id === selectedIds[selectedIds.length-1]))?.id]?.points_minus || 0)) >= 0 ? 'text-green-700' : 'text-red-700'">
+                           {{ (studentBehaviors[(previewData || students.find(s => s.id === selectedIds[selectedIds.length-1]))?.id]?.points_plus || 0) - (studentBehaviors[(previewData || students.find(s => s.id === selectedIds[selectedIds.length-1]))?.id]?.points_minus || 0) }} Pts
+                        </div>
+                    </template>
+                 </div>
+             </div>
+
           </div>
 
           <!-- Right: Feedback Button (Moved from body) -->
@@ -461,6 +503,32 @@ card2
               dense
             >
               <div style="width: 420px; max-width: 90vw;">
+                <!-- Selected Students Summary -->
+                <div class="bg-blue-50 p-2 border-b border-blue-100" v-if="selectedIds.length > 0">
+                    <div class="text-xs font-bold text-blue-900 mb-1 flex justify-between items-center">
+                        <span>Giving to {{ selectedIds.length }} student{{ selectedIds.length > 1 ? 's' : '' }}:</span>
+                         <span class="text-gray-500 cursor-pointer hover:text-blue-700" @click="clearSelection">Clear</span>
+                    </div>
+                    <div class="flex flex-wrap gap-1 max-h-[60px] overflow-y-auto custom-scrollbar">
+                        <q-chip 
+                            v-for="id in selectedIds" 
+                            :key="id" 
+                            dense 
+                            removable 
+                            @remove="toggleSelected(id)"
+                            @mouseenter="setPreview(students.find(s => s.id === id))"
+                            @mouseleave="clearPreview"
+                            color="white" 
+                            text-color="primary" 
+                            class="shadow-sm border border-blue-100 text-xs m-0"
+                        >
+                            <q-avatar size="16px">
+                                <img :src="getAvatarUrl(students.find(s => s.id === id))">
+                            </q-avatar>
+                            <span class="max-w-[80px] ellipsis">{{ students.find(s => s.id === id)?.firstName }}</span>
+                        </q-chip>
+                    </div>
+                </div>
                 <q-tabs 
                   v-model="feedbackTab" 
                   class="text-grey-7 bg-grey-1" 
@@ -479,12 +547,12 @@ card2
                 <q-tab-panels v-model="feedbackTab" animated class="bg-white" style="max-height: 400px; overflow-y: auto;">
                   <q-tab-panel name="positive" class="q-pa-md">
                     <div class="row q-col-gutter-sm">
-                      <div class="col-4 cursor-pointer" v-for="behavior in positiveBehaviors" :key="behavior.id" @click="applyBehaviorToStudents(behavior.id)">
-                         <div v-close-popup class="column items-center q-pa-sm bg-blue-50 rounded-xl border border-blue-100 shadow-sm hover:shadow-md hover:bg-blue-100 transition-all text-center h-full relative-position">
-                            <q-icon :name="behavior.icon || 'star'" size="2em" class="q-mb-xs text-orange" />
-                            <div class="text-caption text-weight-bold text-grey-9 ellipsis-2-lines leading-tight min-h-[2.5em] flex items-center justify-center">{{ behavior.name }}</div>
-                            <div class="absolute-top-right q-ma-xs">
-                                <q-badge color="green-1" text-color="green-9" class="text-xs font-bold border border-green-200 shadow-sm rounded-full px-1.5">+{{ behavior.points || behavior.value }}</q-badge>
+                      <div class="col-3 cursor-pointer" v-for="behavior in positiveBehaviors" :key="behavior.id" @click="applyBehaviorToStudents(behavior.id)">
+                         <div v-close-popup class="column items-center justify-center q-pa-xs bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all text-center h-full relative-position group hover:bg-blue-50" style="min-height: 80px">
+                            <q-icon :name="behavior.icon || 'star'" size="1.2em" class="q-mb-xs text-orange-400" />
+                            <div class="text-[9px] font-bold text-gray-700 leading-tight flex items-center justify-center px-1 text-center h-[2.5em] overflow-hidden">{{ behavior.name }}</div>
+                            <div class="mt-1">
+                                <span class="bg-green-50 text-green-700 text-[9px] font-bold px-1.5 py-0.5 rounded border border-green-100">+{{ behavior.points || behavior.value }}</span>
                             </div>
                          </div>
                       </div>
@@ -556,6 +624,8 @@ card2
                          ((studentBehaviors[student.id]?.points_minus || 0) - (pointsDisplayMode === 'from_now' && pointsBaseline[student.id] ? pointsBaseline[student.id].minus : 0))
                 }"
                 @select="toggleAttendance(student.id)"
+                @preview="setPreview"
+                @leave="clearPreview"
               />
             </div>
           </div>
@@ -594,46 +664,93 @@ card2
 
 
             <!-- Student Grid with Action Buttons -->
+            <!-- Teleporting Selection Controls to Header -->
             <div class="mt-6">
-              <!-- Action Buttons at Top -->
-              <div class="mb-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200 shadow-sm">
-                <div class="flex items-center justify-between flex-wrap gap-3">
-                  <div class="flex items-center gap-2">
-                    <q-icon name="checklist" class="text-blue-600" size="sm" />
-                    <span class="font-bold text-gray-700">{{ $t('rewardSys.selected') }}: </span>
-                    <q-badge :label="selectedIds.length" color="blue" class="text-lg" />
-                  </div>
-                  
-                  <div class="flex items-center gap-2 flex-wrap">
-                    <!-- Selection Tools -->
-                    <q-btn 
-                      flat dense color="primary" :label="$t('rewardSys.selection.all')" size="sm" 
-                      @click="selectAllPresent"
-                      icon="check_box"
-                      class="bg-blue-100/50"
-                    />
-                    <q-btn 
-                      flat dense color="primary" :label="$t('rewardSys.selection.inv')" size="sm" 
-                      @click="inverseSelection"
-                      icon="swap_vert"
-                      class="bg-blue-100/50"
-                    />
-                    <q-btn 
-                      flat dense color="negative" :label="$t('rewardSys.selection.clear')" size="sm" 
-                      @click="clearSelection"
-                      icon="clear"
-                      class="bg-red-100/50"
-                    />
+              <!-- Teleporting Selection Controls to Header -->
+              <Teleport to="#dialog-header-actions">
+                  <div class="row items-center q-gutter-x-sm">
                     
-                    <q-btn 
-                      flat dense color="negative" :label="$t('rewardSys.selection.clear')" size="sm" 
-                      @click="clearSelection"
-                      icon="clear"
-                      class="bg-red-100/50"
-                    />
+                    <!-- Selection Menu -->
+                      <q-btn-dropdown
+                        split
+                        :color="selectedIds.length > 0 ? 'blue-6' : 'blue-1'"
+                        :text-color="selectedIds.length > 0 ? 'white' : 'primary'"
+                        icon="checklist"
+                        :label="selectedIds.length > 0 ? $t('rewardSys.selected') + ': ' + selectedIds.length : 'Select'"
+                        dense
+                        rounded
+                        unelevated
+                        class="mr-2 transition-all duration-300"
+                        content-style="border-radius: 12px"
+                        @click="selectedIds.length > 0 ? openAttendanceList('selected') : selectAllPresent()"
+                      >
+                        <q-list dense style="min-width: 180px">
+                          <q-item clickable v-close-popup @click="openAttendanceList('selected')">
+                             <q-item-section>
+                                 <q-item-label header class="text-xs text-uppercase text-gray-500 font-bold bg-gray-50 border-b cursor-pointer hover:bg-gray-100 transition-colors">
+                                   {{ $t('rewardSys.selected') }}: {{ selectedIds.length }}
+                                 </q-item-label>
+                             </q-item-section>
+                          </q-item>
 
-                    <Teleport to="#dialog-header-actions">
-                      <div class="row items-center q-gutter-x-sm">
+                          <q-item clickable v-close-popup @click="copyStudentNames" :disable="selectedIds.length === 0">
+                            <q-item-section avatar>
+                              <q-icon name="content_copy" color="grey-8" />
+                            </q-item-section>
+                            <q-item-section>
+                              <q-item-label>Copy Names</q-item-label>
+                            </q-item-section>
+                          </q-item>
+
+                          <q-separator />
+
+                          <q-item clickable v-close-popup @click="selectAllPresent">
+                            <q-item-section avatar>
+                              <q-icon name="check_box" color="primary" />
+                            </q-item-section>
+                            <q-item-section>
+                              <q-item-label>{{ $t('rewardSys.selection.all') }}</q-item-label>
+                            </q-item-section>
+                          </q-item>
+                          
+                          <q-item clickable v-close-popup @click="inverseSelection">
+                            <q-item-section avatar>
+                              <q-icon name="swap_vert" color="orange" />
+                            </q-item-section>
+                            <q-item-section>
+                              <q-item-label>{{ $t('rewardSys.selection.inv') }}</q-item-label>
+                            </q-item-section>
+                          </q-item>
+                          
+                          <q-separator />
+                          
+                          <q-item clickable v-close-popup @click="clearSelection" :disable="selectedIds.length === 0">
+                            <q-item-section avatar>
+                              <q-icon name="clear" color="negative" />
+                            </q-item-section>
+                            <q-item-section>
+                              <q-item-label>{{ $t('rewardSys.selection.clear') }}</q-item-label>
+                            </q-item-section>
+                          </q-item>
+                        </q-list>
+                      </q-btn-dropdown>
+                        <!-- Mode Switch -->
+                         <q-toggle
+                            v-model="feedbackMode"
+                            :label="feedbackMode === 'individual' ? 'Individual' : 'Selection'"
+                            true-value="individual"
+                            false-value="selection"
+                            checked-icon="person"
+                            unchecked-icon="checklist"
+                            color="green-13"
+                            icon-color="white"
+                            size="sm"
+                            dense
+                            class="mr-2 text-white font-bold"
+                          />
+
+                        <q-separator vertical inset class="mx-2" />
+
                         <!-- Attendance Summary Badges (Teleported to Header) -->
                         <q-btn
                             rounded
@@ -668,8 +785,8 @@ card2
                         <q-card style="min-width: 350px">
                             <q-card-section class="row items-center">
                                 <div class="text-h6">
-                                    {{ attendanceListFilter === 'present' ? 'Present Students' : 'Absent Students' }}
-                                    <q-badge :color="attendanceListFilter === 'present' ? 'positive' : 'negative'" class="ml-2">
+                                    {{ attendanceListFilter === 'present' ? 'Present Students' : attendanceListFilter === 'selected' ? 'Selected Students' : 'Absent Students' }}
+                                    <q-badge :color="attendanceListFilter === 'present' ? 'positive' : attendanceListFilter === 'selected' ? 'blue' : 'negative'" class="ml-2">
                                         {{ displayedAttendanceList.length }}
                                     </q-badge>
                                 </div>
@@ -708,9 +825,86 @@ card2
                     
                     <!-- Action Buttons -->
                     <!-- Give Feedback Button Moved to Sticky Header -->
-                  </div>
-                </div>
+                     <q-btn
+                        v-if="undoStack.length > 0"
+                        dense
+                        rounded
+                        color="grey-8"
+                        icon="undo"
+                        label="Undo"
+                        @click="performUndo"
+                        class="ml-2 shadow-sm"
+                        size="sm"
+                    >
+                        <q-tooltip>Undo last action</q-tooltip>
+                    </q-btn>
+
+
+              <!-- Name Filter Tags (First 2 chars) -->
+              <div v-if="nameTags.length > 0" class="mb-4 overflow-x-auto whitespace-nowrap p-2 bg-white rounded-lg shadow-sm border border-gray-100 flex gap-2 custom-scrollbar items-center">
+                <!-- ALL Filter -->
+                <q-btn
+                   unelevated
+                   dense
+                   rounded
+                   size="md"
+                   icon="filter_alt_off"
+                   label="ALL"
+                   :color="selectedNameTag === null ? 'grey-3' : 'grey-2'"
+                   :text-color="selectedNameTag === null ? 'grey-8' : 'grey-6'"
+                   class="px-4 font-bold"
+                   @click="selectedNameTag = null"
+                   :class="selectedNameTag === null ? 'bg-gray-200' : ''"
+                />
+                
+                <!-- Selected Only Filter -->
+                <q-btn
+                   unelevated
+                   dense
+                   rounded
+                   size="md"
+                   icon="check_circle"
+                   :color="selectedNameTag === '__SELECTED__' ? 'primary' : 'grey-2'"
+                   :text-color="selectedNameTag === '__SELECTED__' ? 'white' : 'grey-8'"
+                   class="px-3 font-bold"
+                   @click="selectedNameTag = selectedNameTag === '__SELECTED__' ? null : '__SELECTED__'"
+                >
+                   <q-tooltip>Selected Only</q-tooltip>
+                </q-btn>
+
+                <!-- Not Selected Filter -->
+                <q-btn
+                   unelevated
+                   dense
+                   rounded
+                   size="md"
+                   icon="radio_button_unchecked"
+                   :color="selectedNameTag === '__UNSELECTED__' ? 'primary' : 'grey-2'"
+                   :text-color="selectedNameTag === '__UNSELECTED__' ? 'white' : 'grey-8'"
+                   class="px-3 font-bold mr-2"
+                   @click="selectedNameTag = selectedNameTag === '__UNSELECTED__' ? null : '__UNSELECTED__'"
+                >
+                   <q-tooltip>Not Selected</q-tooltip>
+                </q-btn>
+                
+                <!-- Individual Tags -->
+                <q-btn
+                   v-for="tag in nameTags"
+                   :key="tag"
+                   unelevated
+                   dense
+                   round
+                   size="md"
+                   :label="tag"
+                   :color="selectedNameTag === tag ? 'primary' : 'grey-1'"
+                   :text-color="selectedNameTag === tag ? 'white' : 'grey-7'"
+                   @click="toggleNameTag(tag)"
+                   class="font-bold shadow-sm"
+                   :class="selectedNameTag === tag ? 'shadow-md scale-110' : 'hover:bg-gray-200'"
+                />
               </div>
+
+
 
               <!-- Student Grid -->
               <div v-for="(group, index) in organizedStudents" :key="index" class="mb-6 bg-gray-400">
@@ -746,7 +940,7 @@ card2
                 </div>
                 
                 <!-- Student Cards -->
-                <div class="flex flex-wrap justify-center gap-4">
+                <div class="flex flex-wrap justify-center gap-6">
                   <StudentCard
                     v-for="student in group.students"
                     :key="student.id"
@@ -757,6 +951,7 @@ card2
                     :is-absent="!studentAttendance[student.id]"
                     :allow-disabled-click="false"
                     :avatar-edit-enabled="avatarEditEnabled"
+                    :overall-points="(studentBehaviors[student.id]?.points_plus || 0) - (studentBehaviors[student.id]?.points_minus || 0)"
                     :student-summary="{
 
                       positive: (studentBehaviors[student.id]?.points_plus || 0) - (pointsDisplayMode === 'from_now' && pointsBaseline[student.id] ? pointsBaseline[student.id].plus : 0),
@@ -764,7 +959,9 @@ card2
                       total: ((studentBehaviors[student.id]?.points_plus || 0) - (pointsDisplayMode === 'from_now' && pointsBaseline[student.id] ? pointsBaseline[student.id].plus : 0)) - 
                              ((studentBehaviors[student.id]?.points_minus || 0) - (pointsDisplayMode === 'from_now' && pointsBaseline[student.id] ? pointsBaseline[student.id].minus : 0))
                     }"
-                    @select="toggleSelected(student.id)"
+                    @select="onStudentCardClick(student.id)"
+                    @preview="setPreview"
+                    @leave="clearPreview"
                   />
                 </div>
               </div>
@@ -1155,20 +1352,27 @@ card2
     </q-dialog>
 
     <!-- Behavior Selection Dialog -->
-    <q-dialog v-model="showBehaviorDialog" full-width maxWidth="1000px">
-      <q-card class="flex flex-col md:flex-row h-[80vh] md:h-[70vh]">
+    <q-dialog v-model="showBehaviorDialog" full-width maxWidth="1200px">
+      <q-card class="flex flex-col md:flex-row h-[90vh] md:h-[80vh] overflow-hidden">
         
-        <!-- Left Column: Selected Students -->
-        <q-card-section class="w-full md:w-1/3 bg-blue-50 border-r border-blue-100 flex flex-col p-0">
-          <div class="p-4 border-b border-blue-200 bg-blue-100/50">
-            <h4 class="font-bold text-blue-900 flex items-center gap-2 text-lg">
+        <!-- Left Column: Selected Students (Collapsible/Condensed on Mobile) -->
+        <q-card-section class="w-full md:w-1/4 bg-blue-50 border-r border-blue-100 flex flex-col p-0 order-2 md:order-1 transition-all"
+             :class="{'h-16 overflow-hidden md:h-auto': $q.screen.lt.md && !expandStudentList}">
+          
+          <!-- Header (Click to expand on mobile) -->
+          <div class="p-3 border-b border-blue-200 bg-blue-100/50 flex justify-between items-center cursor-pointer md:cursor-default"
+               @click="$q.screen.lt.md ? expandStudentList = !expandStudentList : null">
+            <h4 class="font-bold text-blue-900 flex items-center gap-2 text-base md:text-lg">
               <q-icon name="checklist" />
               {{ $t('rewardSys.selected') }} ({{ selectedIds.length }})
             </h4>
+            <div class="md:hidden">
+                 <q-icon :name="expandStudentList ? 'expand_less' : 'expand_more'" color="primary" />
+            </div>
           </div>
 
-          <div class="flex-1 overflow-y-auto p-4 custom-scrollbar">
-            <div v-if="selectedIds.length === 0" class="text-center py-8 text-gray-400 italic text-sm">
+          <div class="flex-1 overflow-y-auto p-3 custom-scrollbar" v-show="!$q.screen.lt.md || expandStudentList">
+            <div v-if="selectedIds.length === 0" class="text-center py-4 text-gray-400 italic text-sm">
               {{ $t('rewardSys.messages.clickToSelect') }}
             </div>
 
@@ -1182,19 +1386,18 @@ card2
                 text-color="primary"
                 class="shadow-sm border border-blue-100 m-0 w-full"
               >
-                <q-avatar icon="person" color="primary" text-color="white" font-size="14px" />
+                <q-avatar icon="person" color="primary" text-color="white" font-size="12px" />
                 <div class="flex flex-col leading-tight overflow-hidden w-full">
-                  <span class="font-bold text-2xl truncate">{{ students.find(s => s.id === id)?.firstName }}
-
-                    <span class="text-sm opacity-80 truncate">{{ students.find(s => s.id === id)?.lastName }}</span>
+                  <span class="font-bold text-sm md:text-base truncate">{{ students.find(s => s.id === id)?.firstName }}
+                    <!-- <span class="text-xs opacity-80 truncate hidden md:inline">{{ students.find(s => s.id === id)?.lastName }}</span> -->
                   </span>
                 </div>
               </q-chip>
             </div>
           </div>
 
-          <!-- Selection Tools Footer -->
-          <div class="p-3 border-t border-blue-200 bg-white">
+          <!-- Selection Tools Footer (Hidden on mobile if collapsed) -->
+          <div class="p-2 border-t border-blue-200 bg-white" v-show="!$q.screen.lt.md || expandStudentList">
              <div class="grid grid-cols-3 gap-2">
               <q-btn 
                 flat dense color="primary" label="All" size="sm" 
@@ -1216,45 +1419,91 @@ card2
         </q-card-section>
 
         <!-- Right Column: Behavior Selection -->
-        <div class="flex-1 flex flex-col bg-white">
-          <q-card-section :class="behaviorDialogMode === 'positive' ? 'bg-green-50 border-b border-green-100' : 'bg-red-50 border-b border-red-100'">
-            <div class="text-h6 font-bold flex items-center gap-2">
-              <q-icon :name="behaviorDialogMode === 'positive' ? 'add_circle' : 'remove_circle'" 
-                     :color="behaviorDialogMode === 'positive' ? 'positive' : 'negative'" />
-              {{ behaviorDialogMode === 'positive' ? $t('rewardSys.points.positiveTitle') : $t('rewardSys.points.negativeTitle') }}
+        <div class="flex-1 flex flex-col bg-white order-1 md:order-2 h-full overflow-hidden">
+          
+          <!-- Student Name Header (Mobile/Desktop) - Only if 1 student -->
+          <div v-if="selectedIds.length === 1" class="bg-white border-b border-gray-100 p-3 flex justify-center items-center">
+             <div class="flex items-center gap-2">
+                <!-- <q-avatar size="32px">
+                   <img :src="getAvatarUrl(students.find(s => s.id === selectedIds[0]))" />
+                </q-avatar> -->
+                <div class="text-lg font-bold text-gray-800">
+                   {{ students.find(s => s.id === selectedIds[0])?.name }}
+                </div>
+             </div>
+          </div>
+
+          <q-card-section :class="behaviorDialogMode === 'positive' ? 'bg-green-50 border-b border-green-100' : 'bg-red-50 border-b border-red-100'" 
+             class="flex flex-wrap justify-between items-center py-2 px-3 gap-2 shrink-0">
+            
+            <div class="font-bold flex items-center gap-2 transition-colors duration-300" 
+                 :class="behaviorDialogMode === 'positive' ? 'text-green-800' : 'text-red-800'">
+                 <!-- Hide text on very small screens if needed, or make smaller -->
+              <span class="text-base md:text-xl flex items-center gap-2">
+                  <q-icon :name="behaviorDialogMode === 'positive' ? 'emoji_events' : 'warning'" size="sm" />
+                  <span class="hidden xs:inline">{{ behaviorDialogMode === 'positive' ? $t('rewardSys.points.positiveTitle') : $t('rewardSys.points.negativeTitle') }}</span>
+              </span>
+            </div>
+
+            <div class="bg-white/60 p-1 rounded-full flex gap-1 shadow-sm border border-white/60 backdrop-blur-sm">
+               <q-btn
+                  unelevated
+                  rounded
+                  dense
+                  :color="behaviorDialogMode === 'positive' ? 'positive' : 'transparent'"
+                  :text-color="behaviorDialogMode === 'positive' ? 'white' : 'grey-7'"
+                  class="px-3 md:px-4 transition-all duration-300 text-xs md:text-sm"
+                  @click="behaviorDialogMode = 'positive'"
+               >
+                  <q-icon name="thumb_up" size="xs" class="mr-1" />
+                  <span class="hidden sm:inline">Pos</span>
+               </q-btn>
+               <q-btn
+                  unelevated
+                  rounded
+                  dense
+                  :color="behaviorDialogMode === 'negative' ? 'negative' : 'transparent'"
+                  :text-color="behaviorDialogMode === 'negative' ? 'white' : 'grey-7'"
+                  class="px-3 md:px-4 transition-all duration-300 text-xs md:text-sm"
+                  @click="behaviorDialogMode = 'negative'"
+               >
+                  <q-icon name="thumb_down" size="xs" class="mr-1" />
+                  <span class="hidden sm:inline">Neg</span>
+               </q-btn>
             </div>
           </q-card-section>
 
-          <q-card-section class="flex-1 overflow-y-auto p-4 custom-scrollbar">
-            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          <q-card-section class="flex-1 overflow-y-auto p-2 md:p-4 custom-scrollbar bg-gray-50/50">
+            <!-- Responsive Grid: 2 cols on mobile, 3 on sm, 4 on md/lg -->
+            <div class="flex flex-wrap gap-2 justify-center md:gap-3 pb-20 md:pb-0">
               <div
                 v-for="behavior in (behaviorDialogMode === 'positive' ? positiveBehaviors : negativeBehaviors)"
                 :key="behavior.id"
-                class="cursor-pointer transition-all duration-200 relative group"
+                class="cursor-pointer transition-all duration-200 relative group touch-manipulation w-24"
                 @click="selectedBehaviorIdForDialog = behavior.id"
               >
                 <div 
-                  class="h-full p-3 rounded-xl border-2 flex flex-col items-center text-center gap-2 hover:shadow-md transition-all"
+                  class="h-full p-2 md:p-3 rounded-xl border flex flex-col items-center text-center gap-1 md:gap-2 active:scale-95 transition-transform bg-white shadow-sm"
                   :class="[
                     selectedBehaviorIdForDialog === behavior.id
-                      ? (behaviorDialogMode === 'positive' ? 'border-green-500 bg-green-50 scale-105' : 'border-red-500 bg-red-50 scale-105')
-                      : 'border-gray-100 bg-white hover:border-gray-300'
+                      ? (behaviorDialogMode === 'positive' ? 'border-green-500 bg-green-50 ring-2 ring-green-200' : 'border-red-500 bg-red-50 ring-2 ring-red-200')
+                      : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
                   ]"
                 >
                   <div 
-                    class="text-3xl p-3 rounded-full mb-1"
+                    class="text-2xl md:text-3xl p-2 rounded-full mb-0 md:mb-1"
                     :class="behaviorDialogMode === 'positive' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'"
                   >
                     {{ behavior.icon || (behaviorDialogMode === 'positive' ? '⭐' : '⚠️') }}
                   </div>
                   
-                  <div class="font-bold text-xl leading-tight text-gray-800 line-clamp-2">
+                  <div class="font-bold text-sm md:text-base leading-tight text-gray-800 line-clamp-2 md:line-clamp-3 w-full">
                     {{ getBehaviorName(behavior) }}
                   </div>
                   
                   <div 
-                    class="text-xl font-bold px-3 py-1 rounded-full mt-auto"
-                    :class="behaviorDialogMode === 'positive' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'"
+                    class="text-sm md:text-lg font-bold px-2 md:px-3 py-0.5 md:py-1 rounded-full mt-auto"
+                    :class="behaviorDialogMode === 'positive' ? 'bg-green-200 text-green-900' : 'bg-red-200 text-red-900'"
                   >
                     {{ behaviorDialogMode === 'positive' ? '+' : '' }}{{ behavior.value || behavior.points || 0 }}
                   </div>
@@ -1262,7 +1511,7 @@ card2
                   <!-- Selected Checkmark -->
                   <div 
                     v-if="selectedBehaviorIdForDialog === behavior.id"
-                    class="absolute top-2 right-2 text-xl drop-shadow-sm"
+                    class="absolute top-1 right-1 md:top-2 md:right-2 text-lg md:text-xl drop-shadow-sm"
                     :class="behaviorDialogMode === 'positive' ? 'text-green-600' : 'text-red-600'"
                   >
                     <q-icon name="check_circle" />
@@ -1423,6 +1672,33 @@ card2
         @apply="applyPointsSettings"
         @reset="resetPointsSettings"
       />
+    </q-dialog>
+
+    <!-- Friendly Feedback Confirmation Dialog -->
+    <q-dialog v-model="showFeedbackConfirmation" position="top">
+       <q-card style="min-width: 350px; border-radius: 20px;" class="q-ma-md bg-deep-purple-8 text-white shadow-2xl">
+          <q-card-section class="column items-center text-center q-pa-lg">
+             <q-avatar size="80px" class="q-mb-md shadow-lg border-4 border-white">
+                <img :src="getAvatarUrl(lastFeedbackDetails.student)" v-if="lastFeedbackDetails.student && lastFeedbackDetails.student.avatar" />
+                <q-icon name="person" v-else />
+             </q-avatar>
+             
+             <div class="text-h5 font-bold mb-1">
+                 {{ lastFeedbackDetails.student?.name }}
+             </div>
+             
+             <div class="text-h3 font-black my-2 flex items-center gap-2 animate-bounce">
+                <span :class="lastFeedbackDetails.points > 0 ? 'text-green-300' : 'text-red-300'">
+                    {{ lastFeedbackDetails.points > 0 ? '+' : '' }}{{ lastFeedbackDetails.points }}
+                </span>
+                <span class="text-4xl">{{ lastFeedbackDetails.behavior?.icon || '⭐' }}</span>
+             </div>
+             
+             <div class="text-subtitle1 opacity-90 font-medium bg-white/20 px-4 py-1 rounded-full">
+                {{ getBehaviorName(lastFeedbackDetails.behavior) }}
+             </div>
+          </q-card-section>
+       </q-card>
     </q-dialog>
   </div>
 </template>
@@ -1690,7 +1966,13 @@ const competitionStartTime = ref(localStorage.getItem('competition-start-time') 
 const customDateFrom = ref(localStorage.getItem('custom-date-from') || null)
 const customDateTo = ref(localStorage.getItem('custom-date-to') || null)
 const leaderboardMode = ref(localStorage.getItem('leaderboard-mode') || 'top5') // 'top5' | 'top10' | 'groups'
+const feedbackMode = ref('individual') // 'individual' | 'selection'
 
+// Read Aloud Setting
+const isReadAloudEnabled = ref(localStorage.getItem('reward-system-read-aloud') !== 'false') // Default true
+watch(isReadAloudEnabled, (newValue) => {
+  localStorage.setItem('reward-system-read-aloud', newValue)
+})
 
 // Behavior Management state
 const showBehaviorForm = ref(false)
@@ -1702,6 +1984,45 @@ const behaviorForm = ref({
   points: 0,
   icon: ''
 })
+
+// Visual Confirmation State
+const showFeedbackConfirmation = ref(false)
+const lastFeedbackDetails = ref({ student: null, behavior: null, points: 0 })
+const expandStudentList = ref(false)
+
+// Header Message State (Inline Notifications)
+const headerMessage = ref(null)
+const headerMessageTimer = ref(null)
+
+function showHeaderMessage(text, duration = 3000) {
+    headerMessage.value = text
+    if (headerMessageTimer.value) clearTimeout(headerMessageTimer.value)
+    
+    headerMessageTimer.value = setTimeout(() => {
+        headerMessage.value = null
+    }, duration)
+}
+
+
+function onStudentCardClick(studentId) {
+  if (activeTab.value === 'attendance') {
+    toggleAttendance(studentId)
+    return
+  }
+
+  // If in selection mode, just toggle selection
+  if (feedbackMode.value === 'selection') {
+    toggleSelected(studentId)
+    return
+  }
+
+  // If in individual mode:
+  // 1. Set selectedIds to just this student (so underlying logic works)
+  selectedIds.value = [studentId]
+  
+  // 2. Open behavior dialog immediately
+  openBehaviorDialog('positive') // Default to positive, or maybe ask? Positive is better default.
+}
 
 // Watch selectedSubjectId and save to localStorage
 watch(selectedSubjectId, (newValue) => {
@@ -1782,9 +2103,12 @@ const absentCount = computed(() => {
 })
 
 const showAttendanceListDialog = ref(false)
-const attendanceListFilter = ref('present') // 'present' or 'absent'
+const attendanceListFilter = ref('present') // 'present', 'absent', or 'selected'
 
 const displayedAttendanceList = computed(() => {
+  if (attendanceListFilter.value === 'selected') {
+    return students.value.filter(s => selectedIds.value.includes(s.id))
+  }
   return students.value.filter(s => 
     attendanceListFilter.value === 'present' 
       ? studentAttendance.value[s.id] 
@@ -1804,8 +2128,56 @@ function copyStudentNames() {
 }
 
 function getAvatarUrl(student) {
-  if (student.avatar) return student.avatar.startsWith('/') ? student.avatar : `/${student.avatar}`;
-  return '/images/avatars/default-avatar.svg';
+  if (!student || !student.avatar) return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent('<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\'><rect width=\'24\' height=\'24\' fill=\'#e2e8f0\'/><text x=\'50%\' y=\'50%\' dy=\'.3em\' text-anchor=\'middle\' font-size=\'12\' fill=\'#64748b\'>ST</text></svg>' )
+  
+  const avatar = student.avatar
+  if (avatar.startsWith('http') || avatar.startsWith('data:')) return avatar
+  return avatar.startsWith('/') ? avatar : `/${avatar}`
+}
+
+// Initializing from localStorage if available
+const behaviorUsage = ref(JSON.parse(localStorage.getItem('behaviorUsage') || '{}'))
+
+function trackBehaviorUsage(behaviorId) {
+  if (!behaviorId) return
+  
+  const usage = behaviorUsage.value[behaviorId] || { count: 0, lastUsed: 0 }
+  usage.count++
+  usage.lastUsed = Date.now()
+  behaviorUsage.value[behaviorId] = usage
+  
+  // Persist
+  localStorage.setItem('behaviorUsage', JSON.stringify(behaviorUsage.value))
+}
+
+const topBehaviors = computed(() => {
+   // Get IDs sorted by usage (count descending, then recency)
+   const sortedIds = Object.keys(behaviorUsage.value).sort((a, b) => {
+       const useA = behaviorUsage.value[a]
+       const useB = behaviorUsage.value[b]
+       if (useA.count !== useB.count) return useB.count - useA.count
+       return useB.lastUsed - useA.lastUsed
+   })
+   
+   // Map to actual behavior objects and filter valid ones
+   return sortedIds.map(id => behaviors.value.find(b => b.id == id))
+                   .filter(b => b && (b.type === 'positive' || b.type === 'reward' || (b.value || b.points || 0) > 0))
+                   .slice(0, 5) // Top 5
+})
+
+// Helper for full name display
+function getFullName(student) {
+    if (!student) return ''
+    if (locale.value === 'ar' && student.name_ar) return student.name_ar
+    
+    // Explicitly construct First + Second + Last if available
+    const parts = [
+        student.firstName || '', 
+        student.secondName || '', 
+        student.lastName || '' // Assuming lastName field exists, otherwise rely on name parsing
+    ].filter(p => p).join(' ')
+    
+    return parts || student.name || 'Student'
 }
 
 // Computed behavior lists
@@ -1859,21 +2231,58 @@ const selectedLayoutIcon = computed(() => {
   return option?.icon || 'grid_view'
 })
 
-// Organized students based on selected layout
+// Name Filtering Logic
+const selectedNameTag = ref(null)
+
+const nameTags = computed(() => {
+  const tags = new Set()
+  students.value.forEach(s => {
+    let name = s.firstName || s.name || ''
+    if (name.length >= 2) {
+      tags.add(name.substring(0, 2).toUpperCase())
+    }
+  })
+  return Array.from(tags).sort()
+})
+
+function toggleNameTag(tag) {
+  if (selectedNameTag.value === tag) {
+    selectedNameTag.value = null
+  } else {
+    selectedNameTag.value = tag
+  }
+}
+
+// Organized students based on selected layout AND filter
 const organizedStudents = computed(() => {
+  // First, filter master list if tag is selected
+  let filteredStudents = students.value
+  if (selectedNameTag.value) {
+    if (selectedNameTag.value === '__SELECTED__') {
+       filteredStudents = students.value.filter(s => selectedIds.value.includes(s.id))
+    } else if (selectedNameTag.value === '__UNSELECTED__') {
+       filteredStudents = students.value.filter(s => !selectedIds.value.includes(s.id))
+    } else {
+       filteredStudents = students.value.filter(s => {
+          const name = s.firstName || s.name || ''
+          return name.toUpperCase().startsWith(selectedNameTag.value)
+       })
+    }
+  }
+
   if (selectedLayout.value === 'no_groups') {
-    return [{ name: null, students: students.value }]
+    return [{ name: null, students: filteredStudents }]
   }
   
   if (selectedLayout.value === 'name_asc') {
-    const sorted = [...students.value].sort((a, b) => 
+    const sorted = [...filteredStudents].sort((a, b) => 
       (a.firstName || '').localeCompare(b.firstName || '')
     )
     return [{ name: null, students: sorted }]
   }
   
   if (selectedLayout.value === 'name_desc') {
-    const sorted = [...students.value].sort((a, b) => 
+    const sorted = [...filteredStudents].sort((a, b) => 
       (b.firstName || '').localeCompare(a.firstName || '')
     )
     return [{ name: null, students: sorted }]
@@ -1881,16 +2290,16 @@ const organizedStudents = computed(() => {
   
   // Custom layout
   const layout = savedLayouts.value.find(l => l.id === selectedLayout.value)
-  if (!layout) return [{ name: null, students: students.value }]
+  if (!layout) return [{ name: null, students: filteredStudents }]
   
   const groups = layout.groups.map(group => ({
     name: group.name,
-    students: students.value.filter(s => group.student_ids.includes(s.id))
-  }))
+    students: filteredStudents.filter(s => group.student_ids.includes(s.id))
+  })).filter(g => g.students.length > 0) // Hide empty groups if filtering
   
   // Add unassigned students
   const assignedIds = new Set(layout.groups.flatMap(g => g.student_ids))
-  const unassigned = students.value.filter(s => !assignedIds.has(s.id))
+  const unassigned = filteredStudents.filter(s => !assignedIds.has(s.id))
   if (unassigned.length > 0) {
     groups.push({ name: 'Unassigned', students: unassigned })
   }
@@ -1900,6 +2309,47 @@ const organizedStudents = computed(() => {
 
 // Top 5 students by total points
 // ============ METHODS ============
+
+function speakText(text) {
+  if (!window.speechSynthesis || !isReadAloudEnabled.value) return;
+  
+  // Cancel any ongoing speech
+  window.speechSynthesis.cancel();
+  
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.rate = 1; // Normal speed
+  utterance.pitch = 1; // Normal pitch
+  utterance.volume = 1; // Max volume
+  
+  // Try to use a good voice if available (e.g., Google US English)
+  // const voices = window.speechSynthesis.getVoices();
+  // const preferredVoice = voices.find(v => v.name.includes('Google US English'));
+  // if (preferredVoice) utterance.voice = preferredVoice;
+  
+  window.speechSynthesis.speak(utterance);
+}
+
+function getSpokenName(student) {
+    // Use Arabic name if in Arabic locale
+    const fullName = (locale.value === 'ar' && student.name_ar) ? student.name_ar : student.name;
+    
+    if (!fullName) return 'Student';
+
+    // If explicit localized fields exist and match the locale logic (simple check)
+    if (locale.value !== 'ar' && student.firstName) {
+         return `${student.firstName} ${student.secondName || ''}`.trim();
+    }
+
+    // Parse from full name
+    const parts = fullName.trim().split(/\s+/).filter(p => p.length > 0);
+    if (parts.length > 0) {
+        const first = parts[0];
+        const second = parts.length > 1 ? parts[1] : '';
+        return `${first} ${second}`.trim();
+    }
+    
+    return fullName;
+}
 
 function selectAllPresent() {
   const presentStudents = students.value.filter(s => studentAttendance.value[s.id])
@@ -1936,6 +2386,11 @@ function openBehaviorDialog(mode) {
 async function applyBehaviorFromDialog() {
   if (!selectedBehaviorIdForDialog.value) return
   
+  // Capture details for confirmation BEFORE clearing selection
+  const behavior = behaviors.value.find(b => b.id === selectedBehaviorIdForDialog.value)
+  const isIndividual = feedbackMode.value === 'individual' && selectedIds.value.length === 1
+  const student = isIndividual ? students.value.find(s => s.id === selectedIds.value[0]) : null
+
   if (behaviorDialogMode.value === 'positive') {
     selectedPositiveBehaviorId.value = selectedBehaviorIdForDialog.value
     await applyPositiveBehavior()
@@ -1944,6 +2399,30 @@ async function applyBehaviorFromDialog() {
     await applyNegativeBehavior()
   }
   
+  // Show friendly confirmation if individual mode
+  if (isIndividual && student && behavior) {
+      lastFeedbackDetails.value = { 
+          student, 
+          behavior, 
+          points: behavior.value || behavior.points || 0
+      }
+      
+      // Speak Name and Points
+      const points = behavior.value || behavior.points || 0;
+      const pointsText = points > 0 ? `${points} points` : `${points} points`; // Keep simple, or "minus 2 points"
+      // Wait a tiny bit so sound effect plays first
+      setTimeout(() => {
+        speakText(`${getSpokenName(student)}. ${pointsText}.`);
+      }, 300);
+
+      showFeedbackConfirmation.value = true
+      
+      // Auto close after 2.5s
+      setTimeout(() => {
+          showFeedbackConfirmation.value = false
+      }, 2500)
+  }
+
   showBehaviorDialog.value = false
   selectedBehaviorIdForDialog.value = null
 }
@@ -1964,6 +2443,23 @@ async function loadSavedLayouts() {
     console.error('Error loading layouts:', error)
     // Silently fail - layouts are optional
   }
+}
+
+// Preview Student Info Logic
+const previewData = ref(null)
+let previewTimeout = null
+
+function setPreview(student) {
+  if (previewTimeout) clearTimeout(previewTimeout)
+  previewData.value = student
+}
+
+function clearPreview() {
+  if (previewTimeout) clearTimeout(previewTimeout)
+  // Keep the info for 3 seconds as requested before clearing
+  previewTimeout = setTimeout(() => {
+    previewData.value = null
+  }, 3000)
 }
 
 async function handleSaveLayout(layout) {
@@ -2240,6 +2736,8 @@ function selectGroupStudents(groupStudents, select) {
   }
 }
 
+
+
 function clearSelection() {
   selectedIds.value = []
 }
@@ -2428,11 +2926,17 @@ async function applyBehaviorToStudents(behaviorId) {
         if (value < 0) playSound('penalty')
       }
 
-      $q.notify({
-        message: `Applied behavior to ${result.results.length} students` + (result.errors && result.errors.length ? ` (${result.errors.length} failed)` : ''),
-        color: result.errors && result.errors.length ? 'warning' : 'positive',
-        position: 'top'
-      })
+      // Show notification ONLY if NOT in individual mode (where we show the big popup)
+      // or if applied to multiple students (where popup doesn't show or shows differently)
+      const isIndividualConfirmation = feedbackMode.value === 'individual' && result.results.length === 1;
+      
+      if (!isIndividualConfirmation) {
+          $q.notify({
+            message: `Applied behavior to ${result.results.length} students` + (result.errors && result.errors.length ? ` (${result.errors.length} failed)` : ''),
+            color: result.errors && result.errors.length ? 'warning' : 'positive',
+            position: 'top'
+          })
+      }
       
       // Re-fetch only history, don't reload entire session
       await loadHistory()
@@ -2450,6 +2954,42 @@ async function applyBehaviorToStudents(behaviorId) {
           position: 'top'
         })
       }
+    } else {
+        // Successful action -> Add to Undo History
+        // Use recentActions to get the correctly ID'd records (PointAction IDs)
+        // result.results might not have PointAction IDs (only StudentBehavior IDs).
+        const successCount = result.results.length;
+        if (successCount > 0 && recentActions.value.length > 0) {
+            // Take the top N actions, assuming we just created them and they appear first.
+            // This is a heuristic but safer than using wrong IDs.
+            // Filter to ensure they match our current context if possible, but simplest is top N.
+            const latest = recentActions.value.slice(0, successCount).map(a => ({
+                actionId: a.id,
+                studentId: a.student_id,
+                offline: false 
+            }));
+            
+            // Check for offline results that might not be in history yet?
+            // If we are offline, loadHistory might fail or return old data.
+            // If offline, result.results has `offline: true` and probably temp IDs. 
+            // We should check result.results for offline flags.
+            
+            const offlineActions = result.results.filter(r => r.offline).map(r => ({
+                actionId: r.data?.id || 'temp_' + Date.now(),
+                studentId: r.studentId,
+                offline: true
+            }));
+            
+            const finalActions = offlineActions.length > 0 ? offlineActions : latest;
+
+            if (finalActions.length > 0) {
+                 addToUndoStack({
+                    type: 'point_action',
+                    actions: finalActions,
+                    desc: successCount === 1 ? 'Last Action' : `Group Action (${successCount})` 
+                })
+            }
+        }
     }
   } catch (error) {
     console.error('Error applying behavior:', error)
@@ -2461,6 +3001,65 @@ async function applyBehaviorToStudents(behaviorId) {
   } finally {
     applyingBehavior.value = false
   }
+}
+
+// Undo Logic
+const undoStack = ref([])
+
+function addToUndoStack(action) {
+    undoStack.value.push(action)
+    // Limit stack size
+    if (undoStack.value.length > 10) undoStack.value.shift()
+}
+
+async function performUndo() {
+    if (undoStack.value.length === 0) return
+    
+    // Get last action
+    const lastAction = undoStack.value.pop()
+    
+    $q.loading.show({ message: 'Undoing...' })
+    
+    try {
+        let successCount = 0
+        
+        // It could be a batch of actions
+        for (const act of lastAction.actions) {
+             const result = await rewardPointService.undoAction(act.actionId)
+             if (result.success) successCount++
+        }
+        
+        if (successCount > 0) {
+            $q.notify({
+                message: `Undone successfully`,
+                color: 'positive',
+                icon: 'undo',
+                position: 'top'
+            })
+            // Refresh history/stats
+            loadHistory()
+            // We might want to "optimistically" revert the local state too, but loadHistory/init does it.
+            // For now, reload is safer.
+            // Actually, we should call initClassroomSession() or at least update the local points locally to reflect undo immediately.
+            // Simplified: Refresh.
+            initClassroomSession() 
+        } else {
+             $q.notify({
+                message: 'Failed to undo action',
+                color: 'warning',
+                position: 'top'
+            })
+        }
+    } catch (e) {
+        console.error('Undo failed', e)
+         $q.notify({
+                message: 'Undo failed',
+                color: 'negative',
+                position: 'top'
+            })
+    } finally {
+        $q.loading.hide()
+    }
 }
 
 async function toggleAttendance(studentId, newValue) {
@@ -2660,11 +3259,7 @@ function getMedalEmoji(index) {
   return medals[index] || `${index + 1}.`
 }
 
-function handleStudentClick(student) {
-  console.log('Student clicked:', student)
-  // You can add behavior manager or other actions here
-  // For now, just log the click
-}
+
 
 // ============ POINTS DISPLAY SETTINGS ============
 function applyPointsSettings() {
@@ -2931,12 +3526,7 @@ onMounted(async () => {
       await handleClassroomChange(selectedClassroomId.value)
       await initClassroomSession()
       
-      $q.notify({
-        message: props.isDialog ? 'Session loaded!' : 'Session loaded from schedule!',
-        color: 'positive',
-        position: 'top',
-        icon: 'stars'
-      })
+      showHeaderMessage(props.isDialog ? 'Session loaded!' : 'Session loaded from schedule!', 3000)
     }
   } catch (error) {
     console.error('❌ Failed to initialize reward system:', error)

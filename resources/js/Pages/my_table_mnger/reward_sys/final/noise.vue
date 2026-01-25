@@ -73,8 +73,11 @@ const thresholdLinePosition = computed(() => {
   return Math.max(0, Math.min(100, percent));
 });
 
+const listenError = ref(null);
+
 const startListening = async () => {
   try {
+    listenError.value = null; // Reset error
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
     analyser = audioContext.createAnalyser();
     analyser.fftSize = 512;
@@ -88,7 +91,8 @@ const startListening = async () => {
     loop();
   } catch (err) {
     console.error("Microphone access denied or error:", err);
-    listenError.value = true;
+    listenError.value = err.message || "Microphone access denied";
+    listening.value = false;
   }
 };
 

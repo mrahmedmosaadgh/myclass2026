@@ -25,10 +25,83 @@ const isDarkMode = ref(false);
 const leftDrawerOpen = ref(false);
 
 // Handle Dark Mode
+import { useQuasar } from 'quasar';
+import { syncOfflineQueue, getOfflineQueue } from '@/Pages/my_table_mnger/reward_sys/reward_sys_comp/reward_sys_point_action.js';
+
+const $q = useQuasar();
+const isOffline = ref(!navigator.onLine);
+const pendingActionsCount = ref(0);
+
+const updateOnlineStatus = async () => {
+    isOffline.value = !navigator.onLine;
+    
+    if (navigator.onLine) {
+        // We just came back online
+        const queue = getOfflineQueue();
+        if (queue.length > 0) {
+            $q.notify({
+                message: 'Connection restored. Syncing offline data...',
+                color: 'info',
+                icon: 'cloud_upload',
+                position: 'top',
+                timeout: 2000
+            });
+            
+            const result = await syncOfflineQueue();
+            
+            if (result.synced > 0) {
+                $q.notify({
+                    message: `Synced ${result.synced} actions successfully.`,
+                    color: 'positive',
+                    icon: 'check_circle',
+                    position: 'top'
+                });
+            }
+            
+            if (result.errors > 0) {
+                $q.notify({
+                    message: `Failed to sync ${result.errors} actions. They are still queued.`,
+                    color: 'warning',
+                    icon: 'warning',
+                    position: 'top'
+                });
+            }
+            
+            pendingActionsCount.value = result.remaining;
+        } else {
+             $q.notify({
+                message: 'You are back online.',
+                color: 'positive',
+                icon: 'wifi',
+                position: 'top',
+                timeout: 2000
+            });
+        }
+    } else {
+        // We went offline
+         $q.notify({
+            message: 'You are offline. Changes will be saved locally.',
+            color: 'negative',
+            icon: 'wifi_off',
+            position: 'top',
+            timeout: 0, // Persistent
+            actions: [{ label: 'Dismiss', color: 'white', handler: () => { /* ... */ } }]
+        });
+    }
+};
+
 onMounted(() => {
     isDarkMode.value = localStorage.getItem('darkMode') === 'true';
     applyDarkMode();
+    
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+    
+    // Check initial queue size
+    const queue = getOfflineQueue();
+    pendingActionsCount.value = queue.length;
 });
+
 
 const toggleDarkMode = () => {
     isDarkMode.value = !isDarkMode.value;
@@ -161,6 +234,17 @@ const isActiveRoute = (name) => {
                 </q-list>
             </q-scroll-area>
         </q-drawer>
+
+        <!-- Global Offline Banner -->
+        <q-banner v-if="isOffline" inline-actions class="bg-red-600 text-white text-center fixed-top z-50 shadow-lg">
+            <template v-slot:avatar>
+                <q-icon name="wifi_off" color="white" />
+            </template>
+            You are currently offline. Actions are being saved to your device and will sync when connection is restored.
+            <template v-slot:action>
+                 <q-badge color="white" text-color="red" :label="pendingActionsCount > 0 ? `${pendingActionsCount} Pending` : ''" v-if="pendingActionsCount > 0" />
+            </template>
+        </q-banner>
 
         <!-- Main Content -->
         <q-page-container>
