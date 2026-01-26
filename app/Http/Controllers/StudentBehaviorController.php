@@ -106,6 +106,7 @@ class StudentBehaviorController extends Controller
                 'date' => 'required|date',
                 'period_code' => 'nullable|string',
                 'notes' => 'nullable|string',
+                'custom_points' => 'nullable|integer',
             ]);
 
             \Log::debug('quickCreate validation passed', $validated);
@@ -214,7 +215,8 @@ class StudentBehaviorController extends Controller
                 'student_id' => $student->id,
             ]);
 
-            $points = abs($behavior->points ?? 0); // Always use absolute value
+            // Use custom_points if provided, otherwise fall back to behavior points
+            $points = $request->filled('custom_points') ? abs($request->input('custom_points')) : abs($behavior->points ?? 0);
             $type = $behavior->type ?? 'positive';
             
             // If points are negative in database, infer type from that

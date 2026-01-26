@@ -446,6 +446,7 @@ export async function applyBehaviorToStudents(studentIds, behaviorId, options = 
         period_code: options.periodCode || null,
         points_mode: options.points_mode || 'session',
         notes: options.notes || null,
+        custom_points: options.customPoints || null,
       }
 
       console.log('═══════════════════════════════════════════════════════════')

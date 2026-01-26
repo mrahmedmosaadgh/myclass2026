@@ -618,6 +618,11 @@ card2
                 </q-tab-panels>
               </div>
             </q-btn-dropdown>
+
+            <!-- Quiz Mode Button -->
+            <q-btn round dense color="purple" icon="quiz" class="ml-2 shadow-sm glossy" @click="openQuizMode">
+               <q-tooltip>Start Quiz Mode</q-tooltip>
+            </q-btn>
           </div>
         </div>
       </div>
@@ -1718,11 +1723,18 @@ card2
           </q-card-section>
        </q-card>
     </q-dialog>
+    <QuizMode 
+      v-model="showQuizMode" 
+      :students="students" 
+      :behaviors="behaviors"
+      @update-points="handleQuizPointsUpdate" 
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, watch, onMounted, computed, defineProps, defineAsyncComponent } from 'vue' // update import
+import QuizMode from './reward_sys_comp/QuizMode.vue'
 
 const props = defineProps({
   isDialog: {
@@ -3558,6 +3570,60 @@ onMounted(async () => {
     })
   }
 })
+// Quiz Mode Logic
+const showQuizMode = ref(false)
+
+const openQuizMode = () => {
+  showQuizMode.value = true
+  pointsDisplayMode.value = 'from_now'
+}
+
+const handleQuizPointsUpdate = async ({ studentId, points, behaviorName, behaviorId }) => {
+    let targetBehaviorId = behaviorId;
+    let isPositive = points >= 0;
+    
+    // Fallback logic if no specific ID provided
+    if (!targetBehaviorId) {
+        if (isPositive && positiveBehaviors.value.length) {
+            targetBehaviorId = positiveBehaviors.value[0].id
+        } else if (!isPositive && negativeBehaviors.value.length) {
+            targetBehaviorId = negativeBehaviors.value[0].id
+        } else if (behaviors.value.length) {
+            targetBehaviorId = behaviors.value[0].id
+        }
+    }
+    
+    if (!targetBehaviorId) {
+        $q.notify({ message: 'No behaviors configured.', color: 'negative' });
+        return;
+    }
+    
+    // Optimistic Update
+    if (!studentBehaviors.value[studentId]) {
+       studentBehaviors.value[studentId] = { points_plus: 0, points_minus: 0, attend: true }
+    }
+    
+    if (isPositive) studentBehaviors.value[studentId].points_plus += Math.abs(points)
+    else studentBehaviors.value[studentId].points_minus += Math.abs(points)
+    
+    try {
+        await rewardPointService.applyBehaviorToStudents(
+            [studentId],
+            targetBehaviorId,
+            {
+                date: selectedDate.value,
+                periodCode: periodCode.value,
+                classroomId: selectedClassroomId.value,
+                points_mode: 'session', 
+                customPoints: Math.abs(points),
+                notes: behaviorName
+            }
+        )
+    } catch (e) {
+        console.error(e)
+    }
+}
+
 </script>
 
 <style scoped>
