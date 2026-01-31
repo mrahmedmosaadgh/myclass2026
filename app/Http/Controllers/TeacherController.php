@@ -2,22 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Teacher;
+use App\Models\ClassroomSubjectTeacher;
 use App\Models\School;
-use App\Models\User;
+use App\Models\Student;
+use App\Models\Teacher;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Str;
+use Inertia\Inertia;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
-use PhpOffice\PhpSpreadsheet\IOFactory;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Cache;
-use App\Models\ClassroomSubjectTeacher;
-use App\Models\Student;
-use Illuminate\Support\Facades\Auth;
 
 class TeacherController extends Controller
 {
@@ -29,15 +25,15 @@ class TeacherController extends Controller
             ->paginate(10);
 
         $schools = School::select('id', 'name')->get();
-// resources/js/Pages/my_class/admin/Teacher/TeacherHome.vue
-// resources\js\Pages/Teachers/TeacherManagement.vue
+
+        // resources/js/Pages/my_class/admin/Teacher/TeacherHome.vue
+        // resources\js\Pages/Teachers/TeacherManagement.vue
         return Inertia::render('Teachers/TeacherManagement', [
-        // return Inertia::render('my_class/admin/Teacher/TeacherHome', [
+            // return Inertia::render('my_class/admin/Teacher/TeacherHome', [
             'records' => $teachers,
             'schools' => $schools,
         ]);
     }
-
 
     public function lesson_presentation()
     {
@@ -59,16 +55,14 @@ class TeacherController extends Controller
             ->with(['classroom', 'subject'])
             ->get();
 
-
-        $classrooms = array() ;
-        $subjects = array() ;
+        $classrooms = [];
+        $subjects = [];
         foreach ($assignments as $key => $value) {
             array_push($classrooms, $value->classroom);
             array_push($subjects, $value->subject);
         }
 
-
-        return Inertia::render('Teacher/TeacherHome', [
+        return Inertia::render('my_class/admin/Teacher/TeacherHome', [
             'records' => $teachers,
             'schools' => $schools,
             'assignments' => $assignments,
@@ -76,8 +70,6 @@ class TeacherController extends Controller
             'subjects' => $subjects,
         ]);
     }
-
-
 
     public function store(Request $request)
     {
@@ -101,13 +93,13 @@ class TeacherController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Teacher created successfully',
-                'data' => $teacher
+                'data' => $teacher,
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create teacher',
-                'errors' => [$e->getMessage()]
+                'errors' => [$e->getMessage()],
             ], 500);
         }
     }
@@ -118,9 +110,9 @@ class TeacherController extends Controller
             'name' => 'required|string|max:255',
             'name_ar' => 'nullable|string|max:255',
             'school_id' => 'required|exists:schools,id',
-            'email' => 'nullable|email|unique:teachers,email,' . $teacher->id,
-            'phone_number' => 'nullable|string|unique:teachers,phone_number,' . $teacher->id,
-            'whatsapp_number' => 'nullable|string|unique:teachers,whatsapp_number,' . $teacher->id,
+            'email' => 'nullable|email|unique:teachers,email,'.$teacher->id,
+            'phone_number' => 'nullable|string|unique:teachers,phone_number,'.$teacher->id,
+            'whatsapp_number' => 'nullable|string|unique:teachers,whatsapp_number,'.$teacher->id,
             'gender' => 'nullable|string|in:male,female',
             'date_of_birth' => 'nullable|date',
             'nationality' => 'nullable|string',
@@ -134,13 +126,13 @@ class TeacherController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Teacher updated successfully',
-                'data' => $teacher
+                'data' => $teacher,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update teacher',
-                'errors' => [$e->getMessage()]
+                'errors' => [$e->getMessage()],
             ], 500);
         }
     }
@@ -148,6 +140,7 @@ class TeacherController extends Controller
     public function destroy(Teacher $teacher)
     {
         $teacher->delete();
+
         return redirect()->back()->with('success', 'Teacher deleted successfully.');
     }
 
@@ -155,13 +148,13 @@ class TeacherController extends Controller
     {
         $teachers = Teacher::with(['school', 'user'])->get();
 
-        $spreadsheet = new Spreadsheet();
+        $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
 
         // Headers
         $headers = ['ID', 'Name', 'Arabic Name', 'School', 'Email', 'Phone', 'Gender', 'Nationality'];
         foreach (range('A', 'H') as $index => $column) {
-            $cell = $column . '1';
+            $cell = $column.'1';
             $sheet->setCellValue($cell, $headers[$index]);
             $sheet->getStyle($cell)->getFont()->setBold(true);
         }
@@ -169,22 +162,22 @@ class TeacherController extends Controller
         // Data
         $row = 2;
         foreach ($teachers as $teacher) {
-            $sheet->setCellValue('A' . $row, $teacher->t_id);
-            $sheet->setCellValue('B' . $row, $teacher->name);
-            $sheet->setCellValue('C' . $row, $teacher->name_ar);
-            $sheet->setCellValue('D' . $row, $teacher->school->name);
-            $sheet->setCellValue('E' . $row, $teacher->email);
-            $sheet->setCellValue('F' . $row, $teacher->phone_number);
-            $sheet->setCellValue('G' . $row, $teacher->gender);
-            $sheet->setCellValue('H' . $row, $teacher->nationality);
+            $sheet->setCellValue('A'.$row, $teacher->t_id);
+            $sheet->setCellValue('B'.$row, $teacher->name);
+            $sheet->setCellValue('C'.$row, $teacher->name_ar);
+            $sheet->setCellValue('D'.$row, $teacher->school->name);
+            $sheet->setCellValue('E'.$row, $teacher->email);
+            $sheet->setCellValue('F'.$row, $teacher->phone_number);
+            $sheet->setCellValue('G'.$row, $teacher->gender);
+            $sheet->setCellValue('H'.$row, $teacher->nationality);
             $row++;
         }
 
         $writer = new Xlsx($spreadsheet);
-        $fileName = 'teachers_' . date('Y-m-d_H-i-s') . '.xlsx';
+        $fileName = 'teachers_'.date('Y-m-d_H-i-s').'.xlsx';
 
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment;filename="' . $fileName . '"');
+        header('Content-Disposition: attachment;filename="'.$fileName.'"');
         header('Cache-Control: max-age=0');
 
         $writer->save('php://output');
@@ -196,22 +189,22 @@ class TeacherController extends Controller
         $statuses[] = 'new';
         foreach ($request->data as $row) {
             $teacher = null;
-            if (isset($row['ID']) && !empty($row['ID'])) {
+            if (isset($row['ID']) && ! empty($row['ID'])) {
                 $teacher = Teacher::where('t_id', $row['ID'])->first();
                 if ($teacher) {
                     $statuses[] = 'update';
                 }
             }
             // $teacher = Teacher::where('t_id', $row['ID'])
-                // ->orWhere('email', $row['email'])
-                // ->orWhere('phone_number', $row['phone_number'])
-                // ->first();
-
+            // ->orWhere('email', $row['email'])
+            // ->orWhere('phone_number', $row['phone_number'])
+            // ->first();
 
         }
 
         return response()->json(['statuses' => $statuses]);
     }
+
     public function validateImport(Request $request)
     {
         $statuses = [];
@@ -219,7 +212,7 @@ class TeacherController extends Controller
             $teacher = null;
 
             // Check by ID if provided
-            if (!empty($row['ID'])) {
+            if (! empty($row['ID'])) {
                 $teacher = Teacher::where('t_id', $row['ID'])->first();
             }
 
@@ -235,11 +228,12 @@ class TeacherController extends Controller
 
         return response()->json(['statuses' => $statuses]);
     }
+
     public function import(Request $request)
     {
         $results = [
             'success' => [],
-            'errors' => []
+            'errors' => [],
         ];
 
         // Define field mappings
@@ -259,64 +253,67 @@ class TeacherController extends Controller
             foreach ($request->data as $row) {
 
                 $teacher = null;
-                if (isset($row['ID']) && !empty($row['ID'])) {
+                if (isset($row['ID']) && ! empty($row['ID'])) {
                     $teacher = Teacher::where('t_id', $row['ID'])->first();
                 }
-                if (isset($row['name']) && !empty($row['name'])) {
+                if (isset($row['name']) && ! empty($row['name'])) {
                     $teacher = Teacher::where('name', $row['name'])->first();
                 }
-                if (isset($row['Name']) && !empty($row['Name'])) {
+                if (isset($row['Name']) && ! empty($row['Name'])) {
                     $teacher = Teacher::where('name', $row['name'])->first();
                 }
-
 
                 if ($teacher) {
                     $affectedTeachers[] = [
                         'id' => $teacher->id,
-                        'original_data' => $teacher->toArray()
+                        'original_data' => $teacher->toArray(),
                     ];
 
                     $updateData = [];
 
                     // Process standard fields
                     foreach ($fieldMappings as $excelColumn => $dbColumn) {
-                        if (!empty($row[$excelColumn])) {
+                        if (! empty($row[$excelColumn])) {
                             $updateData[$dbColumn] = $row[$excelColumn];
                         }
                     }
 
                     // Handle special cases
-                    if (!empty($row['Gender'])) {
+                    if (! empty($row['Gender'])) {
                         $updateData['gender'] = strtolower($row['Gender']);
                     }
 
-                    if (!empty($row['School'])) {
+                    if (! empty($row['School'])) {
                         $schoolId = $this->findSchoolId($row['School']);
                         if ($schoolId) {
                             $updateData['school_id'] = $schoolId;
                         } else {
                             $results['errors'][] = "School not found for teacher {$row['Name']}: {$row['School']}";
+
                             continue;
                         }
                     }
 
-                    if (!empty($updateData)) {
+                    if (! empty($updateData)) {
                         $teacher->update($updateData);
                         $results['success'][] = "Updated teacher: {$row['Name']}";
                     }
                 } else {
                     if (empty($row['name'])) {
-                        $results['errors'][] = "Name is required for new teacher record";
+                        $results['errors'][] = 'Name is required for new teacher record';
+
                         continue;
                     }
                     if (empty($row['school'])) {
                         $results['errors'][] = "School is required for teacher: {$row['Name']}";
+
                         continue;
                     }
 
                     $schoolId = $this->findSchoolId($row['school']);
-                    if (!$schoolId) {
+                    if (! $schoolId) {
                         $results['errors'][] = "School not found for teacher {$row['Name']}: {$row['School']}";
+
                         continue;
                     }
 
@@ -324,13 +321,13 @@ class TeacherController extends Controller
 
                     // Process standard fields
                     foreach ($fieldMappings as $excelColumn => $dbColumn) {
-                        if (!empty($row[$excelColumn])) {
+                        if (! empty($row[$excelColumn])) {
                             $newTeacherData[$dbColumn] = $row[$excelColumn];
                         }
                     }
 
                     // Handle special cases
-                    if (!empty($row['Gender'])) {
+                    if (! empty($row['Gender'])) {
                         $newTeacherData['gender'] = strtolower($row['Gender']);
                     }
                     $newTeacherData['school_id'] = $schoolId;
@@ -340,7 +337,7 @@ class TeacherController extends Controller
 
                     $affectedTeachers[] = [
                         'id' => $newTeacher->id,
-                        'original_data' => null
+                        'original_data' => null,
                     ];
                     $results['success'][] = "Created teacher: {$row['name']}";
                 }
@@ -351,14 +348,15 @@ class TeacherController extends Controller
 
             return response()->json([
                 'results' => $results,
-                'importId' => $importId
+                'importId' => $importId,
             ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => [],
-                'errors' => ['An error occurred while processing the data: ' . $e->getMessage()]
+                'errors' => ['An error occurred while processing the data: '.$e->getMessage()],
             ], 500);
         }
     }
@@ -370,7 +368,7 @@ class TeacherController extends Controller
 
             $affectedTeachers = Cache::get("teacher_import_{$importId}");
 
-            if (!$affectedTeachers) {
+            if (! $affectedTeachers) {
                 throw new \Exception('Import data not found or expired');
             }
 
@@ -389,10 +387,12 @@ class TeacherController extends Controller
             Cache::forget("teacher_import_{$importId}");
 
             DB::commit();
+
             return response()->json(['message' => 'Import successfully undone']);
 
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json(['message' => $e->getMessage()], 500);
         }
     }
@@ -400,13 +400,14 @@ class TeacherController extends Controller
     private function findSchoolId($schoolName)
     {
         $school = School::where('name', $schoolName)->first();
+
         return $school ? $school->id : null;
     }
 
     public function getTeacherClasses()
     {
         $teacher = Teacher::where('user_id', auth()->id())->first();
-        if (!$teacher) {
+        if (! $teacher) {
             return response()->json(['error' => 'No teacher record found for this user'], 403);
         }
 
@@ -419,13 +420,13 @@ class TeacherController extends Controller
             return [
                 'id' => $assignment->subject_id,
                 'name' => $assignment->subject->name,
-                'classroom_id' => $assignment->classroom_id
+                'classroom_id' => $assignment->classroom_id,
             ];
         });
 
         return response()->json([
             'classrooms' => $classrooms,
-            'subjects' => $subjects
+            'subjects' => $subjects,
         ]);
     }
 
@@ -433,7 +434,7 @@ class TeacherController extends Controller
     {
         $request->validate([
             'classroom_id' => 'required|exists:classrooms,id',
-            'subject_id' => 'required|exists:subjects,id'
+            'subject_id' => 'required|exists:subjects,id',
         ]);
 
         $students = Student::where('classroom_id', $request->classroom_id)
@@ -441,7 +442,7 @@ class TeacherController extends Controller
             ->get();
 
         return response()->json([
-            'students' => $students
+            'students' => $students,
         ]);
     }
 
@@ -454,13 +455,13 @@ class TeacherController extends Controller
                 'stage:id,name',
                 'grade:id,name',
                 'classroom:id,name',
-                'parent:id,name'
+                'parent:id,name',
             ])
-            ->select('id', 's_id', 'user_id', 'name', 'name_ar', 'grade_id', 'school_id','classroom_id','stage_id') // Make sure to include school_id
+            ->select('id', 's_id', 'user_id', 'name', 'name_ar', 'grade_id', 'school_id', 'classroom_id', 'stage_id') // Make sure to include school_id
             ->get();
 
         return response()->json([
-            'students' => $students
+            'students' => $students,
         ]);
     }
 
@@ -478,10 +479,11 @@ class TeacherController extends Controller
     {
         return Inertia::render('Teacher/Grades');
     }
+
     public function apiIndex(Request $request)
     {
         $schoolId = auth()->user()->schoolId();
-        
+
         $query = Teacher::query();
 
         if ($request->has('school_id')) {
@@ -492,12 +494,7 @@ class TeacherController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $query->orderBy('name')->get()
+            'data' => $query->orderBy('name')->get(),
         ]);
     }
 }
-
-
-
-
-

@@ -299,33 +299,28 @@ onMounted(() => {
   min-height: 100vh;
   background: #f7fafc;
   
-  &__header {
-    background: white;
-    border-bottom: 1px solid #e2e8f0;
-    padding: 16px 24px;
+  :is(.quiz-preview__header) {
     display: flex;
-    align-items: center;
-    gap: 16px;
-    position: sticky;
-    top: 0;
-    z-index: 10;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
   }
   
-  &__header-content {
+  :is(.quiz-preview__header-content) {
     flex: 1;
   }
   
-  &__title {
+  :is(.quiz-preview__title) {
     font-size: 1.5rem;
     font-weight: 700;
     color: #1a202c;
-    margin: 0;
+    margin-bottom: 8px;
   }
   
-  &__description {
+  :is(.quiz-preview__description) {
+    color: #4a5568;
     font-size: 0.875rem;
-    color: #718096;
-    margin: 4px 0 0 0;
+    line-height: 1.5;
   }
   
   :is(.quiz-preview__header-actions) {
@@ -339,25 +334,22 @@ onMounted(() => {
     padding: 40px 24px 100px;
   }
   
-  &__viewport {
-    width: 100%;
-    max-width: 1200px;
-    transition: all 0.3s ease;
+  :is(.quiz-preview__viewport) {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     
-    &--desktop {
-      max-width: 1200px;
-    }
-    
-    &--tablet {
+    &.quiz-preview__viewport--tablet {
       max-width: 768px;
     }
     
-    &--mobile {
+    &.quiz-preview__viewport--mobile {
       max-width: 375px;
     }
   }
   
-  &__info-card {
+  :is(.quiz-preview__info-card) {
     margin-bottom: 24px;
     border-radius: 16px;
   }
@@ -368,20 +360,20 @@ onMounted(() => {
     gap: 24px;
   }
   
-  &__info-item {
+  :is(.quiz-preview__info-item) {
     display: flex;
     align-items: center;
     gap: 12px;
   }
   
-  &__info-value {
+  :is(.quiz-preview__info-value) {
     font-size: 1.5rem;
     font-weight: 700;
     color: #1a202c;
     line-height: 1;
   }
   
-  &__info-label {
+  :is(.quiz-preview__info-label) {
     font-size: 0.75rem;
     color: #718096;
     margin-top: 4px;

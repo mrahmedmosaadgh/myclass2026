@@ -102,11 +102,13 @@ php artisan db:seed
 
 php artisan menu:sync
 
+php artisan serve
+npm run dev
+
+
  create the required history file in docs/history (with what you did and what still need to be done if you have)with the correct timestamped name and title, then stage, commit with the specified message format, and push to your current branch.
 
 
-php artisan serve
-npm run dev
 
 public/build is a separate git repository.
 npm run build
