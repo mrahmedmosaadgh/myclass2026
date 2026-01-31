@@ -620,9 +620,64 @@ card2
             </q-btn-dropdown>
 
             <!-- Quiz Mode Button -->
-            <q-btn round dense color="purple" icon="quiz" class="ml-2 shadow-sm glossy" @click="openQuizMode">
-               <q-tooltip>Start Quiz Mode</q-tooltip>
-            </q-btn>
+            <!-- Quiz Mode Dropdown (New) -->
+            <q-btn-dropdown 
+              round 
+              dense 
+              color="purple" 
+              icon="quiz" 
+              class="ml-2 shadow-sm glossy"
+              content-class="bg-white rounded-xl shadow-lg"
+            >
+               <q-list style="min-width: 250px">
+                  <q-item-label header class="text-xs font-bold uppercase text-gray-500">Quiz Mode</q-item-label>
+                  
+                  <!-- Resume Option (Check localstorage) -->
+                  <q-item clickable v-close-popup @click="resumeQuiz" v-if="hasSavedQuiz">
+                     <q-item-section avatar>
+                        <q-icon name="history" color="amber-9" />
+                     </q-item-section>
+                     <q-item-section>
+                        <q-item-label>Resume Previous</q-item-label>
+                        <q-item-label caption>Continue where you left off</q-item-label>
+                     </q-item-section>
+                  </q-item>
+
+                  <q-separator v-if="hasSavedQuiz" />
+                  
+                  <q-item-label header class="text-xs font-bold text-gray-400 pb-1">Start New Quiz</q-item-label>
+                  
+                  <div class="px-4 pb-3 flex flex-col gap-2">
+                      <q-input 
+                        v-model="newQuizForm.title" 
+                        dense 
+                        outlined 
+                        label="Quiz Title" 
+                        placeholder="e.g. Unit 1 Quiz"
+                        class="text-sm"
+                      />
+                      
+                      <div class="flex gap-2">
+                          <q-input 
+                            v-model.number="newQuizForm.maxMark" 
+                            type="number" 
+                            dense 
+                            outlined 
+                            label="Max Mark" 
+                            class="col"
+                          />
+                          <q-btn 
+                            label="Start" 
+                            color="purple" 
+                            icon="play_arrow" 
+                            class="col-auto self-stretch" 
+                            @click="startNewQuiz" 
+                            v-close-popup
+                          />
+                      </div>
+                  </div>
+               </q-list>
+            </q-btn-dropdown>
           </div>
         </div>
       </div>
@@ -1727,7 +1782,9 @@ card2
       v-model="showQuizMode" 
       :students="students" 
       :behaviors="behaviors"
+      :new-session="quizStartSession"
       @update-points="handleQuizPointsUpdate" 
+      @refresh-data="initClassroomSession"
     />
   </div>
 </template>
@@ -1821,6 +1878,11 @@ onMounted(() => {
     if (isMusicEnabled.value) {
       bgMusic.value.play().catch(e => console.log('Autoplay prevented:', e))
     }
+  }
+
+  // Check for Quiz Mode Route or Query Param
+  if (window.location.pathname.includes('/reward_sys/quiz') || new URLSearchParams(window.location.search).get('mode') === 'quiz') {
+      showQuizMode.value = true
   }
 })
 
@@ -3571,11 +3633,40 @@ onMounted(async () => {
   }
 })
 // Quiz Mode Logic
+// Quiz Mode State
 const showQuizMode = ref(false)
+const quizStartSession = ref(null)
+const newQuizForm = ref({
+   title: 'Unit 1 Quiz',
+   maxMark: 10
+})
+const hasSavedQuiz = ref(false)
+
+// Check local storage on mount (and when menu opens ideally, but simple check here is okay)
+onMounted(() => {
+    hasSavedQuiz.value = !!localStorage.getItem('quiz_mode_state')
+})
+
+const resumeQuiz = () => {
+   quizStartSession.value = null // clear new session trigger
+   showQuizMode.value = true
+}
+
+const startNewQuiz = () => {
+   quizStartSession.value = {
+      title: newQuizForm.value.title,
+      maxMark: newQuizForm.value.maxMark,
+      timestamp: Date.now() // Force change detection
+   }
+   showQuizMode.value = true
+   
+   // Update local flag immediately
+   hasSavedQuiz.value = true
+}
 
 const openQuizMode = () => {
-  showQuizMode.value = true
-  pointsDisplayMode.value = 'from_now'
+  // Legacy or Direct Open -> Resume default
+  resumeQuiz()
 }
 
 const handleQuizPointsUpdate = async ({ studentId, points, behaviorName, behaviorId }) => {

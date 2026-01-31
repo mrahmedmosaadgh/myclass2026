@@ -310,8 +310,15 @@ Route::middleware(['auth:sanctum', 'web'])->group(function () {
     Route::delete('/delete-media', [App\Http\Controllers\MediaUploadController::class, 'delete']);
 });
 
-// Navigation API
+// Navigation API (Database-driven menus)
 Route::middleware(['auth:sanctum', 'web'])->get('/navigation', [NavigationController::class, 'index']);
+
+// Config-Based Menu API (New Simple Approach)
+Route::middleware(['auth:sanctum', 'web'])->get('/menu', function () {
+    $menuService = app(\App\Services\MenuService::class);
+    return response()->json($menuService->getConfigMenu());
+});
+
 
 
 // Load Feature API Routes (Modules)

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { Link, usePage, router } from '@inertiajs/vue3';
 import { useAppStore } from '@/Stores/AppStore';
 import { useStringHelpers } from '@/composables/useStringHelpers';
@@ -66,14 +66,6 @@ const loadSchool = () => {
   }
 };
 
-onMounted(() => {
-    loadSchool();
-    // Initial fetch
-    fetchMenusForRole(selectedRole.value);
-});
-
-// No need to update localStorage for sidebar state
-
 const user = computed(() => usePage().props.auth.user);
 const userRoles = computed(() => user.value?.roles || []);
 
@@ -86,9 +78,54 @@ const selectedRole = ref(
   (userRoles.value.length > 0 ? userRoles.value[0] : 'guest')
 );
 
+const originalRole = ref(null);
+const isPreviewMode = ref(false);
+
+onMounted(() => {
+    loadSchool();
+    // Initial fetch
+    fetchMenusForRole(selectedRole.value);
+    
+    // Listen for admin preview changes
+    window.addEventListener('admin:preview-role-changed', handlePreviewRoleChange);
+});
+
+onUnmounted(() => {
+    window.removeEventListener('admin:preview-role-changed', handlePreviewRoleChange);
+});
+
+const handlePreviewRoleChange = (event) => {
+    const previewRole = event.detail.role;
+    
+    if (previewRole) {
+        // Entering preview mode
+        if (!originalRole.value) {
+            originalRole.value = selectedRole.value;
+        }
+        isPreviewMode.value = true;
+        selectedRole.value = previewRole; // This triggers the watcher to fetch menus
+        
+        $q.notify({
+            type: 'info',
+            message: `Previewing Sidebar as: ${capitalizeFirst(previewRole)}`,
+            timeout: 2000,
+            position: 'top-right'
+        });
+    } else {
+        // Exiting preview mode (revert to admin/original)
+        if (originalRole.value) {
+            selectedRole.value = originalRole.value;
+            originalRole.value = null;
+        }
+        isPreviewMode.value = false;
+    }
+};
+
 // Save selected role to localStorage and dispatch event
 watch(selectedRole, (newRole) => {
-  localStorage.setItem('selectedRole', newRole);
+  if (!isPreviewMode.value) {
+      localStorage.setItem('selectedRole', newRole);
+  }
   fetchMenusForRole(newRole);
   document.dispatchEvent(new CustomEvent('role-changed', {
     detail: { role: newRole }
@@ -221,21 +258,39 @@ const safeRoute = (path, params = {}) => {
       return path;
     }
 
-    // Check if route exists
+    // Check if route exists in Ziggy
     if (!hasRoute(path)) {
-      // Don't log warnings for common routes
       if (!['admin.dashboard', 'teacher.home', 'student.home'].includes(path)) {
         console.warn(`Route not found: ${path}`);
       }
-      return typeof path === 'string' && path.startsWith('/') ? path : '/route-not-found';
+      return typeof path === 'string' && path.startsWith('/') ? path : '#';
     }
 
-    // Return the route with context params merged
+    // Attempt to merge fallback params
     const mergedParams = { ...currentRouteParams.value, ...params };
-    return window.route(path, mergedParams);
+    
+    // Check if we have all required parameters for this route to avoid Ziggy crashing
+    // This is a safety check because Ziggy throws hard errors for missing params
+    try {
+        // We do a try-catch here specifically for route generation
+        return window.route(path, mergedParams);
+    } catch (routeError) {
+        // Filter out "parameter is required" errors to keep console clean
+        const isMissingParam = routeError.message && routeError.message.includes('parameter is required');
+        
+        if (!isMissingParam) {
+            console.warn(`Error generating route ${path}:`, routeError);
+        } else {
+             // Optional: Log missing params for debugging if needed, but keep it quiet for users
+             // console.debug(`Skipping route ${path} due to missing params.`);
+        }
+        
+        return '#';
+    }
+
   } catch (error) {
-    console.warn(`Route error with ${path}:`, error);
-    return typeof path === 'string' && path.startsWith('/') ? path : '/route-not-found';
+    console.warn(`General error in safeRoute for ${path}:`, error);
+    return '#';
   }
 };
 
@@ -295,7 +350,7 @@ const getDefaultIcon = (icon) => {
       <q-card
         class="column no-wrap sidebar-card relative "
         style="width: 250px"
-        :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-3'"
+        :class="[$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-3', isPreviewMode ? 'bg-purple-1' : '']"
       >
     <div class="p-0  relative    ">
             <!-- Offline Indicator -->

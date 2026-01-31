@@ -8,6 +8,48 @@
 
     <q-card-section>
       <q-form @submit="handleSubmit" class="q-gutter-md">
+        
+        <!-- Smart Preset Search (New) -->
+        <div v-if="!menu" class="bg-blue-1 q-pa-sm rounded-borders q-mb-md">
+            <div class="text-subtitle2 text-primary q-mb-xs flex items-center">
+                <q-icon name="auto_awesome" class="q-mr-xs" />
+                Smart Mode (Optional)
+            </div>
+            <q-select
+                v-model="selectedPreset"
+                :options="presetOptions"
+                label="Search for a feature (e.g. 'Teacher Schedule')"
+                outlined
+                dense
+                use-input
+                hide-selected
+                fill-input
+                input-debounce="300"
+                @filter="filterPresets"
+                @update:model-value="applyPreset"
+                placeholder="Type to search..."
+            >
+                <template v-slot:no-option>
+                <q-item>
+                    <q-item-section class="text-grey">
+                    No presets found
+                    </q-item-section>
+                </q-item>
+                </template>
+                <template v-slot:option="scope">
+                    <q-item v-bind="scope.itemProps">
+                        <q-item-section avatar>
+                            <q-icon :name="scope.opt.icon" />
+                        </q-item-section>
+                        <q-item-section>
+                            <q-item-label>{{ scope.opt.label }}</q-item-label>
+                            <q-item-label caption>{{ scope.opt.module }} • {{ scope.opt.role_specific || 'General' }}</q-item-label>
+                        </q-item-section>
+                    </q-item>
+                </template>
+            </q-select>
+        </div>
+
         <!-- General Info Section -->
         <div class="text-subtitle2 text-primary q-mb-sm">General Information</div>
         <div class="row q-col-gutter-md">
@@ -48,17 +90,10 @@
                 />
             </div>
             <div class="col-12 col-md-6">
-               <q-input
+               <MenuIconPicker 
                 v-model="form.icon"
-                label="Icon"
-                hint="Material icon name"
-                outlined
-                dense
-                >
-                <template v-slot:prepend>
-                    <q-icon :name="form.icon || 'help_outline'" />
-                </template>
-                </q-input>
+                @update:model-value="form.icon = $event"
+               />
             </div>
         </div>
 
@@ -186,6 +221,10 @@
 <script setup>
 import { ref, reactive, onMounted, watch, computed } from 'vue';
 import axios from 'axios';
+import MenuIconPicker from '@/Components/MenuIconPicker.vue';
+import { useQuasar } from 'quasar';
+
+const $q = useQuasar();
 
 const props = defineProps({
   menu: {
@@ -212,6 +251,51 @@ const allParents = ref([]);
 
 const routeOptions = ref([]);
 const permissionOptions = ref([]);
+
+// Smart Preset Logic
+const selectedPreset = ref(null);
+const presetOptions = ref([]);
+
+const filterPresets = (val, update, abort) => {
+  if (val.length < 2) {
+    abort();
+    return;
+  }
+
+  update(() => {
+    axios.get('/api/admin/menus/helpers/presets', { params: { q: val } })
+        .then(response => {
+            presetOptions.value = response.data;
+        })
+        .catch(error => {
+            console.error('Failed to fetch presets', error);
+            presetOptions.value = [];
+        });
+  });
+};
+
+const applyPreset = (preset) => {
+    if (!preset) return;
+    
+    // Auto-fill form fields
+    form.label = preset.label;
+    form.label_ar = preset.label_ar || '';
+    form.route = preset.route;
+    form.icon = preset.icon;
+    form.module = preset.module; 
+    form.role_specific = preset.role_specific;
+    
+    // Notify user
+    $q.notify({
+        type: 'positive',
+        message: 'Form auto-filled from preset!',
+        position: 'top',
+        timeout: 1000
+    });
+    
+    // Clear selection for UX
+    selectedPreset.value = null; 
+};
 
 // Form data
 const form = reactive({

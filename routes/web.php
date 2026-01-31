@@ -1,27 +1,24 @@
 <?php
 
-use Illuminate\Foundation\Application;
-use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
 use App\Http\Controllers\Admin\UserController;
-use App\Http\Controllers\ChatController;
+use App\Http\Controllers\Auth\SchoolLoginController;
+use App\Http\Controllers\ChatMessageController;
 use App\Http\Controllers\ClassroomSubjectTeacherController;
+use App\Http\Controllers\ConversationController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PeriodActivityController;
 use App\Http\Controllers\puzzle1Controller;
 use App\Http\Controllers\ScheduleAdminNewController;
 use App\Http\Controllers\ScheduleTimingController;
+use App\Http\Controllers\SchoolBrandingController;
 use App\Models\User;
 use App\Notifications\WebPushNotification;
-use App\Http\Controllers\NotificationController;
-use App\Http\Controllers\ConversationController;
-use App\Http\Controllers\ChatMessageController;
-use App\Http\Controllers\PeriodActivityController;
+use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
-use App\Http\Controllers\CalendarEventController;
-use App\Http\Controllers\SchoolBrandingController;
-use App\Http\Controllers\Auth\SchoolLoginController;
+use Inertia\Inertia;
+use Spatie\Permission\Models\Role;
 
 // Route::get('/', function () {
 //     return Inertia::render('Welcome', [
@@ -40,6 +37,11 @@ Route::post('/login/{school_slug}', [SchoolLoginController::class, 'authenticate
 Route::get('/api/school-branding/{school_slug}', [SchoolLoginController::class, 'getBranding'])
     ->name('school.branding');
 
+// Chatbot - User Routes
+Route::post('/api/chatbot/start', [App\Http\Controllers\ChatbotController::class, 'start'])->name('chatbot.start');
+Route::post('/api/chatbot/send', [App\Http\Controllers\ChatbotController::class, 'send'])->name('chatbot.send');
+Route::get('/api/chatbot/history', [App\Http\Controllers\ChatbotController::class, 'history'])->name('chatbot.history');
+
 // Detect user's school for redirect (public)
 Route::post('/api/detect-school', [App\Http\Controllers\Auth\LoginRedirectController::class, 'detectSchool'])
     ->name('detect.school');
@@ -47,7 +49,6 @@ Route::post('/api/detect-school', [App\Http\Controllers\Auth\LoginRedirectContro
 // Validate school slug from localStorage (public)
 Route::post('/api/validate-school', [App\Http\Controllers\Auth\LoginRedirectController::class, 'getSchoolBySlug'])
     ->name('validate.school');
-
 
 Route::middleware([
     'auth:sanctum',
@@ -114,13 +115,12 @@ Route::middleware([
         return Inertia::render('OfflineTest');
     })->name('offline.test');
 
-
-        // Route to assign random colors to ClassroomSubjectTeachers for a school
-        Route::post('/admin/schedules/assign-random-colors', [ScheduleAdminNewController::class, 'create_rand_color'])->name('schedules.assign_colors');
-        Route::patch('/admin/schedules/{schedule}/update-period-code', [ScheduleAdminNewController::class, 'updatePeriodCode'])
+    // Route to assign random colors to ClassroomSubjectTeachers for a school
+    Route::post('/admin/schedules/assign-random-colors', [ScheduleAdminNewController::class, 'create_rand_color'])->name('schedules.assign_colors');
+    Route::patch('/admin/schedules/{schedule}/update-period-code', [ScheduleAdminNewController::class, 'updatePeriodCode'])
         ->name('admin.schedules.update_period_code');
 
-        Route::get('schedule/get_data/{school_id}', [ScheduleAdminNewController::class, 'getScheduleData'])->name('admin.schedules.get_data');
+    Route::get('schedule/get_data/{school_id}', [ScheduleAdminNewController::class, 'getScheduleData'])->name('admin.schedules.get_data');
 
     Route::get('classroom-subject-teacher/import-page', [\App\Http\Controllers\ClassroomSubjectTeacherImportController::class, 'index'])
         ->name('classroom-subject-teacher.import-page');
@@ -143,12 +143,6 @@ Route::middleware([
         Route::post('/notifications/send-test', [NotificationController::class, 'sendTestNotification']);
         Route::post('/notifications/send-to-users', [NotificationController::class, 'sendToUsers']);
 
-
-
-
-
-
-
         Route::resource('teacher/period-activities', PeriodActivityController::class);
 
         // QU Question Bank System Routes
@@ -157,8 +151,8 @@ Route::middleware([
             Route::resource('questions', \App\Http\Controllers\QuQuestionController::class);
             Route::post('questions/bulk-import', [\App\Http\Controllers\QuQuestionController::class, 'bulkImport'])
                 ->name('questions.bulk-import');
-            
-            // Exam Management (Teachers & Admins)  
+
+            // Exam Management (Teachers & Admins)
             Route::resource('exams', \App\Http\Controllers\QuExamController::class);
             Route::get('exams/users/search', [\App\Http\Controllers\QuExamController::class, 'searchUsers'])
                 ->name('exams.users.search');
@@ -168,7 +162,7 @@ Route::middleware([
                 ->name('exams.grading-attempts');
             Route::get('exams/grading/{attempt}/data', [\App\Http\Controllers\QuExamController::class, 'getAttemptGradingData'])
                 ->name('exams.grading-data');
-            
+
             // Teacher Grading Routes
             Route::get('grading', [\App\Http\Controllers\QuExamController::class, 'teacherGradingIndex'])
                 ->name('grading.index');
@@ -182,7 +176,7 @@ Route::middleware([
                 ->name('analytics.index');
             Route::get('analytics/{exam}', [\App\Http\Controllers\QuExamController::class, 'examAnalytics'])
                 ->name('analytics.exam');
-            
+
             // Student Exam Taking Routes
             Route::prefix('student')->name('student.')->group(function () {
                 Route::get('exams', [\App\Http\Controllers\QuExamController::class, 'studentIndex'])
@@ -221,13 +215,12 @@ Route::middleware([
         ->name('myteachers.import.validate');
     Route::post('teachers/import/process', [\App\Http\Controllers\TeacherImportController::class, 'processImport'])
         ->name('myteachers.import.process');
-    
 
     // Admin Menu Management
     Route::middleware(['permission:manage-menus'])->group(function () {
         Route::get('/admin/menus', [App\Http\Controllers\Admin\MenuController::class, 'index'])
             ->name('admin.menus.index');
-            
+
         // API endpoints for menu management (using session auth)
         Route::prefix('api/admin/menus')->group(function () {
             Route::post('/', [App\Http\Controllers\Admin\MenuController::class, 'store']);
@@ -235,14 +228,23 @@ Route::middleware([
             Route::delete('/{menu}', [App\Http\Controllers\Admin\MenuController::class, 'destroy']);
             Route::post('/reorder', [App\Http\Controllers\Admin\MenuController::class, 'reorder']);
             Route::post('/bulk-import', [App\Http\Controllers\Admin\MenuController::class, 'bulkImport']);
-            
+
             // Helper endpoints
+            Route::get('/helpers/presets', [App\Http\Controllers\Admin\MenuController::class, 'searchPresets']);
             Route::get('/helpers/routes', [App\Http\Controllers\Admin\MenuController::class, 'getAvailableRoutes']);
             Route::get('/helpers/permissions', [App\Http\Controllers\Admin\MenuController::class, 'getAvailablePermissions']);
             Route::get('/helpers/modules', [App\Http\Controllers\Admin\MenuController::class, 'getAvailableModules']);
             Route::get('/helpers/parents', [App\Http\Controllers\Admin\MenuController::class, 'getAvailableParents']);
             Route::get('/helpers/ai-prompt', [App\Http\Controllers\Admin\MenuController::class, 'generateAIPrompt']);
         });
+    });
+
+    // Chatbot - Admin Routes
+    Route::middleware(['role:admin'])->prefix('admin/chatbot')->name('admin.chatbot.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\ChatbotAdminController::class, 'index'])->name('index');
+        Route::get('/{conversation}', [App\Http\Controllers\Admin\ChatbotAdminController::class, 'show'])->name('show');
+        Route::post('/{conversation}/reply', [App\Http\Controllers\Admin\ChatbotAdminController::class, 'reply'])->name('reply');
+        Route::patch('/{conversation}/status', [App\Http\Controllers\Admin\ChatbotAdminController::class, 'updateStatus'])->name('update');
     });
 
     // School branding settings (admin only)
@@ -265,7 +267,6 @@ Route::middleware([
 //     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
 //     Route::post('/users/{id}/restore', [UserController::class, 'restore'])->name('users.restore');
 // });
-
 
 // D:\my_projects\2025\laravel12\myclass5\resources\js\Pages\LandingPage.vue
 Route::get('/', function () {
@@ -308,6 +309,10 @@ Route::get('/auth/status', [App\Http\Controllers\AuthStatusController::class, 'c
 
 // Student & Teacher Schedule Viewing Routes (Read-only)
 Route::middleware(['auth'])->group(function () {
+    // Teacher self-schedule view (no ID required)
+    Route::get('/schedules/my-schedule', [App\Http\Controllers\ScheduleController::class, 'showMySchedule'])
+        ->name('schedules.teacher.my-schedule');
+
     // Student schedule view - read-only classroom timetable
     Route::get('/schedules/classroom/{classroom_id}/{classroom_name?}', [App\Http\Controllers\ScheduleController::class, 'showClassroomSchedule'])
         ->name('schedules.classroom.view')
@@ -319,18 +324,18 @@ Route::middleware(['auth'])->group(function () {
         ->where(['teacher_id' => '[0-9]+']);
 });
 
-include dirname(__DIR__) . '/routes/weekly_system.php';
-include dirname(__DIR__) . '/routes/admin.php';
-include dirname(__DIR__) . '/routes/r_hr.php';
-include dirname(__DIR__) . '/routes/r_teacher.php';
-include dirname(__DIR__) . '/routes/r_student.php';
-include dirname(__DIR__) . '/routes/r_out.php';
-include dirname(__DIR__) . '/routes/lessons.php';
-include dirname(__DIR__) . '/routes/weekly_plans.php';
-include dirname(__DIR__) . '/routes/acadimy.php';
-include dirname(__DIR__) . '/routes/qudrat_routes.php';
-include dirname(__DIR__) . '/routes/course_management.php';
-include dirname(__DIR__) . '/routes/dp.php';
+include dirname(__DIR__).'/routes/weekly_system.php';
+include dirname(__DIR__).'/routes/admin.php';
+include dirname(__DIR__).'/routes/r_hr.php';
+include dirname(__DIR__).'/routes/r_teacher.php';
+include dirname(__DIR__).'/routes/r_student.php';
+include dirname(__DIR__).'/routes/r_out.php';
+include dirname(__DIR__).'/routes/lessons.php';
+include dirname(__DIR__).'/routes/weekly_plans.php';
+include dirname(__DIR__).'/routes/acadimy.php';
+include dirname(__DIR__).'/routes/qudrat_routes.php';
+include dirname(__DIR__).'/routes/course_management.php';
+include dirname(__DIR__).'/routes/dp.php';
 // include dirname(__DIR__) . '/routes/weekly_system.php';
 
 // TickTick Task Management Routes
@@ -357,10 +362,11 @@ Route::get('/admin/classroom-subject-teachers/import', [ClassroomSubjectTeacherC
 Route::post('/admin/classroom-subject-teachers/import', [ClassroomSubjectTeacherController::class, 'import'])->name('admin.classroom-subject-teachers.import');
 Route::post('/admin/classroom-subject-teachers/validate', [ClassroomSubjectTeacherController::class, 'validateImport'])->name('admin.classroom-subject-teachers.validate');
 
-Route::get('/storage/{path}', function($path) {
+Route::get('/storage/{path}', function ($path) {
     if (Storage::disk('public')->exists($path)) {
         return response()->file(Storage::disk('public')->path($path));
     }
+
     return response()->json(['error' => 'File not found'], 404);
 })->where('path', '.*');
 
@@ -399,47 +405,42 @@ Route::group(['prefix' => 'admin/schedules', 'as' => 'admin.schedules.'], functi
 
     Route::get('timings_show_data/{school_id}', [ScheduleTimingController::class, 'show_data'])
         ->name('timings.show_data');
-      Route::post('timings_show_data2', [ScheduleTimingController::class, 'show_data2'])
+    Route::post('timings_show_data2', [ScheduleTimingController::class, 'show_data2'])
         ->name('timings.timings_show_data2');
     Route::post('timings', [ScheduleTimingController::class, 'store'])
         ->name('timings.store');
 });
 
+Route::get('puzzle1', [puzzle1Controller::class, 'index'])
+    ->name('puzzle1');
 
-    Route::get('puzzle1', [puzzle1Controller::class, 'index'])
-        ->name('puzzle1');
+Route::get('/notifications/settings', function () {
+    $user = User::where('id', Auth::user()->id)->first();
+    // try {
+    // Only send test notification if the user has subscriptions
+    if ($user->pushSubscriptions()->exists()) {
+        $user->notify(new WebPushNotification(
+            'Web Push Test',
+            'Your web push notifications are working!',
+            route('dashboard')
+        ));
+    }
 
+    return Inertia::render('Notifications/Settings', [
+        'hasSubscription' => $user->pushSubscriptions()->exists(),
+        'vapidPublicKey' => config('webpush.vapid.public_key'),
+    ]);
+    // } catch (\Exception $e) {
+    report($e);
 
-
-
-    Route::get('/notifications/settings', function () {
-        $user = User::where('id', Auth::user()->id)->first()   ;
-        // try {
-            // Only send test notification if the user has subscriptions
-            if ($user->pushSubscriptions()->exists()) {
-                $user->notify(new WebPushNotification(
-                    'Web Push Test',
-                    'Your web push notifications are working!',
-                    route('dashboard')
-                ));
-            }
-
-            return Inertia::render('Notifications/Settings', [
-                'hasSubscription' => $user->pushSubscriptions()->exists(),
-                'vapidPublicKey' => config('webpush.vapid.public_key')
-            ]);
-        // } catch (\Exception $e) {
-            report($e);
-            return Inertia::render('Notifications/Settings', [
-                'error' => 'Failed to process notification: ' . $e->getMessage(),
-                'hasSubscription' => false,
-                'vapidPublicKey' => config('webpush.vapid.public_key')
-            ]);
-        }
+    return Inertia::render('Notifications/Settings', [
+        'error' => 'Failed to process notification: '.$e->getMessage(),
+        'hasSubscription' => false,
+        'vapidPublicKey' => config('webpush.vapid.public_key'),
+    ]);
+}
     // }
-    )->name('notifications.settings');
-
-
+)->name('notifications.settings');
 
 // Developer Routes
 Route::middleware([
@@ -458,7 +459,7 @@ Route::middleware([
     Route::get('/', function () {
         return Inertia::render('developer/DeveloperMenu');
     })->name('menu');
-    
+
     // System routes viewer
     Route::get('/system-routes', function () {
         $routes = collect(Route::getRoutes())->map(function ($route) {
@@ -470,53 +471,54 @@ Route::middleware([
                 'middleware' => $route->middleware(),
             ];
         })->values();
-        
+
         return Inertia::render('developer/sys_links/Index', [
-            'routeData' => $routes
+            'routeData' => $routes,
         ]);
     })->name('system-routes');
 
     Route::get('/resume-questions-manager', function () {
-    return Inertia::render('modules/resumes/qbank2/ResumeQuestionsManager');
-    // resources\js\Pages\modules\resumes\qbank2\ResumeQuestionsManager.vue
-});
+        return Inertia::render('modules/resumes/qbank2/ResumeQuestionsManager');
+        // resources\js\Pages\modules\resumes\qbank2\ResumeQuestionsManager.vue
+    });
 
     // MyProject Tasks Route
     Route::get('/myproject-tasks', function () {
         return Inertia::render('developer/myproject_tasks/TaskManager');
     })->name('myproject-tasks');
-        Route::get('/SpeechRecognition', function () {
+    Route::get('/SpeechRecognition', function () {
         return Inertia::render('quiz_system/add_students/add_students');
     })->name('SpeechRecognition');
 });
 
-        Route::get('/JsonTableBuilder', function () {
-        return Inertia::render('my_table_mnger/JsonTableBuilder');
-    })->name('JsonTableBuilder');
-     
-           Route::get('/TableManager', function () {
-        return Inertia::render('my_table_mnger/TableManager');
-    })->name('TableManager'); 
+Route::get('/JsonTableBuilder', function () {
+    return Inertia::render('my_table_mnger/JsonTableBuilder');
+})->name('JsonTableBuilder');
 
-               Route::get('/get_json_test', function () {
-        return Inertia::render('my_table_mnger/get_json_test');
-        // resources\js\Pages\my_table_mnger\get_json_test.vue
-    })->name('get_json_test'); 
+Route::get('/TableManager', function () {
+    return Inertia::render('my_table_mnger/TableManager');
+})->name('TableManager');
 
+Route::get('/get_json_test', function () {
+    return Inertia::render('my_table_mnger/get_json_test');
+    // resources\js\Pages\my_table_mnger\get_json_test.vue
+})->name('get_json_test');
 
-               Route::get('/my_data', function () {return User::where('id', Auth::user()->id)->get();}) ; 
-               Route::get('/my_classes'  , [ClassroomSubjectTeacherController::class, 'my_classes']   ) ; 
-               Route::get('/my_classes_with_students'  , [ClassroomSubjectTeacherController::class, 'my_classes_with_students']   ) ; 
-               
-               Route::get('/all_classes'  , [ClassroomSubjectTeacherController::class, 'all_classes']   ) ; 
-               Route::get('/all_subjects'  , [ClassroomSubjectTeacherController::class, 'all_subjects']   ) ; 
-               Route::get('/all_teachers'  , [ClassroomSubjectTeacherController::class, 'all_teachers']   ) ; 
-               Route::get('/teacher_classes'  , [ClassroomSubjectTeacherController::class, 'teacher_classes']   ) ; 
-               Route::get('/all_teachers_with_classroom_subject'  , [ClassroomSubjectTeacherController::class, 'all_teachers_with_classroom_subject']   ) ; 
-        
-        // app\Models\Classroom.php
-    
-    // resources\js\Pages/my_table_mnger/JsonDataTable.vue
+Route::get('/my_data', function () {
+    return User::where('id', Auth::user()->id)->get();
+});
+Route::get('/my_classes', [ClassroomSubjectTeacherController::class, 'my_classes']);
+Route::get('/my_classes_with_students', [ClassroomSubjectTeacherController::class, 'my_classes_with_students']);
+
+Route::get('/all_classes', [ClassroomSubjectTeacherController::class, 'all_classes']);
+Route::get('/all_subjects', [ClassroomSubjectTeacherController::class, 'all_subjects']);
+Route::get('/all_teachers', [ClassroomSubjectTeacherController::class, 'all_teachers']);
+Route::get('/teacher_classes', [ClassroomSubjectTeacherController::class, 'teacher_classes']);
+Route::get('/all_teachers_with_classroom_subject', [ClassroomSubjectTeacherController::class, 'all_teachers_with_classroom_subject']);
+
+// app\Models\Classroom.php
+
+// resources\js\Pages/my_table_mnger/JsonDataTable.vue
 
 // Developer Routes
 Route::middleware([
@@ -526,118 +528,122 @@ Route::middleware([
 ])
 // ->prefix('developer')
 // ->name('developer.')
-->group(function () {
+    ->group(function () {
 
-    Route::get('/reward_sys', function () {
-        return Inertia::render('my_table_mnger/reward_sys/reward_sys');
-        // resources\js\Pages\my_table_mnger/reward_sys/reward_sys.vue
-        // my_table_mnger/reward_sys/reward_sys
-    })->name('reward_sys'); 
+        Route::get('/reward_sys', function () {
+            return Inertia::render('my_table_mnger/reward_sys/reward_sys');
+            // resources\js\Pages\my_table_mnger/reward_sys/reward_sys.vue
+            // my_table_mnger/reward_sys/reward_sys
+        })->name('reward_sys');
 
-    // Admin Behavior Management
-    Route::get('/admin/behaviors', function () {
-        return Inertia::render('my_table_mnger/reward_sys/admin/BehaviorManagement');
-    })->name('admin.behaviors'); 
+        Route::get('/reward_sys/quiz', function () {
+            return Inertia::render('my_table_mnger/reward_sys/reward_sys');
+        })->name('reward_sys.quiz');
 
-    // Reward system drawing tool
-    Route::get('/reward-system/drawing', function () {
-        return Inertia::render('my_table_mnger/reward_sys/drawing/DrawingMain');
-    })->name('reward.system.drawing');
+        // Admin Behavior Management
+        Route::get('/admin/behaviors', function () {
+            return Inertia::render('my_table_mnger/reward_sys/admin/BehaviorManagement');
+        })->name('admin.behaviors');
 
-    // Lesson Presentation Routes (moved to separate file)
-    require __DIR__.'/web_lesson_presentation.php';
+        // Reward system drawing tool
+        Route::get('/reward-system/drawing', function () {
+            return Inertia::render('my_table_mnger/reward_sys/drawing/DrawingMain');
+        })->name('reward.system.drawing');
 
-    // Quiz Management Routes
-    Route::prefix('quizzes')->name('quizzes.')->group(function () {
-        // Main dashboard
-        Route::get('/', function () {
-            return Inertia::render('QuizManagement/QuizDashboard');
-        })->name('index');
-        
-        // Debug route to check if quiz exists
-        Route::get('/{id}/debug', function ($id) {
-            $quiz = \App\Models\Quiz::find($id);
-            if (!$quiz) {
-                return response()->json(['error' => 'Quiz not found', 'id' => $id], 404);
-            }
-            return response()->json(['quiz' => $quiz, 'message' => 'Quiz exists']);
+        // Lesson Presentation Routes (moved to separate file)
+        require __DIR__.'/web_lesson_presentation.php';
+
+        // Quiz Management Routes
+        Route::prefix('quizzes')->name('quizzes.')->group(function () {
+            // Main dashboard
+            Route::get('/', function () {
+                return Inertia::render('QuizManagement/QuizDashboard');
+            })->name('index');
+
+            // Debug route to check if quiz exists
+            Route::get('/{id}/debug', function ($id) {
+                $quiz = \App\Models\Quiz::find($id);
+                if (! $quiz) {
+                    return response()->json(['error' => 'Quiz not found', 'id' => $id], 404);
+                }
+
+                return response()->json(['quiz' => $quiz, 'message' => 'Quiz exists']);
+            });
+
+            // Create new quiz
+            Route::get('/create', function () {
+                return Inertia::render('QuizManagement/QuizBuilder');
+            })->name('create');
+
+            // Edit quiz
+            Route::get('/{id}/edit', function ($id) {
+                return Inertia::render('QuizManagement/QuizBuilder', ['quizId' => $id]);
+            })->name('edit');
+
+            // Preview quiz
+            Route::get('/{id}/preview', function ($id) {
+                return Inertia::render('QuizManagement/QuizPreview', ['quizId' => (int) $id]);
+            })->name('preview');
+
+            // Test/Take quiz
+            Route::get('/{id}/test', function ($id) {
+                return Inertia::render('QuizManagement/QuizTest', ['quizId' => (int) $id]);
+            })->name('test');
+
+            // Results/Review
+            Route::get('/{id}/results', function ($id) {
+                return Inertia::render('QuizManagement/QuizResults', ['quizId' => (int) $id]);
+            })->name('results');
+
+            // Analytics
+            Route::get('/{id}/analytics', function ($id) {
+                return Inertia::render('QuizManagement/QuizAnalytics', ['quizId' => $id]);
+            })->name('analytics');
         });
-        
-        // Create new quiz
-        Route::get('/create', function () {
-            return Inertia::render('QuizManagement/QuizBuilder');
-        })->name('create');
-        
-        // Edit quiz
-        Route::get('/{id}/edit', function ($id) {
-            return Inertia::render('QuizManagement/QuizBuilder', ['quizId' => $id]);
-        })->name('edit');
-        
-        // Preview quiz
-        Route::get('/{id}/preview', function ($id) {
-            return Inertia::render('QuizManagement/QuizPreview', ['quizId' => (int)$id]);
-        })->name('preview');
-        
-        // Test/Take quiz
-        Route::get('/{id}/test', function ($id) {
-            return Inertia::render('QuizManagement/QuizTest', ['quizId' => (int)$id]);
-        })->name('test');
-        
-        // Results/Review
-        Route::get('/{id}/results', function ($id) {
-            return Inertia::render('QuizManagement/QuizResults', ['quizId' => (int)$id]);
-        })->name('results');
-        
-        // Analytics
-        Route::get('/{id}/analytics', function ($id) {
-            return Inertia::render('QuizManagement/QuizAnalytics', ['quizId' => $id]);
-        })->name('analytics');
+
+        // Legacy route (redirect to new dashboard)
+        Route::get('/quiz-management', function () {
+            return redirect()->route('quizzes.index');
+        })->name('quiz.management');
+
+        // Question Bank Management Routes
+        Route::prefix('questions')->name('questions.')->group(function () {
+            // Main question bank listing
+            Route::get('/', function () {
+                return Inertia::render('QuestionManagement/QuestionBank');
+            })->name('index1');
+
+            // Create new question
+            Route::get('/create', function () {
+                return Inertia::render('QuestionManagement/QuestionEditor');
+            })->name('create');
+
+            // Edit question
+            Route::get('/{id}/edit', function ($id) {
+                return Inertia::render('QuestionManagement/QuestionEditor', ['questionId' => $id]);
+            })->name('edit');
+
+            // Import questions
+            Route::get('/import', function () {
+                return Inertia::render('QuestionManagement/QuestionImport');
+            })->name('import');
+        });
+
+        // Live Quiz Session Routes
+        Route::prefix('quiz/live')->name('quiz.live.')->group(function () {
+            // Teacher control page
+            Route::get('/test', [App\Http\Controllers\QuizSessionController::class, 'teacherControl'])
+                ->name('test');
+
+            // Student join page
+            Route::get('/join', [App\Http\Controllers\QuizSessionController::class, 'studentJoin'])
+                ->name('join');
+        });
     });
-    
-    // Legacy route (redirect to new dashboard)
-    Route::get('/quiz-management', function () {
-        return redirect()->route('quizzes.index');
-    })->name('quiz.management');
-    
-    // Question Bank Management Routes
-    Route::prefix('questions')->name('questions.')->group(function () {
-        // Main question bank listing
-        Route::get('/', function () {
-            return Inertia::render('QuestionManagement/QuestionBank');
-        })->name('index1');
-        
-        // Create new question
-        Route::get('/create', function () {
-            return Inertia::render('QuestionManagement/QuestionEditor');
-        })->name('create');
-        
-        // Edit question
-        Route::get('/{id}/edit', function ($id) {
-            return Inertia::render('QuestionManagement/QuestionEditor', ['questionId' => $id]);
-        })->name('edit');
-        
-        // Import questions
-        Route::get('/import', function () {
-            return Inertia::render('QuestionManagement/QuestionImport');
-        })->name('import');
-    });
-    
-    // Live Quiz Session Routes
-    Route::prefix('quiz/live')->name('quiz.live.')->group(function () {
-        // Teacher control page
-        Route::get('/test', [App\Http\Controllers\QuizSessionController::class, 'teacherControl'])
-            ->name('test');
-        
-        // Student join page
-        Route::get('/join', [App\Http\Controllers\QuizSessionController::class, 'studentJoin'])
-            ->name('join');
-    });
-});
 
 // School HR Admin Registration
 Route::get('/register-school-admin', [App\Http\Controllers\SchoolHrAdminRegistrationController::class, 'create'])->name('register.school_admin');
 Route::post('/register-school-admin', [App\Http\Controllers\SchoolHrAdminRegistrationController::class, 'store'])->name('register.school_admin.store');
-
 
 // ... existing code ...
 
@@ -646,12 +652,13 @@ $modulesPath = base_path('routes/modules');
 if (file_exists($modulesPath)) {
     $modules = scandir($modulesPath);
     foreach ($modules as $module) {
-        if ($module === '.' || $module === '..') continue;
-        
-        $moduleWebRoute = $modulesPath . '/' . $module . '/web.php';
+        if ($module === '.' || $module === '..') {
+            continue;
+        }
+
+        $moduleWebRoute = $modulesPath.'/'.$module.'/web.php';
         if (file_exists($moduleWebRoute)) {
             require $moduleWebRoute;
         }
     }
 }
-

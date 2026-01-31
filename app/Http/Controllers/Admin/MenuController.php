@@ -10,14 +10,23 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class MenuController extends Controller
 {
+    protected $menuService;
+
+    public function __construct(\App\Services\MenuService $menuService)
+    {
+        $this->menuService = $menuService;
+    }
+
     /**
      * Display menu management page
      */
     public function index()
     {
+        // ... (keep existing index code) ...
         $menus = Menu::with('children')
             ->whereNull('parent_id')
             ->orderBy('module')
@@ -26,9 +35,14 @@ class MenuController extends Controller
 
         $modules = config('menus.modules');
 
+        $roles = Role::with('permissions')
+            ->where('name', '!=', 'super_admin')
+            ->get(['id', 'name']);
+
         return Inertia::render('Admin/MenuManagement', [
             'menus' => $menus,
             'modules' => $modules,
+            'roles' => $roles,
         ]);
     }
 
@@ -58,6 +72,7 @@ class MenuController extends Controller
         }
 
         $menu = Menu::create($data);
+        $this->menuService->clearCache();
 
         return response()->json([
             'message' => 'Menu created successfully',
@@ -73,6 +88,12 @@ class MenuController extends Controller
         $validator = $this->validateMenu($request, $menu->id);
 
         if ($validator->fails()) {
+            \Illuminate\Support\Facades\Log::error('Menu Update Validation Failed', [
+                'id' => $menu->id,
+                'errors' => $validator->errors()->toArray(),
+                'input' => $request->all()
+            ]);
+
             return response()->json([
                 'errors' => $validator->errors()
             ], 422);
@@ -90,6 +111,7 @@ class MenuController extends Controller
         }
 
         $menu->update($data);
+        $this->menuService->clearCache();
 
         return response()->json([
             'message' => 'Menu updated successfully',
@@ -105,6 +127,7 @@ class MenuController extends Controller
         $childrenCount = $menu->children()->count();
         
         $menu->delete(); // Cascade will handle children
+        $this->menuService->clearCache();
 
         return response()->json([
             'message' => 'Menu deleted successfully',
@@ -126,6 +149,7 @@ class MenuController extends Controller
         foreach ($request->items as $item) {
             Menu::where('id', $item['id'])->update(['order' => $item['order']]);
         }
+        $this->menuService->clearCache();
 
         return response()->json([
             'message' => 'Menu order updated successfully'
@@ -137,6 +161,7 @@ class MenuController extends Controller
      */
     public function bulkImport(Request $request)
     {
+        // ... (keep validation logic) ...
         $request->validate([
             'menus' => 'required|array',
             'dry_run' => 'boolean',
@@ -204,6 +229,10 @@ class MenuController extends Controller
                     'errors' => ['exception' => $e->getMessage()]
                 ];
             }
+        }
+
+        if (!$dryRun && count($results['success']) > 0) {
+            $this->menuService->clearCache();
         }
 
         return response()->json([
@@ -382,8 +411,98 @@ class MenuController extends Controller
     }
 
     /**
-     * Get validation rules for menu
+     * Search for smart menu presets
      */
+    public function searchPresets(Request $request)
+    {
+        $query = strtolower($request->input('q', ''));
+        
+        $presets = [
+            // Teachers
+            [
+                'label' => 'My Schedule',
+                'label_ar' => 'جدولي الدراسي',
+                'route' => 'schedules.teacher.my-schedule',
+                'icon' => 'calendar_today',
+                'module' => 'Academics',
+                'role_specific' => 'teacher',
+                'keywords' => ['schedule', 'timetable', 'calendar', 'teacher']
+            ],
+            [
+                'label' => 'My Classes',
+                'label_ar' => 'فصولي',
+                'route' => 'teacher.classes.index',
+                'icon' => 'class',
+                'module' => 'Academics',
+                'role_specific' => 'teacher',
+                'keywords' => ['classes', 'students', 'teacher']
+            ],
+            [
+                'label' => 'Grade Book',
+                'label_ar' => 'دفتر الدرجات',
+                'route' => 'teacher.grades.index',
+                'icon' => 'grade',
+                'module' => 'Academics',
+                'role_specific' => 'teacher',
+                'keywords' => ['grades', 'marks', 'score', 'teacher']
+            ],
+            // Students
+            [
+                'label' => 'My Schedule',
+                'label_ar' => 'جدولي',
+                'route' => 'student.schedule.index',
+                'icon' => 'calendar_view_week',
+                'module' => 'Student Portal',
+                'role_specific' => 'student',
+                'keywords' => ['schedule', 'timetable', 'student']
+            ],
+            [
+                'label' => 'Exam Results',
+                'label_ar' => 'نتائج الاختبارات',
+                'route' => 'student.exams.results',
+                'icon' => 'assignment_turned_in',
+                'module' => 'Student Portal',
+                'role_specific' => 'student',
+                'keywords' => ['results', 'exams', 'marks', 'student']
+            ],
+            // Admin
+            [
+                'label' => 'User Management',
+                'label_ar' => 'إدارة المستخدمين',
+                'route' => 'admin.users.index',
+                'icon' => 'people',
+                'module' => 'Administration',
+                'role_specific' => 'admin',
+                'keywords' => ['users', 'accounts', 'admin']
+            ],
+            [
+                'label' => 'School Settings',
+                'label_ar' => 'إعدادات المدرسة',
+                'route' => 'admin.settings.index',
+                'icon' => 'settings',
+                'module' => 'Administration',
+                'role_specific' => 'admin',
+                'keywords' => ['settings', 'config', 'school', 'admin']
+            ]
+        ];
+
+        // Filter presets based on query
+        if ($query) {
+            $presets = array_filter($presets, function($preset) use ($query) {
+                // Check label
+                if (str_contains(strtolower($preset['label']), $query)) return true;
+                
+                // Check keywords
+                foreach ($preset['keywords'] as $keyword) {
+                    if (str_contains($keyword, $query)) return true;
+                }
+                
+                return false;
+            });
+        }
+
+        return response()->json(array_values($presets));
+    }
     protected function getValidationRules($menuId = null)
     {
         return [
@@ -403,6 +522,10 @@ class MenuController extends Controller
             'is_feature_flag' => 'boolean',
             'feature_flag_key' => 'nullable|required_if:is_feature_flag,true|string|max:255',
             'meta' => 'nullable|array',
+            'v2_component' => 'nullable|string|max:255',
+            'requires_context' => 'boolean',
+            'role_specific' => 'nullable|string|exists:roles,name',
+            'v2_enabled' => 'boolean',
         ];
     }
 

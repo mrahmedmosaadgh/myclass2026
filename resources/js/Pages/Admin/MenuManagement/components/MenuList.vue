@@ -32,15 +32,45 @@
             </q-item-label>
           </q-item-section>
 
-          <q-item-section side>
+            <q-item-section side v-if="!preview">
             <div class="row items-center q-gutter-x-sm">
                <!-- Status Indicators -->
-              <q-badge v-if="!menu.is_active" color="red-1" text-color="red-9" label="Inactive" />
+              <q-badge v-if="!menu.is_active" color="red-1" text-color="red-9" label="Inactive" class="cursor-pointer" @click.stop="$emit('toggle', menu)">
+                <q-tooltip>Click to Activate</q-tooltip>
+              </q-badge>
+              <q-badge v-else color="green-1" text-color="green-9" label="Active" class="cursor-pointer" @click.stop="$emit('toggle', menu)">
+                <q-tooltip>Click to Deactivate</q-tooltip>
+              </q-badge>
+              
               <q-badge v-if="menu.is_feature_flag" color="purple-1" text-color="purple-9" label="Feature Flag" />
               
               <div class="q-separator vertical q-mx-sm" />
 
-              <!-- Actions -->
+              <!-- Open Route Button -->
+              <q-btn
+                v-if="menu.route"
+                flat dense round
+                icon="open_in_new"
+                color="secondary"
+                size="sm"
+                @click.stop="openRoute(menu.route)"
+              >
+                <q-tooltip>Open Page</q-tooltip>
+              </q-btn>
+
+              <!-- Copy Route Button -->
+              <q-btn
+                v-if="menu.route"
+                flat dense round
+                icon="content_copy"
+                color="primary"
+                size="sm"
+                @click.stop="copyRoute(menu.route)"
+              >
+                <q-tooltip>Copy Route</q-tooltip>
+              </q-btn>
+
+              <!-- Edit -->
               <q-btn
                 flat dense round
                 icon="edit"
@@ -51,6 +81,7 @@
                 <q-tooltip>Edit</q-tooltip>
               </q-btn>
               
+              <!-- Delete -->
               <q-btn
                 flat dense round
                 icon="delete"
@@ -84,7 +115,10 @@
             </q-item-section>
 
             <q-item-section>
-                <q-item-label>{{ child.label }}</q-item-label>
+                <q-item-label>
+                    {{ child.label }}
+                    <span v-if="child.label_ar" class="text-grey-6 text-caption q-ml-xs">({{ child.label_ar }})</span>
+                </q-item-label>
                 <q-item-label caption class="row items-center q-gutter-x-sm">
                  <span v-if="child.route" class="text-caption text-grey-6">{{ child.route }}</span>
                  <span v-if="child.permission" class="text-caption text-orange-8">
@@ -93,13 +127,49 @@
                 </q-item-label>
             </q-item-section>
 
-            <q-item-section side>
-                <div class="row q-gutter-x-xs opacity-hover-group">
-                <q-badge v-if="!child.is_active" color="red-1" text-color="red-9" label="Inactive" dense />
+            <q-item-section side v-if="!preview">
+                <div class="row q-gutter-x-xs opacity-hover-group items-center">
+                 <!-- Status Toggle (Mini) -->
+                 <q-btn
+                    flat dense round
+                    :icon="child.is_active ? 'visibility' : 'visibility_off'"
+                    :color="child.is_active ? 'grey-5' : 'red-4'"
+                    size="xs"
+                    @click.stop="$emit('toggle', child)"
+                 >
+                    <q-tooltip>{{ child.is_active ? 'Active' : 'Inactive' }} (Click to toggle)</q-tooltip>
+                 </q-btn>
+
                  <!-- Feature Flag Badge -->
                  <q-icon v-if="child.is_feature_flag" name="flag" color="purple" size="xs">
                     <q-tooltip>Feature Flagged</q-tooltip>
                  </q-icon>
+
+                <!-- Open Route Button -->
+                <q-btn
+                    v-if="child.route"
+                    flat dense round
+                    icon="open_in_new"
+                    color="secondary"
+                    size="sm"
+                    class="q-mr-xs"
+                    @click.stop="openRoute(child.route)"
+                >
+                    <q-tooltip>Open Page</q-tooltip>
+                </q-btn>
+
+                <!-- Copy Route Button -->
+                <q-btn
+                    v-if="child.route"
+                    flat dense round
+                    icon="content_copy"
+                    color="primary"
+                    size="sm"
+                    class="q-mr-xs"
+                    @click.stop="copyRoute(child.route)"
+                >
+                    <q-tooltip>Copy Route</q-tooltip>
+                </q-btn>
 
                 <q-btn
                     flat dense round
@@ -126,8 +196,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, toRef } from 'vue';
 import { useSortable } from '@vueuse/integrations/useSortable';
+import { useQuasar } from 'quasar';
 
 const props = defineProps({
   menus: {
@@ -138,11 +209,55 @@ const props = defineProps({
     type: String,
     required: true,
   },
+  preview: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-const emit = defineEmits(['edit', 'delete', 'reorder']);
+const emit = defineEmits(['edit', 'delete', 'reorder', 'toggle']);
+const $q = useQuasar();
+
+const openRoute = (routeName) => {
+    try {
+        if (!routeName) return;
+        // Check if route exists in Ziggy (usually global 'route' function)
+        // @ts-ignore
+        if (typeof route === 'function') {
+            // @ts-ignore
+            if (route().has(routeName)) {
+                 // @ts-ignore
+                 window.open(route(routeName), '_blank');
+                 $q.notify({ type: 'positive', message: 'Opening page in new tab', position: 'bottom-left', timeout: 1000 });
+            } else {
+                 $q.notify({ type: 'warning', message: `Route '${routeName}' not found or requires parameters`, icon: 'link_off' });
+                 console.warn(`Route '${routeName}' not found in Ziggy client-side routes.`);
+            }
+        }
+    } catch (e) {
+        console.error('Error opening route:', e);
+         $q.notify({ type: 'negative', message: 'Error opening link' });
+    }
+}
+
+const copyRoute = async (routeName) => {
+    try {
+        if (!routeName) return;
+        await navigator.clipboard.writeText(routeName);
+        $q.notify({ 
+            type: 'positive', 
+            message: 'Route name copied to clipboard', 
+            icon: 'content_copy',
+            timeout: 1000 
+        });
+    } catch (e) {
+        console.error('Failed to copy route:', e);
+        $q.notify({ type: 'negative', message: 'Failed to copy route' });
+    }
+}
 
 const sortableList = ref(null);
+const preview = toRef(props, 'preview');
 
 const sortedMenus = computed(() => {
   return [...props.menus].sort((a, b) => a.order - b.order);
@@ -150,7 +265,7 @@ const sortedMenus = computed(() => {
 
 // Initialize sortable
 onMounted(() => {
-  if (sortableList.value && sortableList.value.$el) {
+  if (!props.preview && sortableList.value && sortableList.value.$el) {
     useSortable(sortableList.value.$el, sortedMenus.value, {
       animation: 150,
       handle: '.drag-handle',

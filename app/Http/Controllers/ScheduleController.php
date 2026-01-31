@@ -1911,6 +1911,27 @@ class ScheduleController extends Controller
     /**
      * Show read-only teacher schedule (Teacher View)
      */
+    public function showMySchedule()
+    {
+        $user = auth()->user();
+
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        // Ideally, check if user is a teacher or has a linked teacher profile
+        // Assuming user has a 'teacher' relationship or is a teacher
+        // Adjust this based on your User model relationships
+        $teacher = $user->teacher; 
+
+        if (!$teacher) {
+            abort(403, 'You are not associated with a teacher profile.');
+        }
+
+        return $this->showTeacherSchedule($teacher->id, $teacher->slug);
+    }
+
+
     public function showTeacherSchedule($teacherId, $teacherName = null)
     {
         $schoolId = auth()->user()->schoolId();

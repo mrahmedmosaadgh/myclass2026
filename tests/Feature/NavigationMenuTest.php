@@ -99,4 +99,37 @@ class NavigationMenuTest extends TestCase
         $response->assertStatus(200);
         $response->assertJsonPath('data.0.label', fn($label) => !empty($label));
     }
+
+    public function test_admin_can_preview_teacher_menus()
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+        $admin->givePermissionTo('manage-menus');
+
+        // Request preview for teacher role
+        $response = $this->actingAs($admin)
+            ->getJson('/api/navigation?role=teacher&v2=true&preview=1');
+
+        $response->assertStatus(200);
+        $data = $response->json('data');
+        $this->assertNotEmpty($data, 'Preview data is empty');
+
+        // Ensure teacher-specific items are present in preview (e.g., Teacher Portal/My Schedule)
+        $labels = collect($data)->pluck('label');
+        $this->assertTrue($labels->contains('Teacher Portal'), 'Teacher Portal not present in preview');
+        $children = collect($data[0]['children'] ?? [])->pluck('label');
+        $this->assertTrue($children->contains('My Schedule'), 'My Schedule missing in preview');
+    }
+
+    public function test_non_admin_cannot_use_preview()
+    {
+        $user = User::factory()->create();
+        $user->assignRole('teacher');
+        // No manage-menus permission
+
+        $response = $this->actingAs($user)
+            ->getJson('/api/navigation?role=teacher&v2=true&preview=1');
+
+        $response->assertStatus(403);
+    }
 }

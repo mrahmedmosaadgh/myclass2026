@@ -28,6 +28,7 @@ import PrivateChatNotificationListener from '@/Components/PrivateChat/Notificati
 import BreadcrumbsNav from '@/Components/BreadcrumbsNav.vue';
 import GlobalSearch from '@/Components/GlobalSearch.vue';
 import NetworkStatusIndicator from '@/Components/NetworkStatusIndicator.vue';
+import ChatbotWidget from '@/Components/Chatbot/ChatbotWidget.vue';
 
 // Store
 import { useAppStore } from '@/Stores/AppStore';
@@ -204,6 +205,8 @@ const isActiveRoute = (name) => {
       v-if="user"
       :user-id="user.id"
     />
+
+    <ChatbotWidget />
 
 
 

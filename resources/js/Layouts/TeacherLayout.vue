@@ -80,9 +80,41 @@ const safeRoute = (path, params = {}) => {
     if (!hasRoute(path)) return '#';
 
     const mergedParams = { ...currentRouteParams.value, ...params };
+
+    // If Ziggy route metadata is available, check for required parameters
+    // and avoid calling window.route if required params are missing.
+    try {
+      const ziggy = window?.Ziggy;
+      const routeMeta = ziggy?.routes?.[path];
+      if (routeMeta && routeMeta.uri) {
+        const requiredParams = [];
+        const re = /{([^}]+)}/g;
+        let m;
+        while ((m = re.exec(routeMeta.uri)) !== null) {
+          const raw = m[1];
+          const isOptional = raw.endsWith('?');
+          const name = isOptional ? raw.slice(0, -1) : raw;
+          if (!isOptional) requiredParams.push(name);
+        }
+
+        const missing = requiredParams.filter(p => mergedParams[p] === undefined || mergedParams[p] === null);
+        if (missing.length > 0) {
+          return '#';
+        }
+      }
+    } catch (err) {
+      // ignore
+    }
+
     return window.route(path, mergedParams);
   } catch (error) {
-    console.warn(`Route error with ${path}:`, error);
+    const msg = String(error?.message || error);
+    if (msg.includes('Ziggy error') && msg.includes('parameter')) {
+      return '#';
+    }
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn(`Route error with ${path}:`, error);
+    }
     return '#';
   }
 };

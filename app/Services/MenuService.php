@@ -26,11 +26,12 @@ class MenuService
      *
      * @param string|null $role
      * @param bool $isV2
+     * @param bool $includeInactive
      * @return Collection
      */
-    public function getMenus(?string $role = null, bool $isV2 = false): Collection
+    public function getMenus(?string $role = null, bool $isV2 = false, bool $includeInactive = false): Collection
     {
-        $structure = $this->getMenuStructure($role, $isV2);
+        $structure = $this->getMenuStructure($role, $isV2, $includeInactive);
         
         // Filter by user permissions
         return $this->filterByPermissions($structure);
@@ -41,17 +42,18 @@ class MenuService
      *
      * @param string|null $role
      * @param bool $isV2
+     * @param bool $includeInactive
      * @return Collection
      */
-    public function getMenuStructure(?string $role = null, bool $isV2 = false): Collection
+    public function getMenuStructure(?string $role = null, bool $isV2 = false, bool $includeInactive = false): Collection
     {
-        $cacheKey = $this->getCacheKey($role, $isV2);
+        $cacheKey = $this->getCacheKey($role, $isV2, $includeInactive);
 
         // Use tags if supported (e.g. Redis), otherwise standard cache
         $cache = Cache::supportsTags() ? Cache::tags([self::CACHE_TAG]) : Cache::store();
 
-        return $cache->remember($cacheKey, self::CACHE_TTL, function () use ($role, $isV2) {
-            return $this->buildMenuQuery($role, $isV2);
+        return $cache->remember($cacheKey, self::CACHE_TTL, function () use ($role, $isV2, $includeInactive) {
+            return $this->buildMenuQuery($role, $isV2, $includeInactive);
         });
     }
 
@@ -66,26 +68,40 @@ class MenuService
             // Fallback: Clear keys for known roles
             $roles = ['super_admin', 'admin', 'teacher', 'student', 'parent', 'guest'];
             foreach ($roles as $role) {
-                 Cache::forget($this->getCacheKey($role, true)); // V2
-                 Cache::forget($this->getCacheKey($role, false)); // V1
+                 Cache::forget($this->getCacheKey($role, true, false)); // V2
+                 Cache::forget($this->getCacheKey($role, false, false)); // V1
+                 Cache::forget($this->getCacheKey($role, true, true)); // V2 Inactive
+                 Cache::forget($this->getCacheKey($role, false, true)); // V1 Inactive
             }
             // Clear global
-            Cache::forget($this->getCacheKey(null, true));
-            Cache::forget($this->getCacheKey(null, false));
+            Cache::forget($this->getCacheKey(null, true, false));
+            Cache::forget($this->getCacheKey(null, false, false));
+            Cache::forget($this->getCacheKey(null, true, true));
+            Cache::forget($this->getCacheKey(null, false, true));
         }
     }
 
     /**
      * Build the query and structure.
      */
-    protected function buildMenuQuery(?string $role, bool $isV2): Collection
+    protected function buildMenuQuery(?string $role, bool $isV2, bool $includeInactive = false): Collection
     {
         $query = Menu::query()
-            ->where('is_active', true)
+            ->when(!$includeInactive, function($q) {
+                $q->where('is_active', true);
+            })
             ->whereNull('parent_id')
-            ->with(['children' => function ($q) {
-                $q->where('is_active', true)
-                  ->orderBy('order');
+            ->with(['children' => function ($q) use ($role, $isV2, $includeInactive) {
+                $q->when(!$includeInactive, function($sub) {
+                    $sub->where('is_active', true);
+                })->orderBy('order');
+
+                if ($isV2 && $role) {
+                    $q->where(function($sub) use ($role) {
+                        $sub->where('role_specific', $role)
+                            ->orWhereNull('role_specific');
+                    });
+                }
             }])
             ->orderBy('order');
 
@@ -139,10 +155,107 @@ class MenuService
     /**
      * Generate cache key.
      */
-    protected function getCacheKey(?string $role, bool $isV2): string
+    protected function getCacheKey(?string $role, bool $isV2, bool $includeInactive = false): string
     {
         $roleKey = $role ?: 'global';
         $v2Key = $isV2 ? 'v2' : 'v1';
-        return "menus:structure:{$v2Key}:{$roleKey}";
+        $inactiveKey = $includeInactive ? ':all' : ':active';
+        return "menus:structure:{$v2Key}:{$roleKey}{$inactiveKey}";
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Config-Based Menu Methods (New Approach)
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Get menu from config files (Simple approach)
+     * This is an alternative to database-driven menus
+     *
+     * @return array
+     */
+    public function getConfigMenu(): array
+    {
+        $user = Auth::user();
+        
+        if (!$user) {
+            return [];
+        }
+        
+        // Get role from user
+        $role = $this->getUserRole($user);
+        
+        // Load menu items for this role from config
+        $items = config("menus.{$role}", []);
+        
+        // Filter by permission
+        $filtered = $this->filterConfigByPermission($items, $user);
+        
+        // Translate labels based on current locale
+        return $this->translateConfigLabels($filtered);
+    }
+    
+    /**
+     * Get user role for config-based menu
+     */
+    private function getUserRole($user): string
+    {
+        // If you have a role column
+        if (isset($user->role)) {
+            return $user->role;
+        }
+        
+        // If using Spatie permissions, get first role
+        if (method_exists($user, 'getRoleNames')) {
+            $roles = $user->getRoleNames();
+            return $roles->first() ?? 'guest';
+        }
+        
+        // Default fallback
+        return 'guest';
+    }
+    
+    /**
+     * Filter config menu items by permission
+     */
+    private function filterConfigByPermission(array $items, $user): array
+    {
+        return collect($items)->filter(function ($item) use ($user) {
+            // If no permission specified, show it
+            if (!isset($item['permission'])) {
+                // If route specified, check if it exists
+                if (isset($item['route']) && !\Illuminate\Support\Facades\Route::has($item['route'])) {
+                    return false;
+                }
+                return true;
+            }
+            
+            // Check permission using Laravel's Gate
+            try {
+                return $user->can($item['permission']);
+            } catch (\Exception $e) {
+                // If permission check fails, hide the item
+                return false;
+            }
+        })->values()->all();
+    }
+    
+    /**
+     * Translate config menu labels based on current locale
+     */
+    private function translateConfigLabels(array $items): array
+    {
+        $locale = app()->getLocale();
+        
+        return collect($items)->map(function ($item) use ($locale) {
+            if (isset($item['label'][$locale])) {
+                $item['label'] = $item['label'][$locale];
+            } elseif (isset($item['label']['en'])) {
+                $item['label'] = $item['label']['en']; // Fallback to English
+            }
+            
+            return $item;
+        })->all();
     }
 }

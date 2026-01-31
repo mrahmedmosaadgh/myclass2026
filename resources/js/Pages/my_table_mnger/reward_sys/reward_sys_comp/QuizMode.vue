@@ -78,9 +78,24 @@
             </div>
           </div>
 
-          <!-- Timer -->
+             <!-- Timer -->
           <div class="flex items-center gap-2 bg-gray-900/50 p-1.5 sm:p-2 rounded-lg border border-gray-700 ml-auto sm:ml-0">
              
+             <!-- Refresh Button -->
+             <q-btn 
+               round 
+               dense 
+               flat 
+               icon="sync" 
+               color="blue-200" 
+               size="sm" 
+               @click="$emit('refresh-data')"
+             >
+               <q-tooltip>Refresh Student Data</q-tooltip>
+             </q-btn>
+
+             <q-separator vertical color="grey-7" class="mx-1" />
+
              <q-btn-dropdown
                 flat
                 dense
@@ -140,6 +155,17 @@
          <div class="text-sm font-bold truncate flex-grow text-center">{{ quizTitle }}</div>
          
          <div class="flex items-center gap-1 bg-gray-900/50 px-1 py-0.5 rounded border border-gray-700">
+             <!-- Mobile Refresh -->
+             <q-btn 
+               round 
+               dense 
+               flat 
+               icon="sync" 
+               color="blue-200" 
+               size="xs" 
+               @click="$emit('refresh-data')"
+             />
+             
             <q-btn-dropdown
                 flat
                 dense
@@ -382,10 +408,14 @@ const props = defineProps({
   behaviors: {
     type: Array,
     default: () => []
+  },
+  newSession: {
+    type: Object,
+    default: null
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'update-points'])
+const emit = defineEmits(['update:modelValue', 'update-points', 'refresh-data'])
 const $q = useQuasar()
 
 // === State ===
@@ -428,7 +458,23 @@ const saveState = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
 }
 
-onMounted(() => {
+const initSession = () => {
+    // Check if new session triggered
+    if (props.newSession) {
+        console.log('Initializing New Session', props.newSession)
+        quizTitle.value = props.newSession.title || 'Unknown Quiz'
+        finalMark.value = props.newSession.maxMark || 10
+        selectedBehaviorId.value = props.newSession.behaviorId || (props.behaviors.length > 0 ? props.behaviors[0].id : null)
+        
+        // Reset Progress
+        studentMarks.value = {}
+        completedStudentIds.value = []
+        
+        // Save
+        saveState()
+        return
+    }
+
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
         try {
@@ -451,6 +497,25 @@ onMounted(() => {
         if (props.behaviors.length > 0) {
              selectedBehaviorId.value = props.behaviors[0].id
         }
+    }
+}
+
+watch(() => props.modelValue, (val) => {
+    if (val) {
+        initSession()
+    }
+})
+
+// Also watch newSession in case it changes while open (unlikely but safe)
+watch(() => props.newSession, (val) => {
+    if (val && props.modelValue) {
+        initSession()
+    }
+})
+
+onMounted(() => {
+    if (props.modelValue) {
+        initSession()
     }
 })
 

@@ -41,8 +41,10 @@ export const useMenuStore = defineStore('menu', {
     },
 
     actions: {
-        async fetchMenus(role, forceIndex = false) {
-            const roleKey = role ? role.toLowerCase() : 'guest';
+        async fetchMenus(role, forceIndex = false, options = {}) {
+            const preview = options.preview === true;
+            const previewSuffix = preview ? ':preview' : '';
+            const roleKey = role ? role.toLowerCase() + previewSuffix : 'guest' + previewSuffix;
 
             // Check cache validity
             if (!forceIndex && !this.isStale(role) && this.menusByRole[roleKey]) {
@@ -57,7 +59,8 @@ export const useMenuStore = defineStore('menu', {
                 const response = await axios.get('/api/navigation', {
                     params: {
                         role: role,
-                        v2: true
+                        v2: true,
+                        preview: preview ? 1 : undefined
                     }
                 });
 
@@ -97,8 +100,10 @@ export const useMenuStore = defineStore('menu', {
 
             // Recursive function to map API fields to UI fields if different
             const mapMenu = (item) => ({
+                id: item.id,
                 title: item.label,
                 label_ar: item.label_ar,
+                module: item.module,
                 icon: item.icon,
                 to: item.route, // Map 'route' from DB to 'to' for Sidebar
                 permission: item.permission,
