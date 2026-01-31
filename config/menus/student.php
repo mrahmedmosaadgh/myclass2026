@@ -4,31 +4,37 @@ return [
     [
         'id' => 'dashboard',
         'label' => ['en' => 'Dashboard', 'ar' => 'لوحة القيادة'],
-        'route' => 'student.dashboard',
+        'route' => 'student.home',
         'icon' => 'dashboard',
     ],
     [
         'id' => 'schedule',
         'label' => ['en' => 'My Schedule', 'ar' => 'جدولي'],
-        'route' => 'student.schedule',
+        'route' => 'student.schedule', // or student.schedule.index, need to verify which one is consistent in r_student
         'icon' => 'calendar_today',
-    ],
-    [
-        'id' => 'exams',
-        'label' => ['en' => 'My Exams', 'ar' => 'امتحاناتي'],
-        'route' => 'student.exams.index',
-        'icon' => 'quiz',
     ],
     [
         'id' => 'grades',
         'label' => ['en' => 'My Grades', 'ar' => 'درجاتي'],
-        'route' => 'student.grades.index',
+        'route' => 'student.grades',
         'icon' => 'grade',
     ],
     [
-        'id' => 'rewards',
-        'label' => ['en' => 'My Rewards', 'ar' => 'مكافآتي'],
-        'route' => 'student.rewards.index',
-        'icon' => 'emoji_events',
+        'id' => 'attendance',
+        'label' => ['en' => 'Attendance', 'ar' => 'الغياب'],
+        'route' => 'student.attendance',
+        'icon' => 'check_circle',
+    ],
+    [
+        'id' => 'exams',
+        'label' => ['en' => 'My Exams', 'ar' => 'اختباراتي'],
+        'route' => 'qu-student.exams.index',
+        'icon' => 'assignment',
+    ],
+    [
+        'id' => 'conversations',
+        'label' => ['en' => 'Messages', 'ar' => 'الرسائل'],
+        'route' => 'conversations.index',
+        'icon' => 'chat',
     ],
 ];

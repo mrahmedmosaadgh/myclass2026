@@ -4,25 +4,14 @@ return [
     [
         'id' => 'dashboard',
         'label' => ['en' => 'Dashboard', 'ar' => 'لوحة القيادة'],
-        'route' => 'parent.dashboard',
+        'route' => 'v2.parent.dashboard',
         'icon' => 'dashboard',
     ],
+    // Add more parent routes as they become available/discovered
     [
-        'id' => 'children',
-        'label' => ['en' => 'My Children', 'ar' => 'أبنائي'],
-        'route' => 'parent.children.index',
-        'icon' => 'family_restroom',
-    ],
-    [
-        'id' => 'attendance',
-        'label' => ['en' => 'Attendance', 'ar' => 'الحضور'],
-        'route' => 'parent.attendance.index',
-        'icon' => 'check_circle',
-    ],
-    [
-        'id' => 'grades',
-        'label' => ['en' => 'Grades', 'ar' => 'الدرجات'],
-        'route' => 'parent.grades.index',
-        'icon' => 'grade',
+        'id' => 'conversations',
+        'label' => ['en' => 'Messages', 'ar' => 'الرسائل'],
+        'route' => 'conversations.index',
+        'icon' => 'chat',
     ],
 ];

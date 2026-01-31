@@ -173,9 +173,10 @@ class MenuService
      * Get menu from config files (Simple approach)
      * This is an alternative to database-driven menus
      *
+     * @param string|null $requestedRole
      * @return array
      */
-    public function getConfigMenu(): array
+    public function getConfigMenu(?string $requestedRole = null): array
     {
         $user = Auth::user();
         
@@ -183,22 +184,44 @@ class MenuService
             return [];
         }
         
-        // Get role from user
+        // Default to user's actual role
         $role = $this->getUserRole($user);
+        
+        \Illuminate\Support\Facades\Log::info('Menu Request:', [
+            'user_id' => $user->id,
+            'actual_role' => $role,
+            'requested_role' => $requestedRole,
+            'is_admin' => ($role === 'admin'),
+            'has_super_admin' => $user->hasRole('super_admin') // Verify usage
+        ]);
+
+        // If a specific role is requested, checks if user is allowed to view it
+        // (Admins and Super Admins can view any role's menu)
+        if ($requestedRole && (
+            $role === 'admin' || 
+            $role === 'super_admin' || 
+            $user->hasRole('super_admin') || 
+            $user->hasRole('admin') // Fix: Also allow standard admins
+        )) {
+            $role = $requestedRole;
+            \Illuminate\Support\Facades\Log::info('Role Override Applied: ' . $role);
+        } else {
+             \Illuminate\Support\Facades\Log::info('Role Override Denied or Not Requested');
+        }
         
         // Load menu items for this role from config
         $items = config("menus.{$role}", []);
         
         // Filter by permission
+        // Note: When previewing another role, strictly we might want to skip permission checks 
+        // to show what *that* role sees, or check if the *viewing user* has permissions.
+        // For simplicity, if previewing, we often just show the raw menu or assume they have access.
+        // But let's keep permission check for now - admins usually have all permissions anyway.
         $filtered = $this->filterConfigByPermission($items, $user);
         
         // Translate labels based on current locale
         return $this->translateConfigLabels($filtered);
     }
-    
-    /**
-     * Get user role for config-based menu
-     */
     private function getUserRole($user): string
     {
         // If you have a role column
@@ -249,10 +272,16 @@ class MenuService
         $locale = app()->getLocale();
         
         return collect($items)->map(function ($item) use ($locale) {
+            // Translate current item
             if (isset($item['label'][$locale])) {
                 $item['label'] = $item['label'][$locale];
             } elseif (isset($item['label']['en'])) {
                 $item['label'] = $item['label']['en']; // Fallback to English
+            }
+            
+            // Recursively translate children if they exist
+            if (isset($item['children']) && is_array($item['children'])) {
+                $item['children'] = $this->translateConfigLabels($item['children']);
             }
             
             return $item;

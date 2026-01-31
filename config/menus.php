@@ -49,6 +49,6 @@ return [
     'student' => require __DIR__ . '/menus/student.php',
 
     'admin' => require __DIR__ . '/menus/admin.php',
-
+    'super_admin' => require __DIR__ . '/menus/admin.php',
     'parent' => require __DIR__ . '/menus/parent.php',
 ];

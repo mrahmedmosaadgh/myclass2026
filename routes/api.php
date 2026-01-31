@@ -314,9 +314,11 @@ Route::middleware(['auth:sanctum', 'web'])->group(function () {
 Route::middleware(['auth:sanctum', 'web'])->get('/navigation', [NavigationController::class, 'index']);
 
 // Config-Based Menu API (New Simple Approach)
-Route::middleware(['auth:sanctum', 'web'])->get('/menu', function () {
+// Config-Based Menu API (New Simple Approach)
+Route::middleware(['auth:sanctum', 'web'])->get('/menu', function (\Illuminate\Http\Request $request) {
     $menuService = app(\App\Services\MenuService::class);
-    return response()->json($menuService->getConfigMenu());
+    // Allow role override via ?role=student if admin
+    return response()->json($menuService->getConfigMenu($request->input('role')));
 });
 
 

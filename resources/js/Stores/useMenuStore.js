@@ -66,10 +66,10 @@ export const useMenuStore = defineStore('menu', {
             try {
                 // Determine if we should use the new config-based API
                 // For now, we switch everyone to the new system
-                // The new system uses Auth user role, so 'role' param is less critical 
-                // but kept for compatibility logic helper if needed in future
-
-                const response = await axios.get('/api/menu');
+                // We pass the role query param so admins can view other roles
+                const response = await axios.get('/api/menu', {
+                    params: { role: role }
+                });
 
                 // The new API returns the menu directly as an array
                 const data = response.data;

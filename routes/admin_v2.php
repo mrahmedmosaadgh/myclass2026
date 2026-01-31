@@ -45,7 +45,7 @@ Route::prefix('v2/super-system')
 
 // 2. SystemAdmin (Platform Management)
 Route::prefix('v2/system-admin')
-    ->middleware(['auth', 'role:SystemAdmin'])
+    ->middleware(['auth', 'role:admin|SystemAdmin|super_admin'])
     ->name('v2.system-admin.')
     ->group(function () {
         Route::get('/dashboard', function() { return 'SystemAdmin Dashboard'; })->name('dashboard');

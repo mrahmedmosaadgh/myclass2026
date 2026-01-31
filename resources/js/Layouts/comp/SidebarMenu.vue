@@ -134,7 +134,8 @@ watch(selectedRole, (newRole) => {
 
 async function fetchMenusForRole(role, force = false) {
     expandedMenus.value.clear();
-    await menuStore.fetchMenus(role, force);
+    // FORCE UPDATE: Always pass true to ensure we hit the API with the new role param
+    await menuStore.fetchMenus(role, true); 
 }
 
 // Check if user can switch roles
