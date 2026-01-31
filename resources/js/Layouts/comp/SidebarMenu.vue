@@ -294,6 +294,29 @@ const safeRoute = (path, params = {}) => {
   }
 };
 
+// Helper to check if a menu item is active
+const isItemActive = (item) => {
+  if (!item || !item.to) return false;
+
+  // 1. If it's a named route
+  if (hasRoute(item.to)) {
+    try {
+      // Check exact match or if it's a parent resource (e.g., 'teachers.index' matches 'teachers.*')
+      // simple check: route().current(item.to)
+      return route().current(item.to);
+    } catch (e) {
+      return false;
+    }
+  }
+  
+  // 2. Fallback: Path comparison (if item.to is a URL path like '/dashboard')
+  if (typeof item.to === 'string' && item.to.startsWith('/')) {
+    return usePage().url === item.to || usePage().url.startsWith(item.to + '/');
+  }
+
+  return false;
+};
+
 // Helper function to get a default icon if none is provided
 const getDefaultIcon = (icon) => {
   if (!icon || typeof icon !== 'string') {
@@ -493,9 +516,10 @@ const getDefaultIcon = (icon) => {
                   :label="getLocalizedTitle(item)"
                   :caption="item.inactive ? 'Inactive' : ''"
                   :disable="item.inactive"
-                  :default-opened="expandedMenus.has(index) || !!searchTerm"
+                  :default-opened="expandedMenus.has(index) || !!searchTerm || item.children.some(child => isItemActive(child))"
                   @update:model-value="(val) => val ? expandedMenus.add(index) : expandedMenus.delete(index)"
                   expand-separator
+                  :header-class="{ 'text-primary bg-blue-50': item.children.some(child => isItemActive(child)) }"
                 >
                   <q-list class="q-pl-md">
                     <!-- Active child items -->
@@ -509,6 +533,8 @@ const getDefaultIcon = (icon) => {
                           clickable
                           v-ripple
                           tag="div"
+                          :active="isItemActive(childItem)"
+                          active-class="text-primary bg-blue-100"
                         >
                           <q-item-section avatar>
                             <q-icon :name="getDefaultIcon(childItem.icon)" />
@@ -554,6 +580,8 @@ const getDefaultIcon = (icon) => {
                   clickable
                   v-ripple
                   tag="div"
+                  :active="isItemActive(item)"
+                  active-class="text-primary bg-blue-100"
                 >
                   <q-item-section avatar>
                     <q-icon :name="getDefaultIcon(item.icon)" />

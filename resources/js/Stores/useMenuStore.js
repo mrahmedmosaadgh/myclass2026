@@ -42,35 +42,43 @@ export const useMenuStore = defineStore('menu', {
 
     actions: {
         async fetchMenus(role, forceIndex = false, options = {}) {
-            const preview = options.preview === true;
-            const previewSuffix = preview ? ':preview' : '';
-            const roleKey = role ? role.toLowerCase() + previewSuffix : 'guest' + previewSuffix;
+            // New Config-Based Implementation
+            const roleKey = role ? role.toLowerCase() : 'guest';
 
-            // Check cache validity
-            if (!forceIndex && !this.isStale(role) && this.menusByRole[roleKey]) {
-                return this.getMenusForRole(role); // Use getter to enforce integrity check
+            // Check cache validity (simple in-memory check) & Version Check
+            // We force a refresh if the version is NOT 'config-v1' (legacy cache)
+            const cachedEntry = this.menusByRole[roleKey];
+            const isLegacy = cachedEntry && cachedEntry.version !== 'config-v1';
+
+            if (!forceIndex && !this.isStale(role) && cachedEntry && !isLegacy) {
+                return this.getMenusForRole(role);
+            }
+
+            // Explicitly clear legacy cache if found
+            if (isLegacy) {
+                console.log('Detecting legacy menu cache. Clearing...');
+                delete this.menusByRole[roleKey];
             }
 
             this.loading = true;
             this.error = null;
 
             try {
-                // We use v2=true as per our new backend spec
-                const response = await axios.get('/api/navigation', {
-                    params: {
-                        role: role,
-                        v2: true,
-                        preview: preview ? 1 : undefined
-                    }
-                });
+                // Determine if we should use the new config-based API
+                // For now, we switch everyone to the new system
+                // The new system uses Auth user role, so 'role' param is less critical 
+                // but kept for compatibility logic helper if needed in future
 
-                const { data, version } = response.data;
+                const response = await axios.get('/api/menu');
+
+                // The new API returns the menu directly as an array
+                const data = response.data;
                 const transformedData = this.transformMenus(data);
 
-                // Update state with integrity hash
+                // Update state
                 this.menusByRole[roleKey] = {
                     data: transformedData,
-                    version: version,
+                    version: 'config-v1', // Config-based doesn't have DB version hash yet
                     timestamp: Date.now(),
                     integrity: simpleHash(JSON.stringify(transformedData))
                 };
@@ -82,35 +90,30 @@ export const useMenuStore = defineStore('menu', {
                 console.error('Failed to fetch menus:', error);
                 this.error = 'Failed to load menu structure';
 
-                // If offline or network error, we rely on persistence (state remains unchanged)
                 if (!window.navigator.onLine) {
                     this.offline = true;
                 }
 
-                // Return stale data if available as fallback (via getter for integrity)
                 return this.getMenusForRole(role);
             } finally {
                 this.loading = false;
             }
         },
 
-        // Helper to transform API data to component expectations if needed
+        // Helper to transform API data to component expectations
         transformMenus(apiMenus) {
             if (!Array.isArray(apiMenus)) return [];
 
-            // Recursive function to map API fields to UI fields if different
             const mapMenu = (item) => ({
                 id: item.id,
-                title: item.label,
-                label_ar: item.label_ar,
-                module: item.module,
-                icon: item.icon,
-                to: item.route, // Map 'route' from DB to 'to' for Sidebar
+                title: item.label, // New API returns translated label directly
+                label_ar: item.label, // Fallback for sidebar logic (it checks label_ar) 
+                icon: item.icon || 'help_outline',
+                to: item.route || '#',
                 permission: item.permission,
                 children: item.children ? item.children.map(mapMenu) : [],
-                inactive: !item.is_active,
-                // Add tooltip or badges from meta if needed
-                tooltip: item.meta?.tooltip || item.label
+                inactive: false, // Config menus are always active by default
+                tooltip: item.label
             });
 
             return apiMenus.map(mapMenu);

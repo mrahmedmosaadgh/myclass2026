@@ -466,7 +466,7 @@ class TeacherController extends Controller
 
     public function classes()
     {
-        return Inertia::render('Teacher/Classes');
+        return Inertia::render('Teacher/Dashboard/Classrooms');
     }
 
     public function attendance()

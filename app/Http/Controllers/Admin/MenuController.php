@@ -24,25 +24,43 @@ class MenuController extends Controller
     /**
      * Display menu management page
      */
+    /**
+     * Display menu management page (Developer Mode)
+     */
     public function index()
     {
-        // ... (keep existing index code) ...
-        $menus = Menu::with('children')
-            ->whereNull('parent_id')
-            ->orderBy('module')
-            ->orderBy('order')
-            ->get();
+        // 1. Restrict to Developer (ID 1 or Super Admin)
+        if (auth()->id() !== 1 && !auth()->user()->hasRole('super_admin')) {
+            abort(403, 'This page is only for developers.');
+        }
 
-        $modules = config('menus.modules');
+        // 2. Read Config Files
+        $roles = ['teacher', 'student', 'admin', 'parent'];
+        $configs = [];
+        
+        foreach ($roles as $role) {
+            $path = config_path("menus/{$role}.php");
+            if (file_exists($path)) {
+                $configs[$role] = file_get_contents($path);
+            } else {
+                $configs[$role] = "<?php\n\nreturn [];";
+            }
+        }
 
-        $roles = Role::with('permissions')
-            ->where('name', '!=', 'super_admin')
-            ->get(['id', 'name']);
+        // 3. Get Routes Categorized by Role
+        $routes = collect(Route::getRoutes())->map(function ($route) {
+            return [
+                'name' => $route->getName(),
+                'uri' => $route->uri(),
+                'methods' => $route->methods(),
+            ];
+        })->filter(function ($route) {
+            return !is_null($route['name']);
+        })->values();
 
         return Inertia::render('Admin/MenuManagement', [
-            'menus' => $menus,
-            'modules' => $modules,
-            'roles' => $roles,
+            'configs' => $configs,
+            'allRoutes' => $routes,
         ]);
     }
 
