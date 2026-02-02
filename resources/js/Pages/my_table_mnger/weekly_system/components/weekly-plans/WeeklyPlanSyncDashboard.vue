@@ -244,16 +244,16 @@ const previewColumns = computed(() => [
 
 // Fetch analysis
 const fetchAnalysis = async () => {
-  if (!store.selectedCopyId) return
+  if (!store.selectedAcademicYearId) return
 
   loading.value = true
   try {
     const response = await axios.get('/weekly-system/api/sync-analysis', {
       params: {
-        copy_id: store.selectedCopyId,
         week_number: store.weekNumber,
         academic_year_id: store.selectedAcademicYearId,
-        semester_number: store.semesterNumber
+        semester_number: store.semesterNumber,
+        school_id: store.selectedSchoolId
       }
     })
     
@@ -375,7 +375,7 @@ const confirmSync = async () => {
 }
 
 // Watch for store changes
-watch(() => [store.selectedCopyId, store.weekNumber, store.semesterNumber], () => {
+watch(() => [store.weekNumber, store.semesterNumber, store.selectedAcademicYearId], () => {
   fetchAnalysis()
 }, { deep: true })
 

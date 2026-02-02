@@ -69,14 +69,6 @@ class WeeklySystemController extends Controller
         ]);
  
         try {
-            // Updated to pass IDs directly to service instead of ScheduleCopy object
-            $result = $this->weeklyPlanService->generateForWeek(
-                $request->school_id,
-                $request->academic_year_id,
-                $request->week_number,
-                $request->semester_number
-            );
-
             return response()->json([
                 'success' => true,
                 'created' => $result['created'],
@@ -834,11 +826,20 @@ class WeeklySystemController extends Controller
         // Assuming Admin or authorized teacher manager.
         // For now, allow auth users (middleware takes care of auth).
 
-        $result = $this->weeklyPlanService->syncWeek(
-             $request->academic_year_id,
-             $request->semester_number,
-             $request->week_number
-        );
+        try {
+            // Updated to pass IDs directly to service instead of ScheduleCopy object
+            $result = $this->weeklyPlanService->generateForWeek(
+                $request->school_id,
+                $request->academic_year_id,
+                $request->week_number,
+                $request->semester_number
+            );
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error generating weekly plans: ' . $e->getMessage()
+            ], 500);
+        }
 
         return response()->json([
              'success' => true,
@@ -876,7 +877,6 @@ class WeeklySystemController extends Controller
             // ->where('copy_id', $copyId) // Removed
             ->whereNotNull('day_number')
             ->whereNotNull('period_number')
-            ->where('active', true)
             ->orderBy('day_number')
             ->orderBy('period_number')
             ->get();
@@ -987,47 +987,22 @@ class WeeklySystemController extends Controller
         $request->validate([
             'schedule_ids' => 'required|array',
             'schedule_ids.*' => 'integer|exists:schedules,id',
-            'week_number' => 'required|integer|min:1',
-            'academic_year_id' => 'required|integer|exists:academic_years,id',
-            'semester_number' => 'required|integer|min:1|max:2'
+            'week_number' => 'required|integer',
+            'academic_year_id' => 'required|integer',
+            'semester_number' => 'required|integer',
         ]);
 
-        $createdCount = 0;
-        $skippedCount = 0;
-
-        $schedules = Schedule::whereIn('id', $request->schedule_ids)->get();
-
-        foreach ($schedules as $schedule) {
-            $exists = WeeklyPlan::where('schedule_id', $schedule->id)
-                ->where('week_number', $request->week_number)
-                ->where('academic_year_id', $request->academic_year_id)
-                ->where('semester_number', $request->semester_number)
-                ->exists();
-
-            if (!$exists) {
-                WeeklyPlan::create([
-                    'schedule_id' => $schedule->id,
-                    // 'copy_id' => $schedule->copy_id, // Removed
-                    'week_number' => $request->week_number,
-                    'academic_year_id' => $request->academic_year_id,
-                    'semester_number' => $request->semester_number,
-                    'cw' => '',
-                    'hw' => '',
-                    'notes' => ''
-                ]);
-                $createdCount++;
-            } else {
-                $skippedCount++;
-            }
-        }
+        $count = $this->weeklyPlanService->batchCreatePlans(
+            $request->schedule_ids,
+            $request->week_number,
+            $request->academic_year_id,
+            $request->semester_number
+        );
 
         return response()->json([
             'success' => true,
-            'message' => "Successfully created {$createdCount} plans ({$skippedCount} already existed)",
-            'data' => [
-                'created' => $createdCount,
-                'skipped' => $skippedCount
-            ]
+            'created_count' => $count,
+            'message' => "Successfully created {$count} weekly plans"
         ]);
     }
 }

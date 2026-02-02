@@ -30,7 +30,7 @@ const store = useWeeklyPlansStore()
 
 onMounted(() => {
     store.calculateCurrentWeek()
-    // No need to fetch copies, MainSchoolData handles school/copy context
+    // No need to fetch copies, MainSchoolData handles school context
 })
 </script>
 

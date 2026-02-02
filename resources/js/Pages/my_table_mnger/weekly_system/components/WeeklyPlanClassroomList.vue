@@ -28,19 +28,27 @@
           row-key="id"
           dense
           class="classroom-table"
-          @row-click="(evt, row) => $emit('edit', row.data)"
+          :pagination="{ rowsPerPage: 0 }"
+          @row-click="(evt, row) => $emit('edit', row)"
         >
           <!-- Day Column -->
           <template #body-cell-day="props">
             <q-td :props="props">
-              <strong>{{ days[props.row.data.schedule?.day] || 'N/A' }}</strong>
+              <strong v-if="props.row">
+                {{ getDayName(props.row) }}
+              </strong>
+              <span v-else class="text-grey-5">N/A</span>
             </q-td>
           </template>
 
           <!-- Period Column -->
           <template #body-cell-period="props">
             <q-td :props="props" class="text-center">
-              <q-badge :label="`P${props.row.data.schedule?.period_number}`" />
+              <q-badge 
+                v-if="props.row && props.row.schedule"
+                :label="`P${props.row.schedule?.period_number || props.row.period_order || ''}`" 
+              />
+              <span v-else class="text-grey-5">-</span>
             </q-td>
           </template>
 
@@ -48,28 +56,34 @@
           <template #body-cell-subject="props">
             <q-td :props="props">
               <span 
+                v-if="props.row && props.row.schedule"
                 class="subject-badge"
                 :style="{ 
-                  backgroundColor: props.row.data.schedule?.cst?.c_bg,
-                  color: props.row.data.schedule?.cst?.c_text
+                  backgroundColor: props.row.schedule?.cst?.color_custom || '#grey',
+                  color: props.row.schedule?.cst?.color_custom_text || '#000'
                 }"
               >
-                {{ props.row.data.schedule?.cst?.subject_name }}
+                {{ props.row.schedule?.cst?.subject_name || 'No Subject' }}
               </span>
+              <span v-else class="text-grey-5">No data</span>
             </q-td>
           </template>
 
           <!-- Status Column -->
           <template #body-cell-status="props">
             <q-td :props="props">
-              <StatusBadge :status="props.row.data.status" />
+              <StatusBadge 
+                v-if="props.row" 
+                :status="props.row.status || 'empty'" 
+              />
+              <span v-else class="text-grey-5">-</span>
             </q-td>
           </template>
 
           <!-- Classwork Column -->
           <template #body-cell-cw="props">
             <q-td :props="props" class="content-preview" @click.stop>
-              <div v-if="inlineEditMode" class="inline-edit-cell-vertical">
+              <div v-if="inlineEditMode && props.row" class="inline-edit-cell-vertical">
                 <div class="editor-header">
                   <q-icon name="school" size="xs" color="blue" />
                   <span class="text-caption text-weight-medium q-ml-xs">{{ t('weeklyPlans.classwork') }}</span>
@@ -80,23 +94,24 @@
                     flat
                     dense
                     color="primary"
-                    @click="pasteField(props.row.data, 'cw')"
+                    @click="pasteField(props.row, 'cw')"
                   >
                     <q-tooltip>{{ t('weeklyPlans.teacher.pasteCw') }}</q-tooltip>
                   </q-btn>
                 </div>
                 <q-editor
-                  v-model="props.row.data.cw"
+                  v-model="editingContent[props.row.id].cw"
                   min-height="5rem"
                   :toolbar="editorToolbar"
-                  @blur="savePlan(props.row.data)"
+                  @update:model-value="(val) => updateContent(props.row.id, 'cw', val)"
+                  @blur="savePlan(props.row)"
                   class="inline-editor"
                 />
               </div>
               <div v-else>
-                <div v-if="props.row.data.cw" class="text-info html-content">
+                <div v-if="props.row?.cw" class="text-info html-content">
                   <q-icon name="school" size="xs" /> 
-                  <span class="q-ml-xs" v-html="truncateHtml(props.row.data.cw, 50)"></span>
+                  <span class="q-ml-xs" v-html="truncateHtml(props.row.cw, 50)"></span>
                 </div>
                 <span v-else class="text-grey-5">-</span>
               </div>
@@ -106,7 +121,7 @@
           <!-- Homework Column -->
           <template #body-cell-hw="props">
             <q-td :props="props" class="content-preview" @click.stop>
-              <div v-if="inlineEditMode" class="inline-edit-cell-vertical">
+              <div v-if="inlineEditMode && props.row" class="inline-edit-cell-vertical">
                 <div class="editor-header">
                   <q-icon name="home_work" size="xs" color="orange" />
                   <span class="text-caption text-weight-medium q-ml-xs">{{ t('weeklyPlans.homework') }}</span>
@@ -117,23 +132,24 @@
                     flat
                     dense
                     color="primary"
-                    @click="pasteField(props.row.data, 'hw')"
+                    @click="pasteField(props.row, 'hw')"
                   >
                     <q-tooltip>{{ t('weeklyPlans.teacher.pasteHw') }}</q-tooltip>
                   </q-btn>
                 </div>
                 <q-editor
-                  v-model="props.row.data.hw"
+                  v-model="editingContent[props.row.id].hw"
                   min-height="5rem"
                   :toolbar="editorToolbar"
-                  @blur="savePlan(props.row.data)"
+                  @update:model-value="(val) => updateContent(props.row.id, 'hw', val)"
+                  @blur="savePlan(props.row)"
                   class="inline-editor"
                 />
               </div>
               <div v-else>
-                <div v-if="props.row.data.hw" class="text-warning html-content">
+                <div v-if="props.row?.hw" class="text-warning html-content">
                   <q-icon name="home_work" size="xs" /> 
-                  <span class="q-ml-xs" v-html="truncateHtml(props.row.data.hw, 50)"></span>
+                  <span class="q-ml-xs" v-html="truncateHtml(props.row.hw, 50)"></span>
                 </div>
                 <span v-else class="text-grey-5">-</span>
               </div>
@@ -143,7 +159,7 @@
           <!-- Notes Column -->
           <template #body-cell-notes="props">
             <q-td :props="props" class="content-preview" @click.stop>
-              <div v-if="inlineEditMode" class="inline-edit-cell-vertical">
+              <div v-if="inlineEditMode && props.row" class="inline-edit-cell-vertical">
                 <div class="editor-header">
                   <q-icon name="note" size="xs" color="grey" />
                   <span class="text-caption text-weight-medium q-ml-xs">{{ t('weeklyPlans.notes') }}</span>
@@ -154,21 +170,22 @@
                     flat
                     dense
                     color="primary"
-                    @click="pasteField(props.row.data, 'notes')"
+                    @click="pasteField(props.row, 'notes')"
                   >
                     <q-tooltip>{{ t('weeklyPlans.teacher.pasteNotes') }}</q-tooltip>
                   </q-btn>
                 </div>
                 <q-editor
-                  v-model="props.row.data.notes"
+                  v-model="editingContent[props.row.id].notes"
                   min-height="5rem"
                   :toolbar="editorToolbar"
-                  @blur="savePlan(props.row.data)"
+                  @update:model-value="(val) => updateContent(props.row.id, 'notes', val)"
+                  @blur="savePlan(props.row)"
                   class="inline-editor"
                 />
               </div>
               <div v-else>
-                <span v-if="props.row.data.notes" class="text-info html-content" v-html="truncateHtml(props.row.data.notes, 40)">
+                <span v-if="props.row?.notes" class="text-info html-content" v-html="truncateHtml(props.row.notes, 40)">
                 </span>
                 <span v-else class="text-grey-5">-</span>
               </div>
@@ -237,12 +254,14 @@
                 <tr v-for="plan in dayGroup.plans" :key="plan.id">
                   <!-- Period Number -->
                   <td class="period-cell">
-                    <div class="period-badge">{{ plan.schedule?.period_number }}</div>
+                    <div class="period-badge">
+                      {{ plan.schedule?.period_number || `P${plan.period_order || ''}` || '-' }}
+                    </div>
                   </td>
                   
                   <!-- Subject -->
                   <td class="subject-cell">
-                    <div class="subject-text">{{ plan.schedule?.cst?.subject_name }}</div>
+                    <div class="subject-text">{{ plan.schedule?.cst?.subject_name || t('weeklyPlans.unknown') }}</div>
                   </td>
                   
                   <!-- Classwork Column -->
@@ -287,7 +306,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import StatusBadge from './shared/StatusBadge.vue'
 
@@ -325,6 +344,9 @@ const emit = defineEmits(['edit', 'save', 'paste'])
 
 const showMobilePrint = ref(false)
 
+// Reactive editing content to handle v-model properly
+const editingContent = ref({})
+
 // Editor Config
 const editorToolbar = [
   ['bold', 'italic', 'underline'],
@@ -345,18 +367,20 @@ const classroomPlans = computed(() => {
         plans: []
       }
     }
-    byClassroom[classroomName].plans.push({
-      id: plan.id,
-      data: plan
-    })
+    byClassroom[classroomName].plans.push(plan)
   })
 
   // Sort plans within each classroom by day and period
   Object.values(byClassroom).forEach(classroom => {
     classroom.plans.sort((a, b) => {
-      const dayDiff = (a.data.schedule?.day || 0) - (b.data.schedule?.day || 0)
+      const dayA = a.schedule?.day || a.day_number || 0
+      const dayB = b.schedule?.day || b.day_number || 0
+      const dayDiff = dayA - dayB
       if (dayDiff !== 0) return dayDiff
-      return (a.data.schedule?.period_number || 0) - (b.data.schedule?.period_number || 0)
+      
+      const periodA = a.schedule?.period_number || a.period_order || 0
+      const periodB = b.schedule?.period_number || b.period_order || 0
+      return periodA - periodB
     })
   })
 
@@ -367,11 +391,16 @@ const mobilePlansByDay = computed(() => {
   const byDay = {}
   
   props.plans.forEach(plan => {
-    const dayNum = plan.schedule?.day
+    const dayNum = plan.schedule?.day || plan.day_number
+    // Skip plans with invalid day numbers
+    if (!dayNum || dayNum < 1 || dayNum > 7) {
+      return
+    }
+    
     if (!byDay[dayNum]) {
       byDay[dayNum] = {
         dayNumber: dayNum,
-        dayName: props.days[dayNum] || t(`weeklyPlans.fullDays.${dayNum}`) || `Day ${dayNum}`,
+        dayName: getDayName(plan),
         plans: []
       }
     }
@@ -380,20 +409,35 @@ const mobilePlansByDay = computed(() => {
 
   // Sort plans within each day by period
   Object.values(byDay).forEach(day => {
-    day.plans.sort((a, b) => (a.schedule?.period_number || 0) - (b.schedule?.period_number || 0))
+    day.plans.sort((a, b) => {
+      const periodA = a.schedule?.period_number || a.period_order || 0
+      const periodB = b.schedule?.period_number || b.period_order || 0
+      return periodA - periodB
+    })
   })
 
   return Object.values(byDay).sort((a, b) => a.dayNumber - b.dayNumber)
 })
 
 const tableColumns = computed(() => [
-  { name: 'day', label: t('weeklyPlans.day'), field: row => props.days[row.data.schedule?.day] || t(`weeklyPlans.fullDays.${row.data.schedule?.day}`) || 'N/A', align: 'left' },
-  { name: 'period', label: t('weeklyPlans.period'), field: row => row.data.schedule?.period_number, align: 'center' },
-  { name: 'subject', label: t('weeklyPlans.subject'), field: row => row.data.schedule?.cst?.subject_name, align: 'left' },
-  { name: 'status', label: t('weeklyPlans.status'), field: row => row.data.status, align: 'left' },
-  { name: 'cw', label: t('weeklyPlans.classwork'), field: row => row.data.cw, align: 'left' },
-  { name: 'hw', label: t('weeklyPlans.homework'), field: row => row.data.hw, align: 'left' },
-  { name: 'notes', label: t('weeklyPlans.notes'), field: row => row.data.notes, align: 'left' }
+  { 
+    name: 'day', 
+    label: t('weeklyPlans.day'), 
+    field: row => getDayName(row), 
+    align: 'left'
+  },
+  { 
+    name: 'period', 
+    label: t('weeklyPlans.period'), 
+    field: 'schedule.period_number', 
+    align: 'center', 
+    format: val => `P${val || ''}` 
+  },
+  { name: 'subject', label: t('weeklyPlans.subject'), field: 'schedule.cst.subject_name', align: 'left' },
+  { name: 'status', label: t('weeklyPlans.status'), field: 'status', align: 'center' },
+  { name: 'cw', label: t('weeklyPlans.classwork'), field: 'cw', align: 'left' },
+  { name: 'hw', label: t('weeklyPlans.homework'), field: 'hw', align: 'left' },
+  { name: 'notes', label: t('weeklyPlans.notes'), field: 'notes', align: 'left' }
 ])
 
 // Methods
@@ -450,6 +494,35 @@ const pasteField = (plan, field) => {
   }
 }
 
+const getDayName = (plan) => {
+  const dayNum = plan.schedule?.day || plan.day_number
+  if (!dayNum || dayNum < 1 || dayNum > 7) {
+    return t('weeklyPlans.fullDays.undefined')
+  }
+  return t(`weeklyPlans.fullDays.${dayNum}`)
+}
+
+const updateContent = (planId, field, value) => {
+  if (!editingContent.value[planId]) {
+    editingContent.value[planId] = { cw: '', hw: '', notes: '' }
+  }
+  editingContent.value[planId][field] = value
+  
+  // Also update the original plan data
+  const plan = findPlanById(planId)
+  if (plan) {
+    plan[field] = value
+  }
+}
+
+const findPlanById = (planId) => {
+  for (const classroom of classroomPlans.value) {
+    const plan = classroom.plans.find(p => p.id === planId)
+    if (plan) return plan
+  }
+  return null
+}
+
 const truncateHtml = (html, length) => {
   if (!html) return ''
   // Strip HTML tags for length calculation
@@ -460,6 +533,19 @@ const truncateHtml = (html, length) => {
   const truncated = stripped.substring(0, length)
   return truncated + '...'
 }
+
+// Initialize editing content when plans change
+watch(() => props.plans, (newPlans) => {
+  const newEditingContent = {}
+  newPlans.forEach(plan => {
+    newEditingContent[plan.id] = {
+      cw: plan.cw || '',
+      hw: plan.hw || '',
+      notes: plan.notes || ''
+    }
+  })
+  editingContent.value = newEditingContent
+}, { immediate: true, deep: true })
 
 // Expose openMobilePrint and downloadPDF for parent to call
 defineExpose({

@@ -43,8 +43,7 @@
         <!-- TAB 1: GENERATE & SYNC -->
         <q-tab-panel name="sync" class="q-pa-md">
           <WeeklyPlanSyncDashboard 
-            v-if="store.selectedCopyId && store.selectedAcademicYearId"
-            :copy-id="store.selectedCopyId" 
+            v-if="store.selectedAcademicYearId"
             :week-number="store.weekNumber"
             :academic-year-id="store.selectedAcademicYearId"
             :semester-number="store.semesterNumber"

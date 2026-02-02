@@ -208,7 +208,7 @@ const $q = useQuasar()
 const classrooms = ref([])
 const selectedClassrooms = ref([])
 const selectedDays = ref([])
-// Store manages: selectedCopyId, weekNumber, semesterNumber, maxWeeks, currentWeek
+// Store manages: weekNumber, semesterNumber, maxWeeks, currentWeek
 const allPlans = ref([])
 const loading = ref(false)
 const loadingClassrooms = ref(false)

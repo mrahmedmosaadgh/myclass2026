@@ -102,7 +102,7 @@ const teacherPlans = ref([])
 const loading = ref(false)
 
 const planPagination = ref({
-  rowsPerPage: 50
+  rowsPerPage: 0 // Show all records
 })
 
 // Dialog state
@@ -136,7 +136,7 @@ const getDayName = (dayNum) => {
 }
 
 const fetchTeacherStats = async () => {
-  if (!store.selectedCopyId) return
+  if (!store.selectedAcademicYearId) return
   
   loading.value = true
   try {
@@ -186,7 +186,7 @@ const getStatus = (plan) => {
   return 'partial'
 }
 
-watch(() => [store.selectedCopyId, store.weekNumber, store.semesterNumber], () => {
+watch(() => [store.weekNumber, store.semesterNumber, store.selectedAcademicYearId], () => {
   fetchTeacherStats()
 }, { deep: true })
 

@@ -10,10 +10,6 @@ export const useWeeklyPlansStore = defineStore('weekly-plans', {
 
     getters: {
         // Proxy getters to SchoolData store
-        selectedCopyId: () => {
-            const schoolData = useSchoolDataStore()
-            return schoolData.scheduleCopyId
-        },
         selectedSchoolId: () => {
             const schoolData = useSchoolDataStore()
             return schoolData.schoolId
@@ -30,10 +26,6 @@ export const useWeeklyPlansStore = defineStore('weekly-plans', {
                 return match ? parseInt(match[0]) : 1
             }
             return 1
-        },
-        activeCopies: () => {
-            const schoolData = useSchoolDataStore()
-            return schoolData.scheduleCopies || []
         }
     },
 
@@ -58,10 +50,7 @@ export const useWeeklyPlansStore = defineStore('weekly-plans', {
 
         // Helper to ensure data is loaded if needed (though MainSchoolData usually handles it)
         async fetchActiveCopies() {
-            const schoolData = useSchoolDataStore()
-            if (!schoolData.scheduleCopies?.length && schoolData.schoolId) {
-                await schoolData.fetchOptionsForSchool(schoolData.schoolId)
-            }
+            // No-op: schedule copies are deprecated
         }
     }
 })

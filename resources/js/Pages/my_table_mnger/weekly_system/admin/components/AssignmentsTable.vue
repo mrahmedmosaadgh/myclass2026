@@ -89,7 +89,7 @@ const props = defineProps({
 
 const filter = ref('');
 const pagination = ref({
-  rowsPerPage: 10,
+  rowsPerPage: 0, // Show all records
   sortBy: 'classroom_name',
   descending: false
 });

@@ -332,6 +332,9 @@
       "notesLabel": "Notes:",
       "generated": "Generated:",
       "tableView": "Table View",
+      "byClassroom": "By Classroom",
+      "byDay": "By Day",
+      "byDay": "By Day",
       "filters": {
         "day": "Day",
         "classroom": "Classroom",
@@ -411,6 +414,8 @@
       "7": "Sat"
     },
     "fullDays": {
+      "undefined": "Unknown Day",
+      "null": "Unknown Day",
       "1": "Sunday",
       "2": "Monday",
       "3": "Tuesday",

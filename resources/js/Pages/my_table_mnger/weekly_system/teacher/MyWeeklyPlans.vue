@@ -27,18 +27,7 @@
           />
         </div>
 
-        <!-- Semester -->
-        <div class="col-12 col-sm-3 col-md-2">
-          <q-select
-            v-model="semesterNumber"
-            :options="semesterOptions"
-            :label="t('weeklyPlans.semester')"
-            outlined
-            dense
-            emit-value
-            map-options
-          />
-        </div>
+
 
         <!-- Progress Summary -->
         <div class="col-auto q-ml-auto">
@@ -244,7 +233,7 @@
         :inline-edit-mode="inlineEditMode"
         :copied-data="copiedData"
         :week-number="weekNumber"
-        :semester-number="semesterNumber"
+        :semester-number="store.semesterNumber"
         @edit="editPlan"
         @save="saveInlineEdit"
       />
@@ -282,7 +271,7 @@
             <div class="print-header q-mb-lg">
               <h2 class="q-ma-none">{{ t('weeklyPlans.teacher.myWeeklyPlans') }}</h2>
               <p class="q-ma-xs text-grey-7">
-                {{ t('weeklyPlans.week') }} {{ weekNumber }} - {{ t('weeklyPlans.semester') }} {{ semesterNumber }}
+                {{ t('weeklyPlans.week') }} {{ weekNumber }} - {{ t('weeklyPlans.semester') }} {{ store.semesterNumber }}
               </p>
               <p class="q-ma-xs text-grey-7">
                 {{ t('weeklyPlans.classroom') }}: {{ selectedClassrooms.join(', ') }}
@@ -337,6 +326,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
+import { useWeeklyPlansStore } from '@/Stores/useWeeklyPlansStore'
 import WeekSelector from '../components/weekly-plans/WeekSelector.vue'
 import WeeklyPlanEditor from '../components/weekly-plans/WeeklyPlanEditor.vue'
 import WeeklyPlanClassroomList from '../components/WeeklyPlanClassroomList.vue'
@@ -345,12 +335,13 @@ import WeeklyPlanMenu from '../WeeklyPlanMenu.vue'
 
 const { t, locale } = useI18n()
 const $q = useQuasar()
+const store = useWeeklyPlansStore()
 
 // Data
 const weeklyPlans = ref([])
 const classroomListRef = ref(null)
 const weekNumber = ref(1)
-const semesterNumber = ref(1)
+
 const maxWeeks = ref(18)
 const currentWeek = ref(1)
 
@@ -382,10 +373,7 @@ const editorToolbar = [
   ['undo', 'redo']
 ]
 
-const semesterOptions = computed(() => [
-  { label: `${t('weeklyPlans.semester')} 1`, value: 1 },
-  { label: `${t('weeklyPlans.semester')} 2`, value: 2 }
-])
+
 
 const dayOptions = computed(() => [
   { label: t('weeklyPlans.fullDays.1'), value: 1 },
@@ -434,6 +422,11 @@ const sortedPlansByDay = computed(() => {
   
   filteredPlans.value.forEach(plan => {
     const dayNum = plan.schedule?.day
+    // Skip plans with invalid day numbers
+    if (!dayNum || dayNum < 1 || dayNum > 7) {
+      return
+    }
+    
     if (!byDay[dayNum]) {
       byDay[dayNum] = {
         dayNumber: dayNum,
@@ -504,14 +497,43 @@ const fetchPlans = async () => {
     const response = await axios.get('/weekly-system/api/teacher/my-weekly-plans', {
       params: {
         week_number: weekNumber.value,
-        semester_number: semesterNumber.value
+        semester_number: store.semesterNumber
       }
     })
-    weeklyPlans.value = (response.data.data || response.data || []).map(plan => ({
-      ...plan,
-      ...plan.schedule, // Flattens schedule properties for easier access if needed
-      status: getStatus(plan)
-    }))
+    weeklyPlans.value = (response.data.data || response.data || []).map(plan => {
+      const mappedPlan = {
+        // Weekly plan properties first (to ensure weekly plan id takes precedence)
+        id: plan.id,
+        academic_year_id: plan.academic_year_id,
+        semester_number: plan.semester_number,
+        week_number: plan.week_number,
+        day_number: plan.day_number,
+        period_order: plan.period_order,
+        schedule_id: plan.schedule_id,
+        cw: plan.cw || '',
+        hw: plan.hw || '',
+        notes: plan.notes || '',
+        comments: plan.comments,
+        created_at: plan.created_at,
+        updated_at: plan.updated_at,
+        status: getStatus(plan),
+        // Schedule properties (but preserve the weekly plan structure)
+        ...(plan.schedule ? {
+          schedule: {
+            id: plan.schedule.id,
+            cst_id: plan.schedule.cst_id,
+            day_number: plan.schedule.day_number,
+            period_order: plan.schedule.period_order,
+            cst: plan.schedule.cst
+          },
+          // Flat properties for easier access in template
+          classroom_id: plan.schedule.cst?.classroom_id,
+          subject_id: plan.schedule.cst?.subject_id,
+          teacher_id: plan.schedule.cst?.teacher_id
+        } : {})
+      }
+      return mappedPlan
+    })
   } catch (error) {
     console.error('Error fetching plans:', error)
     $q.notify({ type: 'negative', message: 'Failed to load weekly plans' })
@@ -549,8 +571,16 @@ const cancelSelection = (event) => {
 }
 
 const pastePlan = async (plan, event) => {
+  console.log('Pasting plan:', plan.id)
+  console.log('Pasting plan:', plan)
   event.stopPropagation()
   if (!copiedData.value) return
+
+  // Validate plan exists and has valid ID
+  if (!plan.id || plan.id <= 0 || plan.id > 10000) {
+    $q.notify({ type: 'negative', message: 'Invalid plan ID' })
+    return
+  }
 
   try {
     await axios.put(`/weekly-system/api/weekly-plans/${plan.id}`, {
@@ -566,12 +596,31 @@ const pastePlan = async (plan, event) => {
     $q.notify({ type: 'positive', message: t('weeklyPlans.teacher.paste') })
   } catch (error) {
     console.error('Error pasting plan:', error)
-    $q.notify({ type: 'negative', message: 'Failed to paste data' })
+    
+    // If plan not found (404), refresh the data to get latest state
+    if (error.response?.status === 404) {
+      $q.notify({ 
+        type: 'warning', 
+        message: 'Plan not found. Refreshing data...',
+        timeout: 2000
+      })
+      await fetchPlans() // Refresh to get current state
+    } else {
+      $q.notify({ type: 'negative', message: 'Failed to paste data' })
+    }
   }
 }
 
 const handleSave = async (formData) => {
   saving.value = true
+  
+  // Validate formData exists and has valid ID
+  if (!formData.id || formData.id <= 0 || formData.id > 10000) {
+    $q.notify({ type: 'negative', message: 'Invalid plan ID' })
+    saving.value = false
+    return
+  }
+  
   try {
     await axios.put(`/weekly-system/api/weekly-plans/${formData.id}`, {
       cw: formData.cw,
@@ -584,15 +633,35 @@ const handleSave = async (formData) => {
     await fetchPlans()
   } catch (error) {
     console.error('Error saving plan:', error)
-    $q.notify({ type: 'negative', message: 'Failed to save plan' })
+    
+    // If plan not found (404), refresh the data and close editor
+    if (error.response?.status === 404) {
+      $q.notify({ 
+        type: 'warning', 
+        message: 'Plan not found. Refreshing data...',
+        timeout: 2000
+      })
+      await fetchPlans() // Refresh to get current state
+      showEditor.value = false
+    } else {
+      $q.notify({ type: 'negative', message: 'Failed to save plan' })
+    }
   } finally {
     saving.value = false
   }
 }
 
 const saveInlineEdit = async (plan) => {
+  // Skip if all fields are empty
+  if (!plan.cw && !plan.hw && !plan.notes) return
+
   if (savingInline.value[plan.id]) return // Prevent duplicate saves
   
+  // Validate plan exists and has valid ID
+  if (!plan.id || plan.id <= 0 || plan.id > 10000) {
+    $q.notify({ type: 'negative', message: 'Invalid plan ID' })
+    return
+  }
   savingInline.value[plan.id] = true
   try {
     await axios.put(`/weekly-system/api/weekly-plans/${plan.id}`, {
@@ -612,7 +681,18 @@ const saveInlineEdit = async (plan) => {
     })
   } catch (error) {
     console.error('Error saving inline edit:', error)
-    $q.notify({ type: 'negative', message: 'Failed to save changes' })
+    
+    // If plan not found (404), refresh the data to get latest state
+    if (error.response?.status === 404) {
+      $q.notify({ 
+        type: 'warning', 
+        message: 'Plan not found. Refreshing data...',
+        timeout: 2000
+      })
+      await fetchPlans() // Refresh to get current state
+    } else {
+      $q.notify({ type: 'negative', message: 'Failed to save changes' })
+    }
   } finally {
     delete savingInline.value[plan.id]
   }
@@ -820,7 +900,8 @@ watch(() => weekNumber.value, () => {
   fetchPlans()
 })
 
-watch(() => semesterNumber.value, () => {
+// Watch for store semester changes
+watch(() => store.semesterNumber, () => {
   fetchPlans()
 })
 

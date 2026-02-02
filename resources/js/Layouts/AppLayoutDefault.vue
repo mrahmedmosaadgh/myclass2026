@@ -21,7 +21,7 @@ import { useI18n } from 'vue-i18n';
 import ApplicationMark from '@/Components/ApplicationMark.vue';
 import Banner from '@/Components/Banner.vue';
 import SidebarMenu from '@/Layouts/comp/SidebarMenu.vue';
-import DateTimeDisplay from '@/Layouts/comp/date/date_time.vue';
+
 import NotificationBell from '@/Components/NotificationBell.vue';
 import ChatNotificationListener from '@/Components/Chat/NotificationListener.vue';
 import PrivateChatNotificationListener from '@/Components/PrivateChat/NotificationListener.vue';
@@ -119,7 +119,7 @@ const isActiveRoute = (name) => {
 
           <!-- Center section: Date/time and breadcrumbs -->
           <div class="header-center">
-            <DateTimeDisplay class="date-time" />
+
              <BreadcrumbsNav class="breadcrumbs" />
           </div>
 
@@ -311,9 +311,7 @@ const isActiveRoute = (name) => {
     display: none;
   }
 
-  .date-time {
-    transform: scale(0.8);
-  }
+
 }
 
 /* Dark mode */

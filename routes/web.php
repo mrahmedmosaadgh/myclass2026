@@ -110,6 +110,11 @@ Route::middleware([
         return Inertia::render('my_class/page_test/page_test');
     })->name('page.test');
 
+    // Micro component testing page (science namespace)
+    Route::get('/science/micro-component-test', function () {
+        return Inertia::render('MicroComponentTest/Index');
+    })->name('science.micro-component-test');
+
     // Offline System Test Route
     Route::get('/offline-test', function () {
         return Inertia::render('OfflineTest');

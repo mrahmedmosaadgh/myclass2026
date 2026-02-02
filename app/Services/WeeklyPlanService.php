@@ -159,7 +159,6 @@ class WeeklyPlanService
         // Find a valid schedule for this CST to satisfy foreign keys
         // We assume valid schedules are active
         $schedule = Schedule::where('cst_id', $cstId)
-            ->where('active', true)
             ->first();
             
         $scheduleId = $schedule ? $schedule->id : null;
@@ -214,7 +213,6 @@ class WeeklyPlanService
 
         $newSchedule = Schedule::where('school_id', $currentCst->school_id) // Match school
             // ->where('academic_year_id', $weeklyPlan->academic_year_id) // Schedules might not have AY directly without join
-            ->where('active', true)
             ->whereHas('cst', function($q) use ($currentCst) {
                 $q->where('classroom_id', $currentCst->classroom_id)
                   ->where('subject_id', $currentCst->subject_id);
@@ -226,6 +224,11 @@ class WeeklyPlanService
                 // 'copy_id' => null, // Removed
                 'schedule_id' => $newSchedule->id,
                 'cst_id' => $newSchedule->cst_id, // Update teacher if changed
+                'day_number' => $newSchedule->day_number,
+                'period_order' => $newSchedule->period_order,
+                'classroom_id' => $newSchedule->cst->classroom_id ?? null,
+                'subject_id' => $newSchedule->cst->subject_id ?? null,
+                'teacher_id' => $newSchedule->cst->teacher_id ?? null,
             ]);
             return true;
         }
@@ -243,8 +246,7 @@ class WeeklyPlanService
         // Let's assume this is called for a specific school context usually, but the signature doesn't have school_id.
         // However, we can query schedules that have CSTs in this academic_year context.
         
-        $activeSchedules = Schedule::where('active', true)
-            ->whereHas('cst', function($q) use ($academicYearId) {
+        $activeSchedules = Schedule::whereHas('cst', function($q) use ($academicYearId) {
                 $q->where('academic_year_id', $academicYearId);
             })
             ->get();
@@ -268,7 +270,12 @@ class WeeklyPlanService
                 // Update existing plan to ensure it's linked correctly
                 $plan->update([
                     // 'copy_id' => null, // Removed
-                    'schedule_id' => $schedule->id
+                    'schedule_id' => $schedule->id,
+                    'day_number' => $schedule->day_number,
+                    'period_order' => $schedule->period_order,
+                    'classroom_id' => $schedule->cst->classroom_id ?? null,
+                    'subject_id' => $schedule->cst->subject_id ?? null,
+                    'teacher_id' => $schedule->cst->teacher_id ?? null,
                 ]);
                 $updated++;
             } else {
@@ -279,6 +286,11 @@ class WeeklyPlanService
                     'academic_year_id' => $academicYearId,
                     'semester_number' => $semester,
                     'week_number' => $week,
+                    'day_number' => $schedule->day_number,
+                    'period_order' => $schedule->period_order,
+                    'classroom_id' => $schedule->cst->classroom_id ?? null,
+                    'subject_id' => $schedule->cst->subject_id ?? null,
+                    'teacher_id' => $schedule->cst->teacher_id ?? null,
                     'cw' => '',
                     'hw' => '',
                     'notes' => ''
@@ -329,7 +341,7 @@ class WeeklyPlanService
         $teachers = Teacher::whereHas('classroomSubjectTeachers', function ($query) use ($academicYearId) {
             // Filter teachers who have active assignments
             $query->whereHas('schedules', function ($q) {
-                $q->where('active', true);
+                // $q->where('active', true);
             });
         })->get();
 
@@ -387,7 +399,6 @@ class WeeklyPlanService
     public function generateForWeek(int $schoolId, int $academicYearId, int $week, int $semester): array
     {
         $schedules = Schedule::where('school_id', $schoolId)
-            ->where('active', true)
             ->with(['cst'])
             ->get();
 
@@ -411,6 +422,11 @@ class WeeklyPlanService
                 'academic_year_id' => $academicYearId,
                 'semester_number' => $semester,
                 'week_number' => $week,
+                'day_number' => $schedule->day_number,
+                'period_order' => $schedule->period_order,
+                'classroom_id' => $schedule->cst->classroom_id ?? null,
+                'subject_id' => $schedule->cst->subject_id ?? null,
+                'teacher_id' => $schedule->cst->teacher_id ?? null,
                 'cw' => '',
                 'hw' => '',
                 'notes' => ''
@@ -422,6 +438,145 @@ class WeeklyPlanService
         return [
             'created' => $created,
             'skipped' => $skipped
+        ];
+    }
+    /**
+     * Batch create weekly plans for specific schedule IDs.
+     */
+    public function batchCreatePlans(array $scheduleIds, int $week, int $academicYearId, int $semester): int
+    {
+        $count = 0;
+        $schedules = Schedule::whereIn('id', $scheduleIds)
+            // ->where('active', true) // Removed check
+            ->with(['cst'])
+            ->get();
+
+        foreach ($schedules as $schedule) {
+            $exists = WeeklyPlan::where('schedule_id', $schedule->id)
+                ->where('week_number', $week)
+                ->where('semester_number', $semester)
+                ->exists();
+
+            if (!$exists) {
+                WeeklyPlan::create([
+                    'schedule_id' => $schedule->id,
+                    // 'copy_id' => null, // Removed
+                    'academic_year_id' => $academicYearId,
+                    'semester_number' => $semester,
+                    'week_number' => $week,
+                    'day_number' => $schedule->day_number,
+                    'period_order' => $schedule->period_order,
+                    'classroom_id' => $schedule->cst->classroom_id ?? null,
+                    'subject_id' => $schedule->cst->subject_id ?? null,
+                    'teacher_id' => $schedule->cst->teacher_id ?? null,
+                    'cw' => '',
+                    'hw' => '',
+                    'notes' => ''
+                ]);
+                $count++;
+            }
+        }
+
+        return $count;
+    }
+
+    /**
+     * Get sync analysis for a week.
+     */
+    public function getSyncAnalysis(?int $copyId, int $week, int $academicYearId, int $semester): array
+    {
+        // 1. Get all active schedules for this academic year
+        // We filter by "active" status instead of copy_id
+        $schedules = Schedule::with(['cst.classroom', 'cst.subject'])
+            ->whereHas('cst', function($q) use ($academicYearId) {
+                // Determine school context from schedule usually, but here we can try to filter if needed
+                // For now, assuming Global sync or scoped by controller context if passed
+                // Ideally we should scope by School ID if possible
+            })
+            ->get();
+
+        $plans = WeeklyPlan::where('week_number', $week)
+            ->where('academic_year_id', $academicYearId)
+            ->where('semester_number', $semester)
+            ->get()
+            ->keyBy('schedule_id');
+
+        $classrooms = [];
+        $totalSlots = 0;
+        $completed = 0;
+        $missing = 0;
+
+        foreach ($schedules as $schedule) {
+            // Filter by academic year explicitly if schedule doesn't have it directly (it's on School/CST)
+             $cst = $schedule->cst;
+             if (!$cst) continue; // Should not happen with active schedule validation
+
+            // Group by classroom
+            $cid = $cst->classroom_id;
+            if (!isset($classrooms[$cid])) {
+                $classrooms[$cid] = [
+                    'id' => $cid,
+                    'name' => $cst->classroom->name ?? 'Unknown',
+                    'total_slots' => 0,
+                    'complete' => 0,
+                    'missing' => 0,
+                    'days' => []
+                ];
+            }
+
+            $totalSlots++;
+            $classrooms[$cid]['total_slots']++;
+
+            $plan = $plans[$schedule->id] ?? null;
+            $dayNum = $schedule->day_number;
+
+            if (!isset($classrooms[$cid]['days'][$dayNum])) {
+                $classrooms[$cid]['days'][$dayNum] = [
+                    'day_number' => $dayNum,
+                    'day' => $dayNum, // Or format name
+                    'total' => 0,
+                    'complete' => 0,
+                    'missing' => 0,
+                    'missing_periods' => []
+                ];
+            }
+            
+            $classrooms[$cid]['days'][$dayNum]['total']++;
+
+            if ($plan) {
+                // Exists
+                $completed++;
+                $classrooms[$cid]['complete']++;
+                $classrooms[$cid]['days'][$dayNum]['complete']++;
+            } else {
+                // Missing
+                $missing++;
+                $classrooms[$cid]['missing']++;
+                $classrooms[$cid]['days'][$dayNum]['missing']++;
+                $classrooms[$cid]['days'][$dayNum]['missing_periods'][] = [
+                    'id' => $schedule->id,
+                    'period' => $schedule->period_order, // or period_number
+                    'subject' => $cst->subject->name ?? 'Subject',
+                    'teacher' => $cst->teacher_name ?? '' // Helper accessor usually
+                ];
+            }
+        }
+        
+        // Calculate percentages
+        foreach ($classrooms as &$c) {
+            $c['percentage'] = $c['total_slots'] > 0 ? round(($c['complete'] / $c['total_slots']) * 100) : 0;
+            // Convert days map to array
+            $c['days'] = array_values($c['days']);
+        }
+
+        return [
+            'summary' => [
+                'total_slots' => $totalSlots,
+                'complete' => $completed,
+                'missing' => $missing,
+                'percentage' => $totalSlots > 0 ? round(($completed / $totalSlots) * 100) : 0
+            ],
+            'classrooms' => array_values($classrooms)
         ];
     }
 }

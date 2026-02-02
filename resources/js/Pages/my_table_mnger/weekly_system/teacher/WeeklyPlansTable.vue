@@ -22,7 +22,7 @@
       :rows="filteredRows"
       :columns="visibleColumns"
       row-key="id"
-      :pagination="{ rowsPerPage: 10 }"
+      :pagination="{ rowsPerPage: 0 }"
     >
       <template #body-cell-dayName="props">
         <q-td :props="props">{{ dayName(props.row.schedule?.day) }}</q-td>
