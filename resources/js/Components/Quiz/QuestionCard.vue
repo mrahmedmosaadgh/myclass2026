@@ -16,6 +16,46 @@
         <div class="question-card__header">
           <span class="question-card__number">Q{{ question.order_index || question.id }}</span>
           <q-badge :color="difficultyColor" :label="question.difficulty || 'Medium'" />
+          
+          <!-- Points Display/Edit -->
+          <div v-if="showPoints" class="question-card__points">
+            <q-input
+              :model-value="question.points || getDefaultPoints(question.difficulty)"
+              outlined
+              dense
+              type="number"
+              min="1"
+              max="20"
+              style="width: 60px"
+              @update:model-value="updatePoints"
+              @click.stop
+            >
+              <template v-slot:after>
+                <span class="text-caption text-grey-6">pts</span>
+              </template>
+            </q-input>
+            
+            <!-- Default vs Custom Points Indicator -->
+            <q-icon
+              v-if="hasCustomPoints"
+              name="edit"
+              size="12px"
+              color="orange"
+              class="q-ml-xs"
+            >
+              <q-tooltip>Custom points (default: {{ getDefaultPoints(question.difficulty) }})</q-tooltip>
+            </q-icon>
+            
+            <q-icon
+              v-else
+              name="auto_mode"
+              size="12px"
+              color="grey-5"
+              class="q-ml-xs"
+            >
+              <q-tooltip>Default points</q-tooltip>
+            </q-icon>
+          </div>
         </div>
         
         <div class="question-card__text" v-html="truncateHtml(question.question_text, 100)" />
@@ -29,11 +69,38 @@
             <q-icon name="psychology" size="14px" />
             {{ question.bloom_level }}
           </span>
+          
+          <!-- Points display in meta for compact view -->
+          <span v-if="showPoints && !showPointsInput" class="question-card__points-meta">
+            <q-icon name="star" size="14px" />
+            {{ question.points || getDefaultPoints(question.difficulty) }} pts
+            <q-icon
+              v-if="hasCustomPoints"
+              name="edit"
+              size="10px"
+              color="orange"
+              class="q-ml-xs"
+            />
+          </span>
         </div>
       </div>
       
       <!-- Actions -->
       <div class="question-card__actions" @click.stop>
+        <!-- Points Reset Button -->
+        <q-btn
+          v-if="showPoints && hasCustomPoints"
+          flat
+          round
+          dense
+          icon="refresh"
+          size="sm"
+          color="grey-6"
+          @click="resetToDefaultPoints"
+        >
+          <q-tooltip>Reset to default points</q-tooltip>
+        </q-btn>
+        
         <q-btn
           v-if="showPreview"
           flat
@@ -65,6 +132,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
+import { useScoringStore } from '@/composables/useScoringStore';
 
 const props = defineProps({
   question: {
@@ -82,10 +150,20 @@ const props = defineProps({
   showRemove: {
     type: Boolean,
     default: false
+  },
+  showPoints: {
+    type: Boolean,
+    default: false
+  },
+  showPointsInput: {
+    type: Boolean,
+    default: true
   }
 });
 
-defineEmits(['preview', 'remove']);
+const emit = defineEmits(['preview', 'remove', 'points-updated']);
+
+const { getDefaultPoints } = useScoringStore();
 
 const isDragging = ref(false);
 
@@ -120,10 +198,27 @@ const difficultyColor = computed(() => {
   return colors[props.question.difficulty] || 'info';
 });
 
+const hasCustomPoints = computed(() => {
+  const defaultPoints = getDefaultPoints(props.question.difficulty);
+  return props.question.points && props.question.points !== defaultPoints;
+});
+
 const truncateHtml = (html, maxLength) => {
   if (!html) return '';
   const text = html.replace(/<[^>]*>/g, '');
   return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+};
+
+const updatePoints = (value) => {
+  const points = Number(value);
+  if (points > 0) {
+    emit('points-updated', props.question.id, points);
+  }
+};
+
+const resetToDefaultPoints = () => {
+  const defaultPoints = getDefaultPoints(props.question.difficulty);
+  emit('points-updated', props.question.id, defaultPoints);
 };
 </script>
 
@@ -176,12 +271,27 @@ const truncateHtml = (html, maxLength) => {
     align-items: center;
     gap: 8px;
     margin-bottom: 4px;
+    flex-wrap: wrap;
   }
   
   &__number {
     font-size: 0.75rem;
     font-weight: 600;
     color: #718096;
+  }
+  
+  &__points {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+  }
+  
+  &__points-meta {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 500;
+    color: #4a5568;
   }
   
   &__text {
@@ -196,6 +306,7 @@ const truncateHtml = (html, maxLength) => {
     gap: 12px;
     font-size: 0.75rem;
     color: #a0aec0;
+    flex-wrap: wrap;
     
     span {
       display: flex;
@@ -204,7 +315,7 @@ const truncateHtml = (html, maxLength) => {
     }
   }
   
-  :is(.question-card__actions) {
+  &__actions {
     display: flex;
     gap: 4px;
     flex-shrink: 0;

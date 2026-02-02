@@ -23,7 +23,7 @@
                 {{ quiz.id ? 'Edit Quiz' : 'Create New Quiz' }}
               </h1>
               <p class="text-subtitle1 text-grey-7 q-my-none">
-                {{ selectedQuestions.length }} questions selected
+                {{ selectedQuestions.length }} questions • {{ liveStats.totalPoints }} points
               </p>
             </div>
           </div>
@@ -56,277 +56,201 @@
       <div class="row q-col-gutter-lg">
         <!-- Left Panel: Question Pool -->
         <div class="col-12 col-md-3">
-          <q-card class="rounded-xl shadow-2 full-height bg-white">
-            <q-card-section class="bg-blue-1 text-primary">
-              <div class="row items-center justify-between">
-                <div class="text-h6 text-weight-bold">Question Pool</div>
-                <q-btn flat round dense icon="refresh" @click="fetchQuestions">
-                  <q-tooltip>Refresh</q-tooltip>
-                </q-btn>
-              </div>
-            </q-card-section>
-
-            <q-card-section class="q-pa-md q-gutter-y-md">
-              <q-input
-                v-model="poolSearch"
-                outlined
-                dense
-                rounded
-                placeholder="Search questions..."
-                bg-color="grey-1"
-              >
-                <template v-slot:prepend>
-                  <q-icon name="search" color="primary" />
-                </template>
-              </q-input>
-
-              <div class="row q-col-gutter-sm">
-                <div class="col-6">
-                  <q-select
-                    v-model="poolTypeFilter"
-                    outlined
-                    dense
-                    rounded
-                    :options="questionTypes"
-                    label="Type"
-                    option-label="name"
-                    option-value="id"
-                    bg-color="grey-1"
-                    behavior="menu"
-                  />
-                </div>
-                <div class="col-6">
-                  <q-select
-                    v-model="poolDifficultyFilter"
-                    outlined
-                    dense
-                    rounded
-                    :options="['Easy', 'Medium', 'Hard']"
-                    label="Difficulty"
-                    bg-color="grey-1"
-                    behavior="menu"
-                  />
-                </div>
-              </div>
-            </q-card-section>
-
-            <q-separator />
-
-            <q-card-section class="quiz-builder__pool-list scroll" style="height: calc(100vh - 350px)">
-              <div v-if="loadingQuestions" class="row justify-center q-pa-lg">
-                <q-spinner-dots color="primary" size="40px" />
-              </div>
-
-              <div v-else-if="filteredPoolQuestions.length === 0" class="column items-center justify-center text-grey-5 q-pa-xl">
-                <q-icon name="sentiment_dissatisfied" size="48px" />
-                <p class="q-mt-sm">No questions found</p>
-              </div>
-
-              <div v-else class="q-gutter-y-sm">
-                <question-card
-                  v-for="question in filteredPoolQuestions"
-                  :key="`pool-${question.id}`"
-                  :question="question"
-                  :show-remove="false"
-                  compact
-                  class="cursor-pointer hover-scale"
-                  @click="addQuestion(question)"
-                  draggable="true"
-                  @dragstart="handleDragStart($event, question)"
+          <div class="column q-gutter-y-md">
+            <!-- Advanced Filters -->
+            <q-card class="rounded-xl shadow-2 bg-white">
+              <q-card-section class="bg-purple-1 text-purple-9">
+                <div class="text-h6 text-weight-bold">Advanced Filters</div>
+              </q-card-section>
+              <q-card-section>
+                <AdvancedFilters
+                  :available-grades="grades"
+                  :available-subjects="subjects"
+                  :available-topics="topics"
+                  :authors="authors"
+                  :question-types="questionTypes"
+                  :model-value="filterState"
+                  @update:model-value="handleFilterChanged"
+                  @filter-changed="handleFilterChanged"
+                  @filters-cleared="handleFiltersClear"
                 />
-              </div>
-            </q-card-section>
-          </q-card>
+              </q-card-section>
+            </q-card>
+
+            <!-- Question Pool -->
+            <QuestionPool
+              :filtered-questions="filteredPoolQuestions"
+              :selected-questions="selectedQuestions"
+              :question-types="questionTypes"
+              :bulk-state="bulkState"
+              :loading="loadingQuestions"
+              :search-term="poolSearch"
+              :type-filter="poolTypeFilter"
+              :difficulty-filter="poolDifficultyFilter"
+              @refresh="fetchQuestions"
+              @update:search-term="poolSearch = $event"
+              @update:type-filter="poolTypeFilter = $event"
+              @update:difficulty-filter="poolDifficultyFilter = $event"
+              @question-clicked="addQuestion"
+              @question-drag-start="handleDragStart"
+              @toggle-question-selection="handleToggleQuestionSelection"
+              @add-all-filtered="addAllFilteredQuestions"
+              @add-selected="addSelectedQuestions"
+              @toggle-multi-select="handleToggleMultiSelectMode"
+              @clear-selection="handleClearSelection"
+              @select-all-filtered="handleSelectAllFiltered"
+              @remove-all="clearAllQuestions"
+            />
+
+            <!-- Smart Selection -->
+            <SmartSelection
+              :available-questions="filteredPoolQuestions"
+              :current-filters="filterState"
+              @questions-selected="handleSmartSelection"
+              @selection-feedback="handleSelectionFeedback"
+            />
+
+            <!-- Question Pool Statistics -->
+            <QuestionPoolStats
+              :stats="questionPoolStats"
+              :selection-feedback="smartSelectionFeedback"
+              :original-pool-size="originalPoolSize"
+              :topic-names="topics.reduce((acc, t) => ({ ...acc, [t.id]: t.name }), {})"
+              :author-names="authors.reduce((acc, a) => ({ ...acc, [a.id]: a.name }), {})"
+              @refresh="fetchQuestions"
+            />
+          </div>
         </div>
 
         <!-- Center Panel: Quiz Canvas -->
         <div class="col-12 col-md-6">
-          <q-card class="rounded-xl shadow-3 full-height bg-grey-1">
-            <q-card-section class="bg-white text-primary rounded-borders-top">
-              <div class="row items-center justify-between">
-                <div class="text-h6 text-weight-bold">
-                  <q-icon name="edit_document" class="q-mr-sm" />
-                  Quiz Questions
-                </div>
-                <div class="row q-gutter-x-sm">
-                  <q-btn
-                    v-if="selectedQuestions.length > 0"
-                    flat
-                    round
-                    dense
-                    color="negative"
-                    icon="delete_sweep"
-                    @click="clearAllQuestions"
-                  >
-                    <q-tooltip>Clear All</q-tooltip>
-                  </q-btn>
-                  <q-btn
-                    v-if="selectedQuestions.length > 1"
-                    flat
-                    round
-                    dense
-                    color="secondary"
-                    icon="shuffle"
-                    @click="shuffleQuestions"
-                  >
-                    <q-tooltip>Shuffle</q-tooltip>
-                  </q-btn>
-                </div>
-              </div>
-            </q-card-section>
-
-            <q-card-section
-              class="quiz-builder__canvas-area scroll q-pa-md"
-              style="height: calc(100vh - 280px)"
-              :class="{ 'bg-blue-1': isDragOver }"
-              @drop="handleDrop"
-              @dragover.prevent="isDragOver = true"
-              @dragleave="isDragOver = false"
-            >
-              <div v-if="selectedQuestions.length === 0" class="column items-center justify-center full-height text-grey-5">
-                <q-icon name="add_circle" size="64px" class="q-mb-md opacity-50" />
-                <h5 class="q-my-none text-weight-bold">Your quiz is empty!</h5>
-                <p>Drag questions here or click them from the pool</p>
-              </div>
-
-              <draggable
-                v-else
-                v-model="selectedQuestions"
-                item-key="id"
-                class="q-gutter-y-md"
-                handle=".drag-handle"
-                @start="isDragging = true"
-                @end="isDragging = false"
-              >
-                <template #item="{ element, index }">
-                  <div class="row items-start no-wrap q-gutter-x-sm animate-pop">
-                    <div class="column items-center q-pt-sm">
-                      <q-badge color="primary" rounded class="text-weight-bold shadow-1">
-                        {{ index + 1 }}
-                      </q-badge>
-                      <q-icon name="drag_indicator" class="drag-handle cursor-move text-grey-5 q-mt-xs" size="20px" />
-                    </div>
-                    
-                    <question-card
-                      :question="element"
-                      class="col"
-                      :show-remove="true"
-                      @preview="previewQuestion"
-                      @remove="removeQuestion(index)"
-                    />
-                  </div>
-                </template>
-              </draggable>
-            </q-card-section>
-          </q-card>
+          <QuizCanvas
+            :questions="selectedQuestions"
+            :sections="sections"
+            :is-drag-over="isDragOver"
+            @clear-all="clearAllQuestions"
+            @shuffle="shuffleQuestions"
+            @preview-question="previewQuestion"
+            @points-updated="handlePointsUpdated"
+            @question-removed="removeQuestionByObject"
+            @questions-reordered="handleQuestionsReordered"
+            @section-added="handleSectionAdded"
+            @section-updated="handleSectionUpdated"
+            @section-deleted="handleSectionDeleted"
+            @sections-reordered="handleSectionsReordered"
+            @question-assigned="handleQuestionAssigned"
+            @question-added="addQuestion"
+          />
         </div>
 
         <!-- Right Panel: Settings -->
         <div class="col-12 col-md-3">
-          <q-card class="rounded-xl shadow-2 bg-white">
-            <q-card-section class="bg-purple-1 text-purple-9">
-              <div class="text-h6 text-weight-bold">Quiz Settings</div>
-            </q-card-section>
+          <div class="column q-gutter-y-md">
+            <!-- Quiz Settings -->
+            <q-card class="rounded-xl shadow-2 bg-white">
+              <q-card-section class="bg-purple-1 text-purple-9">
+                <div class="text-h6 text-weight-bold">Quiz Settings</div>
+              </q-card-section>
 
-            <q-card-section class="q-gutter-y-md">
-              <q-input
-                v-model="quiz.name"
-                outlined
-                rounded
-                label="Quiz Name"
-                :rules="[val => !!val || 'Required']"
-                bg-color="grey-1"
-              >
-                <template v-slot:prepend>
-                  <q-icon name="title" color="purple" />
-                </template>
-              </q-input>
+              <q-card-section class="q-gutter-y-md">
+                <q-input
+                  v-model="quiz.name"
+                  outlined
+                  rounded
+                  label="Quiz Name"
+                  :rules="[val => !!val || 'Required']"
+                  bg-color="grey-1"
+                >
+                  <template v-slot:prepend>
+                    <q-icon name="title" color="purple" />
+                  </template>
+                </q-input>
 
-              <q-input
-                v-model="quiz.description"
-                outlined
-                rounded
-                type="textarea"
-                label="Description"
-                rows="3"
-                bg-color="grey-1"
-              />
+                <q-input
+                  v-model="quiz.description"
+                  outlined
+                  rounded
+                  type="textarea"
+                  label="Description"
+                  rows="3"
+                  bg-color="grey-1"
+                />
 
-              <div class="row q-col-gutter-sm">
-                <div class="col-6">
-                  <q-input
-                    v-model.number="quiz.time_limit_minutes"
-                    outlined
-                    rounded
-                    type="number"
-                    label="Time (min)"
-                    dense
-                    bg-color="grey-1"
-                  />
-                </div>
-                <div class="col-6">
-                  <q-select
-                    v-model="quiz.status"
-                    outlined
-                    rounded
-                    dense
-                    :options="['draft', 'active', 'archived']"
-                    label="Status"
-                    bg-color="grey-1"
-                    behavior="menu"
-                  />
-                </div>
-              </div>
-
-              <q-separator />
-
-              <!-- Options Menu -->
-              <q-expansion-item
-                icon="settings"
-                label="Advanced Options"
-                header-class="text-weight-bold text-grey-8"
-                expand-icon-class="text-grey-6"
-              >
-                <q-card>
-                  <q-card-section class="q-gutter-y-sm">
-                    <q-toggle
-                      v-model="quiz.shuffle_questions"
-                      label="Shuffle Questions"
-                      color="purple"
+                <div class="row q-col-gutter-sm">
+                  <div class="col-6">
+                    <q-input
+                      v-model.number="quiz.time_limit_minutes"
+                      outlined
+                      rounded
+                      type="number"
+                      label="Time (min)"
+                      dense
+                      bg-color="grey-1"
                     />
-                    <q-toggle
-                      v-model="quiz.shuffle_options"
-                      label="Shuffle Answers"
-                      color="purple"
+                  </div>
+                  <div class="col-6">
+                    <q-select
+                      v-model="quiz.status"
+                      outlined
+                      rounded
+                      dense
+                      :options="['draft', 'active', 'archived']"
+                      label="Status"
+                      bg-color="grey-1"
+                      behavior="menu"
                     />
-                    <q-toggle
-                      v-model="quiz.allow_review"
-                      label="Allow Review"
-                      color="purple"
-                    />
-                  </q-card-section>
-                </q-card>
-              </q-expansion-item>
+                  </div>
+                </div>
 
-              <q-separator />
+                <q-separator />
 
-              <!-- Stats -->
-              <div class="row q-col-gutter-sm">
-                <div class="col-4 text-center">
-                  <div class="text-h6 text-weight-bold text-primary">{{ selectedQuestions.length }}</div>
-                  <div class="text-caption text-grey-6">Questions</div>
-                </div>
-                <div class="col-4 text-center">
-                  <div class="text-h6 text-weight-bold text-orange">{{ estimatedTime }}</div>
-                  <div class="text-caption text-grey-6">Est. Time</div>
-                </div>
-                <div class="col-4 text-center">
-                  <div class="text-h6 text-weight-bold text-secondary">{{ averageDifficulty }}</div>
-                  <div class="text-caption text-grey-6">Difficulty</div>
-                </div>
-              </div>
-            </q-card-section>
-          </q-card>
+                <!-- Options Menu -->
+                <q-expansion-item
+                  icon="settings"
+                  label="Advanced Options"
+                  header-class="text-weight-bold text-grey-8"
+                  expand-icon-class="text-grey-6"
+                >
+                  <q-card>
+                    <q-card-section class="q-gutter-y-sm">
+                      <q-toggle
+                        v-model="quiz.shuffle_questions"
+                        label="Shuffle Questions"
+                        color="purple"
+                      />
+                      <q-toggle
+                        v-model="quiz.shuffle_options"
+                        label="Shuffle Answers"
+                        color="purple"
+                      />
+                      <q-toggle
+                        v-model="quiz.allow_review"
+                        label="Allow Review"
+                        color="purple"
+                      />
+                    </q-card-section>
+                  </q-card>
+                </q-expansion-item>
+              </q-card-section>
+            </q-card>
+
+            <!-- Scoring Settings -->
+            <ScoringSettings
+              :questions="selectedQuestions"
+              :scoring-config="scoringConfig"
+              @points-updated="handlePointsUpdated"
+              @passing-score-changed="handlePassingScoreChanged"
+              @scoring-config-updated="handleScoringConfigUpdated"
+            />
+
+            <!-- Live Statistics -->
+            <LiveStats
+              :stats="liveStats"
+              :passing-score="scoringConfig.passingScoreThreshold"
+              :passing-score-is-percentage="scoringConfig.thresholdIsPercentage"
+              :scoring-config="scoringConfig"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -422,14 +346,88 @@ import { ref, computed, onMounted } from 'vue';
 import { router, Head } from '@inertiajs/vue3';
 import { useQuasar } from 'quasar';
 import axios from 'axios';
-import draggable from 'vuedraggable';
 import QuestionCard from '@/Components/Quiz/QuestionCard.vue';
 import QuizNavigation from '@/Components/Quiz/QuizNavigation.vue';
+import QuestionPool from '@/Components/Quiz/QuestionPool.vue';
+import QuizCanvas from '@/Components/Quiz/QuizCanvas.vue';
+import ScoringSettings from '@/Components/Quiz/ScoringSettings.vue';
+import LiveStats from '@/Components/Quiz/LiveStats.vue';
+import AdvancedFilters from '@/Components/Quiz/AdvancedFilters.vue';
+import SmartSelection from '@/Components/Quiz/SmartSelection.vue';
+import QuestionPoolStats from '@/Components/Quiz/QuestionPoolStats.vue';
+import { useBulkOperations } from '@/composables/useBulkOperations';
+import { useScoringStore } from '@/composables/useScoringStore';
+import { useSectionStore } from '@/composables/useSectionStore';
+import { useFilterStore } from '@/composables/useFilterStore';
+import { useSmartSelection } from '@/composables/useSmartSelection';
 
 const $q = useQuasar();
 const props = defineProps({
   quizId: [Number, String]
 });
+
+// Bulk Operations
+const {
+  bulkState,
+  toggleMultiSelectMode,
+  toggleQuestionSelection,
+  selectAllFiltered,
+  clearSelection,
+  isQuestionSelected,
+  getSelectedQuestions,
+  validateBulkAdd,
+  prepareBulkQuestions,
+  getBulkOperationSummary
+} = useBulkOperations();
+
+// Scoring Store
+const {
+  scoringConfig,
+  calculateLiveStats,
+  applyDefaultPoints,
+  updateQuestionPoints,
+  updateScoringConfig
+} = useScoringStore();
+
+// Section Store
+const {
+  sections,
+  createSection,
+  updateSection,
+  deleteSection,
+  assignQuestionsToSection,
+  removeQuestionsFromSection,
+  reorderSections,
+  toggleSectionCollapse,
+  ensureDefaultSection,
+  getAllQuestionsOrganized
+} = useSectionStore();
+
+// Filter Store
+const {
+  filterState,
+  availableGrades,
+  availableSubjects,
+  availableTopics,
+  availableAuthors,
+  filteredSubjects,
+  filteredTopics,
+  hasActiveFilters,
+  getFilterSummary,
+  applyFilters,
+  clearFilters,
+  setAvailableOptions
+} = useFilterStore();
+
+// Smart Selection
+const {
+  calculatePoolStats,
+  smartSelection,
+  validateSelectionCriteria,
+  getRecommendedCount,
+  getAlgorithmRecommendations,
+  previewSelection
+} = useSmartSelection();
 
 // State
 const quiz = ref({
@@ -446,17 +444,24 @@ const poolQuestions = ref([]);
 const selectedQuestions = ref([]);
 const questionTypes = ref([]);
 const topics = ref([]);
+const grades = ref([]);
+const subjects = ref([]);
+const authors = ref([]);
 
 const loadingQuestions = ref(false);
 const saving = ref(false);
 const isDragging = ref(false);
 const isDragOver = ref(false);
 
-// Filters
+// Legacy filters (kept for backward compatibility)
 const poolSearch = ref('');
 const poolTypeFilter = ref(null);
 const poolDifficultyFilter = ref(null);
 const poolTopicFilter = ref(null);
+
+// Smart selection state
+const smartSelectionFeedback = ref(null);
+const originalPoolSize = ref(0);
 
 // Dialogs
 const showPreview = ref(false);
@@ -471,7 +476,51 @@ const filteredPoolQuestions = computed(() => {
   const selectedIds = selectedQuestions.value.map(q => q.id);
   result = result.filter(q => !selectedIds.includes(q.id));
   
-  // Search
+  // Apply advanced filters from filter store
+  if (filterState.value.searchTerm) {
+    const query = filterState.value.searchTerm.toLowerCase();
+    result = result.filter(q =>
+      q.question_text.toLowerCase().includes(query)
+    );
+  }
+  
+  if (filterState.value.grade) {
+    result = result.filter(q => q.grade_id?.toString() === filterState.value.grade);
+  }
+  
+  if (filterState.value.subject) {
+    result = result.filter(q => q.subject_id?.toString() === filterState.value.subject);
+  }
+  
+  if (filterState.value.topic) {
+    result = result.filter(q => q.topic_id?.toString() === filterState.value.topic);
+  }
+  
+  if (filterState.value.questionType) {
+    result = result.filter(q => q.question_type_id?.toString() === filterState.value.questionType);
+  }
+  
+  if (filterState.value.difficulty) {
+    result = result.filter(q => q.difficulty === filterState.value.difficulty);
+  }
+  
+  if (filterState.value.author) {
+    result = result.filter(q => q.author_id?.toString() === filterState.value.author);
+  }
+  
+  if (filterState.value.bloomsLevel) {
+    result = result.filter(q => q.blooms_level?.toString() === filterState.value.bloomsLevel);
+  }
+  
+  if (filterState.value.usedInQuiz && filterState.value.usedInQuiz !== 'all') {
+    if (filterState.value.usedInQuiz === 'used') {
+      result = result.filter(q => q.usage_count && q.usage_count > 0);
+    } else if (filterState.value.usedInQuiz === 'unused') {
+      result = result.filter(q => !q.usage_count || q.usage_count === 0);
+    }
+  }
+  
+  // Legacy filters (for backward compatibility)
   if (poolSearch.value) {
     const query = poolSearch.value.toLowerCase();
     result = result.filter(q =>
@@ -479,17 +528,14 @@ const filteredPoolQuestions = computed(() => {
     );
   }
   
-  // Type filter
   if (poolTypeFilter.value) {
     result = result.filter(q => q.question_type_id === poolTypeFilter.value.id);
   }
   
-  // Difficulty filter
   if (poolDifficultyFilter.value) {
     result = result.filter(q => q.difficulty === poolDifficultyFilter.value);
   }
   
-  // Topic filter
   if (poolTopicFilter.value) {
     result = result.filter(q => q.topic_id === poolTopicFilter.value.id);
   }
@@ -497,25 +543,22 @@ const filteredPoolQuestions = computed(() => {
   return result;
 });
 
+// Question pool statistics
+const questionPoolStats = computed(() => {
+  return calculatePoolStats(filteredPoolQuestions.value);
+});
+
+// Live statistics computed from scoring store
+const liveStats = computed(() => {
+  return calculateLiveStats(selectedQuestions.value, sections.value);
+});
+
 const estimatedTime = computed(() => {
-  // Estimate 1.5 minutes per question
-  const minutes = Math.ceil(selectedQuestions.value.length * 1.5);
-  return `${minutes} min`;
+  return `${liveStats.value.estimatedTimeMinutes} min`;
 });
 
 const averageDifficulty = computed(() => {
-  if (selectedQuestions.value.length === 0) return 'N/A';
-  
-  const difficultyMap = { 'Easy': 1, 'Medium': 2, 'Hard': 3 };
-  const sum = selectedQuestions.value.reduce((acc, q) => {
-    return acc + (difficultyMap[q.difficulty] || 2);
-  }, 0);
-  
-  const avg = sum / selectedQuestions.value.length;
-  
-  if (avg < 1.5) return 'Easy';
-  if (avg < 2.5) return 'Medium';
-  return 'Hard';
+  return liveStats.value.averageDifficulty;
 });
 
 // Methods
@@ -534,12 +577,15 @@ const fetchQuestions = async () => {
     // Handle the response structure: { success: true, data: { data: [...], ...pagination } }
     if (response.data.success && response.data.data) {
       poolQuestions.value = response.data.data.data || [];
+      originalPoolSize.value = poolQuestions.value.length;
     } else {
       poolQuestions.value = [];
+      originalPoolSize.value = 0;
     }
   } catch (error) {
     console.error('Failed to fetch questions:', error);
     poolQuestions.value = [];
+    originalPoolSize.value = 0;
     $q.notify({
       type: 'negative',
       message: 'Failed to load questions',
@@ -552,12 +598,31 @@ const fetchQuestions = async () => {
 
 const fetchMetadata = async () => {
   try {
-    const [typesRes, topicsRes] = await Promise.all([
+    const [typesRes, topicsRes, gradesRes, subjectsRes] = await Promise.all([
       axios.get('/api/question-types'),
-      axios.get('/api/topics')
+      axios.get('/api/topics'),
+      axios.get('/api/grades'),
+      axios.get('/api/subjects')
     ]);
+    
     questionTypes.value = typesRes.data;
     topics.value = topicsRes.data;
+    grades.value = gradesRes.data;
+    subjects.value = subjectsRes.data;
+    
+    // Mock authors data since the endpoint doesn't exist yet
+    authors.value = [
+      { id: '1', name: 'System Generated' },
+      { id: '2', name: 'Teacher Created' }
+    ];
+    
+    // Update filter store with available options
+    setAvailableOptions({
+      grades: grades.value,
+      subjects: subjects.value,
+      topics: topics.value,
+      authors: authors.value
+    });
   } catch (error) {
     console.error('Failed to fetch metadata:', error);
   }
@@ -582,12 +647,25 @@ const loadQuiz = async () => {
 
 const addQuestion = (question) => {
   if (!selectedQuestions.value.find(q => q.id === question.id)) {
-    selectedQuestions.value.push({ ...question });
+    // Apply default points when adding a question
+    const questionWithPoints = applyDefaultPoints({ ...question });
+    selectedQuestions.value.push(questionWithPoints);
   }
 };
 
 const removeQuestion = (index) => {
   selectedQuestions.value.splice(index, 1);
+};
+
+const removeQuestionByObject = (question) => {
+  const index = selectedQuestions.value.findIndex(q => q.id === question.id);
+  if (index !== -1) {
+    selectedQuestions.value.splice(index, 1);
+    // Also remove from section if assigned
+    if (question.sectionId) {
+      removeQuestionsFromSection(question.sectionId, [question.id.toString()]);
+    }
+  }
 };
 
 const clearAllQuestions = () => {
@@ -599,6 +677,8 @@ const clearAllQuestions = () => {
     class: 'rounded-xl'
   }).onOk(() => {
     selectedQuestions.value = [];
+    // Clear bulk selection as well
+    clearSelection();
   });
 };
 
@@ -632,6 +712,155 @@ const handleDrop = (event) => {
 const previewQuestion = (question) => {
   previewingQuestion.value = question;
   showQuestionPreview.value = true;
+};
+
+// Bulk Operations Methods
+const addAllFilteredQuestions = () => {
+  const questionsToAdd = filteredPoolQuestions.value.filter(q => 
+    !selectedQuestions.value.find(selected => selected.id === q.id)
+  );
+  
+  if (questionsToAdd.length === 0) {
+    $q.notify({
+      type: 'warning',
+      message: 'No new questions to add',
+      icon: 'warning'
+    });
+    return;
+  }
+  
+  questionsToAdd.forEach(question => {
+    // Apply default points when adding questions
+    const questionWithPoints = applyDefaultPoints({ ...question });
+    selectedQuestions.value.push(questionWithPoints);
+  });
+  
+  // Clear selection after adding
+  clearSelection();
+};
+
+const addSelectedQuestions = (questions) => {
+  const questionsToAdd = questions.filter(q => 
+    !selectedQuestions.value.find(selected => selected.id === q.id)
+  );
+  
+  questionsToAdd.forEach(question => {
+    // Apply default points when adding questions
+    const questionWithPoints = applyDefaultPoints({ ...question });
+    selectedQuestions.value.push(questionWithPoints);
+  });
+  
+  // Clear selection after adding
+  clearSelection();
+};
+
+const handleToggleMultiSelectMode = (enabled) => {
+  toggleMultiSelectMode();
+};
+
+const handleToggleQuestionSelection = (questionId) => {
+  toggleQuestionSelection(questionId);
+};
+
+const handleSelectAllFiltered = (questions) => {
+  selectAllFiltered(questions);
+};
+
+const handleClearSelection = () => {
+  clearSelection();
+};
+
+// Advanced Filter Methods
+const handleFilterChanged = (filters) => {
+  applyFilters(filters);
+};
+
+const handleFiltersClear = () => {
+  clearFilters();
+};
+
+// Smart Selection Methods
+const handleSmartSelection = (questions) => {
+  questions.forEach(question => {
+    if (!selectedQuestions.value.find(q => q.id === question.id)) {
+      const questionWithPoints = applyDefaultPoints({ ...question });
+      selectedQuestions.value.push(questionWithPoints);
+    }
+  });
+  
+  // Clear bulk selection after adding
+  clearSelection();
+};
+
+const handleSelectionFeedback = (feedback) => {
+  smartSelectionFeedback.value = {
+    type: 'success',
+    message: feedback
+  };
+  
+  // Clear feedback after 5 seconds
+  setTimeout(() => {
+    smartSelectionFeedback.value = null;
+  }, 5000);
+};
+
+// Scoring Methods
+const handlePointsUpdated = (questionId, points) => {
+  selectedQuestions.value = updateQuestionPoints(selectedQuestions.value, questionId, points);
+};
+
+const handlePassingScoreChanged = (threshold) => {
+  updateScoringConfig({
+    ...scoringConfig.value,
+    passingScoreThreshold: threshold
+  });
+};
+
+const handleScoringConfigUpdated = (config) => {
+  updateScoringConfig(config);
+};
+
+// Section Management Methods
+const handleSectionAdded = (section) => {
+  // Section is already added by the section store
+  console.log('Section added:', section);
+};
+
+const handleSectionUpdated = (sectionId, updates) => {
+  updateSection(sectionId, updates);
+};
+
+const handleSectionDeleted = (sectionId) => {
+  const orphanedQuestions = deleteSection(sectionId);
+  // Add orphaned questions back to the main question list without section assignment
+  orphanedQuestions.forEach(question => {
+    question.sectionId = undefined;
+    question.orderInSection = 0;
+  });
+};
+
+const handleSectionsReordered = (newSections) => {
+  reorderSections(newSections);
+};
+
+const handleQuestionAssigned = (questionId, sectionId) => {
+  const question = selectedQuestions.value.find(q => q.id.toString() === questionId.toString());
+  if (question) {
+    // Remove from current section if assigned
+    if (question.sectionId) {
+      removeQuestionsFromSection(question.sectionId, [questionId.toString()]);
+    }
+    
+    // Assign to new section
+    assignQuestionsToSection(sectionId, [question]);
+    
+    // Update the question object
+    question.sectionId = sectionId;
+  }
+};
+
+const handleQuestionsReordered = (newOrder) => {
+  selectedQuestions.value = newOrder;
 };
 
 const saveQuiz = async () => {
@@ -694,6 +923,7 @@ onMounted(() => {
   loadQuiz();
   fetchQuestions();
   fetchMetadata();
+  ensureDefaultSection();
 });
 </script>
 
