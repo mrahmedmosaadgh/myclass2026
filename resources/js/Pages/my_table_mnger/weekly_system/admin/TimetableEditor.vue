@@ -295,6 +295,7 @@
     <!-- Draft Management Panel -->
     <DraftManagementPanel
       v-model="showDraftManager"
+      :schedule-data="schedules"
       @compare="openComparison"
       @load="handleDraftLoad"
     />
@@ -619,6 +620,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
+import { route } from 'ziggy-js'  // Added import for route function
 import axios from 'axios'
 import TimetableGrid from '../components/timetable/TimetableGrid.vue'
 import CSTAssignDialog from '../components/timetable/CSTAssignDialog.vue'
