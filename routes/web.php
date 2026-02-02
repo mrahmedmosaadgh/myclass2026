@@ -20,14 +20,19 @@ use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Spatie\Permission\Models\Role;
 
-// Route::get('/', function () {
-//     return Inertia::render('Welcome', [
-//         'canLogin' => Route::has('login'),
-//         'canRegister' => Route::has('register'),
-//         'laravelVersion' => Application::VERSION,
-//         'phpVersion' => PHP_VERSION,
-//     ]);
-// });
+// Domain-based Routing for QudratPro
+Route::domain('qudratpro.com')->group(function () {
+    require base_path('routes/qudrat/web.php');
+});
+
+// Domain-based Routing for Local Development (Testing)
+Route::domain('qudratpro.test')->name('test.')->group(function () {
+    require base_path('routes/qudrat/web.php');
+});
+
+
+// School-specific login routes (public)
+
 
 // School-specific login routes (public)
 Route::get('/login/{school_slug}', [SchoolLoginController::class, 'show'])
