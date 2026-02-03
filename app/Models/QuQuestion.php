@@ -51,4 +51,15 @@ class QuQuestion extends Model
     {
         return $this->hasMany(QuAnswer::class, 'qu_question_id');
     }
+
+    // New relationship for skill-based practice
+    public function skills()
+    {
+        return $this->belongsToMany(
+            Skill::class,
+            'skill_questions',
+            'qu_question_id',
+            'skill_id'
+        )->withPivot(['difficulty_level', 'explanation']);
+    }
 }

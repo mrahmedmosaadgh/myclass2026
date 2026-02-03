@@ -148,7 +148,7 @@ Route::middleware([
         // Notification Routes
         Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
-        Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
+        Route::post('/notifications/Mark-all-read', [NotificationController::class, 'markAllAsRead']);
         Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
         Route::post('/notifications/send-test', [NotificationController::class, 'sendTestNotification']);
         Route::post('/notifications/send-to-users', [NotificationController::class, 'sendToUsers']);
@@ -156,7 +156,7 @@ Route::middleware([
         Route::resource('teacher/period-activities', PeriodActivityController::class);
 
         // QU Question Bank System Routes
-        Route::prefix('qu')->name('qu-')->group(function () {
+        Route::prefix('qu')->name('qu.')->group(function () {
             // Question Management (Teachers & Admins)
             Route::resource('questions', \App\Http\Controllers\QuQuestionController::class);
             Route::post('questions/bulk-import', [\App\Http\Controllers\QuQuestionController::class, 'bulkImport'])
@@ -169,7 +169,7 @@ Route::middleware([
             Route::get('exams/questions/available', [\App\Http\Controllers\QuExamController::class, 'getAvailableQuestions'])
                 ->name('exams.questions.available');
             Route::get('exams/{exam}/grading-attempts', [\App\Http\Controllers\QuExamController::class, 'getGradingAttempts'])
-                ->name('exams.grading-attempts');
+                ->name('exms.grading-attempts');
             Route::get('exams/grading/{attempt}/data', [\App\Http\Controllers\QuExamController::class, 'getAttemptGradingData'])
                 ->name('exams.grading-data');
 
@@ -251,23 +251,60 @@ Route::middleware([
 
     // Chatbot - Admin Routes
     Route::middleware(['role:admin'])->prefix('admin/chatbot')->name('admin.chatbot.')->group(function () {
-        Route::get('/', [App\Http\Controllers\Admin\ChatbotAdminController::class, 'index'])->name('index');
-        Route::get('/{conversation}', [App\Http\Controllers\Admin\ChatbotAdminController::class, 'show'])->name('show');
-        Route::post('/{conversation}/reply', [App\Http\Controllers\Admin\ChatbotAdminController::class, 'reply'])->name('reply');
-        Route::patch('/{conversation}/status', [App\Http\Controllers\Admin\ChatbotAdminController::class, 'updateStatus'])->name('update');
+        Route::get('/', [App\Http\Controllers\Admin\ChatbotAdminController::class, 'index'])->name('admin.chatbot.index');
+        Route::get('/{conversation}', [App\Http\Controllers\Admin\ChatbotAdminController::class, 'show'])->name('admin.chatbot.show');
+        Route::post('/{conversation}/reply', [App\Http\Controllers\Admin\ChatbotAdminController::class, 'reply'])->name('admin.chatbot.reply');
+        Route::patch('/{conversation}/status', [App\Http\Controllers\Admin\ChatbotAdminController::class, 'updateStatus'])->name('admin.chatbot.update');
     });
 
     // School branding settings (admin only)
     Route::prefix('admin/school-branding')
         ->name('admin.school-branding.')
         ->group(function () {
-            Route::get('/', [SchoolBrandingController::class, 'index'])->name('index');
-            Route::put('/{school}', [SchoolBrandingController::class, 'update'])->name('update');
-            Route::post('/{school}/logo', [SchoolBrandingController::class, 'uploadLogo'])->name('upload-logo');
-            Route::post('/{school}/background', [SchoolBrandingController::class, 'uploadBackground'])->name('upload-background');
-            Route::get('/{school}/login-link', [SchoolBrandingController::class, 'generateLoginLink'])->name('login-link');
-            Route::get('/{school}/preview', [SchoolBrandingController::class, 'preview'])->name('preview');
+            Route::get('/', [SchoolBrandingController::class, 'index'])->name('admin.school-branding.index');
+            Route::put('/{school}', [SchoolBrandingController::class, 'update'])->name('admin.school-branding.update');
+            Route::post('/{school}/logo', [SchoolBrandingController::class, 'uploadLogo'])->name('admin.school-branding.upload-logo');
+            Route::post('/{school}/background', [SchoolBrandingController::class, 'uploadBackground'])->name('admin.school-branding.upload-background');
+            Route::get('/{school}/login-link', [SchoolBrandingController::class, 'generateLoginLink'])->name('admin.school-branding.login-link');
+            Route::get('/{school}/preview', [SchoolBrandingController::class, 'preview'])->name('admin.school-branding.preview');
         });
+    
+    // Skill Practice Routes
+    Route::prefix('skill-practice')->name('skill-practice.')->group(function () {
+        // Skill Categories
+        Route::get('/categories', [\App\Http\Controllers\SkillCategoryController::class, 'index'])->name('categories.index');
+        Route::get('/categories/{id}', [\App\Http\Controllers\SkillCategoryController::class, 'show'])->name('categories.show');
+        
+        // Skills
+        Route::get('/skills', [\App\Http\Controllers\SkillController::class, 'index'])->name('skills.index');
+        Route::get('/skills/{skill}', [\App\Http\Controllers\SkillController::class, 'show'])->name('skills.show');
+        
+        // Skill Practice Sessions
+        Route::post('/skills/{skill}/start', [\App\Http\Controllers\SkillPracticeController::class, 'start'])->name('skills.start');
+        Route::post('/practice/next-question', [\App\Http\Controllers\SkillPracticeController::class, 'nextQuestion'])->name('practice.next-question');
+        Route::post('/practice/submit-answer', [\App\Http\Controllers\SkillPracticeController::class, 'submitAnswer'])->name('practice.submit-answer');
+        Route::post('/practice/end-session/{session}', [\App\Http\Controllers\SkillPracticeController::class, 'endSession'])->name('practice.end-session');
+        
+        // Skill Progress
+        Route::get('/progress', [\App\Http\Controllers\SkillProgressController::class, 'index'])->name('progress.index');
+        Route::get('/progress/{skill}', [\App\Http\Controllers\SkillProgressController::class, 'show'])->name('progress.show');
+        Route::get('/awards', [\App\Http\Controllers\SkillProgressController::class, 'awards'])->name('awards');
+    });
+    
+    // Admin Skill Management Routes
+    Route::prefix('admin/skills')->name('admin.skills.')->middleware('role:teacher|admin')->group(function () {
+        Route::get('/', [\App\Http\Controllers\SkillCategoryController::class, 'index'])->name('index');
+        Route::get('/categories', [\App\Http\Controllers\SkillCategoryController::class, 'index'])->name('categories.index');
+        Route::get('/skills', [\App\Http\Controllers\SkillController::class, 'index'])->name('skills.index');
+        Route::post('/skills', [\App\Http\Controllers\SkillController::class, 'store'])->name('skills.store');
+        Route::put('/skills/{skill}', [\App\Http\Controllers\SkillController::class, 'update'])->name('skills.update');
+        Route::delete('/skills/{skill}', [\App\Http\Controllers\SkillController::class, 'destroy'])->name('skills.destroy');
+        
+        // Skill Questions Management
+        Route::post('/skills/{skill}/link-questions', [\App\Http\Controllers\SkillQuestionLinkController::class, 'linkQuestions'])->name('skills.link-questions');
+        Route::delete('/skills/{skill}/unlink-question/{question}', [\App\Http\Controllers\SkillQuestionLinkController::class, 'unlinkQuestion'])->name('skills.unlink-question');
+        Route::get('/skills/{skill}/linked-questions', [\App\Http\Controllers\SkillQuestionLinkController::class, 'getLinkedQuestions'])->name('skills.linked-questions');
+    });
 });
 
 // Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
@@ -284,7 +321,7 @@ Route::get('/', function () {
 })->name('LandingPage');
 
 // Public Offline System Test Route (no authentication required)
-Route::get('/offline-test-public', function () {
+Route::get('/offline-test', function () {
     return Inertia::render('OfflineTest');
 })->name('offline.test.public');
 
@@ -528,7 +565,7 @@ Route::get('/all_teachers_with_classroom_subject', [ClassroomSubjectTeacherContr
 
 // app\Models\Classroom.php
 
-// resources\js\Pages/my_table_mnger/JsonDataTable.vue
+// resources\js\Pages\my_table_mnger/JsonDataTable.vue
 
 // Developer Routes
 Route::middleware([
@@ -655,7 +692,22 @@ Route::middleware([
 Route::get('/register-school-admin', [App\Http\Controllers\SchoolHrAdminRegistrationController::class, 'create'])->name('register.school_admin');
 Route::post('/register-school-admin', [App\Http\Controllers\SchoolHrAdminRegistrationController::class, 'store'])->name('register.school_admin.store');
 
-// ... existing code ...
+// Add route alias for /questions to redirect to the question bank system
+Route::get('/questions', function () {
+    return redirect()->route('qu.questions.index');
+});
+
+Route::get('/questions/create', function () {
+    return redirect()->route('qu.questions.create');
+});
+
+Route::get('/questions/{question}/edit', function (\App\Models\QuQuestion $question) {
+    return redirect()->route('qu.questions.edit', $question);
+});
+
+Route::get('/questions/{question}', function (\App\Models\QuQuestion $question) {
+    return redirect()->route('qu.questions.show', $question);
+});
 
 // Load Feature Routes (Modules)
 $modulesPath = base_path('routes/modules');

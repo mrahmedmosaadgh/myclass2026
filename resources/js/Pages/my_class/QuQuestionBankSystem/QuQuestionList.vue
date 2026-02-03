@@ -20,6 +20,13 @@
             icon="add"
             @click="createDialog = true"
           />
+          <q-btn
+            color="accent"
+            label="Create Quiz"
+            icon="quiz"
+            @click="createQuiz"
+            class="q-ml-sm"
+          />
         </div>
       </q-card-section>
 
@@ -222,6 +229,7 @@
             :subjects="subjects" 
             :selected-subject-id="localFilters.subject_id"
             @success="onQuestionCreated"
+            @cancel="createDialog = false"
           />
         </q-card-section>
       </q-card>
@@ -297,14 +305,14 @@ const pagination = computed(() => ({
 }));
 
 const applyFilters = () => {
-  router.get(route('qu-questions.index'), localFilters, {
+  router.get(route('qu.questions.index'), localFilters, {
     preserveState: true,
     preserveScroll: true
   });
 };
 
 const changePage = (page) => {
-  router.get(route('qu-questions.index', { ...localFilters, page }), {}, {
+  router.get(route('qu.questions.index', { ...localFilters, page }), {}, {
     preserveState: true,
     preserveScroll: true
   });
@@ -325,7 +333,7 @@ const viewQuestion = (question) => {
 };
 
 const editQuestion = (question) => {
-  router.visit(route('qu-questions.edit', question.id));
+  router.visit(route('qu.questions.edit', question.id));
 };
 
 const confirmDelete = (question) => {
@@ -334,7 +342,7 @@ const confirmDelete = (question) => {
 };
 
 const deleteQuestion = () => {
-  router.delete(route('qu-questions.destroy', questionToDelete.value.id), {
+  router.delete(route('qu.questions.destroy', questionToDelete.value.id), {
     onSuccess: () => {
       deleteDialog.value = false;
       questionToDelete.value = null;
@@ -374,5 +382,14 @@ const getBloomIcon = (level) => {
 const onQuestionCreated = () => {
   createDialog.value = false;
   router.reload({ only: ['questions'] });
+};
+
+const createQuiz = () => {
+  // Navigate to the create exam/quiz page, passing along the subject filter if available
+  if (localFilters.subject_id) {
+    router.visit(route('qu.exams.create', { subject_id: localFilters.subject_id }));
+  } else {
+    router.visit(route('qu.exams.create'));
+  }
 };
 </script>

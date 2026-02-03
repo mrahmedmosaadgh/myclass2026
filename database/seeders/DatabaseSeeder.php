@@ -33,7 +33,10 @@ class DatabaseSeeder extends Seeder
             // Step 3.5: Create Menus
             V2MenuSeeder::class,
             
-            // Step 4: Create school structure (sections, stages, grades, subjects, etc.)
+            // Step 4: Create skill demos
+            SkillDemoSeeder::class,
+            
+            // Step 5: Create school structure (sections, stages, grades, subjects, etc.)
             // InitialSchoolStructureSeeder::class,
         ]);
 

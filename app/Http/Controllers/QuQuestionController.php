@@ -38,7 +38,7 @@ class QuQuestionController extends Controller
     public function create()
     {
         return Inertia::render('my_class/QuQuestionBankSystem/QuQuestionForm', [
-            'subjects' => Subject::with('curricula.curriculumTopics')->get(),
+            'subjects' => Subject::with('curricula.topics')->get(),
         ]);
     }
 
@@ -63,7 +63,7 @@ class QuQuestionController extends Controller
 
         QuQuestion::create($validated);
 
-        return redirect()->route('qu-questions.index')
+        return redirect()->route('qu.questions.index')
             ->with('success', 'Question created successfully');
     }
 
@@ -88,7 +88,7 @@ class QuQuestionController extends Controller
 
         return Inertia::render('my_class/QuQuestionBankSystem/QuQuestionForm', [
             'question' => $question,
-            'subjects' => Subject::with('curricula.curriculumTopics')->get(),
+            'subjects' => Subject::with('curricula.topics')->get(),
         ]);
     }
 
@@ -111,7 +111,7 @@ class QuQuestionController extends Controller
 
         $question->update($validated);
 
-        return redirect()->route('qu-questions.index')
+        return redirect()->route('qu.questions.index')
             ->with('success', 'Question updated successfully');
     }
 
@@ -122,7 +122,7 @@ class QuQuestionController extends Controller
     {
         $question->delete();
 
-        return redirect()->route('qu-questions.index')
+        return redirect()->route('qu.questions.index')
             ->with('success', 'Question deleted successfully');
     }
 
@@ -175,11 +175,156 @@ class QuQuestionController extends Controller
 
             DB::commit();
 
-            return redirect()->route('qu-questions.index')
+            return redirect()->route('qu.questions.index')
                 ->with('success', "Successfully imported {$imported} questions" . ($failed > 0 ? ", {$failed} failed" : ''));
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->withErrors(['error' => 'Bulk import failed: ' . $e->getMessage()]);
         }
+    }
+
+    /**
+     * API endpoint to get questions for quiz builder
+     */
+    public function apiIndex(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'subject_id' => 'sometimes|integer|exists:subjects,id',
+                'topic_id' => 'sometimes|integer|exists:curriculum_topics,id',
+                'difficulty' => 'sometimes|string|in:easy,medium,hard',
+                'bloom_level' => 'sometimes|string|in:remember,understand,apply,analyze,evaluate,create',
+                'question_type' => 'sometimes|string|in:mcq,true_false,short,long',
+                'search' => 'sometimes|string|max:255',
+                'per_page' => 'sometimes|integer|min:1|max:100',
+                'page' => 'sometimes|integer|min:1',
+            ]);
+
+            $query = QuQuestion::with(['subject', 'topic', 'creator']);
+
+            // Apply filters
+            if (isset($validated['subject_id'])) {
+                $query->where('subject_id', $validated['subject_id']);
+            }
+
+            if (isset($validated['topic_id'])) {
+                $query->where('topic_id', $validated['topic_id']);
+            }
+
+            if (isset($validated['difficulty'])) {
+                $query->where('difficulty', strtolower($validated['difficulty']));
+            }
+
+            if (isset($validated['bloom_level'])) {
+                $query->where('bloom_level', strtolower($validated['bloom_level']));
+            }
+
+            if (isset($validated['question_type'])) {
+                $query->where('question_type', $validated['question_type']);
+            }
+
+            // Search in question text
+            if (isset($validated['search'])) {
+                $query->where('question_text', 'like', '%' . $validated['search'] . '%');
+            }
+
+            // Paginate results
+            $perPage = $validated['per_page'] ?? 20;
+            $questions = $query->latest()->paginate($perPage);
+
+            // Transform the data to match the expected format for QuizBuilder
+            $transformedQuestions = $questions->getCollection()->map(function ($question) {
+                // Transform options to the expected format
+                $options = [];
+                if ($question->options && is_array($question->options)) {
+                    foreach ($question->options as $index => $option) {
+                        $options[] = [
+                            'id' => $index + 1,
+                            'option_key' => chr(65 + $index), // A, B, C, D
+                            'option_text' => $option,
+                            'is_correct' => in_array($index, (array) $question->correct_answer),
+                            'order_index' => $index
+                        ];
+                    }
+                }
+
+                return [
+                    'id' => $question->id,
+                    'question_text' => $question->question_text,
+                    'question_type_id' => $this->mapQuestionType($question->question_type),
+                    'difficulty' => ucfirst($question->difficulty ?: 'medium'),
+                    'bloom_level' => $this->mapBloomLevel($question->bloom_level),
+                    'subject_id' => $question->subject_id,
+                    'topic_id' => $question->topic_id,
+                    'grade_id' => $question->subject ? $question->subject->grade_id : null,
+                    'author_id' => $question->created_by,
+                    'status' => 'active',
+                    'usage_count' => 0, // QuQuestion doesn't track usage yet
+                    'avg_success_rate' => null,
+                    'points' => $question->marks ?: 1,
+                    'options' => $options,
+                    'subject' => $question->subject ? [
+                        'id' => $question->subject->id,
+                        'name' => $question->subject->name
+                    ] : null,
+                    'topic' => $question->topic ? [
+                        'id' => $question->topic->id,
+                        'name' => $question->topic->name
+                    ] : null,
+                    'author' => $question->creator ? [
+                        'id' => $question->creator->id,
+                        'name' => $question->creator->name
+                    ] : null,
+                    'created_at' => $question->created_at,
+                    'updated_at' => $question->updated_at,
+                ];
+            });
+
+            $questions->setCollection($transformedQuestions);
+
+            return response()->json([
+                'success' => true,
+                'data' => $questions,
+                'message' => 'Questions retrieved successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve questions: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Map QuQuestion type to numeric ID
+     */
+    private function mapQuestionType($questionType)
+    {
+        $typeMap = [
+            'mcq' => 1,
+            'true_false' => 2,
+            'short' => 3,
+            'long' => 4
+        ];
+        return $typeMap[$questionType] ?? 1;
+    }
+
+    /**
+     * Map Bloom's taxonomy level to numeric string
+     */
+    private function mapBloomLevel($bloomLevel)
+    {
+        if (!$bloomLevel) return null;
+        
+        $bloomMap = [
+            'remember' => '1',
+            'understand' => '2',
+            'apply' => '3',
+            'analyze' => '4',
+            'evaluate' => '5',
+            'create' => '6'
+        ];
+        return $bloomMap[strtolower($bloomLevel)] ?? null;
     }
 }

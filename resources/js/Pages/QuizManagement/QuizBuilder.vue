@@ -565,18 +565,23 @@ const averageDifficulty = computed(() => {
 const fetchQuestions = async () => {
   loadingQuestions.value = true;
   try {
-    const response = await axios.get('/api/questions', {
-      params: {
-        grade_level_id: quiz.value.grade_id,
-        subject_id: quiz.value.subject_id,
-        status: 'active',
-        per_page: 100 // Get more questions for the pool
-      }
-    });
+    // Build params object for QuQuestion API
+    const params = {
+      per_page: 100 // Get more questions for the pool
+    };
+    
+    // Add filters if they exist
+    if (quiz.value.subject_id) {
+      params.subject_id = quiz.value.subject_id;
+    }
+    
+    const response = await axios.get('/api/qu-questions', { params });
     
     // Handle the response structure: { success: true, data: { data: [...], ...pagination } }
     if (response.data.success && response.data.data) {
-      poolQuestions.value = response.data.data.data || [];
+      // Transform QuQuestion data to match expected format
+      const questions = response.data.data.data || [];
+      poolQuestions.value = questions.map(transformQuQuestionToQuestion);
       originalPoolSize.value = poolQuestions.value.length;
     } else {
       poolQuestions.value = [];
@@ -596,25 +601,120 @@ const fetchQuestions = async () => {
   }
 };
 
+// Transform QuQuestion data to match the expected Question format
+const transformQuQuestionToQuestion = (quQuestion) => {
+  return {
+    id: quQuestion.id,
+    question_text: quQuestion.question_text,
+    question_type_id: getQuestionTypeId(quQuestion.question_type),
+    difficulty: mapDifficulty(quQuestion.difficulty),
+    bloom_level: mapBloomLevel(quQuestion.bloom_level),
+    subject_id: quQuestion.subject_id,
+    topic_id: quQuestion.topic_id,
+    grade_id: quQuestion.subject?.grade_id || null,
+    author_id: quQuestion.created_by,
+    status: 'active',
+    usage_count: quQuestion.usage_count || 0,
+    avg_success_rate: null,
+    points: quQuestion.marks || 1,
+    options: transformQuQuestionOptions(quQuestion.options, quQuestion.correct_answer),
+    subject: quQuestion.subject,
+    topic: quQuestion.topic,
+    author: quQuestion.creator,
+    created_at: quQuestion.created_at,
+    updated_at: quQuestion.updated_at,
+  };
+};
+
+// Helper function to map question types
+const getQuestionTypeId = (questionType) => {
+  const typeMap = {
+    'mcq': 1,
+    'true_false': 2,
+    'short': 3,
+    'long': 4
+  };
+  return typeMap[questionType] || 1;
+};
+
+// Helper function to map difficulty levels
+const mapDifficulty = (difficulty) => {
+  if (!difficulty) return 'Medium';
+  return difficulty.charAt(0).toUpperCase() + difficulty.slice(1).toLowerCase();
+};
+
+// Helper function to map Bloom's taxonomy levels
+const mapBloomLevel = (bloomLevel) => {
+  if (!bloomLevel) return null;
+  const bloomMap = {
+    'remember': '1',
+    'understand': '2',
+    'apply': '3',
+    'analyze': '4',
+    'evaluate': '5',
+    'create': '6'
+  };
+  return bloomMap[bloomLevel.toLowerCase()] || null;
+};
+
+// Helper function to transform QuQuestion options to expected format
+const transformQuQuestionOptions = (options, correctAnswers) => {
+  if (!options || !Array.isArray(options)) return [];
+  
+  const correctAnswerArray = Array.isArray(correctAnswers) ? correctAnswers : [correctAnswers];
+  
+  return options.map((option, index) => ({
+    id: index + 1,
+    option_key: String.fromCharCode(65 + index), // A, B, C, D
+    option_text: option,
+    is_correct: correctAnswerArray.includes(index),
+    order_index: index
+  }));
+};
+
 const fetchMetadata = async () => {
   try {
-    const [typesRes, topicsRes, gradesRes, subjectsRes] = await Promise.all([
-      axios.get('/api/question-types'),
+    const [topicsRes, gradesRes, subjectsRes] = await Promise.all([
       axios.get('/api/topics'),
       axios.get('/api/grades'),
       axios.get('/api/subjects')
     ]);
     
-    questionTypes.value = typesRes.data;
+    // Question types for QuQuestion system
+    questionTypes.value = [
+      { id: 1, name: 'Multiple Choice' },
+      { id: 2, name: 'True/False' },
+      { id: 3, name: 'Short Answer' },
+      { id: 4, name: 'Long Answer' }
+    ];
+    
     topics.value = topicsRes.data;
     grades.value = gradesRes.data;
     subjects.value = subjectsRes.data;
     
-    // Mock authors data since the endpoint doesn't exist yet
-    authors.value = [
-      { id: '1', name: 'System Generated' },
-      { id: '2', name: 'Teacher Created' }
-    ];
+    // Get authors from QuQuestion system
+    try {
+      const authorsRes = await axios.get('/api/qu-questions', { params: { per_page: 100 } });
+      if (authorsRes.data.success && authorsRes.data.data) {
+        // Extract unique authors from questions
+        const questions = authorsRes.data.data.data || [];
+        const uniqueAuthors = questions.reduce((acc, question) => {
+          if (question.author && !acc.find(a => a.id === question.author.id)) {
+            acc.push({
+              id: question.author.id,
+              name: question.author.name
+            });
+          }
+          return acc;
+        }, []);
+        authors.value = uniqueAuthors;
+      } else {
+        authors.value = [];
+      }
+    } catch (error) {
+      console.warn('Failed to fetch authors:', error);
+      authors.value = [];
+    }
     
     // Update filter store with available options
     setAvailableOptions({

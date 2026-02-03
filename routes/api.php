@@ -251,6 +251,9 @@ Route::middleware(['auth:sanctum', 'web'])->group(function () {
     Route::get('/grades', [App\Http\Controllers\GradeController::class, 'apiIndex']);
     Route::get('/subjects', [App\Http\Controllers\SubjectController::class, 'apiIndex']);
     Route::get('/topics', [App\Http\Controllers\SubjectController::class, 'getTopics']);
+    
+    // QuQuestion API endpoint for quiz builder
+    Route::get('/qu-questions', [App\Http\Controllers\QuQuestionController::class, 'apiIndex']);
 });
 
 // Curriculum Management API Routes

@@ -316,92 +316,12 @@
       <div class="text-h6 q-mt-lg">Question Selection</div>
       <q-separator />
 
-      <q-btn-toggle
-        v-model="questionSelectionMode"
-        :options="[
-          { label: 'Auto-selection (Bloom)', value: 'auto' },
-          { label: 'Manual Selection', value: 'manual' }
-        ]"
-        toggle-color="primary"
-        @update:model-value="onSelectionModeChange"
-      />
-
-      <!-- Auto-selection Mode -->
-      <div v-if="questionSelectionMode === 'auto'" class="q-mt-md">
-        <div class="text-subtitle2 q-mb-md">Bloom's Taxonomy Distribution</div>
-        <div class="row q-gutter-md">
-          <q-input
-            v-for="level in bloomLevels"
-            :key="level"
-            v-model.number="form.bloom_distribution[level]"
-            :label="capitalizeFirst(level)"
-            type="number"
-            min="0"
-            style="max-width: 150px"
-            @update:model-value="calculateTotalQuestions"
-          >
-            <template v-slot:prepend>
-              <q-icon :name="getBloomIcon(level)" color="purple" />
-            </template>
-          </q-input>
-        </div>
-
-        <q-banner v-if="totalQuestionsFromBloom > 0" class="bg-blue-1 q-mt-md">
-          <template v-slot:avatar>
-            <q-icon name="info" color="blue" />
-          </template>
-          Total Questions: {{ totalQuestionsFromBloom }} | Estimated Marks: {{ totalQuestionsFromBloom * 2 }}
-        </q-banner>
-
-        <q-banner v-if="bloomWarning" class="bg-orange-1 q-mt-md">
-          <template v-slot:avatar>
-            <q-icon name="warning" color="orange" />
-          </template>
-          {{ bloomWarning }}
-        </q-banner>
-      </div>
-
-      <!-- Manual Selection Mode -->
-      <div v-if="questionSelectionMode === 'manual'" class="q-mt-md">
-        <q-btn
-          color="secondary"
-          label="Select Questions"
-          icon="checklist"
-          @click="openQuestionSelector"
-        />
-
-        <div v-if="selectedQuestions.length > 0" class="q-mt-md">
-          <div class="text-subtitle2">Selected Questions: {{ selectedQuestions.length }}</div>
-          <q-list bordered separator class="q-mt-sm">
-            <q-item v-for="(question, index) in selectedQuestions" :key="question.id">
-              <q-item-section avatar>
-                <q-avatar color="primary" text-color="white">{{ index + 1 }}</q-avatar>
-              </q-item-section>
-              <q-item-section>
-                <q-item-label>{{ truncateText(question.question_text, 80) }}</q-item-label>
-                <q-item-label caption>{{ question.marks }} marks</q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                <q-btn
-                  flat
-                  dense
-                  round
-                  color="negative"
-                  icon="close"
-                  @click="removeQuestion(index)"
-                />
-              </q-item-section>
-            </q-item>
-          </q-list>
-
-          <q-banner class="bg-green-1 q-mt-md">
-            <template v-slot:avatar>
-              <q-icon name="check_circle" color="green" />
-            </template>
-            Total Marks: {{ totalMarksFromQuestions }}
-          </q-banner>
-        </div>
-      </div>
+      <q-banner inline-actions class="bg-warning text-center">
+        <template v-slot:avatar>
+          <q-icon name="warning" color="orange" />
+        </template>
+        Question selection is temporarily disabled during creation. Save the exam first, then add questions later.
+      </q-banner>
 
       <!-- Actions -->
       <div class="q-mt-lg q-gutter-sm">
@@ -435,12 +355,15 @@
     </q-form>
 
     <!-- Question Selector Dialog -->
+    <!-- Commented out as question selection is disabled during form creation -->
+    <!-- 
     <QuExamQuestionSelector
       v-model="questionSelectorDialog"
       :subject-id="form.subject_id || selectedSubjectId"
       :selected-questions="selectedQuestions"
       @update:selected-questions="onQuestionsSelected"
     />
+    -->
   </div>
 </template>
 
@@ -561,22 +484,12 @@ watch(audienceType, (newVal) => {
   }
 });
 
-const initialSelectionMode = props.exam?.bloom_distribution && Object.values(props.exam.bloom_distribution).some(val => val > 0)
-  ? 'auto'
-  : (props.exam ? 'manual' : 'auto');
-
-const questionSelectionMode = ref(initialSelectionMode);
-const selectedQuestions = ref(props.exam?.questions || []);
-const questionSelectorDialog = ref(false);
 const isScheduled = ref(!!(props.exam?.start_date || props.exam?.end_date));
 const maxAttemptsOption = ref(
   props.exam?.max_attempts === null ? 'unlimited' :
   [1, 2, 3].includes(props.exam?.max_attempts) ? props.exam.max_attempts :
   'custom'
 );
-const bloomWarning = ref('');
-
-const bloomLevels = ['remember', 'understand', 'apply', 'analyze', 'evaluate', 'create'];
 
 const examTypeOptions = props.examTypes.map(type => ({
   value: type,
@@ -616,23 +529,16 @@ const totalMarksFromQuestions = computed(() => {
 const canPublish = computed(() => {
   if (!form.title || form.title.length < 10) return false;
   if (!form.subject_id) return false;
-  if (questionSelectionMode.value === 'auto' && totalQuestionsFromBloom.value === 0) return false;
-  if (questionSelectionMode.value === 'manual' && selectedQuestions.value.length === 0) return false;
   if (isScheduled.value && form.start_date && form.end_date) {
     if (new Date(form.end_date) <= new Date(form.start_date)) return false;
   }
+  // Don't require questions during initial creation anymore
   return true;
 });
 
 const publishValidationMessage = computed(() => {
   if (!form.title || form.title.length < 10) return 'Title must be at least 10 characters';
   if (!form.subject_id) return 'Subject is required';
-  if (questionSelectionMode.value === 'auto' && totalQuestionsFromBloom.value === 0) {
-    return 'Please specify Bloom distribution';
-  }
-  if (questionSelectionMode.value === 'manual' && selectedQuestions.value.length === 0) {
-    return 'Please select at least one question';
-  }
   if (isScheduled.value && form.start_date && form.end_date) {
     if (new Date(form.end_date) <= new Date(form.start_date)) {
       return 'End date must be after start date';
@@ -640,12 +546,6 @@ const publishValidationMessage = computed(() => {
   }
   return '';
 });
-
-const calculateTotalQuestions = () => {
-  // This would ideally check available questions in the database
-  // For now, just show the total
-  form.total_marks = totalQuestionsFromBloom.value * 2; // Estimate
-};
 
 const onExamTypeChange = () => {
   if (form.exam_type === 'survey') {
@@ -668,45 +568,6 @@ const onScheduleToggle = (value) => {
   }
 };
 
-const onSelectionModeChange = () => {
-  // Reset the other mode's data
-  if (questionSelectionMode.value === 'auto') {
-    selectedQuestions.value = [];
-  } else {
-    form.bloom_distribution = {
-      remember: 0,
-      understand: 0,
-      apply: 0,
-      analyze: 0,
-      evaluate: 0,
-      create: 0
-    };
-  }
-};
-
-const openQuestionSelector = () => {
-  if (!form.subject_id && !props.selectedSubjectId) {
-    $q.notify({
-      type: 'warning',
-      message: 'Please select a subject first',
-      position: 'top'
-    });
-    return;
-  }
-  questionSelectorDialog.value = true;
-};
-
-const onQuestionsSelected = (questions) => {
-  selectedQuestions.value = questions;
-  form.question_ids = questions.map(q => q.id);
-  form.total_marks = totalMarksFromQuestions.value;
-};
-
-const removeQuestion = (index) => {
-  selectedQuestions.value.splice(index, 1);
-  form.question_ids = selectedQuestions.value.map(q => q.id);
-  form.total_marks = totalMarksFromQuestions.value;
-};
 
 const onCancel = () => {
   emit('cancel');
@@ -716,10 +577,17 @@ const onCancel = () => {
 };
 
 const submitForm = () => {
-  // Prepare data based on selection mode
-  if (questionSelectionMode.value === 'manual') {
-    form.bloom_distribution = null;
-  } else {
+  // Always reset bloom_distribution and question_ids to empty during creation
+  // This ensures the exam can be saved without questions initially
+  if (!props.exam) { // Only for new exams
+    form.bloom_distribution = {
+      remember: 0,
+      understand: 0,
+      apply: 0,
+      analyze: 0,
+      evaluate: 0,
+      create: 0
+    };
     form.question_ids = [];
   }
 
@@ -768,4 +636,14 @@ function getBloomIcon(level) {
   };
   return icons[level] || 'help';
 }
+
+// Remove unused computed properties
+// These were used only for question selection which has been disabled
+// const totalQuestionsFromBloom = computed(() => {
+//   return Object.values(form.bloom_distribution).reduce((sum, count) => sum + (count || 0), 0);
+// });
+
+// const totalMarksFromQuestions = computed(() => {
+//   return selectedQuestions.value.reduce((sum, q) => sum + (q.marks || 0), 0);
+// });
 </script>

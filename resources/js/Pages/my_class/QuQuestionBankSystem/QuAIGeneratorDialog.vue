@@ -479,7 +479,7 @@ const selectedCount = computed(() => {
 if (props.subjectId) {
   const subject = props.subjects.find(s => s.id == props.subjectId);
   if (subject?.curricula) {
-    topics.value = subject.curricula.flatMap(c => c.curriculum_topics || []);
+    topics.value = subject.curricula.flatMap(c => c.topics || []);
   }
 }
 

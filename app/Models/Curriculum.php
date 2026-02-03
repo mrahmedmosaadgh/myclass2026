@@ -51,6 +51,12 @@ class Curriculum extends Model
         return $this->hasMany(\App\Models\my_class\Curriculums\CurriculumTopic::class)->orderBy('number');
     }
 
+    // Alias for backward compatibility
+    public function curriculumTopics(): HasMany
+    {
+        return $this->topics();
+    }
+
     public function lessonPlans(): HasMany
     {
         return $this->hasMany(CurriculumLessonPlan::class);

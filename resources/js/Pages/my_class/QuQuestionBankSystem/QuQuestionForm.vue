@@ -194,7 +194,7 @@
             <q-btn 
               flat 
               label="Cancel" 
-              @click="$inertia.visit(route('qu-questions.index'))"
+              @click="emit('cancel')"
             />
           </div>
         </q-form>
@@ -217,7 +217,7 @@ const props = defineProps({
   selectedSubjectId: [Number, String]
 });
 
-const emit = defineEmits(['success']);
+const emit = defineEmits(['success', 'cancel']);
 
 const topics = ref([]);
 
@@ -258,7 +258,7 @@ const loadTopics = (subjectId) => {
     if (subject && subject.curricula) {
       // Flatten all topics from all curricula
       topics.value = subject.curricula.flatMap(curriculum => 
-        curriculum.curriculum_topics || []
+        curriculum.topics || []
       );
     }
   } else {
@@ -320,7 +320,7 @@ const submitForm = () => {
   }
 
   if (props.question) {
-    form.put(route('qu-questions.update', props.question.id), {
+    form.put(route('qu.questions.update', props.question.id), {
       onSuccess: () => {
         $q.notify({
           type: 'positive',
@@ -340,7 +340,7 @@ const submitForm = () => {
       }
     });
   } else {
-    form.post(route('qu-questions.store'), {
+    form.post(route('qu.questions.store'), {
       onSuccess: () => {
         $q.notify({
           type: 'positive',
@@ -348,6 +348,14 @@ const submitForm = () => {
           icon: 'check_circle',
           position: 'top'
         });
+        // Reset form for next question
+        form.reset();
+        form.question_text = '';
+        form.options = { A: '', B: '', C: '', D: '' };
+        form.correct_answer = [];
+        form.difficulty = 'medium';
+        form.bloom_level = null;
+        form.marks = 1;
         emit('success');
       },
       onError: (errors) => {
