@@ -20,6 +20,25 @@
                 </q-popup-edit>
                 <q-icon name="edit" size="xs" class="q-ml-xs opacity-50" />
              </div>
+             <!-- Unsaved changes indicator -->
+             <q-badge 
+               v-if="hasUnsavedChanges && !isSaving" 
+               color="orange" 
+               text-color="white" 
+               icon="warning"
+               class="q-ml-sm"
+             >
+               Unsaved changes
+             </q-badge>
+             <q-badge 
+               v-else-if="isSaving" 
+               color="blue" 
+               text-color="white" 
+               icon="sync"
+               class="q-ml-sm"
+             >
+               Saving...
+             </q-badge>
              <q-badge color="white" text-color="primary" :label="currentGradeName" v-if="presentation.grade_id" />
            </div>
            <div class="text-caption text-blue-2 cursor-pointer ellipsis" style="max-width: 300px;">
@@ -38,50 +57,62 @@
             
             <q-separator vertical dark class="q-mx-sm" />
 
-            <q-btn flat round dense icon="content_copy" @click="duplicateLesson" v-if="activeId">
-               <q-tooltip>Duplicate</q-tooltip>
-            </q-btn>
-            
+            <!-- Auto-save indicator -->
+            <div class="column items-center q-mx-sm" v-if="autoSaveEnabled">
+              <q-icon 
+                :name="isAutoSaving ? 'sync' : hasUnsavedChanges ? 'circle' : 'check_circle'" 
+                :color="isAutoSaving ? 'orange' : hasUnsavedChanges ? 'red' : 'green'"
+                size="sm"
+              >
+                <q-tooltip>
+                  {{ isAutoSaving ? 'Auto-saving...' : hasUnsavedChanges ? 'Unsaved changes' : 'All changes saved' }}
+                </q-tooltip>
+              </q-icon>
+              <div class="text-caption text-grey-3" style="font-size: 10px;">
+                {{ autoSaveStatus }}
+              </div>
+            </div>
+
             <q-btn 
-              flat 
-              round 
-              dense 
-              icon="auto_awesome" 
-              @click="openAILessonGenerator"
-              style="background: linear-gradient(to right, #9333ea, #4f46e5);"
-              class="text-white"
+              unelevated 
+              color="positive" 
+              icon="save" 
+              label="Save" 
+              @click="savePresentation" 
+              :loading="isSaving"
+              :disable="!hasUnsavedChanges || isSaving"
+              size="sm"
+              class="q-px-sm"
             >
-               <q-tooltip>Generate with AI</q-tooltip>
+              <q-tooltip v-if="!hasUnsavedChanges">
+                No changes to save
+              </q-tooltip>
+              <q-tooltip v-else-if="isSaving">
+                Saving...
+              </q-tooltip>
+              <q-tooltip v-else>
+                Save lesson (Ctrl+S)
+              </q-tooltip>
             </q-btn>
-            
-            <q-separator vertical dark class="q-mx-sm" />
-            
-            <q-btn flat round dense icon="download" @click="exportLessonAsJSON" color="accent">
-               <q-tooltip>Export Lesson as JSON</q-tooltip>
-            </q-btn>
-            <q-btn flat round dense icon="upload" @click="importLessonFromJSON" color="secondary">
-               <q-tooltip>Import Lesson from JSON</q-tooltip>
-            </q-btn>
-            
-            <q-separator vertical dark class="q-mx-sm" />
 
             <q-btn flat round dense icon="emoji_events" @click="showRewardDialog = true; isRewardMinimized = false" color="warning">
                <q-tooltip>Reward System</q-tooltip>
             </q-btn>
-            
-            <q-separator vertical dark class="q-mx-sm" />
-            
-            <q-btn flat round dense icon="visibility" @click="showPreview = true" :disable="!activeId">
-               <q-tooltip>Preview</q-tooltip>
-            </q-btn>
-            
-            <q-btn flat round dense icon="print" @click="openPrintDialog" :disable="!activeId || slides.length === 0" color="deep-orange">
-               <q-tooltip>Print Lesson Plan</q-tooltip>
-            </q-btn>
-            
-            <q-btn unelevated color="positive" icon="save" label="Save" @click="savePresentation" :loading="isSaving" />
         </div>
       </q-toolbar>
+
+      <!-- Saving Progress Bar -->
+      <q-linear-progress 
+        v-if="isSaving || saveProgress.visible" 
+        :value="saveProgress.percentage" 
+        color="secondary" 
+        class="saving-progress-bar"
+        instant-feedback
+      >
+        <div class="absolute-full flex flex-center text-white text-caption">
+          {{ saveProgress.message }}
+        </div>
+      </q-linear-progress>
     </q-header>
 
     <!-- Sidebar Drawer -->
@@ -102,7 +133,7 @@
 
     <!-- Main Content -->
     <q-page-container>
-      <q-page class="q-pa-md bg-grey-2 row justify-center">
+      <q-page class="q-pa-md bg-grey-2 row justify-center" ref="pageContainer">
         <!-- Editor Area -->
          <div class="col-12 col-lg-10" style="max-width: 1200px">
            <transition
@@ -201,6 +232,13 @@
                  <div class="text-subtitle1 q-mt-sm">Choose a section on the left to start editing</div>
               </div>
           </transition>
+           
+           <!-- Place QPageScroller at end of page -->
+           <q-page-scroller position="bottom-right" :scroll-offset="150" :offset="[18, 18]">
+             <q-btn fab icon="keyboard_arrow_up" color="accent">
+               <q-tooltip>Scroll to top</q-tooltip>
+             </q-btn>
+           </q-page-scroller>
          </div>
       </q-page>
     </q-page-container>
@@ -368,13 +406,27 @@ const currentSection_data = ref(null);
 const slides = ref([]);
 const currentSlideIndex = ref(0);
 const isSaving = ref(false);
+const saveProgress = ref({
+  visible: false,
+  percentage: 0,
+  message: ''
+});
 const showPreview = ref(false);
 const aiLessonGenerator = ref(null);
 const printLessonPlan = ref(null);
-const showSectionsDrawerRaw = ref(true); // Closed by default on mobile, show-if-above handles desktop
+const showSectionsDrawerRaw = ref(true);
 const showSlideListDialog = ref(true);
 const showRewardDialog = ref(false);
 const isRewardMinimized = ref(false);
+
+// Auto-save functionality
+const autoSaveEnabled = ref(true);
+const autoSaveTimer = ref(null);
+const autoSaveInterval = ref(300000); // Increased to 5 minutes (300,000 ms)
+const isAutoSaving = ref(false);
+const autoSaveStatus = ref('Auto-save every 5 minutes');
+const lastSavedData = ref(null);
+const hasUnsavedChanges = ref(false); // Track overall unsaved changes state
 
 // Computed config for AI Generator
 const lessonConfigForAI = computed(() => ({
@@ -424,6 +476,56 @@ const currentGradeName = computed(() => {
   return grade ? grade.name : 'Unknown Grade';
 });
 
+// Computed properties for slide change tracking
+const slidesWithChanges = computed(() => {
+  return slides.value.filter(slide => slide.hasChanges || isSlideChanged(slide));
+});
+
+const changedSlidesCount = computed(() => {
+  return slidesWithChanges.value.length;
+});
+
+// Helper functions for slide change tracking
+const isSlideChanged = (slide) => {
+  // New slides without initial state are always considered changed
+  if (!slide._initialState) {
+    return slide.hasChanges || true;
+  }
+  
+  try {
+    const currentState = {
+      slide_type: slide.slide_type,
+      slide_content: slide.slide_content,
+      section: slide.section,
+      order_index: slide.order_index
+    };
+    
+    return JSON.stringify(currentState) !== JSON.stringify(slide._initialState);
+  } catch (error) {
+    console.warn('Error comparing slide state:', error);
+    return true; // Assume changed if comparison fails
+  }
+};
+
+const updateSlideChangeStatus = (slide) => {
+  slide.hasChanges = isSlideChanged(slide);
+};
+
+const resetSlideChangeTracking = () => {
+  slides.value.forEach(slide => {
+    if (slide.id) {
+      // For existing slides, update their initial state
+      slide._initialState = JSON.parse(JSON.stringify({
+        slide_type: slide.slide_type,
+        slide_content: slide.slide_content,
+        section: slide.section,
+        order_index: slide.order_index
+      }));
+    }
+    slide.hasChanges = false;
+  });
+};
+
 const getSlideComponent = (type) => {
   switch (type) {
     case 'text': return TextSlide;
@@ -453,15 +555,37 @@ const getSlideSummary = (slide) => {
   return `${slide.slide_type} content`;
 };
 
+// Enhanced slide initialization with change tracking
+const initializeSlideWithTracking = (slideData) => {
+  return {
+    ...slideData,
+    section: slideData.section || 'learn',
+    // Add change tracking property
+    hasChanges: false,
+    // Store initial state for comparison
+    _initialState: JSON.parse(JSON.stringify({
+      slide_type: slideData.slide_type,
+      slide_content: slideData.slide_content || {},
+      section: slideData.section || 'learn',
+      order_index: slideData.order_index || 0
+    }))
+  };
+};
+
 const addSlide = () => {
   const newSlide = {
     slide_type: 'text',
     slide_content: {},
-    section: currentSection.value // Assign to current section
+    section: currentSection.value,
+    hasChanges: true, // New slides are considered changed
+    _initialState: null // No initial state for new slides
   };
   slides.value.push(newSlide);
   // Set index to the last slide in the filtered list
   currentSlideIndex.value = filteredSlides.value.length - 1;
+  
+  // Mark overall lesson as having changes
+  hasUnsavedChanges.value = true;
 };
 
 const deleteSlide = (slideToDelete) => {
@@ -475,7 +599,7 @@ const deleteSlide = (slideToDelete) => {
       color: 'negative',
       flat: true
     },
-    cancel: {
+      cancel: {
       label: 'Cancel',
       color: 'grey',
       flat: true
@@ -495,6 +619,9 @@ const deleteSlide = (slideToDelete) => {
         // No slides left in this section
         currentSlideIndex.value = 0;
       }
+      
+      // Mark overall lesson as having changes
+      hasUnsavedChanges.value = true;
       
       $q.notify({
         type: 'positive',
@@ -526,16 +653,52 @@ const nextSlide = () => {
   }
 };
 
-// Keyboard navigation
-const handleKeyboard = (e) => {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+// Keyboard navigation and shortcuts
+const handleKeyboard = (event) => {
+  // Ctrl+S to save
+  if (event.ctrlKey && event.key === 's') {
+    event.preventDefault();
+    if (hasUnsavedChanges.value && !isSaving.value) {
+      savePresentation();
+    }
+    return;
+  }
   
-  if (e.key === 'ArrowLeft') {
-    e.preventDefault();
-    previousSlide();
-  } else if (e.key === 'ArrowRight') {
-    e.preventDefault();
-    nextSlide();
+  // Ctrl+Shift+S for auto-save toggle
+  if (event.ctrlKey && event.shiftKey && event.key === 'S') {
+    event.preventDefault();
+    toggleAutoSave();
+    return;
+  }
+  
+  // Arrow key navigation (only when not in input fields)
+  if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') return;
+  
+  switch(event.key) {
+    case 'ArrowLeft':
+      if (currentSlideIndex.value > 0) {
+        currentSlideIndex.value--;
+      } else if (sections.value.findIndex(s => s.id === currentSection.value) > 0) {
+        // Move to previous section's last slide
+        const currentSectionIndex = sections.value.findIndex(s => s.id === currentSection.value);
+        currentSection.value = sections.value[currentSectionIndex - 1].id;
+        currentSlideIndex.value = filteredSlides.value.length - 1;
+        // Scroll to top when switching sections
+        setTimeout(() => scrollToTop(), 100);
+      }
+      break;
+    case 'ArrowRight':
+      if (currentSlideIndex.value < filteredSlides.value.length - 1) {
+        currentSlideIndex.value++;
+      } else if (sections.value.findIndex(s => s.id === currentSection.value) < sections.value.length - 1) {
+        // Move to next section's first slide
+        const currentSectionIndex = sections.value.findIndex(s => s.id === currentSection.value);
+        currentSection.value = sections.value[currentSectionIndex + 1].id;
+        currentSlideIndex.value = 0;
+        // Scroll to top when switching sections
+        setTimeout(() => scrollToTop(), 100);
+      }
+      break;
   }
 };
 
@@ -654,82 +817,109 @@ const validatePresentation = () => {
   return true;
 };
 
-const savePresentation = async () => {
-  if (!validatePresentation()) return;
+// Enhanced change detection that works with slide-level tracking
+let changeDetectionTimeout = null;
+let lastChangeDetectionTime = 0;
 
-  isSaving.value = true;
+const checkForChanges = () => {
+  const currentTime = Date.now();
+  
+  // Throttle change detection to prevent excessive calls
+  if (currentTime - lastChangeDetectionTime < 500) {
+    return;
+  }
+  
+  lastChangeDetectionTime = currentTime;
+  
+  if (!lastSavedData.value) {
+    hasUnsavedChanges.value = true;
+    return;
+  }
+  
   try {
-    const payload = {
-      ...presentation.value,
-      // Ensure we send necessary fields for validation
-      school_id: props.defaultContext.school_id,
-      teacher_id: props.defaultContext.teacher_id,
-      subject_id: props.defaultContext.subject_id,
-      grade_id: presentation.value.grade_id || props.defaultContext.grade_id,
-    };
-
-    let response;
-    if (activeId.value) {
-      // Update existing
-      response = await axios.put(route('lesson-presentation.update', { id: activeId.value }), payload);
-    } else {
-      // Create new
-      response = await axios.post(route('lesson-presentation.store'), payload);
+    // Check for slide-level changes
+    slides.value.forEach(updateSlideChangeStatus);
+    
+    // Overall change detection using slide change status
+    const hasSlideChanges = slides.value.some(slide => 
+      slide.hasChanges || isSlideChanged(slide)
+    );
+    
+    // Check presentation-level changes
+    const presentationChanged = (
+      presentation.value.name !== lastSavedData.value.presentation.name ||
+      presentation.value.description !== lastSavedData.value.presentation.description ||
+      presentation.value.grade_id !== lastSavedData.value.presentation.grade_id ||
+      presentation.value.quiz_id !== lastSavedData.value.presentation.quiz_id
+    );
+    
+    hasUnsavedChanges.value = hasSlideChanges || presentationChanged;
+    
+    if (hasUnsavedChanges.value) {
+      console.log(`Detected unsaved changes: ${changedSlidesCount.value} slides changed, presentation changed: ${presentationChanged}`);
     }
-
-    const savedPresentation = response.data;
-    
-    // Now save slides
-    // Strategy: Delete all and recreate? Or update one by one?
-    // For simplicity in this prototype, we'll update the presentation ID on slides and save them.
-    // A better approach for production is a bulk sync endpoint.
-    
-    // For now, let's just notify success as the backend controller for 'update' doesn't handle slides bulk save yet.
-    // We need to iterate and save slides if they are new or updated.
-    // To keep it simple for this task, we will assume the user saves, and we might need a bulk save endpoint or loop.
-    
-    // Let's loop for now (inefficient but works for prototype)
-    for (const slide of slides.value) {
-      // Ensure all required fields are present
-      const slideData = {
-        slide_type: slide.slide_type,
-        slide_content: slide.slide_content || {},
-        section: slide.section || currentSection.value || 'learn',
-        order_index: slide.order_index || 0
-      };
-      
-      if (slide.id) {
-        await axios.put(route('lesson-presentation.slides.update', { id: savedPresentation.id, slideId: slide.id }), slideData);
-      } else {
-        await axios.post(route('lesson-presentation.slides.add', { id: savedPresentation.id }), slideData);
-      }
-    }
-
-    $q.notify({
-      type: 'positive',
-      message: 'Lesson saved successfully! Redirecting...',
-      icon: 'check_circle',
-      position: 'top',
-      timeout: 1500
-    });
-    
-    // Redirect to Dashboard
-    setTimeout(() => {
-        window.location.href = '/lesson-presentation/dashboard';
-    }, 1500);
   } catch (error) {
-    console.error('Save failed:', error);
-    $q.notify({
-      type: 'negative',
-      message: 'Failed to save lesson. Please try again.',
-      icon: 'error',
-      position: 'top',
-      timeout: 3000
-    });
-  } finally {
-    isSaving.value = false;
+    console.warn('Error in change detection:', error);
+    hasUnsavedChanges.value = true;
   }
 };
+
+// Utility function for deep equality comparison
+function deepEqual(obj1, obj2) {
+  if (obj1 === obj2) return true;
+  
+  if (obj1 == null || obj2 == null) return false;
+  if (typeof obj1 !== 'object' || typeof obj2 !== 'object') return false;
+  
+  const keys1 = Object.keys(obj1);
+  const keys2 = Object.keys(obj2);
+  
+  if (keys1.length !== keys2.length) return false;
+  
+  for (let key of keys1) {
+    if (!keys2.includes(key)) return false;
+    if (!deepEqual(obj1[key], obj2[key])) return false;
+  }
+  
+  return true;
+}
+
+// Highly debounced change detection to prevent excessive checking
+const debouncedCheckForChanges = () => {
+  if (changeDetectionTimeout) {
+    clearTimeout(changeDetectionTimeout);
+  }
+  
+  changeDetectionTimeout = setTimeout(() => {
+    checkForChanges();
+  }, 1500); // Increased to 1.5 seconds for better performance
+};
+
+// Watch for changes with optimized debouncing
+watch([presentation, slides], () => {
+  debouncedCheckForChanges();
+}, { 
+  deep: true,
+  flush: 'post' // Run after DOM updates
+});
+
+// Initialize slide change tracking when slides are loaded or created
+watch(slides, (newSlides) => {
+  if (newSlides && newSlides.length > 0) {
+    // Only initialize tracking for slides that don't have it yet
+    newSlides.forEach(slide => {
+      if (slide._initialState === undefined) {
+        slide._initialState = slide.id ? JSON.parse(JSON.stringify({
+          slide_type: slide.slide_type,
+          slide_content: slide.slide_content,
+          section: slide.section,
+          order_index: slide.order_index
+        })) : null;
+        slide.hasChanges = !slide.id || true; // New slides are considered changed
+      }
+    });
+  }
+}, { deep: true, immediate: true });
 
 const createNewLesson = () => {
   window.location.href = '/lesson-presentation/edit';
@@ -738,6 +928,17 @@ const createNewLesson = () => {
 const duplicateLesson = async () => {
   if (!activeId.value) return;
   
+  // Prevent multiple simultaneous duplications
+  if (isSaving.value) {
+    $q.notify({
+      type: 'warning',
+      message: 'Please wait for current operation to complete',
+      position: 'top',
+      timeout: 2000
+    });
+    return;
+  }
+
   try {
     $q.notify({
       type: 'info',
@@ -759,15 +960,17 @@ const duplicateLesson = async () => {
     const response = await axios.post(route('lesson-presentation.store'), duplicateData);
     const newPresentation = response.data;
 
-    // Copy all slides
-    for (const slide of slides.value) {
-      const slideData = {
-        slide_type: slide.slide_type,
-        slide_content: slide.slide_content,
-        section: slide.section
-      };
-      await axios.post(route('lesson-presentation.slides.add', { id: newPresentation.id }), slideData);
-    }
+    // Copy all slides using bulk operation
+    const slidesData = slides.value.map(slide => ({
+      slide_type: slide.slide_type,
+      slide_content: slide.slide_content,
+      section: slide.section,
+      order_index: slide.order_index || 0
+    }));
+
+    await axios.put(route('lesson-presentation.slides.bulk-update', { id: newPresentation.id }), {
+      slides: slidesData
+    });
 
     $q.notify({
       type: 'positive',
@@ -790,6 +993,192 @@ const duplicateLesson = async () => {
       position: 'top',
       timeout: 3000
     });
+  }
+};
+
+// Enhanced auto-save with better interval and conditions
+const startAutoSave = () => {
+  if (!autoSaveEnabled.value) return;
+  
+  stopAutoSave(); // Clear any existing timer
+  
+  // Use much longer interval and stricter conditions
+  autoSaveTimer.value = setInterval(async () => {
+    const currentTime = Date.now();
+    
+    // Only auto-save if:
+    // 1. There are actual changes
+    // 2. Not currently saving
+    // 3. Not auto-saving already
+    // 4. Sufficient time has passed since last manual save
+    if (hasUnsavedChanges.value && 
+        !isSaving.value && 
+        !isAutoSaving.value) {
+      
+      try {
+        console.log('Starting auto-save...');
+        await savePresentation(true); // true indicates auto-save
+      } catch (error) {
+        console.error('Auto-save failed:', error);
+        // Don't retry immediately, let the next interval handle it
+      }
+    }
+  }, 300000); // Increased to 5 minutes (300,000 ms)
+  
+  autoSaveStatus.value = 'Auto-save every 5 minutes';
+  console.log('Auto-save initialized with 5-minute interval');
+};
+
+const stopAutoSave = () => {
+  if (autoSaveTimer.value) {
+    clearInterval(autoSaveTimer.value);
+    autoSaveTimer.value = null;
+    console.log('Auto-save stopped');
+  }
+};
+
+const toggleAutoSave = () => {
+  autoSaveEnabled.value = !autoSaveEnabled.value;
+  
+  if (autoSaveEnabled.value) {
+    startAutoSave();
+    $q.notify({
+      type: 'info',
+      message: 'Auto-save enabled',
+      position: 'bottom-right',
+      timeout: 1000
+    });
+  } else {
+    stopAutoSave();
+    autoSaveStatus.value = 'Auto-save disabled';
+    $q.notify({
+      type: 'info',
+      message: 'Auto-save disabled',
+      position: 'bottom-right',
+      timeout: 1000
+    });
+  }
+};
+
+// Enhanced save presentation that tracks slide-level changes
+const savePresentation = async (isAutoSave = false) => {
+  // Prevent multiple simultaneous saves
+  if (isSaving.value || (isAutoSave && isAutoSaving.value)) {
+    console.log('Save already in progress, skipping...');
+    return;
+  }
+
+  if (!validatePresentation()) return;
+
+  const startTime = Date.now();
+  isSaving.value = true;
+  if (isAutoSave) {
+    isAutoSaving.value = true;
+    autoSaveStatus.value = 'Saving...';
+  }
+  saveProgress.value.visible = true;
+  saveProgress.value.percentage = 0;
+  saveProgress.value.message = isAutoSave ? 'Auto-saving lesson...' : 'Saving lesson...';
+
+  try {
+    // Step 1: Save presentation metadata (30%)
+    saveProgress.value.percentage = 0.3;
+    saveProgress.value.message = 'Saving lesson information...';
+    
+    const payload = {
+      ...presentation.value,
+      school_id: props.defaultContext.school_id,
+      teacher_id: props.defaultContext.teacher_id,
+      subject_id: props.defaultContext.subject_id,
+      grade_id: presentation.value.grade_id || props.defaultContext.grade_id,
+    };
+
+    let response;
+    if (activeId.value) {
+      response = await axios.put(route('lesson-presentation.update', { id: activeId.value }), payload);
+    } else {
+      response = await axios.post(route('lesson-presentation.store'), payload);
+      activeId.value = response.data.id;
+    }
+
+    const savedPresentation = response.data;
+    
+    // Step 2: Save slides using bulk operation (60%)
+    saveProgress.value.percentage = 0.4;
+    saveProgress.value.message = `Saving ${slides.value.length} slides...`;
+
+    // Prepare slides data for bulk operation with change tracking
+    const slidesData = slides.value.map(slide => ({
+      id: slide.id || null,
+      slide_type: slide.slide_type,
+      slide_content: slide.slide_content || {},
+      section: slide.section || currentSection.value || 'learn',
+      order_index: slide.order_index || 0
+    }));
+
+    // Use bulk update endpoint to minimize HTTP requests
+    await axios.put(route('lesson-presentation.slides.bulk-update', { id: savedPresentation.id }), {
+      slides: slidesData
+    });
+
+    // Final step (10%)
+    saveProgress.value.percentage = 1;
+    saveProgress.value.message = 'Save complete!';
+    
+    // Reset slide change tracking after successful save
+    resetSlideChangeTracking();
+    
+    // Update last saved state for overall change detection
+    lastSavedData.value = {
+      presentation: {
+        name: presentation.value.name,
+        description: presentation.value.description,
+        grade_id: presentation.value.grade_id,
+        quiz_id: presentation.value.quiz_id
+      },
+      slides: slides.value.map(slide => ({
+        id: slide.id,
+        slide_type: slide.slide_type,
+        slide_content: slide.slide_content,
+        section: slide.section,
+        order_index: slide.order_index
+      }))
+    };
+    
+    hasUnsavedChanges.value = false;
+
+    const duration = Date.now() - startTime;
+    
+    if (!isAutoSave) {
+      $q.notify({
+        type: 'positive',
+        message: `Lesson saved successfully in ${duration}ms! (${changedSlidesCount.value} slides had changes)`,
+        icon: 'check_circle',
+        position: 'top',
+        timeout: 2000
+      });
+    } else {
+      autoSaveStatus.value = `Last saved ${new Date().toLocaleTimeString()} (${changedSlidesCount.value} changed slides)`;
+      console.log(`Auto-save completed in ${duration}ms with ${changedSlidesCount.value} changed slides`);
+    }
+    
+  } catch (error) {
+    console.error('Save failed:', error);
+    saveProgress.value.message = 'Save failed!';
+    
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to save lesson. Please try again.',
+      icon: 'error',
+      position: 'top',
+      timeout: 3000
+    });
+  } finally {
+    setTimeout(() => {
+      isSaving.value = false;
+      isAutoSaving.value = false;
+      saveProgress.value.visible = false;
+    }, isAutoSave ? 500 : 1500);
   }
 };
 
@@ -938,16 +1327,19 @@ const openAILessonGenerator = () => {
 };
 
 const handleAIPlanAccepted = (plan) => {
-  // Add all generated slides to the slides array
+  // Add all generated slides to the slides array with change tracking
   let addedCount = 0;
   
   plan.sections.forEach(section => {
-    section.slides.forEach(slide => {
-      slides.value.push({
-        slide_type: slide.slide_type,
-        slide_content: slide.slide_content,
+    section.slides.forEach(slideData => {
+      const newSlide = initializeSlideWithTracking({
+        slide_type: slideData.slide_type,
+        slide_content: slideData.slide_content,
         section: section.sectionId
       });
+      // Mark AI-generated slides as changed
+      newSlide.hasChanges = true;
+      slides.value.push(newSlide);
       addedCount++;
     });
   });
@@ -965,6 +1357,9 @@ const handleAIPlanAccepted = (plan) => {
     currentSection.value = plan.sections[0].sectionId;
     currentSlideIndex.value = 0;
   }
+  
+  // Mark overall lesson as having changes
+  hasUnsavedChanges.value = true;
 };
 
 // Print Lesson Plan
@@ -983,11 +1378,19 @@ const fetchPresentation = async (id) => {
       quiz_id: response.data.quiz_id,
     };
     
-    // Ensure slides have all necessary properties
-    slides.value = (response.data.slides || []).map(slide => ({
-      ...slide,
-      section: slide.section || 'learn' // Fallback if section is missing
-    }));
+    // Initialize slides with change tracking
+    slides.value = (response.data.slides || []).map(slide => 
+      initializeSlideWithTracking(slide)
+    );
+    
+    // Initialize saved state after fetching
+    lastSavedData.value = {
+      presentation: JSON.parse(JSON.stringify(presentation.value)),
+      slides: JSON.parse(JSON.stringify(slides.value))
+    };
+    hasUnsavedChanges.value = false;
+    
+    console.log(`Loaded lesson with ${slides.value.length} slides, all marked as unchanged`);
     
   } catch (error) {
     console.error('Fetch failed:', error);
@@ -1000,7 +1403,6 @@ const fetchPresentation = async (id) => {
   }
 };
 
-// Watch for section changes and reset slide index
 watch(currentSection, () => {
   currentSlideIndex.value = 0;
 });
@@ -1036,14 +1438,95 @@ onMounted(async () => {
       presentation.value.grade_id = teacherStore.grades[0].id;
     }
   }
+  
+  // Initialize auto-save
+  if (autoSaveEnabled.value) {
+    startAutoSave();
+  }
+  
+  // Store initial state
+  lastSavedData.value = {
+    presentation: JSON.parse(JSON.stringify(presentation.value)),
+    slides: JSON.parse(JSON.stringify(slides.value))
+  };
 });
 
-// Cleanup keyboard listener on unmount
+// Cleanup keyboard listener and timeouts on unmount
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleKeyboard);
+  stopAutoSave();
+  
+  // Clear any pending timeouts
+  if (changeDetectionTimeout) {
+    clearTimeout(changeDetectionTimeout);
+  }
+  
+  if (autoSaveTimer.value) {
+    clearInterval(autoSaveTimer.value);
+  }
+});
+
+// Add scroll to top functionality
+const scrollToTop = () => {
+  const pageContainer = document.querySelector('.q-page');
+  if (pageContainer) {
+    pageContainer.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+};
+
+// Enhanced section switching with auto scroll to top
+const switchToSection = (sectionId) => {
+  if (sectionId !== currentSection.value) {
+    currentSection.value = sectionId;
+    currentSlideIndex.value = 0;
+    // Scroll to top when switching sections
+    scrollToTop();
+  }
+};
+
+// Watch for section changes to trigger scroll to top
+watch(currentSection, (newSection, oldSection) => {
+  if (newSection !== oldSection) {
+    // Small delay to ensure DOM updates before scrolling
+    setTimeout(() => {
+      scrollToTop();
+    }, 100);
+  }
 });
 </script>
 
 <style scoped>
 /* Add any specific styles here */
+
+.saving-progress-bar {
+  height: 24px !important;
+  position: relative;
+}
+
+.saving-progress-bar .q-linear-progress__model {
+  transition: width 0.3s ease;
+}
+
+.saving-progress-bar .absolute-full {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+/* Auto-save indicator animations */
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.saving-progress-bar :deep(.q-linear-progress__model--with-transition) {
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.auto-save-indicator.pulse {
+  animation: pulse 2s infinite;
+}
 </style>

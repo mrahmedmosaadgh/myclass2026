@@ -1,8 +1,14 @@
 <template>
   <!-- Skip Links for Keyboard Navigation -->
   <div class="skip-links">
-    <a href="#quiz-content" class="skip-link">Skip to quiz content</a>
-    <a href="#quiz-navigation" class="skip-link">Skip to navigation</a>
+    <a href="#quiz-content" class="skip-link" title="Skip to quiz content - Press Tab to activate">
+      <span class="skip-icon">⏭️</span>
+      <span class="skip-text sr-only">Skip to quiz content</span>
+    </a>
+    <a href="#quiz-navigation" class="skip-link" title="Skip to navigation controls - Jump to Next/Previous buttons">
+      <span class="skip-icon">🧭</span>
+      <span class="skip-text sr-only">Skip to navigation</span>
+    </a>
   </div>
 
   <div 
@@ -757,12 +763,61 @@ onUnmounted(() => {
   font-weight: 500;
   z-index: 100;
   transition: top 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 40px;
+  justify-content: center;
+}
+
+.skip-icon {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.skip-text.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .skip-link:focus {
   top: 0;
   outline: 2px solid #1e40af;
   outline-offset: 2px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.skip-link:hover {
+  background-color: #2563eb;
+  transform: translateY(-2px);
+}
+
+/* Tooltip styling for better accessibility */
+.skip-link[title] {
+  position: relative;
+}
+
+.skip-link[title]:focus::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #1f2937;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  z-index: 101;
+  margin-bottom: 0.5rem;
 }
 
 /* ============================================================================

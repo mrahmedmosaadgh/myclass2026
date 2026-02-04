@@ -117,7 +117,7 @@ class LessonPresentationController extends Controller
         // Add a default "Welcome" slide to the first section (usually Objectives)
         $presentation->slides()->create([
             'section' => $validated['sections'][0]['id'] ?? 'objectives',
-            'slide_type' => 'content_text',
+            'slide_type' => 'text',
             'slide_content' => [
                 'title' => 'Welcome to ' . $validated['name'],
                 'content' => $validated['description'] ?? 'Lets get started!',
@@ -212,6 +212,67 @@ class LessonPresentationController extends Controller
         $slide = LessonPresentationSlide::where('lesson_presentation_id', $id)->findOrFail($slideId);
         $slide->delete();
         return response()->json(null, 204);
+    }
+
+    public function bulkUpdateSlides(Request $request, $id)
+    {
+        $presentation = LessonPresentation::findOrFail($id);
+
+        $validated = $request->validate([
+            'slides' => 'required|array',
+            'slides.*.id' => 'nullable|integer|exists:lesson_presentation_slides,id,lesson_presentation_id,' . $id,
+            'slides.*.slide_type' => 'required|string',
+            'slides.*.slide_content' => 'nullable|array',
+            'slides.*.section' => 'required|string',
+            'slides.*.order_index' => 'nullable|integer',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $updatedSlides = [];
+            $newSlides = [];
+
+            foreach ($validated['slides'] as $slideData) {
+                // Ensure slide_content is at least an empty array
+                $slideData['slide_content'] = $slideData['slide_content'] ?? [];
+
+                // Handle question ID generation for new questions
+                $content = $slideData['slide_content'];
+                if (isset($content['questions']) && is_array($content['questions'])) {
+                    foreach ($content['questions'] as &$question) {
+                        if (!isset($question['id'])) {
+                            $question['id'] = 'q_' . rand(100, 999) . Str::random(3);
+                        }
+                    }
+                    $slideData['slide_content'] = $content;
+                }
+
+                if (isset($slideData['id'])) {
+                    // Update existing slide
+                    $slide = LessonPresentationSlide::where('lesson_presentation_id', $id)
+                        ->where('id', $slideData['id'])
+                        ->firstOrFail();
+                    $slide->update($slideData);
+                    $updatedSlides[] = $slide;
+                } else {
+                    // Create new slide
+                    $newSlide = $presentation->slides()->create($slideData);
+                    $newSlides[] = $newSlide;
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Slides updated successfully',
+                'updated' => $updatedSlides,
+                'created' => $newSlides
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            return response()->json(['error' => 'Failed to update slides: ' . $e->getMessage()], 500);
+        }
     }
 
     public function proxyImage(Request $request)

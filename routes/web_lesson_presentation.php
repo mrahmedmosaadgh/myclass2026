@@ -133,6 +133,10 @@ Route::middleware([
     // ========================================
     
     Route::post('/{id}/slides', [LessonPresentationController::class, 'addSlide'])->name('slides.add');
+    
+    // Bulk operations (must come before parameterized routes)
+    Route::put('/{id}/slides/bulk', [LessonPresentationController::class, 'bulkUpdateSlides'])->name('slides.bulk-update');
+    
     Route::put('/{id}/slides/{slideId}', [LessonPresentationController::class, 'updateSlide'])->name('slides.update');
     Route::delete('/{id}/slides/{slideId}', [LessonPresentationController::class, 'deleteSlide'])->name('slides.delete');
     

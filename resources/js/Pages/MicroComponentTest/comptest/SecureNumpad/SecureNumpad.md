@@ -15,7 +15,7 @@ A touch-friendly, secure input component that forces user input via a custom on-
 ```vue
 <script setup>
 import { ref } from 'vue';
-import SecureNumpad from '@/Pages/MicroComponentTest/comptest/SecureNumpad.vue';
+import SecureNumpad from '@/Pages/MicroComponentTest/comptest/SecureNumpad/SecureNumpad.vue';
 
 const pinCode = ref('');
 const amount = ref('');

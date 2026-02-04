@@ -228,6 +228,13 @@
               </div>
             </div>
           </div>
+          
+          <!-- Place QPageScroller at end of page -->
+          <q-page-scroller position="bottom-right" :scroll-offset="150" :offset="[18, 18]">
+            <q-btn fab icon="keyboard_arrow_up" color="accent">
+              <q-tooltip>Scroll to top</q-tooltip>
+            </q-btn>
+          </q-page-scroller>
         </div>
       </q-page>
     </q-page-container>
@@ -551,6 +558,36 @@ const getSectionSlideCount = (sectionId) => {
   return props.slides.filter(s => s.section === sectionId).length;
 };
 
+// Unified scroll to top function
+const scrollToTop = () => {
+  // Try multiple approaches to ensure scroll works
+  nextTick(() => {
+    // Method 1: Try to scroll the main page container
+    const pageContainer = document.querySelector('.q-page');
+    if (pageContainer) {
+      pageContainer.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    
+    // Method 2: Try to scroll the content wrapper
+    const contentWrapper = document.querySelector('.content-wrapper');
+    if (contentWrapper) {
+      contentWrapper.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    
+    // Method 3: Try to scroll the slide content area
+    const slideContentArea = document.querySelector('.slide-content-area');
+    if (slideContentArea) {
+      slideContentArea.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    
+    // Method 4: Fallback to window scroll
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+};
+
 const jumpToSection = (sectionId) => {
   if (canAccessSection(sectionId)) {
     currentSection.value = sectionId;
@@ -566,6 +603,9 @@ const jumpToSection = (sectionId) => {
       position: 'top',
       timeout: 1500
     });
+    
+    // Scroll to top when jumping to section
+    scrollToTop();
   } else {
     $q.notify({
       type: 'warning',
@@ -580,6 +620,9 @@ const handleSectionChange = (sectionId) => {
     currentSection.value = sectionId;
     const section = props.sections.find(s => s.id === sectionId);
     currentSection_data.value = section;
+    
+    // Scroll to top when changing sections
+    scrollToTop();
   } else {
     let message = 'You cannot access this section yet.';
     if (sectionId === 'practice') message = 'Please complete the Learn section first.';
@@ -616,6 +659,9 @@ const nextSlide = () => {
         position: 'top',
         timeout: 1500
       });
+      
+      // Scroll to top when moving to next section
+      scrollToTop();
     } else {
       // No more sections or section is locked
       handleSectionCompletion();
@@ -648,6 +694,9 @@ const prevSlide = () => {
         position: 'top',
         timeout: 1500
       });
+      
+      // Scroll to top when moving to previous section
+      scrollToTop();
     }
   }
 };
@@ -675,15 +724,6 @@ const showScrollTopBtn = ref(false);
 
 const handleContentScroll = (e) => {
   showScrollTopBtn.value = e.target.scrollTop > 300;
-};
-
-const scrollToTop = () => {
-  if (slideContentAreaRef.value) {
-    slideContentAreaRef.value.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
-  }
 };
 
 const nextSectionFromScroll = () => {
@@ -725,15 +765,7 @@ const nextSectionFromScroll = () => {
       });
       
       // Scroll to top of the content area
-      nextTick(() => {
-        if (slideContentAreaRef.value) {
-            slideContentAreaRef.value.scrollTop = 0;
-        } else {
-             // Fallback
-             const el = document.querySelector('.slide-content-area');
-             if (el) el.scrollTop = 0;
-        }
-      });
+      scrollToTop();
     } else {
       handleSectionCompletion();
     }

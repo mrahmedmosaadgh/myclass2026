@@ -81,50 +81,26 @@ function changeSchool() {
             />
         </Head>
 
-        <!-- Background -->
-        <div 
-            class="background-image"
-            :style="{
-                backgroundImage: branding.background_url ? `url(${branding.background_url})` : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-            }"
-        ></div>
-
-        <!-- Gradient Overlay -->
-        <div 
-            class="gradient-overlay"
-            :style="{
-                background: `linear-gradient(135deg, ${primaryColor}DD 0%, ${secondaryColor}DD 100%)`
-            }"
-        ></div>
-
-        <!-- Particles (optional) -->
-        <div v-if="showParticles" class="particles">
-            <div v-for="i in 50" :key="i" class="particle"></div>
-        </div>
-
-        <!-- Login Card -->
-        <div class="login-container">
-            <div 
-                class="login-card"
-                :class="`card-${cardStyle}`"
-            >
+        <!-- Left Side: Form Panel -->
+        <div class="form-side">
+            <div class="form-content">
                 <!-- Logo -->
                 <div v-if="branding.logo_url" class="school-logo">
                     <img :src="branding.logo_url" :alt="branding.school_name_en" />
                 </div>
 
-                <!-- School Name -->
-                <h1 class="school-name">
-                    {{ branding.school_name_en }}
-                </h1>
-                <p v-if="branding.school_name_ar" class="school-name-ar">
-                    {{ branding.school_name_ar }}
-                </p>
-
-                <!-- Welcome Text -->
-                <p class="welcome-text">
-                    Welcome back! Please login to your account.
-                </p>
+                <!-- Text Header -->
+                <div class="text-header">
+                    <h1 class="school-name">
+                        {{ branding.school_name_en }}
+                    </h1>
+                    <p v-if="branding.school_name_ar" class="school-name-ar">
+                        {{ branding.school_name_ar }}
+                    </p>
+                    <p class="welcome-text">
+                        Welcome back! Please login to your account.
+                    </p>
+                </div>
 
                 <!-- Login Form -->
                 <form @submit.prevent="submit" class="login-form">
@@ -179,7 +155,7 @@ function changeSchool() {
                         </div>
                     </div>
 
-                    <!-- Remember Me -->
+                    <!-- Remember Me & Forgot Password -->
                     <div class="form-group-inline">
                         <label class="checkbox-label">
                             <input
@@ -214,9 +190,6 @@ function changeSchool() {
 
                 <!-- Footer -->
                 <div class="card-footer">
-                    <p class="footer-text">
-                        Powered by MyClass2026
-                    </p>
                     <button 
                         type="button" 
                         @click="changeSchool" 
@@ -226,6 +199,42 @@ function changeSchool() {
                         Change School
                     </button>
                 </div>
+            </div>
+            
+            <div class="form-footer-bottom">
+                 <p class="footer-text">Powered by MyClass2026</p>
+            </div>
+        </div>
+
+        <!-- Right Side: Visual Panel -->
+        <div class="visual-side">
+            <!-- Background -->
+            <div 
+                class="background-image"
+                :style="{
+                    backgroundImage: branding.background_url ? `url(${branding.background_url})` : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                }"
+            ></div>
+
+            <!-- Gradient Overlay -->
+            <div 
+                class="gradient-overlay"
+                :style="{
+                    background: `linear-gradient(135deg, ${primaryColor}DD 0%, ${secondaryColor}DD 100%)`
+                }"
+            ></div>
+
+            <!-- Particles (optional) -->
+            <div v-if="showParticles" class="particles">
+                <div v-for="i in 50" :key="i" class="particle"></div>
+            </div>
+            
+            <!-- Branding overlay content (optional) -->
+            <div class="visual-content">
+                <div class="visual-logo-container" v-if="branding.logo_url">
+                    <img :src="branding.logo_url" alt="Logo" class="visual-logo" />
+                </div>
+                <h2 class="visual-heading" v-if="branding.school_name_en">{{ branding.school_name_en }}</h2>
             </div>
         </div>
     </div>
@@ -239,255 +248,113 @@ function changeSchool() {
     box-sizing: border-box;
 }
 
-/* Page Container */
+/* Page Container - Split Layout */
 .school-login-page {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    display: flex;
     width: 100vw;
     height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-}
-
-/* Background */
-.background-image {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-}
-
-.gradient-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 1;
-}
-
-/* Particles */
-.particles {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 2;
     overflow: hidden;
 }
 
-.particle {
-    position: absolute;
-    width: 4px;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.5);
-    border-radius: 50%;
-    animation: float 15s infinite;
-}
-
-.particle:nth-child(odd) {
-    animation-duration: 20s;
-}
-
-.particle:nth-child(even) {
-    animation-duration: 25s;
-}
-
-@keyframes float {
-    0% {
-        transform: translateY(100vh) translateX(0);
-        opacity: 0;
-    }
-    10% {
-        opacity: 1;
-    }
-    90% {
-        opacity: 1;
-    }
-    100% {
-        transform: translateY(-100vh) translateX(100px);
-        opacity: 0;
-    }
-}
-
-/* Generate random positions for particles */
-.particle:nth-child(1) { left: 5%; animation-delay: 0s; }
-.particle:nth-child(2) { left: 15%; animation-delay: 2s; }
-.particle:nth-child(3) { left: 25%; animation-delay: 4s; }
-.particle:nth-child(4) { left: 35%; animation-delay: 1s; }
-.particle:nth-child(5) { left: 45%; animation-delay: 3s; }
-.particle:nth-child(6) { left: 55%; animation-delay: 5s; }
-.particle:nth-child(7) { left: 65%; animation-delay: 2.5s; }
-.particle:nth-child(8) { left: 75%; animation-delay: 4.5s; }
-.particle:nth-child(9) { left: 85%; animation-delay: 1.5s; }
-.particle:nth-child(10) { left: 95%; animation-delay: 3.5s; }
-
-/* Login Container */
-.login-container {
+/* Form Side (Left) */
+.form-side {
+    width: 100%;
+    max-width: 500px;
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 40px;
     position: relative;
     z-index: 10;
+    box-shadow: 10px 0 30px rgba(0,0,0,0.05);
+}
+
+.form-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    max-width: 400px;
+    margin: 0 auto;
     width: 100%;
-    max-width: 450px;
-    padding: 20px;
-    /* animation: fadeInUp 0.8s ease-out; */
 }
 
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* Login Card Styles */
-.login-card {
-    border-radius: 24px;
-    padding: 48px 40px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    /* animation: breathe 4s ease-in-out infinite; */
-}
-
-@keyframes breathe {
-    0%, 100% {
-        transform: scale(1);
-    }
-    50% {
-        transform: scale(1.02);
-    }
-}
-
-/* Card Style Variants */
-.card-glassmorphism {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.card-solid {
-    background: rgba(255, 255, 255, 0.98);
-}
-
-.card-gradient {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.85) 100%);
-}
-
-/* Logo */
 .school-logo {
-    text-align: center;
     margin-bottom: 24px;
+    display: flex;
+    justify-content: center;
 }
 
 .school-logo img {
-    max-width: 180px;
-    max-height: 90px;
+    height: 80px;
+    width: auto;
     object-fit: contain;
-    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
 }
 
-/* School Name */
-.school-name {
-    font-size: 28px;
-    font-weight: 700;
+.text-header {
     text-align: center;
-    margin-bottom: 8px;
-    color: #1a1a1a;
+    margin-bottom: 32px;
 }
 
-.card-glassmorphism .school-name {
-    color: #ffffff;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+.school-name {
+    font-size: 24px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 8px;
+    line-height: 1.2;
 }
 
 .school-name-ar {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 600;
-    text-align: center;
-    margin-bottom: 16px;
-    color: #4a4a4a;
+    color: #4b5563;
+    margin-bottom: 12px;
 }
 
-.card-glassmorphism .school-name-ar {
-    color: rgba(255, 255, 255, 0.9);
-}
-
-/* Welcome Text */
 .welcome-text {
-    text-align: center;
+    font-size: 14px;
     color: #6b7280;
-    margin-bottom: 32px;
-    font-size: 15px;
 }
 
-.card-glassmorphism .welcome-text {
-    color: rgba(255, 255, 255, 0.8);
-}
-
-/* Form */
+/* Form Styles */
 .login-form {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 16px; /* Reduced gap */
 }
 
 .form-group {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px; /* Reduced gap */
 }
 
 .form-label {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     color: #374151;
     display: flex;
     align-items: center;
-    gap: 8px;
-}
-
-.card-glassmorphism .form-label {
-    color: rgba(255, 255, 255, 0.95);
+    gap: 6px;
 }
 
 .form-input {
     width: 100%;
-    padding: 14px 16px;
-    border: 2px solid rgba(0, 0, 0, 0.1);
-    border-radius: 12px;
-    font-size: 15px;
-    transition: all 0.3s ease;
-    background: rgba(255, 255, 255, 0.9);
-}
-
-.card-glassmorphism .form-input {
-    background: rgba(255, 255, 255, 0.15);
-    border-color: rgba(255, 255, 255, 0.3);
-    color: #fff;
-}
-
-.card-glassmorphism .form-input::placeholder {
-    color: rgba(255, 255, 255, 0.6);
+    padding: 12px 14px; /* Reduced padding */
+    border: 1.5px solid #e5e7eb;
+    border-radius: 8px; /* Slightly tighter radius */
+    font-size: 14px;
+    transition: all 0.2s ease;
+    background: #f9fafb;
 }
 
 .form-input:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
-    transform: translateY(-2px);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
 .input-error {
@@ -496,15 +363,9 @@ function changeSchool() {
 
 .error-message {
     color: #ef4444;
-    font-size: 13px;
-    margin-top: 4px;
+    font-size: 12px;
 }
 
-.card-glassmorphism .error-message {
-    color: #fca5a5;
-}
-
-/* Password Input */
 .password-input-wrapper {
     position: relative;
 }
@@ -516,26 +377,20 @@ function changeSchool() {
     transform: translateY(-50%);
     background: none;
     border: none;
-    color: #6b7280;
+    color: #9ca3af;
     cursor: pointer;
-    padding: 8px;
-    transition: color 0.2s;
-}
-
-.card-glassmorphism .password-toggle {
-    color: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
 }
 
 .password-toggle:hover {
     color: var(--primary-color);
 }
 
-/* Remember Me & Forgot Password */
 .form-group-inline {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: -8px;
+    margin-top: 4px;
 }
 
 .checkbox-label {
@@ -546,44 +401,35 @@ function changeSchool() {
 }
 
 .checkbox-input {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    accent-color: var(--primary-color);
 }
 
 .checkbox-text {
-    font-size: 14px;
+    font-size: 13px;
     color: #4b5563;
 }
 
-.card-glassmorphism .checkbox-text {
-    color: rgba(255, 255, 255, 0.9);
-}
-
 .forgot-password {
-    font-size: 14px;
+    font-size: 13px;
     color: var(--primary-color);
     text-decoration: none;
     font-weight: 600;
-    transition: opacity 0.2s;
 }
 
-.forgot-password:hover {
-    opacity: 0.8;
-}
-
-/* Submit Button */
 .submit-button {
     width: 100%;
-    padding: 16px;
+    padding: 12px;
     border: none;
-    border-radius: 12px;
-    font-size: 16px;
+    border-radius: 8px;
+    font-size: 15px;
     font-weight: 600;
     color: white;
     cursor: pointer;
-    transition: all 0.3s ease;
-    margin-top: 8px;
+    transition: all 0.2s ease;
+    margin-top: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -591,17 +437,8 @@ function changeSchool() {
 }
 
 .submit-button:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-}
-
-.submit-button:active:not(:disabled) {
-    transform: translateY(0);
-}
-
-.submit-button:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .loading-spinner {
@@ -610,68 +447,159 @@ function changeSchool() {
     gap: 8px;
 }
 
-/* Footer */
+/* Footer Section */
 .card-footer {
-    margin-top: 32px;
-    padding-top: 24px;
-    border-top: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.card-glassmorphism .card-footer {
-    border-top-color: rgba(255, 255, 255, 0.2);
-}
-
-.footer-text {
-    text-align: center;
-    font-size: 13px;
-    color: #9ca3af;
-}
-
-.card-glassmorphism .footer-text {
-    color: rgba(255, 255, 255, 0.6);
+    margin-top: 24px;
+    display: flex;
+    justify-content: center;
 }
 
 .change-school-link {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    margin-top: 12px;
     background: none;
     border: none;
-    color: var(--primary-color);
+    color: #6b7280;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer;
-    transition: opacity 0.2s;
-    padding: 8px;
-    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.2s;
 }
 
 .change-school-link:hover {
-    opacity: 0.8;
+    color: var(--primary-color);
 }
 
-.card-glassmorphism .change-school-link {
-    color: rgba(255, 255, 255, 0.9);
+.form-footer-bottom {
+    text-align: center;
+    padding-top: 20px;
 }
+
+.footer-text {
+    font-size: 12px;
+    color: #9ca3af;
+}
+
+/* Visual Side (Right) */
+.visual-side {
+    flex: 1;
+    position: relative;
+    background-color: #f3f4f6;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.background-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-size: cover;
+    background-position: center;
+}
+
+.gradient-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0.9;
+}
+
+.particles {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.4);
+    border-radius: 50%;
+    animation: float 15s infinite;
+}
+
+.visual-content {
+    position: relative;
+    z-index: 5;
+    text-align: center;
+    color: white;
+    padding: 40px;
+    max-width: 600px;
+}
+
+.visual-logo-container {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 20px;
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    display: inline-block;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255,255,255,0.3);
+}
+
+.visual-logo {
+    height: 100px;
+    width: auto;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.2));
+}
+
+.visual-heading {
+    font-size: 32px;
+    font-weight: 800;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    margin-top: 10px;
+}
+
+@keyframes float {
+    0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translateY(-100vh) translateX(100px); opacity: 0; }
+}
+
+/* Random particle animation delays would go here (same as before) */
 
 /* Responsive */
-@media (max-width: 640px) {
-    .login-container {
-        padding: 16px;
+@media (max-width: 900px) {
+    .school-login-page {
+        flex-direction: column;
     }
-
-    .login-card {
-        padding: 32px 24px;
+    
+    .form-side {
+        width: 100%;
+        max-width: none;
+        flex: 1;
+        border-radius: 24px 24px 0 0;
+        margin-top: -24px;
     }
+    
+    .visual-side {
+        flex: 0.4;
+        min-height: 200px;
+    }
+}
 
+@media (max-width: 480px) {
+    .form-side {
+        padding: 24px;
+    }
+    
+    .school-logo img {
+        height: 60px;
+    }
+    
     .school-name {
-        font-size: 24px;
-    }
-
-    .school-name-ar {
-        font-size: 18px;
+        font-size: 20px;
     }
 }
 </style>

@@ -8,14 +8,22 @@ const $q = useQuasar();
 
 const props = defineProps({
     // Optional props for customizing appearance if needed
+    customTrigger: {
+        type: Boolean,
+        default: false
+    }
 });
 
 const page = usePage();
 const authUser = computed(() => page.props.auth?.user);
 
-
-
 const isOpen = ref(false);
+
+const toggle = () => {
+    isOpen.value = !isOpen.value;
+};
+
+defineExpose({ toggle, isOpen });
 const conversation = ref(null);
 const messages = ref([]);
 const messageInput = ref('');
@@ -711,6 +719,7 @@ const openImagePreview = (imageSrc) => {
 
         <!-- Toggle Button -->
         <q-btn
+            v-if="!customTrigger"
             @click="isOpen = !isOpen"
             round
             color="primary"
