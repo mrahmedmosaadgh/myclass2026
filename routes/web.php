@@ -25,6 +25,8 @@ Route::domain('qudratpro.com')->group(function () {
     require base_path('routes/qudrat/web.php');
 });
 
+Route::get('/sitemap.xml', [App\Http\Controllers\SitemapController::class, 'index']);
+
 // Domain-based Routing for Local Development (Testing)
 Route::domain('qudratpro.test')->name('test.')->group(function () {
     require base_path('routes/qudrat/web.php');
