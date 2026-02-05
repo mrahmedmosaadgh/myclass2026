@@ -203,9 +203,32 @@
                   </div>
                    <q-separator />
                   <div class="row q-gutter-xs full-width">
-                    <Link :href="route('lesson-presentation.teacher.progress', { lessonId: lesson.id })">
-                      <q-btn unelevated dense size="sm" color="primary" icon="assessment" label="View Progress" no-caps />
-                    </Link>
+                    <div class="col">
+                       <q-btn 
+                        unelevated 
+                        dense 
+                        size="sm" 
+                        color="secondary" 
+                        icon="settings" 
+                        label="Manage" 
+                        class="full-width" 
+                        no-caps
+                        @click.stop.prevent="router.get(route('lesson-presentation.manage', { id: lesson.id }))"
+                       />
+                    </div>
+                    <div class="col">
+                      <q-btn 
+                        unelevated 
+                        dense 
+                        size="sm" 
+                        color="primary" 
+                        icon="assessment" 
+                        label="Progress" 
+                        class="full-width" 
+                        no-caps
+                        @click.stop.prevent="router.get(route('lesson-presentation.teacher.progress', { lessonId: lesson.id }))"
+                      />
+                    </div>
                   </div>
                 </div>
               </q-card-actions>
@@ -219,7 +242,7 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue';
-import { Link } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { useQuasar } from 'quasar';
 import { useTeacherStore } from '@/Stores/teacherStore';

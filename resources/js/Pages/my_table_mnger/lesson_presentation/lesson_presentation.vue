@@ -7,7 +7,7 @@
       <q-toolbar>
         <q-btn flat dense round icon="menu" aria-label="Menu" @click="leftDrawerOpen = !leftDrawerOpen" />
         
-        <q-btn flat round dense icon="arrow_back" component="a" href="/lesson-presentation/dashboard">
+        <q-btn flat round dense icon="arrow_back" @click="goBack">
            <q-tooltip>Back</q-tooltip>
         </q-btn>
 
@@ -95,8 +95,10 @@
               </q-tooltip>
             </q-btn>
 
-            <q-btn flat round dense icon="emoji_events" @click="showRewardDialog = true; isRewardMinimized = false" color="warning">
-               <q-tooltip>Reward System</q-tooltip>
+            <!-- Removed Reward System button as per request -->
+            
+            <q-btn flat round dense icon="visibility" @click="showPreview = true" color="white">
+               <q-tooltip>Preview Full Lesson</q-tooltip>
             </q-btn>
         </div>
       </q-toolbar>
@@ -207,6 +209,9 @@
                         label="Slide Type"
                         style="min-width: 150px"
                        />
+                       <q-btn flat round color="primary" icon="visibility" @click="showSingleSlidePreview = true">
+                          <q-tooltip>Preview Slide</q-tooltip>
+                       </q-btn>
                        <q-btn flat round color="negative" icon="delete" @click="deleteSlide(currentSlide)">
                           <q-tooltip>Delete Slide</q-tooltip>
                        </q-btn>
@@ -221,6 +226,7 @@
                     :is="getSlideComponent(currentSlide.slide_type)" 
                     v-model="currentSlide.slide_content"
                     :key="currentSlide.id || currentSlideIndex"
+                    :context="defaultContext"
                   />
                 </div>
               </div>
@@ -262,6 +268,30 @@
           :presentation="{ ...presentation, name: 'Preview: ' + presentation.name }"
           :sections="sections"
           :slides="slides"
+          :is-preview="true"
+        />
+      </q-card-section>
+    </q-card>
+  </q-dialog>
+
+  <!-- Single Slide Preview Dialog -->
+  <q-dialog v-model="showSingleSlidePreview" maximized>
+    <q-card class="bg-grey-1">
+      <q-card-section class="row items-center q-pb-none bg-primary text-white">
+        <div class="text-h6 flex items-center gap-2">
+          <q-icon name="visibility" size="28px" />
+          Single Slide Preview
+        </div>
+        <q-space />
+        <q-btn icon="close" flat round dense v-close-popup />
+      </q-card-section>
+
+      <q-card-section class="q-pa-none bg-grey-1" style="height: calc(100vh - 60px)">
+        <LessonPlayer
+          v-if="currentSlide"
+          :presentation="{ ...presentation, name: 'Preview: ' + presentation.name }"
+          :sections="sections"
+          :slides="[currentSlide]"
           :is-preview="true"
         />
       </q-card-section>
@@ -416,6 +446,7 @@ const aiLessonGenerator = ref(null);
 const printLessonPlan = ref(null);
 const showSectionsDrawerRaw = ref(true);
 const showSlideListDialog = ref(true);
+const showSingleSlidePreview = ref(false);
 const showRewardDialog = ref(false);
 const isRewardMinimized = ref(false);
 
@@ -641,6 +672,14 @@ const stripHtml = (html) => {
 };
 
 // Navigation functions
+const goBack = () => {
+  if (activeId.value) {
+    router.visit(route('lesson-presentation.manage', { id: activeId.value }));
+  } else {
+    router.visit(route('lesson-presentation.index'));
+  }
+};
+
 const previousSlide = () => {
   if (currentSlideIndex.value > 0) {
     currentSlideIndex.value--;

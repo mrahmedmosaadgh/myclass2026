@@ -2,7 +2,7 @@
   <div class="slide-content">
     <!-- Text Slide -->
     <div v-if="slide.slide_type === 'text'" class="text-slide">
-      <div class="prose" v-html="slide.slide_content?.text"></div>
+      <div class="prose" v-html="renderContent(slide.slide_content?.text)"></div>
     </div>
 
     <!-- PDF Slide -->
@@ -116,6 +116,34 @@ defineProps({
 });
 
 defineEmits(['answer-selected', 'quiz-completed', 'update-drawing']);
+
+import 'katex/dist/katex.min.css';
+import katex from 'katex';
+
+const renderContent = (content) => {
+  if (!content) return '';
+  
+  // 1. Render Block Math: $$...$$
+  let rendered = content.replace(/\$\$([\s\S]+?)\$\$/g, (match, formula) => {
+    try {
+      return katex.renderToString(formula, { displayMode: true, throwOnError: false });
+    } catch (e) {
+      return match;
+    }
+  });
+
+  // 2. Render Inline Math: $...$
+  // structure: $...$ but allow escaped \$ inside
+  rendered = rendered.replace(/\$((?:\\.|[^$])+)\$/g, (match, formula) => {
+    try {
+      return katex.renderToString(formula, { displayMode: false, throwOnError: false });
+    } catch (e) {
+      return match;
+    }
+  });
+
+  return rendered;
+};
 </script>
 
 <style scoped lang="scss">

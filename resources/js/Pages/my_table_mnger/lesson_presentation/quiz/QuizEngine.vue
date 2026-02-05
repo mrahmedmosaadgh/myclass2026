@@ -1,15 +1,5 @@
 <template>
-  <!-- Skip Links for Keyboard Navigation -->
-  <div class="skip-links">
-    <a href="#quiz-content" class="skip-link" title="Skip to quiz content - Press Tab to activate">
-      <span class="skip-icon">⏭️</span>
-      <span class="skip-text sr-only">Skip to quiz content</span>
-    </a>
-    <a href="#quiz-navigation" class="skip-link" title="Skip to navigation controls - Jump to Next/Previous buttons">
-      <span class="skip-icon">🧭</span>
-      <span class="skip-text sr-only">Skip to navigation</span>
-    </a>
-  </div>
+
 
   <div 
     class="quiz-engine" 
@@ -78,7 +68,7 @@
       
       <div 
         class="question-text" 
-        v-html="currentQuestion.question"
+        v-html="renderContent(currentQuestion.question)"
         role="heading"
         aria-level="3"
         :aria-labelledby="'current-question-heading'"
@@ -132,7 +122,7 @@
         >
           <div class="option-content">
             <span class="option-label">{{ String.fromCharCode(65 + index) }}</span>
-            <span class="option-text">{{ option.text }}</span>
+            <span class="option-text" v-html="renderContent(option.text)"></span>
           </div>
 
           <!-- Feedback (shown after answering) -->
@@ -180,15 +170,21 @@
         </button>
 
         <!-- Next/Finish Button -->
+        <!-- Next Button (Standard Navigation) -->
         <button
+          v-if="!isLast"
           class="nav-button next-button"
-          :class="{ 'finish-button': isLast }"
           :disabled="!isAnswered && !quizConfig.allowReviewMode"
-          :aria-label="isLast ? finish() : next()"
+          :aria-label="next()"
           @click="() => { goNext(); playClick(); }"
         >
-          {{ isLast ? finish() : (isRtl ? `${next()} ←` : `${next()} →`) }}
+          {{ isRtl ? `${next()} ←` : `${next()} →` }}
         </button>
+
+        <!-- Completion Counter (Last Slide) -->
+        <div v-else class="completion-counter" style="font-weight: 600; color: #4b5563; padding: 0.5rem 1rem;">
+          {{ answers.length }} / {{ total }} Answered
+        </div>
       </div>
 
       <!-- Question Navigator (review mode only, shown when all questions answered) -->
@@ -230,6 +226,30 @@ import type {
   AnswerRecord, 
   QuizResult 
 } from '@/types/quiz'
+import 'katex/dist/katex.min.css'
+import katex from 'katex'
+
+const renderContent = (content: string) => {
+  if (!content) return '';
+  let rendered = content.replace(/\$\$([\s\S]+?)\$\$/g, (match, formula) => {
+    try {
+      return katex.renderToString(formula, { displayMode: true, throwOnError: false });
+    } catch (e) {
+      console.error(e);
+      return match;
+    }
+  });
+  
+  rendered = rendered.replace(/\$((?:\\.|[^$])+)\$/g, (match, formula) => {
+    try {
+      return katex.renderToString(formula, { displayMode: false, throwOnError: false });
+    } catch (e) {
+      console.error(e);
+      return match;
+    }
+  });
+  return rendered;
+};
 
 // Initialize i18n
 const { 
@@ -671,8 +691,13 @@ watch(
   () => answers.value.length,
   (newLength) => {
     // Check if all questions have been answered
-    if (newLength === processedQuiz.value.length && quizConfig.value.allowReviewMode) {
-      emit('quiz-review-enter')
+    if (newLength === processedQuiz.value.length) {
+      if (quizConfig.value.allowReviewMode) {
+        emit('quiz-review-enter')
+      } else {
+        // Auto-complete when all questions are answered since we removed the Finish button
+        completeQuiz()
+      }
     }
   }
 )
@@ -744,81 +769,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* ============================================================================
-   Skip Links for Keyboard Navigation
-   ============================================================================ */
-.skip-links {
-  position: relative;
-}
 
-.skip-link {
-  position: absolute;
-  top: -40px;
-  left: 0;
-  background-color: #3b82f6;
-  color: #ffffff;
-  padding: 0.5rem 1rem;
-  text-decoration: none;
-  border-radius: 0.25rem;
-  font-weight: 500;
-  z-index: 100;
-  transition: top 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-width: 40px;
-  justify-content: center;
-}
-
-.skip-icon {
-  font-size: 1.2rem;
-  line-height: 1;
-}
-
-.skip-text.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-.skip-link:focus {
-  top: 0;
-  outline: 2px solid #1e40af;
-  outline-offset: 2px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.skip-link:hover {
-  background-color: #2563eb;
-  transform: translateY(-2px);
-}
-
-/* Tooltip styling for better accessibility */
-.skip-link[title] {
-  position: relative;
-}
-
-.skip-link[title]:focus::after {
-  content: attr(title);
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: #1f2937;
-  color: white;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
-  font-size: 0.75rem;
-  white-space: nowrap;
-  z-index: 101;
-  margin-bottom: 0.5rem;
-}
 
 /* ============================================================================
    Quiz Engine Container

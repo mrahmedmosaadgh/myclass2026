@@ -2,7 +2,7 @@
   <div :class="['bg-white p-6 rounded-lg border border-gray-200 shadow-sm overflow-hidden', juniorMode ? 'bg-gradient-to-r from-indigo-100 via-purple-100 to-pink-100' : '']">
     <!-- Header -->
     <div class="flex justify-between items-start mb-4">
-      <h3 class="text-lg font-medium text-gray-900 flex-1 mr-4" v-html="question.text"></h3>
+      <h3 class="text-lg font-medium text-gray-900 flex-1 mr-4" v-html="renderContent(question.text)"></h3>
       <div class="flex flex-col items-end gap-2">
         <span class="text-xs font-medium px-2.5 py-0.5 rounded" :class="juniorMode ? 'bg-yellow-200 text-yellow-800' : 'bg-blue-100 text-blue-800'">
           {{ question.points }} Points
@@ -23,7 +23,7 @@
         <button v-for="option in question.options" :key="option.id"
                 @click="() => { !submitted && updateAnswer(option.id); playClick(); }"
                 :class="['w-full text-left p-4 rounded-lg border transition-all flex items-center justify-between', getOptionClass(option.id)]">
-          <span v-html="option.text"></span>
+          <span v-html="renderContent(option.text)"></span>
           <i v-if="isSelected(option.id)" class="fas fa-check-circle text-blue-500"></i>
         </button>
       </div>
@@ -37,7 +37,7 @@
                :class="isSelected(option.id) ? 'bg-blue-600 border-blue-600' : 'border-gray-300'">
             <i v-if="isSelected(option.id)" class="fas fa-check text-white text-xs"></i>
           </div>
-          <span v-html="option.text"></span>
+          <span v-html="renderContent(option.text)"></span>
         </button>
       </div>
 
@@ -129,6 +129,25 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { playClick, playSuccess, playError } from '@/Utils/audio';
+import 'katex/dist/katex.min.css';
+import katex from 'katex';
+
+const renderContent = (content) => {
+  if (!content) return '';
+  return content.replace(/\$\$([\s\S]+?)\$\$/g, (match, formula) => {
+    try {
+      return katex.renderToString(formula, { displayMode: true, throwOnError: false });
+    } catch (e) {
+      return match;
+    }
+  }).replace(/\$((?:\\.|[^$])+)\$/g, (match, formula) => {
+    try {
+      return katex.renderToString(formula, { displayMode: false, throwOnError: false });
+    } catch (e) {
+      return match;
+    }
+  });
+};
 
 const props = defineProps({
   question: { type: Object, required: true },

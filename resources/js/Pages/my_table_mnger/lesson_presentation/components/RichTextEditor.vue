@@ -131,6 +131,10 @@
         <q-tooltip>Insert Math Equation</q-tooltip>
       </q-btn>
 
+      <q-btn @click="autoFormatMath" flat dense size="sm" color="amber-8" icon="auto_fix_high">
+        <q-tooltip>Auto-Format Math (Detect & Fix)</q-tooltip>
+      </q-btn>
+
       <!-- AI Assistant Button -->
       <q-btn @click="showAIAssistant = true" flat dense size="sm" color="accent" icon="psychology">
         <q-tooltip>AI Assistant</q-tooltip>
@@ -441,6 +445,57 @@ const pasteFromClipboard = async (mode = 'cursor') => {
   }
 };
 
+
+const autoFormatMath = () => {
+  if (!editor.value) return;
+  
+  const content = editor.value.innerHTML;
+  
+  // Basic heuristics to detect math-like patterns not already wrapped in $
+  // This is conservative to avoid false positives
+  // Patterns: 
+  // 1. Single variables with operations: "x + 5 = 12", "2y - 3"
+  // 2. Simple equations: "a = b"
+  // 3. Squares: "x^2"
+  
+  // Regex explanation:
+  // (?<!\$): Negative lookbehind to ensure not already starting with $
+  // \b[a-zA-Z](?:\^2|\s*[\+\-\=\<\>]\s*\d+)\b: Variable followed by square OR op+number
+  // (?!([^$]*\$) | [^$]*<\/span>): Negative lookahead to ensure not inside $...$ or html tags roughly
+  
+  // A safer approach is to target text nodes specifically to avoid messing up HTML tags
+  
+  const walker = document.createTreeWalker(editor.value, NodeFilter.SHOW_TEXT, null, false);
+  let node;
+  const nodesToUpdate = [];
+  
+  while (node = walker.nextNode()) {
+    const text = node.nodeValue;
+    // Regex for:
+    // - variables followed by operations (x + 1)
+    // - equations (x = 5)
+    // - exponents (x^2)
+    // - fractions (1/2)
+    // Excluding text that looks like normal sentences
+    
+    // Pattern: [variable/number] [op] [variable/number] [op] ...
+    // E.g., x + 5 = 12
+    const mathRegex = /(?<!\$)\b([a-z]\s*[\+\-\=]\s*\d+|[a-z]\s*\^\s*\d+|\d+\s*[\+\-\=]\s*[a-z]|[a-z]\s*[\+\-\=]\s*[a-z])\b(?!\$)/gi;
+    
+    if (mathRegex.test(text)) {
+      nodesToUpdate.push({ node, text: text.replace(mathRegex, '$$$1$$') });
+    }
+  }
+  
+  nodesToUpdate.forEach(({ node, text }) => {
+    node.nodeValue = text;
+  });
+  
+  onInput();
+  
+  // Notify user
+  // (Optional: could assume toast notification here if $q available, but using simple visual feedback is ok)
+};
 
 </script>
 

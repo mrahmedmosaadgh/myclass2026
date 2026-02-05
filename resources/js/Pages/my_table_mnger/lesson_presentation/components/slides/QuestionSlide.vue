@@ -16,13 +16,31 @@
       />
       
       <div class="mt-4 pt-4 border-t border-gray-200">
-        <button 
-          @click="showTypeSelector = true"
-          class="w-full py-3 border-2 border-dashed border-blue-300 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-medium flex items-center justify-center gap-2"
-        >
-          <i class="fas fa-plus-circle"></i> Add Question
-        </button>
+        <div class="grid grid-cols-2 gap-4">
+          <button 
+            @click="showTypeSelector = true"
+            class="py-3 border-2 border-dashed border-blue-300 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-medium flex items-center justify-center gap-2"
+          >
+            <i class="fas fa-plus-circle"></i> Add Question
+          </button>
+          
+          <button 
+            @click="showAIDialog = true"
+            class="py-3 border-2 border-dashed border-purple-300 text-purple-600 rounded-lg hover:bg-purple-50 transition-colors font-medium flex items-center justify-center gap-2"
+          >
+            <q-icon name="auto_awesome" /> AI Generate
+          </button>
+        </div>
       </div>
+
+      <!-- AI Generator Dialog -->
+      <QuAIGeneratorDialog
+        v-model="showAIDialog"
+        :emit-data-only="true"
+        :subject-name="context?.subject_name"
+        :grade-name="context?.grade_name"
+        @imported="handleAIQuestions"
+      />
 
       <!-- Question Type Selector Modal -->
       <div v-if="showTypeSelector" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -71,6 +89,8 @@ import EnhancedQuestionEditor from '../questions/EnhancedQuestionEditor.vue';
 import QuestionTypeSelector from '../questions/QuestionTypeSelector.vue';
 import QuizEngine from '../../quiz/QuizEngine.vue';
 import UniversalQuestionPlayer from '@/Components/QuestionSystem/UniversalQuestionPlayer.vue';
+import QuAIGeneratorDialog from '@/Pages/my_class/QuQuestionBankSystem/QuAIGeneratorDialog.vue';
+import { useQuasar } from 'quasar';
 
 const props = defineProps({
   modelValue: {
@@ -97,12 +117,18 @@ const props = defineProps({
   legacyMode: {
     type: String,
     default: 'learn'
+  },
+  context: {
+    type: Object,
+    default: () => ({})
   }
 });
 
 const emit = defineEmits(['update:modelValue', 'answer-selected', 'quiz-completed']);
+const $q = useQuasar();
 
 const showTypeSelector = ref(false);
+const showAIDialog = ref(false);
 const legacyAnswers = ref({});
 const legacyAttempts = ref({});
 const legacySolved = ref({});
@@ -328,6 +354,74 @@ const addQuestionWithType = (type) => {
   questions.push(newQuestion);
   emit('update:modelValue', { ...props.modelValue, questions });
   showTypeSelector.value = false;
+};
+
+const handleAIQuestions = (aiQuestions) => {
+  const newQuestions = aiQuestions.map((q, index) => {
+    // Generate base question structure
+    const id = 'q_' + Math.random().toString(36).substr(2, 6) + '_' + index;
+    
+    // Determine type
+    let type = 'single_choice';
+    // AI Types: mcq, true_false, short, long
+    if (q.question_type === 'mcq') {
+      type = q.correct_answer && q.correct_answer.length > 1 ? 'multiple_choice' : 'single_choice';
+    } else if (q.question_type === 'true_false') {
+      type = 'true_false';
+    } else if (q.question_type === 'short') {
+      type = 'short_answer';
+    } else if (q.question_type === 'long') {
+      type = 'essay';
+    }
+
+    // Map content
+    const mapped = {
+      id: id,
+      type: type,
+      text: q.question_text || '',
+      points: q.marks || 1,
+      explanation: q.explanation || '', // Assuming AI might provide this later
+      active: true,
+      difficulty: q.difficulty,
+      bloom_level: q.bloom_level
+    };
+
+    // Handle Options
+    if (['single_choice', 'multiple_choice'].includes(type)) {
+      if (q.options && typeof q.options === 'object') {
+        mapped.options = Object.keys(q.options).map(key => ({
+          id: key,
+          text: q.options[key]
+        }));
+      } else {
+        mapped.options = [
+          { id: 'A', text: 'Option A' },
+          { id: 'B', text: 'Option B' }
+        ];
+      }
+      
+      mapped.correct_answer = type === 'single_choice' 
+        ? (q.correct_answer && q.correct_answer[0] ? q.correct_answer[0] : null)
+        : (q.correct_answer || []);
+        
+    } else if (type === 'true_false') {
+      // AI usually returns ["true"] or ["false"]
+      const correctKey = q.correct_answer && q.correct_answer[0] ? q.correct_answer[0].toString().toLowerCase() : 'true';
+      mapped.correct_answer = correctKey === 'true';
+    }
+
+    return mapped;
+  });
+
+  const questions = [...(props.modelValue.questions || []), ...newQuestions];
+  emit('update:modelValue', { ...props.modelValue, questions });
+  
+  $q.notify({
+    type: 'positive',
+    message: `Added ${newQuestions.length} AI generated questions`,
+    icon: 'auto_awesome',
+    position: 'top'
+  });
 };
 </script>
 

@@ -46,6 +46,13 @@ Route::middleware([
         return Inertia::render('my_table_mnger/lesson_presentation/LessonList');
     })->name('index');
 
+    // Manage Lesson Page
+    Route::get('/manage/{id}', function ($id) {
+        return Inertia::render('my_table_mnger/lesson_presentation/LessonManager', [
+            'lessonId' => $id
+        ]);
+    })->name('manage');
+
     // Lesson Editor
     Route::get('/edit', function () {
         $teacher = \App\Models\Teacher::first(); // TODO: Auth::user()->teacher

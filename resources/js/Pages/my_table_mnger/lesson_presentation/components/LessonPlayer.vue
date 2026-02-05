@@ -1,5 +1,14 @@
 <template>
-  <q-layout view="hHh lpR fFf" class="student-lesson-view">
+  <q-layout view="hHh lpR fFf" class="student-lesson-view mt-8">
+    <!-- Global Progress Bar -->
+    <q-linear-progress 
+      :value="globalSlideProgress" 
+      color="primary" 
+      track-color="transparent"
+      class="fixed-top z-top" 
+      style="height: 4px; z-index: 9999;"
+    />
+
     <!-- Sidebar -->
     <PlayerSidebar
       v-model="showSectionsDrawer"
@@ -53,6 +62,18 @@
               class="q-px-md"
             >
               <q-tooltip>Enter Fullscreen Presentation Mode</q-tooltip>
+            </q-btn>
+
+            <q-btn
+              flat
+              dense
+              round
+              icon="event_note"
+              color="warning"
+              @click="goToRewardSystem"
+              class="q-ml-sm"
+            >
+              <q-tooltip>Teacher Schedule</q-tooltip>
             </q-btn>
           </div>
         </div>
@@ -161,13 +182,26 @@
                     </q-card-section>
                   </q-card>
 
-                  <!-- Next Section Button (Scroll Mode) -->
-                  <div class="text-center q-pb-xl">
+                  <!-- Navigation Buttons (Scroll Mode) -->
+                  <div class="row justify-center q-gutter-md q-pb-xl">
+                      <q-btn
+                        unelevated
+                        outline
+                        color="primary"
+                        icon="arrow_back"
+                        label="Previous Section"
+                        :disable="sections.length > 0 && currentSection === sections[0].id"
+                        @click="() => { prevSectionFromScroll(); playClick(); }"
+                        size="lg"
+                        class="q-px-xl"
+                      />
+
                       <q-btn
                         unelevated
                         color="primary"
                         icon-right="arrow_forward"
                         label="Next Section"
+                        :disable="sections.length > 0 && currentSection === sections[sections.length - 1].id"
                         @click="() => { nextSectionFromScroll(); playClick(); }"
                         size="lg"
                         class="q-px-xl"
@@ -427,7 +461,6 @@
       <!-- Drawing Overlay (outside main content, true overlay) -->
       <DrawingOverlay v-if="showFullscreenDialog" ref="drawingOverlayRef" @drawing-state-changed="handleDrawingStateChanged" />
 
-      <!-- Slide Annotation Overlay -->
       <SlideAnnotationOverlay 
         v-if="showFullscreenDialog && showSlideAnnotations" 
         :current-slide-id="getCurrentSlideId()"
@@ -436,6 +469,88 @@
         @close="showSlideAnnotations = false"
       />
     </q-dialog>
+
+    <div v-show="showRewardDialog" class="fixed-full column no-wrap" style="background: #f5f7fa; z-index: 6000;">
+        <q-toolbar class="bg-white text-dark shadow-1 q-py-sm" style="z-index: 10;">
+          <q-btn flat round dense icon="close" @click="showRewardDialog = false" color="grey-7" size="lg" />
+          <q-toolbar-title class="text-weight-bold text-h6 text-grey-9 flex items-center">
+            <q-icon name="event_note" color="warning" size="md" class="q-mr-sm" />
+            Teacher Schedule
+          </q-toolbar-title>
+          <q-btn flat round dense icon="minimize" @click="minimizeSchedule" color="grey-7" size="lg">
+             <q-tooltip>Keep Active (Minimize)</q-tooltip>
+          </q-btn>
+        </q-toolbar>
+
+        <q-card-section class="col q-pa-none relative-position">
+          <iframe 
+            :src="rewardSystemUrl" 
+            style="width: 100%; height: 100%; border: none;"
+            title="Reward System"
+          ></iframe>
+        </q-card-section>
+    </div>
+
+    <!-- Classroom Selection Dialog -->
+    <q-dialog v-model="showClassroomSelectDialog">
+      <q-card style="min-width: 400px">
+        <q-card-section>
+          <div class="text-h6">Select Classroom</div>
+          <div class="text-caption text-grey">Choose a classroom to link with the Reward System</div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none">
+          <div v-if="isFetchingClassrooms" class="flex flex-center q-pa-md">
+            <q-spinner color="primary" size="2em" />
+          </div>
+          
+          <q-list v-else bordered separator class="rounded-borders">
+            <q-item v-if="classrooms.length === 0" class="text-center q-pa-md">
+               <q-item-section class="text-grey">No classrooms found.</q-item-section>
+            </q-item>
+            
+            <q-item 
+              v-for="cls in classrooms" 
+              :key="cls.id" 
+              clickable 
+              v-ripple 
+              @click="selectClassroom(cls)"
+              class="hover:bg-gray-100"
+            >
+              <q-item-section avatar>
+                <q-avatar color="primary" text-color="white" icon="school" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label class="text-weight-bold">{{ cls.name || `Class ${cls.id}` }}</q-item-label>
+                <q-item-label caption>{{ cls.grade_name || '' }} {{ cls.subject_name ? '• ' + cls.subject_name : '' }}</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <q-icon name="chevron_right" color="grey" />
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-card-section>
+
+        <q-card-actions align="right" class="bg-grey-1">
+          <q-btn flat label="Cancel" color="grey" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- Minimized Schedule FAB -->
+    <q-page-sticky position="bottom-left" :offset="[18, 50]" v-if="isScheduleMinimized" style="z-index: 5000;">
+      <q-fab
+        color="warning"
+        icon="event_note"
+        direction="up"
+        padding="sm"
+        @click="restoreSchedule"
+      >
+        <q-tooltip anchor="center right" self="center left" :offset="[10, 10]">
+          Restore Teacher Schedule
+        </q-tooltip>
+      </q-fab>
+    </q-page-sticky>
   </q-layout>
 </template>
 
@@ -505,6 +620,22 @@ const overallProgress = computed(() => {
   return (completed / total) * 100;
 });
 
+const globalSlideProgress = computed(() => {
+  if (!props.slides || props.slides.length === 0) return 0;
+  
+  if (showSpecialContent.value) {
+     return 1.0; 
+  }
+
+  const currentS = currentSlide.value;
+  if (!currentS || !currentS.id) return 0;
+  
+  const index = props.slides.findIndex(s => s.id === currentS.id);
+  if (index === -1) return 0;
+  
+  return (index + 1) / props.slides.length;
+});
+
 const canAccessPractice = computed(() => {
   if (props.isPreview) return true;
   if (!props.progress) return false;
@@ -559,32 +690,81 @@ const getSectionSlideCount = (sectionId) => {
 };
 
 // Unified scroll to top function
+// Unified scroll to top function
+const showRewardDialog = ref(false);
+const showClassroomSelectDialog = ref(false);
+const isFetchingClassrooms = ref(false);
+const classrooms = ref([]);
+const rewardSystemUrl = ref('/schedules/my-schedule');
+const isScheduleMinimized = ref(false);
+
+const goToRewardSystem = () => {
+  // Directly load the teacher schedule as requested
+  rewardSystemUrl.value = '/schedules/my-schedule';
+  showRewardDialog.value = true;
+  isScheduleMinimized.value = false;
+};
+
+const minimizeSchedule = () => {
+  showRewardDialog.value = false;
+  isScheduleMinimized.value = true;
+};
+
+const restoreSchedule = () => {
+  showRewardDialog.value = true;
+  isScheduleMinimized.value = false;
+};
+
+// const goToRewardSystem_BACKUP = async () => { ... } // Removing backup to keep clean
+/*
+const selectClassroom = (classroom) => {
+  localStorage.setItem('selected_classroom_id', classroom.id);
+  showClassroomSelectDialog.value = false;
+  rewardSystemUrl.value = `/schedules/my-schedule?classroom_id=${classroom.id}`;
+  showRewardDialog.value = true;
+};
+*/
+// Keeping selectClassroom helper but not used by default button action anymore. 
+// Actually I'll just remove the complexity if it's not needed.
+
+/*
+// Previous classroom selection logic removed as per instruction to load "all teacher schedule" directly
+const goToRewardSystem = async () => {
+  const savedClassroomId = localStorage.getItem('selected_classroom_id');
+  
+  if (savedClassroomId) {
+    rewardSystemUrl.value = `/schedules/my-schedule?classroom_id=${savedClassroomId}`;
+    showRewardDialog.value = true;
+  } else {
+    // ...
+  }
+};
+*/
+
+/*
+const selectClassroom = (classroom) => {
+  localStorage.setItem('selected_classroom_id', classroom.id);
+  showClassroomSelectDialog.value = false;
+  rewardSystemUrl.value = `/schedules/my-schedule?classroom_id=${classroom.id}`;
+  showRewardDialog.value = true;
+};
+*/
+
 const scrollToTop = () => {
-  // Try multiple approaches to ensure scroll works
   nextTick(() => {
-    // Method 1: Try to scroll the main page container
-    const pageContainer = document.querySelector('.q-page');
-    if (pageContainer) {
-      pageContainer.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
+    // Priority 1: Window scroll (standard Quasar layout)
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     
-    // Method 2: Try to scroll the content wrapper
-    const contentWrapper = document.querySelector('.content-wrapper');
-    if (contentWrapper) {
-      contentWrapper.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-    
-    // Method 3: Try to scroll the slide content area
+    // Priority 2: Try specific containers just in case we are in a nested context
     const slideContentArea = document.querySelector('.slide-content-area');
     if (slideContentArea) {
       slideContentArea.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
     }
-    
-    // Method 4: Fallback to window scroll
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    const contentWrapper = document.querySelector('.content-wrapper');
+    if (contentWrapper) {
+      contentWrapper.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   });
 };
 
@@ -726,27 +906,33 @@ const handleContentScroll = (e) => {
   showScrollTopBtn.value = e.target.scrollTop > 300;
 };
 
+const prevSectionFromScroll = () => {
+    const currentSectionIdx = props.sections.findIndex(s => s.id === currentSection.value);
+    const prevSection = props.sections[currentSectionIdx - 1];
+    
+    if (prevSection && canAccessSection(prevSection.id)) {
+      currentSection.value = prevSection.id;
+      currentSection_data.value = prevSection;
+      
+      $q.notify({
+        type: 'info',
+        message: `Back to ${prevSection.title}`,
+        icon: 'arrow_back',
+        position: 'top',
+        timeout: 1500
+      });
+      
+      // Scroll to top of the content area
+      scrollToTop();
+    }
+};
+
 const nextSectionFromScroll = () => {
     // Check if we can proceed (e.g. check questions if strict mode, but for scroll view typically we allow free flow or check all)
     // For now, let's assume scroll view is meaningful for reading/reviewing.
     // If strict completion is required, we should check `isSlideCompleted` for all questions.
     
-    // Check for unsolved questions if needed
-    const unsolvedSlides = currentSectionSlides.value.filter(slide => {
-        if (slide.slide_type !== 'question') return false;
-        const questions = slide.slide_content?.questions || [];
-        return !questions.every(q => questionSolved.value[q.id]);
-    });
 
-    if (unsolvedSlides.length > 0 && !props.isPreview) {
-         $q.notify({ 
-            type: 'warning', 
-            message: `Please complete all questions (${unsolvedSlides.length} remaining) before proceeding.`,
-            position: 'bottom'
-        });
-        // Scroll to first unsolved?
-        return;
-    }
 
     const currentSectionIdx = props.sections.findIndex(s => s.id === currentSection.value);
     const nextSection = props.sections[currentSectionIdx + 1];

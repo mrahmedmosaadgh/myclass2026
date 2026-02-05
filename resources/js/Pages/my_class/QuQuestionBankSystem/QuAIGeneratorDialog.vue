@@ -256,7 +256,17 @@
                   <template v-slot:avatar>
                     <q-icon name="info" />
                   </template>
-                  Copy this prompt and paste it into ChatGPT, Claude, or Gemini. Then copy the AI's JSON response.
+                  <div>
+                    Copy prompt above and paste into:
+                    <div class="row q-gutter-x-sm q-mt-xs items-center flex-wrap">
+                        <q-btn dense flat no-caps color="white" label="ChatGPT" type="a" href="https://chatgpt.com/" target="_blank" icon-right="open_in_new" size="sm" />
+                        <q-btn dense flat no-caps color="white" label="Claude" type="a" href="https://claude.ai/" target="_blank" icon-right="open_in_new" size="sm" />
+                        <q-btn dense flat no-caps color="white" label="Gemini" type="a" href="https://gemini.google.com/" target="_blank" icon-right="open_in_new" size="sm" />
+                        <q-btn dense flat no-caps color="white" label="DeepSeek" type="a" href="https://chat.deepseek.com/" target="_blank" icon-right="open_in_new" size="sm" />
+                        <q-btn dense flat no-caps color="white" label="Copilot" type="a" href="https://copilot.microsoft.com/" target="_blank" icon-right="open_in_new" size="sm" />
+                    </div>
+                    <div class="q-mt-xs">Then paste the JSON response in the next step.</div>
+                  </div>
                 </q-banner>
               </q-card-section>
             </q-card>
@@ -405,10 +415,26 @@ const $q = useQuasar();
 const props = defineProps({
   modelValue: Boolean,
   subjectId: [Number, String],
-  subjects: Array
+  subjects: {
+    type: Array,
+    default: () => []
+  },
+  // New props for reuse
+  emitDataOnly: {
+    type: Boolean,
+    default: false
+  },
+  subjectName: {
+    type: String,
+    default: ''
+  },
+  gradeName: {
+    type: String,
+    default: ''
+  }
 });
 
-const emit = defineEmits(['update:modelValue', 'success']);
+const emit = defineEmits(['update:modelValue', 'success', 'imported']);
 
 const showDialog = computed({
   get: () => props.modelValue,
@@ -476,7 +502,7 @@ const selectedCount = computed(() => {
 });
 
 // Load topics when subject is set
-if (props.subjectId) {
+if (props.subjectId && props.subjects.length > 0) {
   const subject = props.subjects.find(s => s.id == props.subjectId);
   if (subject?.curricula) {
     topics.value = subject.curricula.flatMap(c => c.topics || []);
@@ -484,7 +510,13 @@ if (props.subjectId) {
 }
 
 const generatePrompt = () => {
-  const subject = props.subjects.find(s => s.id == props.subjectId);
+  const subject = props.subjects.length > 0 
+    ? props.subjects.find(s => s.id == props.subjectId)
+    : null;
+    
+  const subjectName = subject?.name || props.subjectName || 'General';
+  const gradeText = props.gradeName ? ` for Grade ${props.gradeName}` : '';
+  
   const topic = topics.value.find(t => t.id === config.value.topicId);
   
   // Determine topic text
@@ -493,7 +525,7 @@ const generatePrompt = () => {
     : (topic ? topic.name : null);
   
   const promptParts = [
-    `Generate ${config.value.count} educational questions for the subject "${subject?.name || 'General'}".`,
+    `Generate ${config.value.count} educational questions for the subject "${subjectName}"${gradeText}.`,
     topicText ? `Focus on the topic: "${topicText}".` : '',
     config.value.learningObjectives ? `Learning Objectives: ${config.value.learningObjectives}` : '',
     '',
@@ -651,6 +683,20 @@ const bulkInsert = () => {
       message: 'No questions selected',
       position: 'top'
     });
+    inserting.value = false;
+    return;
+  }
+  
+  // If in emit mode, just emit the questions and close
+  if (props.emitDataOnly) {
+    emit('imported', questionsToInsert);
+    $q.notify({
+      type: 'positive',
+      message: `${questionsToInsert.length} questions ready to add!`,
+      icon: 'check_circle',
+      position: 'top'
+    });
+    showDialog.value = false;
     inserting.value = false;
     return;
   }
