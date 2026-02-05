@@ -8,7 +8,9 @@ defineProps({
 </script>
 
 <template>
-    <Head title="QudratPro - Master Quantitative Reasoning" />
+    <Head title="QudratPro - Master Quantitative Reasoning | القدرات">
+        <meta name="description" content="Master Qudrat Quantitative reasoning in 8 Weeks. The comprehensive online course designed by teachers to help you score 90+ in your Qudrat test. أتقن القدرات الكمية في 8 أسابيع. الدورة الشاملة أونلاين المصممة من قبل معلمين لمساعدتك على تحقيق درجة 90+ في اختبار القدرات." />
+    </Head>
 
     <div class="min-h-screen bg-white font-sans text-gray-900 antialiased selection:bg-indigo-500 selection:text-white">
         <!-- Hero Section -->

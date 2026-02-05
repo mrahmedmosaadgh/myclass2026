@@ -1,10 +1,10 @@
-const sounds = {
+const sounds: Record<string, string> = {
     click: '/audio/click-234708.mp3',
     success: '/audio/purchase-success-384963.mp3',
     error: '/audio/error-010-206498.mp3',
 };
 
-const audioMap = new Map();
+const audioMap = new Map<string, HTMLAudioElement>();
 
 // Preload sounds
 if (typeof window !== 'undefined') {
@@ -15,7 +15,7 @@ if (typeof window !== 'undefined') {
     }
 }
 
-export const playSound = (type) => {
+export const playSound = (type: string): void => {
     const baseAudio = audioMap.get(type);
     if (!baseAudio) return;
 
@@ -35,7 +35,7 @@ export const playSound = (type) => {
     baseAudio.play().catch(e => console.debug('Audio play failed', e));
 };
 
-export const playClick = () => playSound('click');
-export const playHover = () => { }; // Disabled per request
-export const playSuccess = () => playSound('success');
-export const playError = () => playSound('error');
+export const playClick = (): void => playSound('click');
+export const playHover = (): void => { }; // Disabled per request
+export const playSuccess = (): void => playSound('success');
+export const playError = (): void => playSound('error');
