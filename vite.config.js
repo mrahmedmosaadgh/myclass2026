@@ -78,50 +78,49 @@ export default defineConfig(({ mode }) => {
                     chunkFileNames: 'assets/js/[name]-[hash].js',
                     entryFileNames: 'assets/js/[name]-[hash].js',
                     manualChunks: (id) => {
-                        manualChunks: (id) => {
-                            // 1. Minimal Vendor Grouping (Safety First)
-                            // We ONLY group libraries we know are safe and independent.
-                            // We do NOT group Vue, Quasar, or Utils to avoid "initialization errors".
-                            if (id.includes('node_modules')) {
-                                if (id.includes('katex')) return 'vendor-katex';
-                                if (id.includes('echarts')) return 'vendor-charts';
-                                if (id.includes('firebase') || id.includes('@firebase')) return 'vendor-firebase';
-                                if (id.includes('xlsx')) return 'vendor-xlsx';
-                            }
+                        // 1. Minimal Vendor Grouping (Safety First)
+                        // We ONLY group libraries we know are safe and independent.
+                        // We do NOT group Vue, Quasar, or Utils to avoid "initialization errors".
+                        if (id.includes('node_modules')) {
+                            if (id.includes('katex')) return 'vendor-katex';
+                            if (id.includes('echarts')) return 'vendor-charts';
+                            if (id.includes('firebase') || id.includes('@firebase')) return 'vendor-firebase';
+                            if (id.includes('xlsx')) return 'vendor-xlsx';
+                        }
 
-                            // 2. Application Feature Grouping (The Fix for 1200+ Requests)
-                            // We MUST group these to stop the "1 file per component" madness.
+                        // 2. Application Feature Grouping (The Fix for 1200+ Requests)
+                        // We MUST group these to stop the "1 file per component" madness.
 
-                            // Group ALL Quiz components (Question System, Quiz Management, etc.)
-                            if (id.includes('resources/js/Components/QuestionSystem') ||
-                                id.includes('resources/js/Pages/QuizManagement') ||
-                                id.includes('resources/js/Pages/my_table_mnger/lesson_presentation/quiz') ||
-                                id.includes('resources/js/composables/useLazyQuizComponents')) {
-                                return 'feature-quiz-engine';
-                            }
+                        // Group ALL Quiz components (Question System, Quiz Management, etc.)
+                        if (id.includes('resources/js/Components/QuestionSystem') ||
+                            id.includes('resources/js/Pages/QuizManagement') ||
+                            id.includes('resources/js/Pages/my_table_mnger/lesson_presentation/quiz') ||
+                            id.includes('resources/js/composables/useLazyQuizComponents')) {
+                            return 'feature-quiz-engine';
+                        }
 
-                            // Group Admin sections
-                            if (id.includes('resources/js/Pages/Admin') ||
-                                id.includes('resources/js/Pages/my_class/admin') ||
-                                id.includes('resources/js/Pages/my_class/super_admin')) {
-                                return 'feature-admin-core';
-                            }
+                        // Group Admin sections
+                        if (id.includes('resources/js/Pages/Admin') ||
+                            id.includes('resources/js/Pages/my_class/admin') ||
+                            id.includes('resources/js/Pages/my_class/super_admin')) {
+                            return 'feature-admin-core';
+                        }
 
-                            // Group Teacher sections
-                            if (id.includes('resources/js/Pages/Teacher') ||
-                                id.includes('resources/js/Pages/my_class/teacher')) {
-                                return 'feature-teacher-portal';
-                            }
-                        },
-                }
-                }
+                        // Group Teacher sections
+                        if (id.includes('resources/js/Pages/Teacher') ||
+                            id.includes('resources/js/Pages/my_class/teacher')) {
+                            return 'feature-teacher-portal';
+                        }
+                    }
+                },
             },
-            server: {
-                host: 'localhost',
-                port: 5173,
-                fs: {
-                    allow: ['..', 'node_modules/@quasar/extras']
-                }
-            },
-        };
-    });
+        },
+        server: {
+            host: 'localhost',
+            port: 5173,
+            fs: {
+                allow: ['..', 'node_modules/@quasar/extras']
+            }
+        },
+    };
+});
