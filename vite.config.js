@@ -82,8 +82,7 @@ export default defineConfig(({ mode }) => {
                         // We ONLY group libraries we know are safe and independent.
                         // We do NOT group Vue, Quasar, or Utils to avoid "initialization errors".
                         if (id.includes('node_modules')) {
-                            if (id.includes('katex')) return 'vendor-katex';
-                            if (id.includes('echarts')) return 'vendor-charts';
+                            // Removing echarts/katex to avoid circular dependencies with feature chunks
                             if (id.includes('firebase') || id.includes('@firebase')) return 'vendor-firebase';
                             if (id.includes('xlsx')) return 'vendor-xlsx';
                         }
