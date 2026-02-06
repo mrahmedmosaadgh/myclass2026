@@ -362,7 +362,7 @@ const logout = () => {
   overflow-y: auto;
   background-color: var(--background-color);
   color: var(--text-color);
-  padding-top: 1.5rem; /* Compact top spacing */
+  padding-top: 4rem; /* Increased top spacing */
 }
 
 .page-header {

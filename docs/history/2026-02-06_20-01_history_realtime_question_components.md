@@ -22,6 +22,7 @@
 4.  **Polish:**
     *   Fixed CSS linting issues (replaced `@apply` with standard CSS in `style` blocks).
     *   Ensured dark mode support for all new components.
+    *   **Layout Fix:** Increased top padding in `AppLayoutDefault.vue` to `4rem` to prevent content from being hidden behind fixed headers.
 
 ## What Still Needs to Be Done
 1.  **Backend Integration:**
