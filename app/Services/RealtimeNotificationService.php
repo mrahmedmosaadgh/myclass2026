@@ -20,13 +20,8 @@ class RealtimeNotificationService
 
     public function __construct()
     {
-        $url = env('FIREBASE_DATABASE_URL');
-        
-        // Fallback to VITE_ var if main one is missing (common config issue)
-        if (empty($url)) {
-            $url = env('VITE_FIREBASE_DATABASE_URL');
-        }
-        
+        // Use config() helper because env() returns null when config is cached
+        $url = config('services.firebase.database_url');
         $this->databaseUrl = rtrim($url ?? '', '/');
     }
 
