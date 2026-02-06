@@ -44,6 +44,16 @@
                         <q-item-label caption>Legacy Component Test</q-item-label>
                     </q-item-section>
                 </q-item>
+                
+                <q-item clickable v-close-popup @click="currentView = 'realtime'">
+                    <q-item-section avatar>
+                        <span class="text-xl">❓</span>
+                    </q-item-section>
+                    <q-item-section>
+                        <q-item-label>Real-time Questions</q-item-label>
+                        <q-item-label caption>Live Q&A Components</q-item-label>
+                    </q-item-section>
+                </q-item>
             </q-list>
         </q-btn-dropdown>
     </div>
@@ -205,6 +215,67 @@
         </div>
     </div>
 
+    <!-- Real-time Questions View -->
+    <div v-show="currentView === 'realtime'" class="animate-fade-in">
+        <h2 class="text-xl font-bold mb-4">Real-time Question Components</h2>
+        
+        <div class="grid gap-6 lg:grid-cols-2">
+            <!-- Question Display Component (Teacher/Admin View) -->
+            <QuestionDisplay
+                question-title="Live Poll"
+                question-text="How confident are you with today's lesson? (1-10)"
+                :answers="realtimeAnswers"
+            />
+
+            <!-- Question Input Component (Student View) -->
+            <QuestionInput
+                question-text="How confident are you with today's lesson? (1-10)"
+                question-id="lesson-confidence-q1"
+                :min-value="1"
+                :max-value="10"
+                :allow-multiple-submissions="true"
+                :default-user-name="'Student ' + Math.floor(Math.random() * 100)"
+                @submit="handleQuestionSubmit"
+            />
+        </div>
+
+        <!-- Demo Controls -->
+        <div class="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+            <h3 class="text-lg font-semibold mb-3 text-yellow-900">📊 Demo Controls</h3>
+            <div class="flex gap-3">
+                <button 
+                    @click="addRandomAnswer"
+                    class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
+                >
+                    Add Random Answer
+                </button>
+                <button 
+                    @click="clearAnswers"
+                    class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                >
+                    Clear All Answers
+                </button>
+            </div>
+            <p class="text-xs text-yellow-700 mt-3">
+                💡 Tip: Submit answers using the input component or click "Add Random Answer" to simulate multiple users.
+            </p>
+        </div>
+
+        <!-- Integration Info -->
+        <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <h3 class="text-lg font-semibold mb-2 text-blue-900">🔗 Integration Guide</h3>
+            <p class="text-sm text-blue-800 mb-3">
+                These components are ready to integrate with your Firebase real-time database:
+            </p>
+            <ul class="text-sm text-blue-700 space-y-1 list-disc list-inside">
+                <li>Use <code class="bg-blue-100 px-1 rounded">useRealtimeChannel</code> composable to listen for answers</li>
+                <li>Send answers to backend via <code class="bg-blue-100 px-1 rounded">/api/realtime/test/question</code></li>
+                <li>Both components support dark mode and are fully responsive</li>
+                <li>See <code class="bg-blue-100 px-1 rounded">README.md</code> in the component directory for full documentation</li>
+            </ul>
+        </div>
+    </div>
+
     <div class="mt-6 text-xs text-gray-500">This page and components are intentionally minimal so you can iterate and copy them elsewhere when ready.</div>
   </div>
 </template>
@@ -215,8 +286,9 @@ import { Head } from '@inertiajs/vue3';
 import AppLayoutDefault from '@/Layouts/AppLayoutDefault.vue';
 import MicroDropdown from './MicroDropdown.vue';
 import AudioPlayer from './comptest/AudioPlayer.vue';
-
 import SecureNumpad from './comptest/SecureNumpad/SecureNumpad.vue';
+import QuestionDisplay from './comptest/realtimetest/QuestionDisplay.vue';
+import QuestionInput from './comptest/realtimetest/QuestionInput.vue';
 
 
 defineOptions({
@@ -228,6 +300,7 @@ const currentViewLabel = computed(() => {
     switch(currentView.value) {
         case 'audio': return 'Audio Player';
         case 'numpad': return 'Secure Numpad';
+        case 'realtime': return 'Real-time Questions';
         default: return 'Micro Dropdown';
     }
 });
@@ -255,6 +328,38 @@ function showSelected() {
   // simple demonstration; you can replace with more advanced test logic
   alert(`Selected: ${selected.value || 'None'}`);
 }
+
+// Real-time Questions Demo State
+const realtimeAnswers = ref([]);
+
+const handleQuestionSubmit = (answerData) => {
+  // Add the answer to the display
+  realtimeAnswers.value.push({
+    id: Date.now().toString(),
+    ...answerData
+  });
+  
+  console.log('Answer submitted:', answerData);
+  // In production, you would send this to your backend/Firebase here
+  // Example: await axios.post('/api/realtime/test/question', answerData);
+};
+
+const addRandomAnswer = () => {
+  const names = ['Ahmed', 'Sara', 'Mohamed', 'Fatima', 'Ali', 'Nour', 'Omar', 'Layla'];
+  const randomName = names[Math.floor(Math.random() * names.length)];
+  const randomValue = Math.floor(Math.random() * 10) + 1;
+  
+  realtimeAnswers.value.push({
+    id: Date.now().toString(),
+    senderName: randomName,
+    value: randomValue,
+    timestamp: Date.now() / 1000
+  });
+};
+
+const clearAnswers = () => {
+  realtimeAnswers.value = [];
+};
 </script>
 
 <style scoped>
