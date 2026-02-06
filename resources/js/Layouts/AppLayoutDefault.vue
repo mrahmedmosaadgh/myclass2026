@@ -299,7 +299,8 @@ const logout = () => {
 
 .layout-container {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   background-color: var(--background-color);
   position: relative;
 }
@@ -353,6 +354,8 @@ const logout = () => {
   transition: margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   margin-right: 0;
   width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 
 /* Content area */
