@@ -116,7 +116,7 @@ class RealtimeNotificationService
     /**
      * Notify a class/group
      */
-    public function notifyGroup(string $groupType, int $groupId, string $event, array $context = []): bool
+    public function notifyGroup(string $groupType, string|int $groupId, string $event, array $context = []): bool
     {
         return $this->notify("{$groupType}.{$groupId}", array_merge(['event' => $event], $context));
     }
