@@ -19,6 +19,16 @@ VITE_FIREBASE_MEASUREMENT_ID=G-XXXXXXXXXX
 VITE_FIREBASE_DATABASE_URL=https://your-project-default-rtdb.firebaseio.com
 ```
 
+## Critical: Enable Anonymous Authentication
+
+The error `auth/configuration-not-found` means the Anonymous sign-in provider is disabled. Current app logic requires this for guests to view real-time questions.
+
+1. Go to **Firebase Console** -> **Authentication** -> **Sign-in method**
+2. Click **Add new provider** (or edit providers)
+3. Select **Anonymous**
+4. Toggle **Enable** switch
+5. Click **Save**
+
 ## Where to Get These Values
 
 1. Go to [Firebase Console](https://console.firebase.google.com/)

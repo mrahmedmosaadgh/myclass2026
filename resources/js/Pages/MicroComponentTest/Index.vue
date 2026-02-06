@@ -356,65 +356,48 @@ const currentUserId = computed(() => usePage().props.auth?.user?.id || Math.floo
 // Firebase connection status
 import { database } from '@/firebase/init';
 const firebaseConnectionStatus = ref({
-    connected: false,
-    message: 'Checking...'
+    connected: !!database,
+    message: database ? 'Firebase Connected' : 'Firebase Not Configured'
 });
 
-// Listen for real-time updates
-onMounted(() => {
-    // Check Firebase status
-    console.log('🔍 Checking Firebase initialization...');
-    console.log('Database object:', database);
-    console.log('Question ID:', questionId);
-    console.log('Channel:', `question.${questionId}`);
+// Log Firebase status immediately
+console.log('🔍 Firebase initialization check:');
+console.log('  Database object:', database);
+console.log('  Question ID:', questionId);
+console.log('  Channel:', `question.${questionId}`);
+console.log('  Status:', firebaseConnectionStatus.value.message);
+
+// Set up real-time listener at TOP LEVEL (critical for lifecycle hooks to work!)
+useRealtimeChannel(`question.${questionId}`, (signal) => {
+    console.log('🔔 SIGNAL RECEIVED:', signal);
     
-    if (!database) {
-        console.error('❌ Firebase database is NOT initialized!');
-        firebaseConnectionStatus.value = {
-            connected: false,
-            message: 'Firebase Not Configured'
-        };
-        return;
-    }
-    
-    firebaseConnectionStatus.value = {
-        connected: true,
-        message: 'Firebase Connected'
-    };
-    
-    console.log('✅ Firebase database initialized, setting up listener...');
-    
-    useRealtimeChannel(`question.${questionId}`, (signal) => {
-        console.log('🔔 SIGNAL RECEIVED:', signal);
+    if (signal.event === 'NEW_RESPONSE') {
+        console.log('📥 Processing NEW_RESPONSE event:', signal.context);
         
-        if (signal.event === 'NEW_RESPONSE') {
-            console.log('📥 Processing NEW_RESPONSE event:', signal.context);
-            
-            const newAnswer = {
-                id: Date.now().toString(),
-                value: parseInt(signal.context.answer), // Ensure value is number for stats
-                userName: signal.context.userName,
-                timestamp: signal.timestamp
-            };
-            
-            console.log('✅ Adding answer to display:', newAnswer);
-            
-            // Avoid duplicates if needed, or just push
-            realtimeAnswers.value.push(newAnswer);
-            
-            // Keep only last 50
-            if (realtimeAnswers.value.length > 50) {
-                realtimeAnswers.value.shift();
-            }
-            
-            console.log('📊 Total answers now:', realtimeAnswers.value.length);
-        } else {
-            console.log('⚠️ Received event is not NEW_RESPONSE:', signal.event);
+        const newAnswer = {
+            id: Date.now().toString(),
+            value: parseInt(signal.context.answer), // Ensure value is number for stats
+            userName: signal.context.userName,
+            timestamp: signal.timestamp
+        };
+        
+        console.log('✅ Adding answer to display:', newAnswer);
+        
+        // Add to reactive array
+        realtimeAnswers.value.push(newAnswer);
+        
+        // Keep only last 50
+        if (realtimeAnswers.value.length > 50) {
+            realtimeAnswers.value.shift();
         }
-    });
-    
-    console.log('👂 Listener setup complete for channel: question.' + questionId);
+        
+        console.log('📊 Total answers now:', realtimeAnswers.value.length);
+    } else {
+        console.log('⚠️ Received event is not NEW_RESPONSE:', signal.event);
+    }
 });
+
+console.log('✅ Listener registered for channel: question.' + questionId);
 
 const handleQuestionSubmit = async (answerData) => {
   console.log('📤 Submitting answer:', answerData);
