@@ -406,7 +406,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useQuasar } from 'quasar';
-import * as XLSX from 'xlsx';
+let XLSX; // Dynamically imported when needed
 import FullCalendar from '@/Components/Calendar/FullCalendar.vue';
 import axios from 'axios';
 import { validateCsrfToken, refreshCsrfToken } from '@/utils/csrf.js';
@@ -736,7 +736,11 @@ const handleSubmit = async () => {
     }
 };
 
-const exportData = () => {
+const exportData = async () => {
+    if (!XLSX) {
+        XLSX = (await import('xlsx')).default || await import('xlsx');
+    }
+    
     const dataToExport = events.value.map(event => ({
         title: event.title,
         description: event.description,

@@ -102,7 +102,7 @@ import Pagination from '@/Components/Pagination.vue';
 import DataTable from '@/Components/Common/DataTable.vue';
 import DialogModal_7 from './DialogModal_7.vue';
 import ImportExcel from '@/Components/Common/ImportExcel.vue';
-import * as XLSX from 'xlsx';
+// XLSX loaded dynamically in exportData
 import NProgress from 'nprogress';
 
 const props = defineProps({
@@ -288,9 +288,12 @@ const deleteRecord = async (record) => {
     }
 };
 
-const exportData = () => {
+const exportData = async () => {
     NProgress.start();
     try {
+        // Lazy load XLSX only when exporting
+        const XLSX = await import('xlsx');
+        
         const wsData = [
             ['School', 'Grade', 'Classroom', 'Subject', 'Teacher', 'Classes/Week'],
             ...items.value.map(item => [

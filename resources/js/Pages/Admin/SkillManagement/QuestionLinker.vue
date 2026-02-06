@@ -434,9 +434,26 @@ export default {
     onMounted(async () => {
       await Promise.all([
         loadCategories(),
-        loadSkills(),
+        loadSkills(), // This loads ALL skills if no category selected initially? No wait, loadSkills uses selectedCategoryId.
         loadSubjectsAndTopics()
       ]);
+
+      // Check for query parameters to pre-select
+      const urlParams = new URLSearchParams(window.location.search);
+      const skillId = urlParams.get('skill_id');
+      const categoryId = urlParams.get('category_id');
+
+      if (categoryId) {
+        selectedCategoryId.value = categoryId;
+        // We need to reload skills filtered by this category
+        await loadSkills();
+      }
+
+      if (skillId) {
+        selectedSkillId.value = skillId;
+        // Load linked questions for this skill
+        await loadLinkedQuestions();
+      }
     });
     
     return {

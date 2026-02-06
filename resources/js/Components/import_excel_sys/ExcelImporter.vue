@@ -128,7 +128,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useQuasar } from 'quasar'
-import * as XLSX from 'xlsx'
+// XLSX loaded dynamically in handleFileUpload
 
 const $q = useQuasar()
 
@@ -184,8 +184,11 @@ const inverseSelection = () => {
 }
 
 // Methods
-const handleFileUpload = () => {
+const handleFileUpload = async () => {
   if (!file.value) return
+
+  // Lazy load XLSX only when file is uploaded
+  const XLSX = await import('xlsx');
 
   const reader = new FileReader()
   reader.onload = (e) => {

@@ -34,7 +34,7 @@ class SkillCategory extends Model
 
     public function skills()
     {
-        return $this->hasMany(Skill::class);
+        return $this->hasMany(Skill::class, 'category_id');
     }
 
     // Scopes

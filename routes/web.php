@@ -295,14 +295,15 @@ Route::middleware([
     
     // Admin Skill Management Routes
     Route::prefix('admin/skills')->name('admin.skills.')->middleware('role:teacher|admin')->group(function () {
-        Route::get('/', [\App\Http\Controllers\SkillCategoryController::class, 'index'])->name('index');
-        Route::get('/categories', [\App\Http\Controllers\SkillCategoryController::class, 'index'])->name('categories.index');
-        Route::get('/skills', [\App\Http\Controllers\SkillController::class, 'index'])->name('skills.index');
+        Route::get('/', [\App\Http\Controllers\SkillCategoryController::class, 'adminIndex'])->name('index');
+        Route::get('/categories', [\App\Http\Controllers\SkillCategoryController::class, 'adminIndex'])->name('categories.index');
+        Route::get('/skills', [\App\Http\Controllers\SkillController::class, 'adminIndex'])->name('skills.index');
         Route::post('/skills', [\App\Http\Controllers\SkillController::class, 'store'])->name('skills.store');
         Route::put('/skills/{skill}', [\App\Http\Controllers\SkillController::class, 'update'])->name('skills.update');
         Route::delete('/skills/{skill}', [\App\Http\Controllers\SkillController::class, 'destroy'])->name('skills.destroy');
         
         // Skill Questions Management
+        Route::get('/manage-questions', [\App\Http\Controllers\SkillQuestionLinkController::class, 'adminIndex'])->name('manage-questions');
         Route::post('/skills/{skill}/link-questions', [\App\Http\Controllers\SkillQuestionLinkController::class, 'linkQuestions'])->name('skills.link-questions');
         Route::delete('/skills/{skill}/unlink-question/{question}', [\App\Http\Controllers\SkillQuestionLinkController::class, 'unlinkQuestion'])->name('skills.unlink-question');
         Route::get('/skills/{skill}/linked-questions', [\App\Http\Controllers\SkillQuestionLinkController::class, 'getLinkedQuestions'])->name('skills.linked-questions');

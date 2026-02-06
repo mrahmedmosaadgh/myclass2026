@@ -55,6 +55,9 @@ import arMessages from './lang/ar.json';
 // Import Pinia persistence plugin
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate';
 
+// Import our custom page resolver
+import { resolvePageComponent as customResolvePageComponent } from './pageResolver.js';
+
 const pinia = createPinia();
 pinia.use(piniaPluginPersistedstate);
 
@@ -107,21 +110,34 @@ const i18n = createI18n({
 
 createInertiaApp({
     title: (title) => `${title} - ${appName}`,
-    resolve: (name) => {
-        const page = resolvePageComponent(`./Pages/${name}.vue`, import.meta.glob('./Pages/**/*.vue'));
-        return page.then((module) => {
+    resolve: async (name) => {
+        // Try to use our custom resolver for better code splitting
+        try {
+            // Attempt to use the custom resolver first
+            const resolved = await customResolvePageComponent(name);
+            
             // Set default layout if none is specified
-            if (!module.default.layout) {
-                module.default.layout = AppLayoutDefault;
+            if (!resolved.default.layout) {
+                resolved.default.layout = AppLayoutDefault;
             }
-            return module;
-        });
+            return resolved;
+        } catch (error) {
+            // Fallback to the original resolver if the custom one fails
+            const page = resolvePageComponent(`./Pages/${name}.vue`, import.meta.glob('./Pages/**/*.vue'));
+            return page.then((module) => {
+                // Set default layout if none is specified
+                if (!module.default.layout) {
+                    module.default.layout = AppLayoutDefault;
+                }
+                return module;
+            });
+        }
     },
     setup({ el, App, props, plugin }) {
         const app = createApp({ render: () => h(App, props) });
 
         app
-            // .component('LayoutDefualt', AppLayoutDefualt)
+            // .component('LayoutDefualt', AppLayoutDefault)
             .component('InertiaHead', Head)
             .component('Head', Head)
             .component('InertiaLink', Link)

@@ -6,9 +6,20 @@ use App\Models\SkillCategory;
 use App\Models\Grade;
 use App\Models\Subject;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class SkillCategoryController extends Controller
 {
+    /**
+     * Display the admin page.
+     *
+     * @return \Inertia\Response
+     */
+    public function adminIndex()
+    {
+        return Inertia::render('Admin/SkillManagement/SkillCategoryList');
+    }
+
     /**
      * Display a listing of the resource.
      *

@@ -60,7 +60,7 @@ import Pagination from '@/Components/Pagination.vue';
 import DataTable from '@/Components/Common/DataTable.vue';
 import FormModal from '@/Components/Common/FormModal.vue';
 import ImportExcel from '@/Components/Common/ImportExcel.vue';
-import * as XLSX from 'xlsx';
+let XLSX; // Dynamically imported when needed
 
 const props = defineProps({
     records: Object,
@@ -197,8 +197,12 @@ const deleteRecord = async (record) => {
     }
 };
 
-const exportData = () => {
+const exportData = async () => {
     try {
+        if (!XLSX) {
+            XLSX = (await import('xlsx')).default || await import('xlsx');
+        }
+        
         // Prepare data for export
         const wsData = [
             ['Grade', 'Subject'], // Headers

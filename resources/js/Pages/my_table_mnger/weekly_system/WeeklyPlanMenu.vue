@@ -57,6 +57,7 @@
 import { computed, ref } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
+import { route } from 'ziggy-js';
 import WeeklySystemGuide from './components/WeeklySystemGuide.vue';
 import MainSchoolData from './components/MainSchoolData.vue'; // Import the component from the shared components directory
 // According to the specification, this component is shared across the weekly system

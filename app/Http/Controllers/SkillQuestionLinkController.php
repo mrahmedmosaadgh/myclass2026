@@ -7,9 +7,20 @@ use App\Models\QuQuestion;
 use App\Models\SkillQuestion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Inertia\Inertia;
 
 class SkillQuestionLinkController extends Controller
 {
+    /**
+     * Display the question linker page.
+     *
+     * @return \Inertia\Response
+     */
+    public function adminIndex()
+    {
+        return Inertia::render('Admin/SkillManagement/QuestionLinker');
+    }
+
     /**
      * Link questions to a skill with difficulty levels.
      *

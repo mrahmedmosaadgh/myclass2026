@@ -81,6 +81,12 @@
                   </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <a 
+                    :href="`/admin/skills/manage-questions?category_id=${skill.category_id}&skill_id=${skill.id}`"
+                    class="text-blue-600 hover:text-blue-900 mr-3"
+                  >
+                    Link Questions
+                  </a>
                   <button 
                     @click="editSkill(skill)"
                     class="text-indigo-600 hover:text-indigo-900 mr-3"

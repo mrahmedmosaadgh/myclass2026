@@ -111,11 +111,14 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { useQuasar } from 'quasar'
+import { ref, computed, nextTick } from 'vue';
+import { useQuasar } from 'quasar';
+import { useI18n } from 'vue-i18n';
+import { router } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';  // Added import for route function
+import { useSchoolDataStore } from '@/Stores/schoolData';
 
-const $q = useQuasar()
-
+// Component props
 const props = defineProps({
   schedule: { type: Object, default: null },
   showClassroom: { type: Boolean, default: false },

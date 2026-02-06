@@ -119,13 +119,25 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { date, useQuasar } from 'quasar';
-import axios from 'axios';
+import { useQuasar } from 'quasar';
+import { useI18n } from 'vue-i18n';
+import { router } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';  // Added import for route function
+import { useSchoolDataStore } from '@/Stores/schoolData';
 
+// Component props
 const props = defineProps({
-  modelValue: Boolean
+  modelValue: {
+    type: Boolean,
+    default: false
+  },
+  scheduleData: {
+    type: Object,
+    required: true
+  }
 });
 
+// Component emits
 const emit = defineEmits(['update:modelValue', 'compare', 'load']);
 const $q = useQuasar();
 

@@ -69,7 +69,7 @@ import ImportExcel from '@/Components/Common/ImportExcel.vue';
 import axios from 'axios';
 import NProgress from 'nprogress';
 import 'nprogress/nprogress.css';
-import * as XLSX from 'xlsx';
+// XLSX loaded dynamically in exportData
 
 const props = defineProps({
     records: {
@@ -215,8 +215,11 @@ const refreshData = () => {
     });
 };
 
-const exportData = () => {
+const exportData = async () => {
     try {
+        // Lazy load XLSX only when exporting
+        const XLSX = await import('xlsx');
+        
         // Create worksheet data
         const wsData = [
             // Headers

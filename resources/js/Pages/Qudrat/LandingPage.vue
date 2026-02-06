@@ -8,8 +8,56 @@ defineProps({
 </script>
 
 <template>
-    <Head title="QudratPro - Master Quantitative Reasoning | القدرات">
-        <meta name="description" content="Master Qudrat Quantitative reasoning in 8 Weeks. The comprehensive online course designed by teachers to help you score 90+ in your Qudrat test. أتقن القدرات الكمية في 8 أسابيع. الدورة الشاملة أونلاين المصممة من قبل معلمين لمساعدتك على تحقيق درجة 90+ في اختبار القدرات." />
+    <Head>
+        <title>Qudrat Pro - قدرات برو | تأسيس كمي | Master Quantitative Reasoning</title>
+        <meta name="description" content="Master Qudrat Quantitative reasoning in 8 Weeks. Comprehensive online course for the General Aptitude Test (GAT/Qudrat). تأسيس شامل للقسم الكمي في اختبار القدرات. أتقن القدرات العامة مع منصة قدرات برو. دروس تفاعلية واختبارات تجريبية." />
+        <meta name="keywords" content="Qudrat Pro, Qudrat, GAT, General Aptitude Test, Quantitative Reasoning, Saudi Arabia, Education, Online Course, قدرات, قدرات برو, اختبار القدرات, القسم الكمي, قياس, دورة قدرات, تعليم, تأسيس, كمي, تأسيس قدرات, تأسيس كمي, أساسيات القدرات" />
+        
+        <!-- Open Graph / Facebook -->
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://qudratpro.com/" />
+        <meta property="og:title" content="Qudrat Pro - قدرات برو | تأسيس كمي | Master Quantitative Reasoning" />
+        <meta property="og:description" content="The ultimate platform to master the General Aptitude Test (Qudrat). Complete foundation for Quantitative section. تأسيس شامل ومتقن للقدرات (القسم الكمي). حقق +90." />
+        <meta property="og:site_name" content="Qudrat Pro" />
+        <meta property="og:locale" content="en_US" />
+        <meta property="og:locale:alternate" content="ar_SA" />
+        
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Qudrat Pro - قدرات برو" />
+        <meta name="twitter:description" content="Master Qudrat Quantitative reasoning with expert teachers. أتقن القدرات الكمية مع نخبة من المعلمين." />
+
+        <!-- Structured Data (JSON-LD) -->
+        <component is="script" type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "WebSite",
+                "name": "Qudrat Pro",
+                "alternateName": ["قدرات برو", "QudratPro"],
+                "url": "https://qudratpro.com/",
+                "description": "Comprehensive online platform for mastering the General Aptitude Test (Qudrat).",
+                "potentialAction": {
+                    "@type": "SearchAction",
+                    "target": "https://qudratpro.com/search?q={search_term_string}",
+                    "query-input": "required name=search_term_string"
+                },
+                "inLanguage": ["en", "ar"]
+            }
+        </component>
+        <component is="script" type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "EducationalOrganization",
+                "name": "Qudrat Pro",
+                "url": "https://qudratpro.com",
+                "logo": "https://qudratpro.com/images/logo.png",
+                "sameAs": [
+                    "https://twitter.com/qudratpro",
+                    "https://instagram.com/qudratpro"
+                ],
+                "description": "Educational platform specialized in General Aptitude Test (Qudrat) preparation."
+            }
+        </component>
     </Head>
 
     <div class="min-h-screen bg-white font-sans text-gray-900 antialiased selection:bg-indigo-500 selection:text-white">
@@ -42,10 +90,10 @@ defineProps({
                     <nav class="relative flex items-center justify-between sm:h-10 md:justify-center" aria-label="Global">
                         <div class="flex flex-1 items-center md:absolute md:inset-y-0 md:left-0">
                             <div class="flex w-full items-center justify-between md:w-auto">
-                                <Link href="/" class="flex items-center gap-2">
-                                    <span class="sr-only">QudratPro</span>
-                                    <span class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">QudratPro</span>
-                                </Link>
+                                    <Link href="/" class="flex items-center gap-2" aria-label="Qudrat Pro Home">
+                                        <span class="sr-only">Qudrat Pro - قدرات برو</span>
+                                        <span class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent" lang="en">Qudrat Pro</span>
+                                    </Link>
                             </div>
                         </div>
                         <div class="hidden md:flex md:space-x-10">

@@ -79,7 +79,7 @@ import { ref, computed } from 'vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import Modal from '@/Components/Modal.vue';
-import * as XLSX from 'xlsx';
+// XLSX loaded dynamically in readExcel
 
 const props = defineProps({
     buttonText: {
@@ -129,7 +129,10 @@ const handleFileSelect = async (event) => {
     }
 };
 
-const readExcel = (file) => {
+const readExcel = async (file) => {
+    // Lazy load XLSX only when importing
+    const XLSX = await import('xlsx');
+    
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
 

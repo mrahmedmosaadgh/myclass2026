@@ -108,10 +108,14 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
-import axios from 'axios'
-import StatusBadge from '../shared/StatusBadge.vue'
+import { ref, computed, watch } from 'vue';
+import { useQuasar } from 'quasar';
+import { useI18n } from 'vue-i18n';
+import { router } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';  // Added import for route function
+import { useSchoolDataStore } from '@/Stores/schoolData';
 
+// Component props
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
   plan: { type: Object, default: null },

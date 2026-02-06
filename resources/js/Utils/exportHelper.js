@@ -1,12 +1,16 @@
-import * as XLSX from 'xlsx/xlsx.mjs';
+// Export helper with lazy-loaded XLSX
+// All XLSX operations are performed dynamically to reduce initial bundle size
 
-export const exportToExcel = ({
+export const exportToExcel = async ({
     items = [],
     columns = [],
     fileName = 'export',
     sheetName = 'Sheet1'
 }) => {
     try {
+        // Lazy load XLSX only when exporting
+        const XLSX = await import('xlsx/xlsx.mjs');
+
         // Create headers and data
         const headers = columns.map(col => col.label);
         const dataRows = items.map(item =>
@@ -27,12 +31,12 @@ export const exportToExcel = ({
 
         // Create worksheet
         const ws = XLSX.utils.aoa_to_sheet([headers, ...dataRows]);
-        
+
         // Create workbook and export
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, sheetName);
         XLSX.writeFile(wb, `${fileName}.xlsx`);
-        
+
         return true;
     } catch (error) {
         console.error('Export error:', error);
@@ -42,28 +46,31 @@ export const exportToExcel = ({
 
 export const exportData = exportToExcel;
 
-export const importFromExcel = (file, options = {}) => {
+export const importFromExcel = async (file, options = {}) => {
+    // Lazy load XLSX only when importing
+    const XLSX = await import('xlsx/xlsx.mjs');
+
     return new Promise((resolve, reject) => {
         try {
             const reader = new FileReader();
-            
+
             reader.onload = (e) => {
                 try {
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
                     const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                    
+
                     // Convert to JSON with header handling
                     let jsonData = XLSX.utils.sheet_to_json(firstSheet, {
                         header: options.header || undefined,
                         defval: options.defval || ''
                     });
-                    
+
                     // Transform data if needed
                     if (options.transform) {
                         jsonData = jsonData.map(options.transform);
                     }
-                    
+
                     resolve({
                         data: jsonData,
                         workbook,
@@ -73,7 +80,7 @@ export const importFromExcel = (file, options = {}) => {
                     reject(error);
                 }
             };
-            
+
             reader.onerror = (error) => reject(error);
             reader.readAsArrayBuffer(file);
         } catch (error) {
@@ -82,9 +89,8 @@ export const importFromExcel = (file, options = {}) => {
     });
 };
 
-export const downloadTemplate = (columns, fileName = 'template') => {
-    const templateData = [columns.map(col => col.label)];
-    exportToExcel({
+export const downloadTemplate = async (columns, fileName = 'template') => {
+    await exportToExcel({
         items: [],
         columns,
         fileName,

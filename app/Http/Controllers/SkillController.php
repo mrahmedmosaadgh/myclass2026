@@ -7,9 +7,20 @@ use App\Models\UserSkillProgress;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Inertia\Inertia;
 
 class SkillController extends Controller
 {
+    /**
+     * Display the admin skill management page.
+     *
+     * @return \Inertia\Response
+     */
+    public function adminIndex()
+    {
+        return Inertia::render('Admin/SkillManagement/SkillEditor');
+    }
+
     /**
      * Display a listing of the resource.
      *

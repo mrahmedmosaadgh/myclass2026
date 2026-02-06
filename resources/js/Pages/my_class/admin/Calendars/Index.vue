@@ -98,7 +98,7 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import FormModal from '@/Components/Common/FormModal.vue';
 import ImportExcel from '@/Components/Common/ImportExcel.vue';
-import * as XLSX from 'xlsx';
+let XLSX; // Dynamically imported when needed
 import FullCalendar from '@/Components/Calendar/FullCalendar.vue';
 
 const props = defineProps({
@@ -273,7 +273,11 @@ const handleSubmit = ({ form }) => {
     }
 };
 
-const exportData = () => {
+const exportData = async () => {
+    if (!XLSX) {
+        XLSX = (await import('xlsx')).default || await import('xlsx');
+    }
+    
     const dataToExport = items.value.map(item => ({
         date: item.date,
         week: item.week,

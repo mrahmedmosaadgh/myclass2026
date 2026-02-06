@@ -74,8 +74,9 @@
           ref="pageContainer"
           :style="{ transform: `scale(${zoomLevel})`, transformOrigin: 'top center' }"
         >
-          <VuePdfEmbed
+          <component
             :key="`page-${currentPage}`"
+            :is="VuePdfEmbed"
             :source="pdfUrl"
             :page="currentPage"
             :width="1200"
@@ -93,7 +94,6 @@
 
 <script setup>
 import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
-import VuePdfEmbed from 'vue-pdf-embed'
 import html2canvas from 'html2canvas'
 import { jsPDF } from 'jspdf'
 
@@ -119,6 +119,7 @@ const drawings = ref({}) // { page: [{color, points: [{x,y}], tool}] }
 const zoomLevel = ref(1)
 const zoomMode = ref('custom') // 'custom', 'fitWidth', 'fitHeight'
 const renderScale = ref(2) // Higher = better quality (1-4)
+const VuePdfEmbed = ref(null) // Will hold the dynamically imported component
 
 // Canvas
 const pageWrapper = ref(null)
@@ -401,8 +402,13 @@ watch(currentPage, async () => {
   setupCanvas()
 })
 
-onMounted(() => {
-  console.log('PDFAnnotator mounted')
+onMounted(async () => {
+  try {
+    const module = await import('vue-pdf-embed')
+    VuePdfEmbed.value = module.default
+  } catch (err) {
+    console.error('Failed to load PDF viewer:', err)
+  }
 })
 
 onUnmounted(() => {

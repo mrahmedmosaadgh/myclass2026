@@ -51,7 +51,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useQuasar } from 'quasar'
-import * as XLSX from 'xlsx'
+// XLSX loaded dynamically in exportToExcel
 
 const $q = useQuasar()
 
@@ -97,7 +97,7 @@ watch(() => props.defaultFileName, (newVal) => {
 })
 
 // Methods
-const exportToExcel = () => {
+const exportToExcel = async () => {
   if (!props.jsonData.length) {
     $q.notify({
       message: 'No data to export',
@@ -108,6 +108,9 @@ const exportToExcel = () => {
   }
 
   try {
+    // Lazy load XLSX only when exporting
+    const XLSX = await import('xlsx');
+    
     // Create worksheet from JSON data
     const worksheet = XLSX.utils.json_to_sheet(props.jsonData)
     

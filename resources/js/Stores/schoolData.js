@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import axios from 'axios';
+import { route } from 'ziggy-js';
 
 export const useSchoolDataStore = defineStore('schoolData', {
   state: () => ({
@@ -9,9 +10,12 @@ export const useSchoolDataStore = defineStore('schoolData', {
     academicYearName: null,
     semesterId: null,
     semesterName: null,
+    scheduleCopyId: null, // Added schedule copy ID
+    scheduleCopyName: null, // Added schedule copy name
     schools: [],
     academicYears: [],
     semesters: [],
+    scheduleCopies: [], // Added schedule copies array
     loading: false,
   }),
 
@@ -130,6 +134,8 @@ export const useSchoolDataStore = defineStore('schoolData', {
       this.academicYearName = null;
       this.semesterId = null;
       this.semesterName = null;
+      this.scheduleCopyId = null;
+      this.scheduleCopyName = null;
     }
   },
 });

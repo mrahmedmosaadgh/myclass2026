@@ -1,26 +1,16 @@
-import katex from 'katex';
 import DOMPurify from 'dompurify';
+import { renderMath } from './katex';
 
 export const renderKaTeX = (text) => {
-    if (!text) return ''; // Add this null check
+    if (!text) return '';
 
     try {
         // First, handle markdown-style bold text
         let processed = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
-        // Then handle LaTeX expressions
-        processed = processed.replace(/\\\((.*?)\\\)/g, (match, latex) => {
-            try {
-                return katex.renderToString(latex.trim(), {
-                    throwOnError: false,
-                    displayMode: false,
-                    strict: false
-                });
-            } catch (e) {
-                console.warn('KaTeX rendering error:', e);
-                return match;
-            }
-        });
+        // Render Math using the reactive renderMath from katex.js
+        // This will return unrendered text initially, then trigger update via reactivity
+        processed = renderMath(processed);
 
         // Add line breaks
         processed = processed.replace(/\n/g, '<br>');
@@ -28,7 +18,7 @@ export const renderKaTeX = (text) => {
         return DOMPurify.sanitize(processed);
     } catch (error) {
         console.error('Error in renderKaTeX:', error);
-        return text || ''; // Add null check here too
+        return text || '';
     }
 };
 

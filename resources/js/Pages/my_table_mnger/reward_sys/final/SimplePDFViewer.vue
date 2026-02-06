@@ -61,7 +61,8 @@
 
       <!-- PDF Display -->
       <div class="pdf-display">
-        <VuePdfEmbed
+        <component
+          :is="VuePdfEmbed"
           :source="pdfFile"
           :page="currentPage"
           @loaded="onPDFLoaded"
@@ -73,13 +74,23 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import VuePdfEmbed from 'vue-pdf-embed'
+import { ref, onMounted } from 'vue'
 
 const pdfFile = ref(null)
 const currentPage = ref(1)
 const totalPages = ref(0)
 const fileInput = ref(null)
+const VuePdfEmbed = ref(null) // Will hold the dynamically imported component
+
+// Load PDF component dynamically
+onMounted(async () => {
+  try {
+    const module = await import('vue-pdf-embed')
+    VuePdfEmbed.value = module.default
+  } catch (err) {
+    console.error('Failed to load PDF viewer:', err)
+  }
+})
 
 const handleFileUpload = (event) => {
   const file = event.target.files[0]

@@ -67,12 +67,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
-import { useSchoolDataStore } from '@/Stores/schoolData';
+import { ref, onMounted, computed } from 'vue';
+import { router, usePage } from '@inertiajs/vue3';
 import { useQuasar } from 'quasar';
-import axios from 'axios';
+import { route } from 'ziggy-js';
 import { useI18n } from 'vue-i18n';
- 
+import { useSchoolDataStore } from '@/Stores/schoolData';
+import WeeklyPlanEditor from '../components/weekly-plans/WeeklyPlanEditor.vue';
+import { Link } from '@inertiajs/vue3';
+
 import WeeklyPlanMenu from '@/Pages/my_table_mnger/weekly_system/WeeklyPlanMenu.vue';
 import SchoolOverview from './components/SchoolOverview.vue';
 import ClassroomHierarchy from './components/ClassroomHierarchy.vue';
