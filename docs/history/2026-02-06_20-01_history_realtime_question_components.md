@@ -26,6 +26,7 @@
     *   **Rating Input:** Replaced numeric input in `QuestionInput.vue` with a user-friendly `<q-rating>` component (1-5 stars).
     *   **Bug Fix:** Fixed prop type warning in `QuestionInput.vue` by initializing rating value to `0` instead of `null`.
     *   **Layout Stabilization:** Changed `AppLayoutDefault.vue` to use fixed `height: 100vh` and `overflow: hidden` to prevent main container from growing unpredictably.
+    *   **Firebase Debugging:** Added connection status indicator and comprehensive logging to `Index.vue` to diagnose real-time connectivity issues.
     *   **Real-time Integration:** Updated `Index.vue` to use actual Firebase listeners and backend API (`/api/realtime/test/question`) for true cross-device synchronization.
 
 ## What Still Needs to Be Done

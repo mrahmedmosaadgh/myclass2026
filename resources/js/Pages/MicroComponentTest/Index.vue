@@ -217,7 +217,24 @@
 
     <!-- Real-time Questions View -->
     <div v-show="currentView === 'realtime'" class="animate-fade-in">
-        <h2 class="text-xl font-bold mb-4">Real-time Question Components</h2>
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-bold">Real-time Question Components</h2>
+            
+            <!-- Firebase Connection Status -->
+            <div class="flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium"
+                 :class="firebaseConnectionStatus.connected ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">
+                <span class="animate-pulse">●</span>
+                {{ firebaseConnectionStatus.message }}
+            </div>
+        </div>
+        
+        <!-- Room ID Display -->
+        <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div class="text-sm text-blue-800">
+                <strong>Room ID:</strong> <code class="px-2 py-1 bg-blue-100 rounded">{{ questionId }}</code>
+                <span class="ml-2 text-xs text-blue-600">(Channel: question.{{ questionId }})</span>
+            </div>
+        </div>
         
         <div class="grid gap-6 lg:grid-cols-2">
             <!-- Question Display Component (Teacher/Admin View) -->
@@ -336,16 +353,51 @@ const realtimeAnswers = ref([]);
 const questionId = 'rating-test-room-1'; // Fixed room ID for testing
 const currentUserId = computed(() => usePage().props.auth?.user?.id || Math.floor(Math.random() * 1000));
 
+// Firebase connection status
+import { database } from '@/firebase/init';
+const firebaseConnectionStatus = ref({
+    connected: false,
+    message: 'Checking...'
+});
+
 // Listen for real-time updates
 onMounted(() => {
+    // Check Firebase status
+    console.log('🔍 Checking Firebase initialization...');
+    console.log('Database object:', database);
+    console.log('Question ID:', questionId);
+    console.log('Channel:', `question.${questionId}`);
+    
+    if (!database) {
+        console.error('❌ Firebase database is NOT initialized!');
+        firebaseConnectionStatus.value = {
+            connected: false,
+            message: 'Firebase Not Configured'
+        };
+        return;
+    }
+    
+    firebaseConnectionStatus.value = {
+        connected: true,
+        message: 'Firebase Connected'
+    };
+    
+    console.log('✅ Firebase database initialized, setting up listener...');
+    
     useRealtimeChannel(`question.${questionId}`, (signal) => {
+        console.log('🔔 SIGNAL RECEIVED:', signal);
+        
         if (signal.event === 'NEW_RESPONSE') {
+            console.log('📥 Processing NEW_RESPONSE event:', signal.context);
+            
             const newAnswer = {
                 id: Date.now().toString(),
                 value: parseInt(signal.context.answer), // Ensure value is number for stats
                 userName: signal.context.userName,
                 timestamp: signal.timestamp
             };
+            
+            console.log('✅ Adding answer to display:', newAnswer);
             
             // Avoid duplicates if needed, or just push
             realtimeAnswers.value.push(newAnswer);
@@ -354,21 +406,39 @@ onMounted(() => {
             if (realtimeAnswers.value.length > 50) {
                 realtimeAnswers.value.shift();
             }
+            
+            console.log('📊 Total answers now:', realtimeAnswers.value.length);
+        } else {
+            console.log('⚠️ Received event is not NEW_RESPONSE:', signal.event);
         }
     });
+    
+    console.log('👂 Listener setup complete for channel: question.' + questionId);
 });
 
 const handleQuestionSubmit = async (answerData) => {
+  console.log('📤 Submitting answer:', answerData);
+  console.log('📍 To room:', questionId);
+  console.log('👤 User ID:', currentUserId.value);
+  
   try {
-      await axios.post('/api/realtime/test/question', {
+      const payload = {
           questionId: questionId,
           answer: answerData.value.toString(),
           userId: currentUserId.value
-      });
-      console.log('Answer submitted to backend');
+      };
+      
+      console.log('📦 API Payload:', payload);
+      
+      const response = await axios.post('/api/realtime/test/question', payload);
+      
+      console.log('✅ API Response:', response.data);
+      console.log('Answer submitted to backend - waiting for Firebase broadcast...');
+      
       // No local push needed, we wait for broadcast
   } catch (error) {
-      console.error('Failed to submit answer:', error);
+      console.error('❌ Failed to submit answer:', error);
+      console.error('Error details:', error.response?.data);
       alert('Failed to submit answer. Check console.');
   }
 };
