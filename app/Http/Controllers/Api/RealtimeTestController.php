@@ -138,11 +138,12 @@ class RealtimeTestController extends Controller
      */
     public function status()
     {
-        $firebaseEnabled = !empty(env('FIREBASE_DATABASE_URL'));
+        $dbUrl = env('FIREBASE_DATABASE_URL') ?: env('VITE_FIREBASE_DATABASE_URL');
+        $firebaseEnabled = !empty($dbUrl);
         
         return response()->json([
             'firebase_enabled' => $firebaseEnabled,
-            'database_url' => $firebaseEnabled ? env('FIREBASE_DATABASE_URL') : null,
+            'database_url' => $dbUrl,
             'timestamp' => now()->toIso8601String(),
             'server_time' => now()->timestamp
         ]);

@@ -20,7 +20,14 @@ class RealtimeNotificationService
 
     public function __construct()
     {
-        $this->databaseUrl = rtrim(env('FIREBASE_DATABASE_URL', ''), '/');
+        $url = env('FIREBASE_DATABASE_URL');
+        
+        // Fallback to VITE_ var if main one is missing (common config issue)
+        if (empty($url)) {
+            $url = env('VITE_FIREBASE_DATABASE_URL');
+        }
+        
+        $this->databaseUrl = rtrim($url ?? '', '/');
     }
 
     /**
@@ -157,7 +164,7 @@ class RealtimeNotificationService
      */
     protected function isEnabled(): bool
     {
-        return !empty(env('FIREBASE_DATABASE_URL'));
+        return !empty($this->databaseUrl);
     }
 
     /**
