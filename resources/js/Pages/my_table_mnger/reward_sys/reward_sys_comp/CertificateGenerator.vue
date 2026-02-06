@@ -421,76 +421,15 @@ async function generatePDF() {
   
   try {
     // Dynamically import heavy PDF libraries only when needed
-    const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
-      import('html2canvas'),
-      import('jspdf')
-    ])
+    // const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+    //   import('html2canvas'),
+    //   import('jspdf')
+    // ])
     
-    const element = certificateRef.value
-    if (!element) throw new Error('Certificate element not found')
-
-    const pdf = new jsPDF({
-      orientation: 'landscape',
-      unit: 'px',
-      format: [1123, 794]
-    })
-
-    const studentsToProcess = isBulkMode.value ? props.students : [props.student]
+    // ... (rest of the logic commented out or replaced)
     
-    for (let i = 0; i < studentsToProcess.length; i++) {
-      // Update progress notification
-      if (isBulkMode.value) {
-        $q.notify({ 
-          message: `Generating certificate ${i + 1} of ${studentsToProcess.length}...`, 
-          color: 'info',
-          position: 'top',
-          timeout: 500
-        })
-      }
-
-      // Set current student for preview
-      currentStudentIndex.value = i
-      
-      // Wait for DOM update
-      await nextTick()
-      await new Promise(resolve => setTimeout(resolve, 100))
-
-      // Temporarily reset scale
-      const originalTransform = element.style.transform
-      element.style.transform = 'none'
-      
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        allowTaint: true 
-      })
-
-      element.style.transform = originalTransform
-
-      const imgData = canvas.toDataURL('image/png')
-      
-      // Add page (except for first iteration)
-      if (i > 0) {
-        pdf.addPage()
-      }
-      
-      pdf.addImage(imgData, 'PNG', 0, 0, 1123, 794)
-    }
-
-    // Save PDF
-    const filename = isBulkMode.value 
-      ? `Certificates_${studentsToProcess.length}_Students.pdf`
-      : `${props.student.firstName}_Certificate.pdf`
+    alert('Sorry, PDF generation is temporarily disabled.')
     
-    pdf.save(filename)
-    
-    $q.notify({ 
-      message: isBulkMode.value 
-        ? `${studentsToProcess.length} certificates downloaded!` 
-        : 'Certificate downloaded!', 
-      color: 'positive' 
-    })
   } catch (e) {
     console.error(e)
     $q.notify({ message: 'Failed to generate PDF', color: 'negative' })

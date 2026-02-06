@@ -69,8 +69,10 @@ export default {
     // Load the PDF component only when needed
     if (this.pdfUrl) {
       try {
-        const module = await import('vue-pdf-embed')
-        this.VuePdfEmbed = module.default
+        // const module = await import('vue-pdf-embed') // DISABLED
+        // this.VuePdfEmbed = module.default
+        this.error = 'عذراً، عارض PDF معطل حالياً للتحديث'
+        this.isLoading = false
       } catch (err) {
         console.error('Failed to load PDF viewer:', err)
         this.error = 'تعذر تحميل مكون عرض PDF'
@@ -86,10 +88,12 @@ export default {
         this.isLoading = true
         this.error = null
         
-        // Load the PDF component dynamically when a URL is provided
+// Load the PDF component dynamically when a URL is provided
         try {
-          const module = await import('vue-pdf-embed')
-          this.VuePdfEmbed = module.default
+          // const module = await import('vue-pdf-embed') // DISABLED
+          // this.VuePdfEmbed = module.default
+          this.error = 'عذراً، عارض PDF معطل حالياً للتحديث'
+          this.isLoading = false
         } catch (err) {
           console.error('Failed to load PDF viewer:', err)
           this.error = 'تعذر تحميل مكون عرض PDF'
@@ -121,14 +125,16 @@ export default {
         this.isLoading = true
         this.error = null
         // Reload the PDF component
-        import('vue-pdf-embed')
+        /* import('vue-pdf-embed')
           .then(module => {
             this.VuePdfEmbed = module.default
           })
           .catch(err => {
             console.error('Failed to reload PDF viewer:', err)
             this.error = 'تعذر تحميل مكون عرض PDF'
-          })
+          }) */
+           this.error = 'عذراً، عارض PDF معطل حالياً للتحديث'
+           this.isLoading = false
       }
     }
   },

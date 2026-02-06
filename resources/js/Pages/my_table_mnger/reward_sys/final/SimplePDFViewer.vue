@@ -85,8 +85,9 @@ const VuePdfEmbed = ref(null) // Will hold the dynamically imported component
 // Load PDF component dynamically
 onMounted(async () => {
   try {
-    const module = await import('vue-pdf-embed')
-    VuePdfEmbed.value = module.default
+    // const module = await import('vue-pdf-embed') // DISABLED
+    // VuePdfEmbed.value = module.default
+    console.warn('PDF Viewer is temporarily disabled for maintenance.')
   } catch (err) {
     console.error('Failed to load PDF viewer:', err)
   }

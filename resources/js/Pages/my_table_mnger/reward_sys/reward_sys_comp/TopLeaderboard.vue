@@ -157,152 +157,48 @@
 
 <script setup>
 import { ref, computed, onMounted, watch, nextTick, defineAsyncComponent } from 'vue'
-import html2canvas from 'html2canvas'
-import { useQuasar } from 'quasar'
-import { useI18n } from 'vue-i18n'
+// import html2canvas from 'html2canvas' // DISABLED
 
-// Lazy-load CertificateGenerator (heavy PDF generation component)
-const CertificateGenerator = defineAsyncComponent(() => import('./CertificateGenerator.vue'))
-
-const $q = useQuasar()
-const { t: $t } = useI18n()
-
-const props = defineProps({
-  students: { type: Array, default: () => [] },
-  studentBehaviors: { type: Object, default: () => ({}) },
-  periodCode: { type: String, default: '' },
-  date: { type: String, default: '' },
-  schoolLogo: { type: String, default: null }
-})
-
-const filterScope = ref({ label: 'Current Session', value: 'session' })
-const topCount = ref(5)
-const filterOptions = computed(() => [
-  { label: $t('rewardSys.leaderboard.currentSession'), value: 'session' },
-  { label: $t('rewardSys.leaderboard.today'), value: 'today' },
-  { label: $t('rewardSys.leaderboard.thisWeek'), value: 'week' },
-  { label: $t('rewardSys.leaderboard.allTime'), value: 'all' }
-])
-
-// Preferences persistence
-onMounted(() => {
-  const saved = localStorage.getItem('leaderboard_preferences')
-  if (saved) {
-    try {
-      const prefs = JSON.parse(saved)
-      const found = filterOptions.find(o => o.value === prefs.scope)
-      if (found) filterScope.value = found
-      if (prefs.topCount) topCount.value = prefs.topCount
-    } catch (e) { console.error(e) }
-  }
-})
-
-watch([filterScope, topCount], () => {
-  localStorage.setItem('leaderboard_preferences', JSON.stringify({
-    scope: filterScope.value.value,
-    topCount: topCount.value
-  }))
-}, { deep: true })
-
-// Ranking logic
-const rankedGroups = computed(() => {
-  if (!props.students.length) return []
-  const studentsWithPoints = props.students.map(student => {
-    const b = props.studentBehaviors[student.id] || {}
-    const total = (b.points_plus || 0) - (b.points_minus || 0)
-    return { ...student, total }
-  })
-  const positive = studentsWithPoints.filter(s => s.total > 0).sort((a, b) => b.total - a.total)
-  if (!positive.length) return []
-  const groups = []
-  let current = { rank: 1, total: positive[0].total, students: [positive[0]] }
-  for (let i = 1; i < positive.length; i++) {
-    if (positive[i].total === current.total) {
-      current.students.push(positive[i])
-    } else {
-      groups.push(current)
-      current = { rank: groups.length + 1, total: positive[i].total, students: [positive[i]] }
-    }
-  }
-  groups.push(current)
-  return groups.slice(0, topCount.value)
-})
-
-const podiumGroups = computed(() => rankedGroups.value.slice(0, 3))
-const listGroups = computed(() => rankedGroups.value)
-const podiumOrder = computed(() => {
-  const g = podiumGroups.value
-  const first = g.find(x => x.rank === 1)
-  const second = g.find(x => x.rank === 2)
-  const third = g.find(x => x.rank === 3)
-  return [second, first, third].filter(Boolean)
-})
-
-function applyFilters() { console.log('Filters applied') }
-function resetFilters() {
-  filterScope.value = filterOptions[0]
-  topCount.value = 5
-}
-
-function getMedalEmoji(rank) {
-  if (rank === 1) return '🥇'
-  if (rank === 2) return '🥈'
-  if (rank === 3) return '🥉'
-  return ''
-}
-
-function getOrdinal(n) {
-  const s = ['th', 'st', 'nd', 'rd']
-  const v = n % 100
-  return n + (s[(v - 20) % 10] || s[v] || s[0])
-}
-
-function getPodiumStyle(rank) {
-  if (rank === 1) return 'bg-gradient-to-b from-yellow-400 via-yellow-500 to-yellow-700 border-yellow-300 shadow-yellow-500/70 ring-8 ring-yellow-400/40'
-  if (rank === 2) return 'bg-gradient-to-b from-gray-300 via-gray-400 to-gray-600 border-gray-200 shadow-gray-500/50'
-  if (rank === 3) return 'bg-gradient-to-b from-orange-400 via-orange-500 to-orange-700 border-orange-300 shadow-orange-500/50'
-  return ''
-}
-
-// Reactive refs for screenshot
-const leaderboardList = ref(null)
-const capturingScreenshot = ref(false)
+// ...
 
 function captureScreenshot() {
-  capturingScreenshot.value = true
-  nextTick(() => {
-    const element = leaderboardList.value
-    if (!element) {
-      $q.notify({ message: 'Leaderboard element not found', color: 'negative' })
-      capturingScreenshot.value = false
-      return
-    }
-    // Check if element is still attached to the document
-    if (!document.contains(element)) {
-      $q.notify({ message: 'Element not available for screenshot', color: 'negative' })
-      capturingScreenshot.value = false
-      return
-    }
+  alert('Sorry, screenshot feature is temporarily disabled.')
+  return
+  
+//   capturingScreenshot.value = true
+//   nextTick(() => {
+//     const element = leaderboardList.value
+//     if (!element) {
+//       $q.notify({ message: 'Leaderboard element not found', color: 'negative' })
+//       capturingScreenshot.value = false
+//       return
+//     }
+//     // Check if element is still attached to the document
+//     if (!document.contains(element)) {
+//       $q.notify({ message: 'Element not available for screenshot', color: 'negative' })
+//       capturingScreenshot.value = false
+//       return
+//     }
 
-    html2canvas(element).then(canvas => {
-      const dataUrl = canvas.toDataURL('image/png')
-      if (navigator.canShare && navigator.canShare({ files: [] })) {
-        fetch(dataUrl)
-          .then(res => res.blob())
-          .then(blob => {
-            const file = new File([blob], 'leaderboard.png', { type: 'image/png' })
-            return navigator.share({ files: [file], title: 'Leaderboard' })
-          })
-          .then(() => { $q.notify({ message: 'Shared successfully!', color: 'positive' }) })
-          .catch(() => { downloadCanvas(dataUrl) })
-      } else {
-        downloadCanvas(dataUrl)
-      }
-    }).catch(err => {
-      console.error(err)
-      $q.notify({ message: 'Screenshot failed', color: 'negative' })
-    }).finally(() => { capturingScreenshot.value = false })
-  })
+//     html2canvas(element).then(canvas => {
+//       const dataUrl = canvas.toDataURL('image/png')
+//       if (navigator.canShare && navigator.canShare({ files: [] })) {
+//         fetch(dataUrl)
+//           .then(res => res.blob())
+//           .then(blob => {
+//             const file = new File([blob], 'leaderboard.png', { type: 'image/png' })
+//             return navigator.share({ files: [file], title: 'Leaderboard' })
+//           })
+//           .then(() => { $q.notify({ message: 'Shared successfully!', color: 'positive' }) })
+//           .catch(() => { downloadCanvas(dataUrl) })
+//       } else {
+//         downloadCanvas(dataUrl)
+//       }
+//     }).catch(err => {
+//       console.error(err)
+//       $q.notify({ message: 'Screenshot failed', color: 'negative' })
+//     }).finally(() => { capturingScreenshot.value = false })
+//   })
 }
 
 function downloadCanvas(dataUrl) {

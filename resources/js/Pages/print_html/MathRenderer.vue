@@ -96,7 +96,7 @@ import { ref, onMounted, watch } from 'vue';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import DOMPurify from 'dompurify';
-import html2canvas from 'html2canvas';
+// import html2canvas from 'html2canvas'; // DISABLED
 
 const props = defineProps({
     initialValue: {

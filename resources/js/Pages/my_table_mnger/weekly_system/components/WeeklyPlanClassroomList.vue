@@ -450,35 +450,38 @@ const printMobile = () => {
 }
 
 const downloadPDF = async () => {
-  // Dynamically import html2pdf
-  const html2pdf = (await import('html2pdf.js')).default
-  
-  const element = document.querySelector('.mobile-cards-container')
-  if (!element) return
-  
-  const classroomName = classroomPlans.value[0]?.name || 'Weekly_Plans'
-  // Clean classroom name for filename (replace spaces with underscores, remove special chars)
-  const cleanName = classroomName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '')
-  const filename = `${cleanName}_Week_${props.weekNumber}_Semester_${props.semesterNumber}.pdf`
-  
-  const opt = {
-    margin: [10, 10],
-    filename: filename,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { 
-      scale: 2,
-      useCORS: true,
-      letterRendering: true
-    },
-    jsPDF: { 
-      unit: 'mm', 
-      format: 'a4', 
-      orientation: 'portrait' 
-    },
-    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-  }
-  
-  html2pdf().set(opt).from(element).save()
+    alert('Sorry, PDF download is temporarily disabled.')
+    return
+
+//   // Dynamically import html2pdf
+//   const html2pdf = (await import('html2pdf.js')).default
+//   
+//   const element = document.querySelector('.mobile-cards-container')
+//   if (!element) return
+//   
+//   const classroomName = classroomPlans.value[0]?.name || 'Weekly_Plans'
+//   // Clean classroom name for filename (replace spaces with underscores, remove special chars)
+//   const cleanName = classroomName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '')
+//   const filename = `${cleanName}_Week_${props.weekNumber}_Semester_${props.semesterNumber}.pdf`
+//   
+//   const opt = {
+//     margin: [10, 10],
+//     filename: filename,
+//     image: { type: 'jpeg', quality: 0.98 },
+//     html2canvas: { 
+//       scale: 2,
+//       useCORS: true,
+//       letterRendering: true
+//     },
+//     jsPDF: { 
+//       unit: 'mm', 
+//       format: 'a4', 
+//       orientation: 'portrait' 
+//     },
+//     pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+//   }
+//   
+//   html2pdf().set(opt).from(element).save()
 }
 
 const savePlan = (plan) => {

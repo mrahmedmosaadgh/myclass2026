@@ -109,14 +109,14 @@ npm run dev
  create the required history file in docs/history (with what you did and what still need to be done if you have)with the correct timestamped name and title, then stage, commit with the specified message format, and push to your current branch.
 
 
-
-public/build is a separate git repository.
 npm run build
+public/build is a separate git repository.
+
 Repository Info:
 
 Remote: https://github.com/mrahmedmosaadgh/myclass2026_build.git
 Status: It has many untracked files (the new build assets).
-Do you want me to 
+
 add all files, commit them, and push to this myclass2026_build repository 
 
 
