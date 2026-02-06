@@ -318,10 +318,21 @@ Route::middleware(['auth:sanctum', 'web'])->get('/navigation', [NavigationContro
 
 // Config-Based Menu API (New Simple Approach)
 // Config-Based Menu API (New Simple Approach)
-Route::middleware(['auth:sanctum', 'web'])->get('/menu', function (\Illuminate\Http\Request $request) {
+Route::middleware(['web'])->get('/menu', function (\Illuminate\Http\Request $request) {
     $menuService = app(\App\Services\MenuService::class);
     // Allow role override via ?role=student if admin
     return response()->json($menuService->getConfigMenu($request->input('role')));
+});
+
+// Realtime System Test API Routes
+Route::middleware(['auth:sanctum', 'web'])->prefix('realtime/test')->group(function () {
+    Route::post('/broadcast', [App\Http\Controllers\Api\RealtimeTestController::class, 'broadcast']);
+    Route::post('/private', [App\Http\Controllers\Api\RealtimeTestController::class, 'privateNotification']);
+    Route::post('/chat', [App\Http\Controllers\Api\RealtimeTestController::class, 'chatMessage']);
+    Route::post('/question', [App\Http\Controllers\Api\RealtimeTestController::class, 'questionResponse']);
+    Route::get('/status', [App\Http\Controllers\Api\RealtimeTestController::class, 'status']);
+    Route::post('/error', [App\Http\Controllers\Api\RealtimeTestController::class, 'testError']);
+    Route::delete('/clear', [App\Http\Controllers\Api\RealtimeTestController::class, 'clearChannel']);
 });
 
 

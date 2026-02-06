@@ -26,6 +26,17 @@ if (!ToolsSwitcher.isFirebaseEnabled()) {
     databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL
   };
 
+  // Debug: Check which keys are present/missing
+  const missingKeys = Object.entries(firebaseConfig)
+    .filter(([key, value]) => !value)
+    .map(([key]) => key);
+
+  if (missingKeys.length > 0) {
+    console.error('❌ Missing Firebase Config Keys:', missingKeys.join(', '));
+  } else {
+    console.log('✅ All Firebase Config Keys present');
+  }
+
   app = initializeApp(firebaseConfig);
   auth = ToolsSwitcher.isEnabled('firebase', 'auth') ? getAuth(app) : null;
   database = ToolsSwitcher.isEnabled('firebase', 'database') ? getDatabase(app) : null;

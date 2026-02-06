@@ -180,48 +180,45 @@ class MenuService
     {
         $user = Auth::user();
         
+        // If no user, treat as guest
         if (!$user) {
-            return [];
-        }
-        
-        // Default to user's actual role
-        $role = $this->getUserRole($user);
-        
-        \Illuminate\Support\Facades\Log::info('Menu Request:', [
-            'user_id' => $user->id,
-            'actual_role' => $role,
-            'requested_role' => $requestedRole,
-            'is_admin' => ($role === 'admin'),
-            'has_super_admin' => $user->hasRole('super_admin') // Verify usage
-        ]);
-
-        // If a specific role is requested, checks if user is allowed to view it
-        // (Admins and Super Admins can view any role's menu)
-        if ($requestedRole && (
-            $role === 'admin' || 
-            $role === 'super_admin' || 
-            $user->hasRole('super_admin') || 
-            $user->hasRole('admin') // Fix: Also allow standard admins
-        )) {
-            $role = $requestedRole;
-            \Illuminate\Support\Facades\Log::info('Role Override Applied: ' . $role);
+            $role = 'guest';
+            \Illuminate\Support\Facades\Log::info('Menu Request: Guest User');
         } else {
-             \Illuminate\Support\Facades\Log::info('Role Override Denied or Not Requested');
+            // Default to user's actual role
+            $role = $this->getUserRole($user);
+            
+            \Illuminate\Support\Facades\Log::info('Menu Request:', [
+                'user_id' => $user->id,
+                'actual_role' => $role,
+                'requested_role' => $requestedRole,
+                'is_admin' => ($role === 'admin'),
+                'has_super_admin' => $user->hasRole('super_admin') // Verify usage
+            ]);
+
+            // If a specific role is requested, checks if user is allowed to view it
+            // (Admins and Super Admins can view any role's menu)
+            if ($requestedRole && (
+                $role === 'admin' || 
+                $role === 'super_admin' || 
+                $user->hasRole('super_admin') || 
+                $user->hasRole('admin')
+            )) {
+                $role = $requestedRole;
+                \Illuminate\Support\Facades\Log::info('Role Override Applied: ' . $role);
+            }
         }
         
         // Load menu items for this role from config
         $items = config("menus.{$role}", []);
         
         // Filter by permission
-        // Note: When previewing another role, strictly we might want to skip permission checks 
-        // to show what *that* role sees, or check if the *viewing user* has permissions.
-        // For simplicity, if previewing, we often just show the raw menu or assume they have access.
-        // But let's keep permission check for now - admins usually have all permissions anyway.
         $filtered = $this->filterConfigByPermission($items, $user);
         
         // Translate labels based on current locale
         return $this->translateConfigLabels($filtered);
     }
+
     private function getUserRole($user): string
     {
         // If you have a role column
@@ -252,6 +249,11 @@ class MenuService
                     return false;
                 }
                 return true;
+            }
+            
+            // If user is null (guest), they cannot have permissions
+            if (!$user) {
+                return false;
             }
             
             // Check permission using Laravel's Gate

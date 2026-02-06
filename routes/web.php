@@ -79,6 +79,11 @@ Route::middleware([
         return Inertia::render('Firebase/Test');
     })->name('firebase.test');
 
+    // Realtime System Test Route
+    Route::get('/realtime-test', function () {
+        return Inertia::render('Realtime/TestPage');
+    })->name('realtime.test');
+
     Route::get('/print_html', function () {
         return Inertia::render('print_html/Index');
     })->name('print_html.index');

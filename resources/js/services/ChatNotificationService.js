@@ -1,5 +1,6 @@
 import { ref, onUnmounted } from 'vue';
-import { getDatabase, ref as dbRef, onValue, off, push, set } from 'firebase/database';
+import { database } from '../firebase/init';
+import { ref as dbRef, onValue, off, push, set } from 'firebase/database';
 import { useQuasar } from 'quasar';
 
 export function useChatNotifications() {
@@ -15,13 +16,12 @@ export function useChatNotifications() {
 
         try {
             // Check if Firebase is initialized
-            if (!window.firebaseDatabase) {
-                console.warn('Firebase database not initialized. Notifications will not work.');
+            if (!database) {
+                console.warn('Firebase database not initialized or disabled. Notifications will not work.');
                 return;
             }
 
-            const db = getDatabase();
-            notificationsRef = dbRef(db, `chat_notifications/${userId}`);
+            notificationsRef = dbRef(database, `chat_notifications/${userId}`);
 
             // Listen for notifications
             notificationsListener = onValue(notificationsRef, (snapshot) => {
@@ -55,13 +55,12 @@ export function useChatNotifications() {
     const sendNotification = async (userId, notification) => {
         try {
             // Check if Firebase is initialized
-            if (!window.firebaseDatabase) {
+            if (!database) {
                 console.warn('Firebase database not initialized. Cannot send notification.');
                 return false;
             }
 
-            const db = getDatabase();
-            const userNotificationsRef = dbRef(db, `chat_notifications/${userId}`);
+            const userNotificationsRef = dbRef(database, `chat_notifications/${userId}`);
             const newNotificationRef = push(userNotificationsRef);
 
             await set(newNotificationRef, {
@@ -81,13 +80,12 @@ export function useChatNotifications() {
     const markAsRead = async (userId, notificationId) => {
         try {
             // Check if Firebase is initialized
-            if (!window.firebaseDatabase) {
+            if (!database) {
                 console.warn('Firebase database not initialized. Cannot mark notification as read.');
                 return false;
             }
 
-            const db = getDatabase();
-            const notificationRef = dbRef(db, `chat_notifications/${userId}/${notificationId}`);
+            const notificationRef = dbRef(database, `chat_notifications/${userId}/${notificationId}`);
 
             await set(notificationRef, {
                 ...notifications.value.find(n => n.id === notificationId),
@@ -105,18 +103,16 @@ export function useChatNotifications() {
     const markAllAsRead = async (userId) => {
         try {
             // Check if Firebase is initialized
-            if (!window.firebaseDatabase) {
+            if (!database) {
                 console.warn('Firebase database not initialized. Cannot mark all notifications as read.');
                 return false;
             }
-
-            const db = getDatabase();
 
             // Update each notification
             const promises = notifications.value.map(notification => {
                 if (notification.read) return Promise.resolve();
 
-                const notificationRef = dbRef(db, `chat_notifications/${userId}/${notification.id}`);
+                const notificationRef = dbRef(database, `chat_notifications/${userId}/${notification.id}`);
                 return set(notificationRef, {
                     ...notification,
                     read: true
@@ -142,12 +138,14 @@ export function useChatNotifications() {
             position: 'top-right',
             timeout: 5000,
             actions: [
-                { label: 'View', color: 'white', handler: () => {
-                    // Navigate to the conversation
-                    if (notification.conversationId) {
-                        window.location.href = `/conversations/${notification.conversationId}`;
+                {
+                    label: 'View', color: 'white', handler: () => {
+                        // Navigate to the conversation
+                        if (notification.conversationId) {
+                            window.location.href = `/conversations/${notification.conversationId}`;
+                        }
                     }
-                }}
+                }
             ]
         });
     };
