@@ -146,9 +146,17 @@ class RealtimeNotificationService
      */
     protected function buildSignal(array $payload): array
     {
+        // If 'context' is explicitly provided, use it.
+        // Otherwise, treat all non-event keys as context (flat payload support)
+        if (isset($payload['context'])) {
+            $context = $payload['context'];
+        } else {
+            $context = array_diff_key($payload, ['event' => '']);
+        }
+
         return [
             'event' => $payload['event'] ?? 'UNKNOWN',
-            'context' => $payload['context'] ?? [],
+            'context' => $context,
             'timestamp' => now()->timestamp,
             'trigger_id' => uniqid('sig_', true) // Forces update even if event is same
         ];
