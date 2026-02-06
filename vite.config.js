@@ -78,68 +78,27 @@ export default defineConfig(({ mode }) => {
                     chunkFileNames: 'assets/js/[name]-[hash].js',
                     entryFileNames: 'assets/js/[name]-[hash].js',
                     manualChunks: (id) => {
-                        // 1. Heavy Vendor Grouping (node_modules)
-                        // Note: We avoid grouping 'vue', '@inertiajs', and 'pinia' here 
-                        // because they have complex initialization dependencies that can 11break 
-                        // if forced into a single chunk.
+                        // Conservative chunking: Only group truly independent, heavy libraries
+                        // to avoid breaking initialization order
                         if (id.includes('node_modules')) {
-                            // UI Framework (Quasar) - very heavy
-                            if (id.includes('quasar') || id.includes('@quasar')) {
-                                return 'vendor-quasar';
-                            }
-                            // Visualization (ECharts) - very heavy
-                            if (id.includes('echarts') || id.includes('chart.js')) {
-                                return 'vendor-charts';
-                            }
-                            // Firebase - heavy
-                            if (id.includes('firebase') || id.includes('@firebase')) {
-                                return 'vendor-firebase';
-                            }
-                            // Math (KaTeX) - heavy
+                            // Math rendering - completely independent
                             if (id.includes('katex')) {
                                 return 'vendor-katex';
                             }
-                            // Big Utilities
-                            if (id.includes('lodash') || id.includes('axios') || id.includes('date-fns') || id.includes('xlsx')) {
-                                return 'vendor-utils-big';
+                            // Charts - independent
+                            if (id.includes('echarts')) {
+                                return 'vendor-charts';
                             }
-
-                            // Other vendor libs that are relatively independent
-                            if (id.includes('tesseract.js') || id.includes('quagga2') || id.includes('@zxing/library')) {
-                                return 'vendor-scanners';
+                            // Firebase - independent
+                            if (id.includes('firebase') || id.includes('@firebase')) {
+                                return 'vendor-firebase';
+                            }
+                            // Excel processing - independent
+                            if (id.includes('xlsx')) {
+                                return 'vendor-xlsx';
                             }
                         }
-
-                        // 2. Application Feature Grouping
-                        // This helps reduce the 1200+ requests significantly by grouping 
-                        // related Pages and Components together.
-
-                        // Group Quiz System (The most fragmented part)
-                        if (id.includes('resources/js/Components/QuestionSystem') ||
-                            id.includes('resources/js/Pages/QuizManagement') ||
-                            id.includes('resources/js/Pages/my_table_mnger/lesson_presentation/quiz') ||
-                            id.includes('resources/js/composables/useLazyQuizComponents')) {
-                            return 'feature-quiz-engine';
-                        }
-
-                        // Group Admin & HR sections
-                        if (id.includes('resources/js/Pages/Admin') ||
-                            id.includes('resources/js/Pages/my_class/admin') ||
-                            id.includes('resources/js/Pages/my_class/hr') ||
-                            id.includes('resources/js/Pages/my_class/super_admin')) {
-                            return 'feature-admin-core';
-                        }
-
-                        // Group Teacher sections
-                        if (id.includes('resources/js/Pages/Teacher') ||
-                            id.includes('resources/js/Pages/my_class/teacher')) {
-                            return 'feature-teacher-portal';
-                        }
-
-                        // Group Reward System
-                        if (id.includes('resources/js/Pages/my_table_mnger/reward_sys')) {
-                            return 'feature-reward-system';
-                        }
+                        // Let Vite handle everything else automatically to avoid initialization errors
                     },
                 }
             }
