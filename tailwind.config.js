@@ -17,6 +17,7 @@ export default {
         extend: {
             fontFamily: {
                 sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+                arabic: ['Tajawal', 'IBM Plex Sans Arabic', 'Cairo', 'sans-serif'],
             },
             transitionProperty: {
                 'transform': 'transform',

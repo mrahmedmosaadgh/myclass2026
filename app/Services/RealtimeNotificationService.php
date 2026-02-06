@@ -30,11 +30,22 @@ class RealtimeNotificationService
      * @param array $payload Signal data (NOT the actual content)
      * @return bool
      */
-    public function notify(string $channel, array $payload): bool
+    /**
+     * Send a signal with detailed response
+     * 
+     * @param string $channel
+     * @param array $payload
+     * @return array ['success' => bool, 'message' => string, 'details' => mixed]
+     */
+    public function notifyWithDetails(string $channel, array $payload): array
     {
         if (!$this->isEnabled()) {
             Log::info('Firebase notifications disabled', ['channel' => $channel]);
-            return false;
+            return [
+                'success' => false, 
+                'message' => 'Firebase notifications disabled (FIREBASE_DATABASE_URL not set)',
+                'details' => null
+            ];
         }
 
         try {
@@ -48,7 +59,11 @@ class RealtimeNotificationService
                     'channel' => $channel,
                     'event' => $payload['event'] ?? 'unknown'
                 ]);
-                return true;
+                return [
+                    'success' => true,
+                    'message' => 'Signal sent successfully',
+                    'details' => $response->json()
+                ];
             }
 
             Log::error('Firebase signal failed', [
@@ -56,15 +71,38 @@ class RealtimeNotificationService
                 'status' => $response->status(),
                 'body' => $response->body()
             ]);
-            return false;
+            
+            return [
+                'success' => false,
+                'message' => "Firebase HTTP Error: " . $response->status(),
+                'details' => $response->body()
+            ];
 
         } catch (\Exception $e) {
             Log::error('Firebase notification error', [
                 'channel' => $channel,
                 'error' => $e->getMessage()
             ]);
-            return false;
+            
+            return [
+                'success' => false,
+                'message' => "Exception: " . $e->getMessage(),
+                'details' => $e->getTraceAsString()
+            ];
         }
+    }
+
+    /**
+     * Send a signal to a specific channel (topic)
+     * 
+     * @param string $channel Format: 'user.{id}', 'class.{id}', 'system.all'
+     * @param array $payload Signal data (NOT the actual content)
+     * @return bool
+     */
+    public function notify(string $channel, array $payload): bool
+    {
+        $result = $this->notifyWithDetails($channel, $payload);
+        return $result['success'];
     }
 
     /**

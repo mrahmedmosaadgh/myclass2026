@@ -10,15 +10,15 @@ defineProps({
 <template>
     <Head>
         <title>Qudrat Pro - قدرات برو | تأسيس كمي | Master Quantitative Reasoning</title>
-        <meta name="description" content="Master Qudrat Quantitative reasoning in 8 Weeks. Comprehensive online course for the General Aptitude Test (GAT/Qudrat). تأسيس شامل للقسم الكمي في اختبار القدرات. أتقن القدرات العامة مع منصة قدرات برو. دروس تفاعلية واختبارات تجريبية." />
+        <meta name="description" content="أفضل دورة تأسيس كمي لاختبار القدرات. Master Qudrat Quantitative reasoning in 8 Weeks. Comprehensive online course for the General Aptitude Test (GAT). تأسيس شامل للقسم الكمي في اختبار القدرات مع منصة قدرات برو." />
         <meta name="keywords" content="Qudrat Pro, Qudrat, GAT, General Aptitude Test, Quantitative Reasoning, Saudi Arabia, Education, Online Course, قدرات, قدرات برو, اختبار القدرات, القسم الكمي, قياس, دورة قدرات, تعليم, تأسيس, كمي, تأسيس قدرات, تأسيس كمي, أساسيات القدرات" />
         
         <!-- Open Graph / Facebook -->
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://qudratpro.com/" />
         <meta property="og:title" content="Qudrat Pro - قدرات برو | تأسيس كمي | Master Quantitative Reasoning" />
-        <meta property="og:description" content="The ultimate platform to master the General Aptitude Test (Qudrat). Complete foundation for Quantitative section. تأسيس شامل ومتقن للقدرات (القسم الكمي). حقق +90." />
-        <meta property="og:site_name" content="Qudrat Pro" />
+        <meta property="og:description" content="The ultimate platform to master the General Aptitude Test (Qudrat). Complete foundation for Quantitative section. تأسيس شامل ومتقن للقدرات (القسم الكمي). حقق +90 في القدرات." />
+        <meta property="og:site_name" content="Qudrat Pro - قدرات برو" />
         <meta property="og:locale" content="en_US" />
         <meta property="og:locale:alternate" content="ar_SA" />
         
@@ -33,9 +33,9 @@ defineProps({
                 "@context": "https://schema.org",
                 "@type": "WebSite",
                 "name": "Qudrat Pro",
-                "alternateName": ["قدرات برو", "QudratPro"],
+                "alternateName": ["قدرات برو", "QudratPro", "منصة قدرات برو"],
                 "url": "https://qudratpro.com/",
-                "description": "Comprehensive online platform for mastering the General Aptitude Test (Qudrat).",
+                "description": "Comprehensive online platform for mastering the General Aptitude Test (Qudrat). منصة تعليمية متخصصة في التأسيس لاختبار القدرات العامة.",
                 "potentialAction": {
                     "@type": "SearchAction",
                     "target": "https://qudratpro.com/search?q={search_term_string}",
@@ -49,13 +49,14 @@ defineProps({
                 "@context": "https://schema.org",
                 "@type": "EducationalOrganization",
                 "name": "Qudrat Pro",
+                "alternateName": "قدرات برو",
                 "url": "https://qudratpro.com",
                 "logo": "https://qudratpro.com/images/logo.png",
                 "sameAs": [
                     "https://twitter.com/qudratpro",
                     "https://instagram.com/qudratpro"
                 ],
-                "description": "Educational platform specialized in General Aptitude Test (Qudrat) preparation."
+                "description": "Educational platform specialized in General Aptitude Test (Qudrat) preparation. منصة رائدة في التدريب لاختبار القدرات."
             }
         </component>
     </Head>
@@ -111,12 +112,16 @@ defineProps({
                 <!-- Main Content -->
                 <main class="mx-auto mt-16 max-w-7xl px-4 sm:mt-24 sm:px-6">
                     <div class="text-center">
-                        <h1 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl md:text-6xl">
+                        <h1 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl md:text-6xl flex flex-col gap-2">
                             <span class="block text-indigo-600 xl:inline">Master Qudrat Quantitative</span>
-                            <span class="block">in 8 Weeks</span>
+                            <span class="block text-gray-900 text-3xl sm:text-4xl mt-2 font-arabic" lang="ar">أتقن اختبار القدرات (الكمي)</span>
+                            <span class="block text-indigo-500 text-2xl sm:text-3xl mt-1">in 8 Weeks | في 8 أسابيع</span>
                         </h1>
-                        <p class="mx-auto mt-3 max-w-md text-base text-gray-500 sm:text-lg md:mt-5 md:max-w-3xl md:text-xl">
+                        <p class="mx-auto mt-5 max-w-md text-base text-gray-500 sm:text-lg md:mt-8 md:max-w-3xl md:text-xl">
                             The comprehensive online course designed by teachers to help you score 90+ in your Qudrat test.
+                        </p>
+                        <p class="mx-auto mt-2 max-w-md text-base text-gray-500 sm:text-lg md:max-w-3xl md:text-xl font-arabic" lang="ar">
+                            الدورة الشاملة التي صممها معلمون خبراء لمساعدتك في تحقيق +90 في اختبار القدرات.
                         </p>
                         <div class="mx-auto mt-5 max-w-md sm:flex sm:justify-center md:mt-8">
                             <div class="rounded-md shadow">
@@ -139,45 +144,46 @@ defineProps({
         <div id="curriculum" class="bg-gray-50 py-12">
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div class="text-center">
-                    <h2 class="text-base font-semibold uppercase tracking-wide text-indigo-600">What You'll Learn</h2>
+                    <h2 class="text-base font-semibold uppercase tracking-wide text-indigo-600">What You'll Learn | ماذا ستتعلم</h2>
                     <p class="mt-2 text-3xl font-bold leading-8 tracking-tight text-gray-900 sm:text-4xl">Everything You Need to Ace The Exam</p>
+                    <p class="mt-2 text-xl font-medium leading-8 tracking-tight text-gray-600 font-arabic">كل ما تحتاجه للتفوق في الاختبار</p>
                 </div>
 
                 <div class="mt-10">
                     <div class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3">
-                        <div class="bg-white overflow-hidden rounded-lg shadow">
+                        <div class="bg-white overflow-hidden rounded-lg shadow hover:shadow-md transition-shadow">
                             <div class="p-6">
-                                <h3 class="text-lg font-medium text-gray-900">Algebra & Equations</h3>
+                                <h3 class="text-lg font-medium text-gray-900">Algebra & Equations <span class="block text-indigo-600 text-base font-arabic mt-1">الجبر والمعادلات</span></h3>
                                 <p class="mt-2 text-base text-gray-500">Master solving for X, linear equations, and functional relationships.</p>
                             </div>
                         </div>
-                        <div class="bg-white overflow-hidden rounded-lg shadow">
+                        <div class="bg-white overflow-hidden rounded-lg shadow hover:shadow-md transition-shadow">
                             <div class="p-6">
-                                <h3 class="text-lg font-medium text-gray-900">Geometry</h3>
+                                <h3 class="text-lg font-medium text-gray-900">Geometry <span class="block text-indigo-600 text-base font-arabic mt-1">الهندسة</span></h3>
                                 <p class="mt-2 text-base text-gray-500">Understand shapes, angles, areas, and volumes with visual guides.</p>
                             </div>
                         </div>
-                        <div class="bg-white overflow-hidden rounded-lg shadow">
+                        <div class="bg-white overflow-hidden rounded-lg shadow hover:shadow-md transition-shadow">
                             <div class="p-6">
-                                <h3 class="text-lg font-medium text-gray-900">Statistics & Probability</h3>
+                                <h3 class="text-lg font-medium text-gray-900">Statistics & Probability <span class="block text-indigo-600 text-base font-arabic mt-1">الإحصاء والاحتمالات</span></h3>
                                 <p class="mt-2 text-base text-gray-500">Data analysis, probability theory, and statistical reasoning.</p>
                             </div>
                         </div>
-                        <div class="bg-white overflow-hidden rounded-lg shadow">
+                        <div class="bg-white overflow-hidden rounded-lg shadow hover:shadow-md transition-shadow">
                             <div class="p-6">
-                                <h3 class="text-lg font-medium text-gray-900">Logic & Word Problems</h3>
+                                <h3 class="text-lg font-medium text-gray-900">Logic & Word Problems <span class="block text-indigo-600 text-base font-arabic mt-1">المسائل اللفظية والمنطق</span></h3>
                                 <p class="mt-2 text-base text-gray-500">Strategies to deconstruct complex word problems quickly.</p>
                             </div>
                         </div>
-                        <div class="bg-white overflow-hidden rounded-lg shadow">
+                        <div class="bg-white overflow-hidden rounded-lg shadow hover:shadow-md transition-shadow">
                             <div class="p-6">
-                                <h3 class="text-lg font-medium text-gray-900">3 Full Mock Exams</h3>
+                                <h3 class="text-lg font-medium text-gray-900">3 Full Mock Exams <span class="block text-indigo-600 text-base font-arabic mt-1">3 اختبارات تجريبية كاملة</span></h3>
                                 <p class="mt-2 text-base text-gray-500">Simulate the real test environment with timed practice exams.</p>
                             </div>
                         </div>
-                        <div class="bg-white overflow-hidden rounded-lg shadow">
+                        <div class="bg-white overflow-hidden rounded-lg shadow hover:shadow-md transition-shadow">
                             <div class="p-6">
-                                <h3 class="text-lg font-medium text-gray-900">Progress Tracking</h3>
+                                <h3 class="text-lg font-medium text-gray-900">Progress Tracking <span class="block text-indigo-600 text-base font-arabic mt-1">متابعة المستوى</span></h3>
                                 <p class="mt-2 text-base text-gray-500">Detailed analytics to identify and improve your weak areas.</p>
                             </div>
                         </div>

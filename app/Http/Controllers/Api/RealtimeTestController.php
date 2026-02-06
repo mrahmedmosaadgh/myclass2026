@@ -31,15 +31,16 @@ class RealtimeTestController extends Controller
             'message' => 'required|string|max:500'
         ]);
 
-        $success = $this->realtimeService->notifyAll('PUBLIC_BROADCAST', [
+        $result = $this->realtimeService->notifyWithDetails('PUBLIC_BROADCAST', [
             'message' => $request->message,
             'sender' => auth()->user()->name ?? 'System',
             'timestamp' => now()->toIso8601String()
         ]);
 
         return response()->json([
-            'success' => $success,
-            'message' => $success ? 'Broadcast sent successfully' : 'Failed to send broadcast'
+            'success' => $result['success'],
+            'message' => $result['message'],
+            'details' => $result['details']
         ]);
     }
 
@@ -53,10 +54,12 @@ class RealtimeTestController extends Controller
             'message' => 'required|string|max:500'
         ]);
 
-        $success = $this->realtimeService->notifyUser(
-            $request->userId,
-            'PRIVATE_MESSAGE',
+        // Use specific channel construction to test raw notifyWithDetails or add wrappers if needed
+        // Here we do raw to get details easily without refactoring service wrappers yet
+        $result = $this->realtimeService->notifyWithDetails(
+            "user.{$request->userId}",
             [
+                'event' => 'PRIVATE_MESSAGE',
                 'message' => $request->message,
                 'from' => auth()->user()->name ?? 'System',
                 'timestamp' => now()->toIso8601String()
@@ -64,8 +67,9 @@ class RealtimeTestController extends Controller
         );
 
         return response()->json([
-            'success' => $success,
-            'message' => $success ? 'Private notification sent' : 'Failed to send notification',
+            'success' => $result['success'],
+            'message' => $result['success'] ? 'Private notification sent' : $result['message'],
+            'details' => $result['details'],
             'target_user' => $request->userId
         ]);
     }
