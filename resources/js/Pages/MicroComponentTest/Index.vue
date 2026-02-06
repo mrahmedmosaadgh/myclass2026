@@ -1,7 +1,7 @@
 <template>
   <Head title="Micro Component Test" />
 
-  <div class="max-w-3xl mx-auto p-6">
+  <div class=" p-6">
     <div class="flex items-center justify-between mb-6">
         <h1 class="text-2xl font-bold">Micro Component Test</h1>
         
@@ -281,9 +281,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue';
-import { Head } from '@inertiajs/vue3';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { Head, usePage } from '@inertiajs/vue3';
 import AppLayoutDefault from '@/Layouts/AppLayoutDefault.vue';
+import { useRealtimeChannel } from '@/composables/useRealtimeChannel';
+import axios from 'axios';
 import MicroDropdown from './MicroDropdown.vue';
 import AudioPlayer from './comptest/AudioPlayer.vue';
 import SecureNumpad from './comptest/SecureNumpad/SecureNumpad.vue';
@@ -331,29 +333,54 @@ function showSelected() {
 
 // Real-time Questions Demo State
 const realtimeAnswers = ref([]);
+const questionId = 'rating-test-room-1'; // Fixed room ID for testing
+const currentUserId = computed(() => usePage().props.auth?.user?.id || Math.floor(Math.random() * 1000));
 
-const handleQuestionSubmit = (answerData) => {
-  // Add the answer to the display
-  realtimeAnswers.value.push({
-    id: Date.now().toString(),
-    ...answerData
-  });
-  
-  console.log('Answer submitted:', answerData);
-  // In production, you would send this to your backend/Firebase here
-  // Example: await axios.post('/api/realtime/test/question', answerData);
+// Listen for real-time updates
+onMounted(() => {
+    useRealtimeChannel(`question.${questionId}`, (signal) => {
+        if (signal.event === 'NEW_RESPONSE') {
+            const newAnswer = {
+                id: Date.now().toString(),
+                value: parseInt(signal.context.answer), // Ensure value is number for stats
+                userName: signal.context.userName,
+                timestamp: signal.timestamp
+            };
+            
+            // Avoid duplicates if needed, or just push
+            realtimeAnswers.value.push(newAnswer);
+            
+            // Keep only last 50
+            if (realtimeAnswers.value.length > 50) {
+                realtimeAnswers.value.shift();
+            }
+        }
+    });
+});
+
+const handleQuestionSubmit = async (answerData) => {
+  try {
+      await axios.post('/api/realtime/test/question', {
+          questionId: questionId,
+          answer: answerData.value.toString(),
+          userId: currentUserId.value
+      });
+      console.log('Answer submitted to backend');
+      // No local push needed, we wait for broadcast
+  } catch (error) {
+      console.error('Failed to submit answer:', error);
+      alert('Failed to submit answer. Check console.');
+  }
 };
 
 const addRandomAnswer = () => {
   const names = ['Ahmed', 'Sara', 'Mohamed', 'Fatima', 'Ali', 'Nour', 'Omar', 'Layla'];
+  const randomValue = Math.floor(Math.random() * 5) + 1;
   const randomName = names[Math.floor(Math.random() * names.length)];
-  const randomValue = Math.floor(Math.random() * 10) + 1;
   
-  realtimeAnswers.value.push({
-    id: Date.now().toString(),
-    senderName: randomName,
-    value: randomValue,
-    timestamp: Date.now() / 1000
+  // Simulate via API to test loopback
+  handleQuestionSubmit({
+      value: randomValue
   });
 };
 

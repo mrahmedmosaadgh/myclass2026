@@ -35,28 +35,30 @@
         />
       </div>
 
-      <!-- Number Input -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Your Answer (Number)
+      <!-- Rating Input -->
+      <div class="flex flex-col items-center justify-center py-4">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 w-full text-left">
+          Your Rating
         </label>
-        <input
-          ref="answerInput"
-          v-model.number="answerValue"
-          type="number"
-          :min="minValue"
-          :max="maxValue"
-          :step="step"
-          placeholder="Enter a number..."
-          :disabled="isSubmitted && !allowMultipleSubmissions"
-          class="w-full px-4 py-3 rounded-xl border-gray-200 dark:border-gray-600 dark:bg-gray-900 focus:ring-teal-500 focus:border-teal-500 transition-all text-2xl font-bold text-center disabled:opacity-50 disabled:cursor-not-allowed"
-          @keyup.enter="submitAnswer"
-        />
-        <p v-if="minValue !== null || maxValue !== null" class="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
-          <span v-if="minValue !== null">Min: {{ minValue }}</span>
-          <span v-if="minValue !== null && maxValue !== null"> • </span>
-          <span v-if="maxValue !== null">Max: {{ maxValue }}</span>
-        </p>
+        
+        <div class="bg-gray-50 dark:bg-gray-900 rounded-xl p-6 w-full flex justify-center border border-gray-200 dark:border-gray-700">
+            <q-rating
+                v-model="answerValue"
+                :max="maxValue || 5"
+                size="3.5em"
+                color="teal"
+                icon="star_border"
+                icon-selected="star"
+                icon-half="star_half"
+                :readonly="isSubmitted && !allowMultipleSubmissions"
+                no-dimming
+            />
+        </div>
+
+        <div class="flex justify-between w-full mt-2 text-xs text-gray-400 px-1">
+             <span>{{ minValue || 1 }} (Lowest)</span>
+             <span>{{ maxValue || 5 }} (Highest)</span>
+        </div>
       </div>
 
       <!-- Submit Button -->
@@ -109,7 +111,7 @@ const props = defineProps({
   },
   maxValue: {
     type: Number,
-    default: null
+    default: 5
   },
   step: {
     type: Number,
