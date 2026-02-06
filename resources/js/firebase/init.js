@@ -34,7 +34,7 @@ if (!ToolsSwitcher.isFirebaseEnabled()) {
   const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   const isLocalIp = window.location.hostname.startsWith('192.168.');
 
-  if (ToolsSwitcher.isEmulatorsEnabled() && (isLocalhost || isLocalIp)) {
+  if (ToolsSwitcher.isEmulatorsEnabled() && (isLocalhost || isLocalIp) && !window.location.hostname.includes('qudratpro.com')) {
     console.log('🔧 Emulators enabled - connecting...');
 
     try {

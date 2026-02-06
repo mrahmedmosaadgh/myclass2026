@@ -10,7 +10,7 @@ const DEFAULT_CONFIG = {
     enabled: true,
     auth: true,
     database: true,
-    emulators: true,
+    emulators: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1',
     notifications: true
   },
   backgroundServices: {
