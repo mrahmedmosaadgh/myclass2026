@@ -35,13 +35,13 @@
               <div class="flex items-center gap-3">
                 <!-- Avatar -->
                 <div class="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-sm">
-                  {{ getInitials(answer.senderName) }}
+                  {{ getInitials(answer.userName || answer.senderName) }}
                 </div>
                 
                 <!-- Sender Info -->
                 <div>
                   <p class="font-semibold text-gray-800 dark:text-white">
-                    {{ answer.senderName }}
+                    {{ answer.userName || answer.senderName }}
                   </p>
                   <p class="text-xs text-gray-500 dark:text-gray-400">
                     {{ formatTimestamp(answer.timestamp) }}

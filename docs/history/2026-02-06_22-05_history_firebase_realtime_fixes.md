@@ -25,6 +25,7 @@ Fixed critical issues preventing the Realtime Question components from functioni
 *   **Issue:** Frontend crashed with `TypeError: Cannot read properties of undefined (reading 'answer')`.
 *   **Cause:** Backend `RealtimeNotificationService` helper methods (e.g., `notifyGroup`) were creating "flat" payloads, but `buildSignal` strictly expected a nested `context` key.
 *   **Fix:** Updated `RealtimeNotificationService.php` to robustly handle flat payloads by treating any non-event keys as context.
+*   **Component Fix:** Updated `QuestionDisplay.vue` to correctly display the user's name (switched from `senderName` to `userName` to match API payload).
 
 ### 5. Debugging & Documentation
 *   **Debug Mode:** Added Firebase connection status indicator and detailed console logging to `Index.vue`.
