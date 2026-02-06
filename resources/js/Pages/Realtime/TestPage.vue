@@ -293,15 +293,22 @@ const activeListeners = ref(0);
 
 // Public channel
 const publicMessage = ref('');
-const { data: publicChannelData } = useRealtimeChannel('system.all', (signal) => {
+const publicChannelData = ref(null);
+
+useRealtimeChannel('system.all', (signal) => {
   console.log('📢 Public broadcast received:', signal);
+  publicChannelData.value = signal;
 });
 
 // Private channel
 const privateUserId = ref(currentUserId.value);
 const privateMessage = ref('');
-const { data: privateChannelData } = useRealtimeChannel(`user.${currentUserId.value}`, (signal) => {
+const privateChannelData = ref(null);
+
+useRealtimeChannel(`user.${currentUserId.value}`, (signal) => {
   console.log('🔒 Private notification received:', signal);
+  // Manually update local ref to ensure UI Reactivity
+  privateChannelData.value = signal;
 });
 
 // Chat
