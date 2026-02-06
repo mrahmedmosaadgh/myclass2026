@@ -338,6 +338,11 @@ Route::get('/network-test', function () {
     return Inertia::render('NetworkTest');
 })->name('network.test');
 
+// Micro Component Test (Public)
+Route::get('/micro-component-test', function () {
+    return Inertia::render('MicroComponentTest/Index');
+})->name('micro-component-test.public');
+
 // Test route to check CSRF cookie and session
 Route::get('/sanctum-test', function () {
     $user = Auth::user();
