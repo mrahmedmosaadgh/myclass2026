@@ -131,7 +131,7 @@ const emit = defineEmits(['submit']);
 
 // Reactive state
 const userName = ref(props.defaultUserName);
-const answerValue = ref(null);
+const answerValue = ref(0);
 const isSubmitted = ref(false);
 const showSuccessMessage = ref(false);
 const errorMessage = ref('');
@@ -140,7 +140,7 @@ const answerInput = ref(null);
 // Computed
 const canSubmit = computed(() => {
   if (!userName.value || !userName.value.trim()) return false;
-  if (answerValue.value === null || answerValue.value === '') return false;
+  if (answerValue.value === 0) return false;
   if (isSubmitted.value && !props.allowMultipleSubmissions) return false;
   
   // Validate range
@@ -161,7 +161,7 @@ const submitAnswer = () => {
   if (!canSubmit.value) {
     if (!userName.value || !userName.value.trim()) {
       errorMessage.value = 'Please enter your name';
-    } else if (answerValue.value === null || answerValue.value === '') {
+    } else if (answerValue.value === 0) {
       errorMessage.value = 'Please enter an answer';
     } else if (props.minValue !== null && answerValue.value < props.minValue) {
       errorMessage.value = `Answer must be at least ${props.minValue}`;
@@ -198,7 +198,7 @@ const submitAnswer = () => {
   // Reset form if multiple submissions allowed
   if (props.allowMultipleSubmissions) {
     setTimeout(() => {
-      answerValue.value = null;
+      answerValue.value = 0;
       isSubmitted.value = false;
     }, 1500);
   }
@@ -208,7 +208,7 @@ const submitAnswer = () => {
 defineExpose({
   reset: () => {
     userName.value = props.defaultUserName;
-    answerValue.value = null;
+    answerValue.value = 0;
     isSubmitted.value = false;
     showSuccessMessage.value = false;
     errorMessage.value = '';

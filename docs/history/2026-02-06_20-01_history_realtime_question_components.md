@@ -24,6 +24,7 @@
     *   Ensured dark mode support for all new components.
     *   **Layout Fix:** Increased top padding in `AppLayoutDefault.vue` to `4rem` to prevent content from being hidden behind fixed headers.
     *   **Rating Input:** Replaced numeric input in `QuestionInput.vue` with a user-friendly `<q-rating>` component (1-5 stars).
+    *   **Bug Fix:** Fixed prop type warning in `QuestionInput.vue` by initializing rating value to `0` instead of `null`.
     *   **Real-time Integration:** Updated `Index.vue` to use actual Firebase listeners and backend API (`/api/realtime/test/question`) for true cross-device synchronization.
 
 ## What Still Needs to Be Done
