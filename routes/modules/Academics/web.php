@@ -7,3 +7,5 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::get('/academics/subjects', [SubjectController::class, 'index'])->name('academics.subjects.index');
     Route::get('/academics/subjects/create', [SubjectController::class, 'create'])->name('academics.subjects.create');
 });
+
+require __DIR__.'/QuExams/web.php';

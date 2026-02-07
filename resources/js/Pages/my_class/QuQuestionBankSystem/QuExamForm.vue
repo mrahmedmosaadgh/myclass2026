@@ -312,17 +312,6 @@
         </q-card>
       </q-expansion-item>
 
-      <!-- Question Selection -->
-      <div class="text-h6 q-mt-lg">Question Selection</div>
-      <q-separator />
-
-      <q-banner inline-actions class="bg-warning text-center">
-        <template v-slot:avatar>
-          <q-icon name="warning" color="orange" />
-        </template>
-        Question selection is temporarily disabled during creation. Save the exam first, then add questions later.
-      </q-banner>
-
       <!-- Actions -->
       <div class="q-mt-lg q-gutter-sm">
         <q-btn

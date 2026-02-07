@@ -32,7 +32,7 @@ class QuQuestion extends Model
 
     public function topic()
     {
-        return $this->belongsTo(\App\Models\my_class\Curriculums\CurriculumTopic::class, 'topic_id');
+        return $this->belongsTo(\App\Models\my_class\Curriculums\CurriculumTopic::class, 'topic_id', 'id');
     }
 
     public function creator()

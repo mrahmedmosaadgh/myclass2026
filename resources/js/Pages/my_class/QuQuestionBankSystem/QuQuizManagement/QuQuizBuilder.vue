@@ -16,11 +16,11 @@
               color="primary"
               icon="arrow_back"
               class="bg-white shadow-1"
-              @click="router.visit('/quizzes')"
+              @click="router.visit('/qu-quiz-builder')"
             />
             <div>
               <h1 class="text-h4 text-weight-bold text-primary q-my-none">
-                {{ quiz.id ? 'Edit Quiz' : 'Create New Quiz' }}
+                {{ quiz.id ? 'Edit Exam' : 'Create New Exam' }}
               </h1>
               <p class="text-subtitle1 text-grey-7 q-my-none">
                 {{ selectedQuestions.length }} questions • {{ liveStats.totalPoints }} points
@@ -42,7 +42,7 @@
               push
               rounded
               color="secondary"
-              label="Save Quiz"
+              label="Save Exam"
               icon="save"
               class="text-weight-bold"
               @click="saveQuiz"
@@ -149,15 +149,15 @@
             <!-- Quiz Settings -->
             <q-card class="rounded-xl shadow-2 bg-white">
               <q-card-section class="bg-purple-1 text-purple-9">
-                <div class="text-h6 text-weight-bold">Quiz Settings</div>
+                <div class="text-h6 text-weight-bold">Exam Settings</div>
               </q-card-section>
 
               <q-card-section class="q-gutter-y-md">
                 <q-input
-                  v-model="quiz.name"
+                  v-model="quiz.title"
                   outlined
                   rounded
-                  label="Quiz Name"
+                  label="Exam Title"
                   :rules="[val => !!val || 'Required']"
                   bg-color="grey-1"
                 >
@@ -179,23 +179,23 @@
                 <div class="row q-col-gutter-sm">
                   <div class="col-6">
                     <q-input
-                      v-model.number="quiz.time_limit_minutes"
+                      v-model.number="quiz.duration_minutes"
                       outlined
                       rounded
                       type="number"
-                      label="Time (min)"
+                      label="Duration (min)"
                       dense
                       bg-color="grey-1"
                     />
                   </div>
                   <div class="col-6">
                     <q-select
-                      v-model="quiz.status"
+                      v-model="quiz.exam_type"
                       outlined
                       rounded
                       dense
-                      :options="['draft', 'active', 'archived']"
-                      label="Status"
+                      :options="['practice', 'quiz', 'midterm', 'final', 'survey']"
+                      label="Exam Type"
                       bg-color="grey-1"
                       behavior="menu"
                     />
@@ -214,18 +214,18 @@
                   <q-card>
                     <q-card-section class="q-gutter-y-sm">
                       <q-toggle
-                        v-model="quiz.shuffle_questions"
+                        v-model="quiz.settings.shuffle_questions"
                         label="Shuffle Questions"
                         color="purple"
                       />
                       <q-toggle
-                        v-model="quiz.shuffle_options"
+                        v-model="quiz.settings.shuffle_options"
                         label="Shuffle Answers"
                         color="purple"
                       />
                       <q-toggle
-                        v-model="quiz.allow_review"
-                        label="Allow Review"
+                        v-model="quiz.settings.allow_print"
+                        label="Allow Print"
                         color="purple"
                       />
                     </q-card-section>
@@ -260,21 +260,21 @@
       <q-card class="bg-grey-1">
         <q-toolbar class="bg-white text-primary shadow-1">
           <q-btn flat round dense icon="close" v-close-popup />
-          <q-toolbar-title class="text-weight-bold">Quiz Preview</q-toolbar-title>
+          <q-toolbar-title class="text-weight-bold">Exam Preview</q-toolbar-title>
         </q-toolbar>
 
         <q-card-section class="row justify-center q-pa-lg">
           <div class="col-12 col-md-8">
             <q-card class="rounded-xl shadow-2 q-mb-lg">
               <q-card-section class="text-center q-pa-xl">
-                <h2 class="text-h3 text-weight-bold text-primary q-my-none">{{ quiz.name }}</h2>
+                <h2 class="text-h3 text-weight-bold text-primary q-my-none">{{ quiz.title }}</h2>
                 <p class="text-h6 text-grey-7 q-mt-md">{{ quiz.description }}</p>
                 <div class="row justify-center q-gutter-x-lg q-mt-lg">
                   <q-chip icon="quiz" color="blue-1" text-color="blue-9" size="lg">
                     {{ selectedQuestions.length }} Questions
                   </q-chip>
-                  <q-chip icon="schedule" color="orange-1" text-color="orange-9" size="lg" v-if="quiz.time_limit_minutes">
-                    {{ quiz.time_limit_minutes }} Minutes
+                  <q-chip icon="schedule" color="orange-1" text-color="orange-9" size="lg" v-if="quiz.duration_minutes">
+                    {{ quiz.duration_minutes }} Minutes
                   </q-chip>
                 </div>
               </q-card-section>
@@ -431,13 +431,17 @@ const {
 
 // State
 const quiz = ref({
-  name: '',
+  title: '',
   description: '',
-  time_limit_minutes: null,
-  status: 'draft',
-  shuffle_questions: false,
-  shuffle_options: false,
-  allow_review: true
+  duration_minutes: null,
+  exam_type: 'quiz',
+  mark_calculation_method: 'best',
+  publish_results_timing: 'immediate',
+  settings: {
+    shuffle_questions: false,
+    shuffle_options: false,
+    allow_print: true
+  }
 });
 
 const poolQuestions = ref([]);
@@ -688,9 +692,10 @@ const fetchMetadata = async () => {
       { id: 4, name: 'Long Answer' }
     ];
     
-    topics.value = topicsRes.data;
-    grades.value = gradesRes.data;
-    subjects.value = subjectsRes.data;
+    // Extract the data array from the API response (not the entire response object)
+    topics.value = topicsRes.data.success ? topicsRes.data.data : [];
+    grades.value = gradesRes.data.success ? gradesRes.data.data : [];
+    subjects.value = subjectsRes.data.success ? subjectsRes.data.data : [];
     
     // Get authors from QuQuestion system
     try {
@@ -732,14 +737,14 @@ const loadQuiz = async () => {
   if (!props.quizId) return;
   
   try {
-    const response = await axios.get(`/api/quizzes/${props.quizId}`);
+    const response = await axios.get(`/api/qu-exams/${props.quizId}`);
     quiz.value = response.data;
     selectedQuestions.value = response.data.questions || [];
   } catch (error) {
-    console.error('Failed to load quiz:', error);
+    console.error('Failed to load exam:', error);
     $q.notify({
       type: 'negative',
-      message: 'Failed to load quiz',
+      message: 'Failed to load exam',
       icon: 'error'
     });
   }
@@ -771,7 +776,7 @@ const removeQuestionByObject = (question) => {
 const clearAllQuestions = () => {
   $q.dialog({
     title: 'Clear All Questions',
-    message: 'Are you sure you want to remove all questions from this quiz?',
+    message: 'Are you sure you want to remove all questions from this exam?',
     cancel: true,
     persistent: true,
     class: 'rounded-xl'
@@ -804,9 +809,130 @@ const handleDrop = (event) => {
       const question = JSON.parse(questionData);
       addQuestion(question);
     }
-  } catch (error) {
-    console.error('Failed to handle drop:', error);
+  } catch (e) {
+    console.error('Failed to parse dropped question', e);
   }
+};
+
+const handleFilterChanged = (newFilters) => {
+  // Filters are already reactive via filterState, but we can trigger refresh if needed
+  // or logic to apply filters is largely computed. 
+  // If we need to fetch from server based on filters (like for paginated remote pool)
+  // we would call fetchQuestions() here.
+  // For client-side filtering (current implementation), the computed property handles it.
+};
+
+const handleFiltersClear = () => {
+  clearFilters();
+};
+
+const addAllFilteredQuestions = () => {
+  // Add all questions currently in the filtered view
+  filteredPoolQuestions.value.forEach(question => {
+    addQuestion(question);
+  });
+  
+  $q.notify({
+    type: 'positive',
+    message: `Added ${filteredPoolQuestions.value.length} questions`,
+    position: 'top',
+    timeout: 1000
+  });
+};
+
+const addSelectedQuestions = () => {
+  const selected = getSelectedQuestions(poolQuestions.value);
+  let addedCount = 0;
+  
+  selected.forEach(question => {
+    if (!selectedQuestions.value.find(q => q.id === question.id)) {
+      addQuestion(question);
+      addedCount++;
+    }
+  });
+  
+  if (addedCount > 0) {
+    clearSelection();
+    $q.notify({
+      type: 'positive',
+      message: `Added ${addedCount} questions`,
+      position: 'top',
+      timeout: 1000
+    });
+  }
+};
+
+const handleToggleQuestionSelection = (question) => {
+  toggleQuestionSelection(question);
+};
+
+const handleToggleMultiSelectMode = () => {
+  toggleMultiSelectMode();
+};
+
+const handleClearSelection = () => {
+  clearSelection();
+};
+
+const handleSelectAllFiltered = () => {
+  selectAllFiltered(filteredPoolQuestions.value);
+};
+
+// Smart Selection Handlers
+const handleSmartSelection = (criteria) => {
+  const result = smartSelection(
+    poolQuestions.value, 
+    selectedQuestions.value, 
+    criteria
+  );
+  
+  if (result && result.length > 0) {
+    result.forEach(q => addQuestion(q));
+    
+    $q.notify({
+      type: 'positive',
+      message: `Automatically selected ${result.length} questions`,
+      icon: 'auto_awesome'
+    });
+  } else {
+    $q.notify({
+      type: 'warning',
+      message: 'No matching questions found for criteria',
+      icon: 'warning'
+    });
+  }
+};
+
+const handleSelectionFeedback = (feedback) => {
+  smartSelectionFeedback.value = feedback;
+};
+
+// Scoring & Section Handlers
+const handlePointsUpdated = (questionId, points) => {
+  updateQuestionPoints(selectedQuestions.value, questionId, points);
+};
+
+const handlePassingScoreChanged = (score) => {
+  // handled via v-model or if specific logic needed
+  scoringConfig.value.passingScoreThreshold = score;
+};
+
+const handleScoringConfigUpdated = (config) => {
+  updateScoringConfig(config);
+};
+
+// Section Handlers - Map to store actions
+const handleSectionAdded = (section) => createSection(section);
+const handleSectionUpdated = (section) => updateSection(section);
+const handleSectionDeleted = (sectionId) => deleteSection(sectionId);
+const handleSectionsReordered = (newOrder) => reorderSections(newOrder);
+const handleQuestionsReordered = (newOrder) => {
+  // Ensure we update both our local ref and efficiently handle section updates if needed
+  selectedQuestions.value = newOrder;
+};
+
+const handleQuestionAssigned = ({ questionId, sectionId }) => {
+  assignQuestionsToSection(sectionId, [questionId]);
 };
 
 const previewQuestion = (question) => {
@@ -814,160 +940,20 @@ const previewQuestion = (question) => {
   showQuestionPreview.value = true;
 };
 
-// Bulk Operations Methods
-const addAllFilteredQuestions = () => {
-  const questionsToAdd = filteredPoolQuestions.value.filter(q => 
-    !selectedQuestions.value.find(selected => selected.id === q.id)
-  );
-  
-  if (questionsToAdd.length === 0) {
+const saveQuiz = async () => {
+  if (!quiz.value.title) {
     $q.notify({
       type: 'warning',
-      message: 'No new questions to add',
+      message: 'Please enter an exam title',
       icon: 'warning'
     });
     return;
   }
   
-  questionsToAdd.forEach(question => {
-    // Apply default points when adding questions
-    const questionWithPoints = applyDefaultPoints({ ...question });
-    selectedQuestions.value.push(questionWithPoints);
-  });
-  
-  // Clear selection after adding
-  clearSelection();
-};
-
-const addSelectedQuestions = (questions) => {
-  const questionsToAdd = questions.filter(q => 
-    !selectedQuestions.value.find(selected => selected.id === q.id)
-  );
-  
-  questionsToAdd.forEach(question => {
-    // Apply default points when adding questions
-    const questionWithPoints = applyDefaultPoints({ ...question });
-    selectedQuestions.value.push(questionWithPoints);
-  });
-  
-  // Clear selection after adding
-  clearSelection();
-};
-
-const handleToggleMultiSelectMode = (enabled) => {
-  toggleMultiSelectMode();
-};
-
-const handleToggleQuestionSelection = (questionId) => {
-  toggleQuestionSelection(questionId);
-};
-
-const handleSelectAllFiltered = (questions) => {
-  selectAllFiltered(questions);
-};
-
-const handleClearSelection = () => {
-  clearSelection();
-};
-
-// Advanced Filter Methods
-const handleFilterChanged = (filters) => {
-  applyFilters(filters);
-};
-
-const handleFiltersClear = () => {
-  clearFilters();
-};
-
-// Smart Selection Methods
-const handleSmartSelection = (questions) => {
-  questions.forEach(question => {
-    if (!selectedQuestions.value.find(q => q.id === question.id)) {
-      const questionWithPoints = applyDefaultPoints({ ...question });
-      selectedQuestions.value.push(questionWithPoints);
-    }
-  });
-  
-  // Clear bulk selection after adding
-  clearSelection();
-};
-
-const handleSelectionFeedback = (feedback) => {
-  smartSelectionFeedback.value = {
-    type: 'success',
-    message: feedback
-  };
-  
-  // Clear feedback after 5 seconds
-  setTimeout(() => {
-    smartSelectionFeedback.value = null;
-  }, 5000);
-};
-
-// Scoring Methods
-const handlePointsUpdated = (questionId, points) => {
-  selectedQuestions.value = updateQuestionPoints(selectedQuestions.value, questionId, points);
-};
-
-const handlePassingScoreChanged = (threshold) => {
-  updateScoringConfig({
-    ...scoringConfig.value,
-    passingScoreThreshold: threshold
-  });
-};
-
-const handleScoringConfigUpdated = (config) => {
-  updateScoringConfig(config);
-};
-
-// Section Management Methods
-const handleSectionAdded = (section) => {
-  // Section is already added by the section store
-  console.log('Section added:', section);
-};
-
-const handleSectionUpdated = (sectionId, updates) => {
-  updateSection(sectionId, updates);
-};
-
-const handleSectionDeleted = (sectionId) => {
-  const orphanedQuestions = deleteSection(sectionId);
-  // Add orphaned questions back to the main question list without section assignment
-  orphanedQuestions.forEach(question => {
-    question.sectionId = undefined;
-    question.orderInSection = 0;
-  });
-};
-
-const handleSectionsReordered = (newSections) => {
-  reorderSections(newSections);
-};
-
-const handleQuestionAssigned = (questionId, sectionId) => {
-  const question = selectedQuestions.value.find(q => q.id.toString() === questionId.toString());
-  if (question) {
-    // Remove from current section if assigned
-    if (question.sectionId) {
-      removeQuestionsFromSection(question.sectionId, [questionId.toString()]);
-    }
-    
-    // Assign to new section
-    assignQuestionsToSection(sectionId, [question]);
-    
-    // Update the question object
-    question.sectionId = sectionId;
-  }
-};
-
-const handleQuestionsReordered = (newOrder) => {
-  selectedQuestions.value = newOrder;
-};
-
-const saveQuiz = async () => {
-  if (!quiz.value.name) {
+  if (!quiz.value.duration_minutes || quiz.value.duration_minutes < 1) {
     $q.notify({
       type: 'warning',
-      message: 'Please enter a quiz name',
+      message: 'Please enter a valid duration (minimum 1 minute)',
       icon: 'warning'
     });
     return;
@@ -986,31 +972,37 @@ const saveQuiz = async () => {
   try {
     const data = {
       ...quiz.value,
-      question_ids: selectedQuestions.value.map(q => q.id)
+      subject_id: quiz.value.subject_id || (selectedQuestions.value.length > 0 ? selectedQuestions.value[0].subject_id : null),
+      question_ids: selectedQuestions.value.map(q => q.id),
+      // Include full section structure and scoring config
+      sections: sections.value,
+      scoring_config: scoringConfig.value,
+      total_points: liveStats.value.totalPoints,
+      total_marks: liveStats.value.totalPoints // Map total_points to total_marks for backend validation
     };
     
     if (props.quizId) {
-      await axios.put(`/api/quizzes/${props.quizId}`, data);
+      await axios.put(`/api/qu-exams/${props.quizId}`, data);
       $q.notify({
         type: 'positive',
-        message: 'Quiz updated successfully',
+        message: 'Exam updated successfully',
         icon: 'check_circle'
       });
     } else {
-      await axios.post('/api/quizzes', data);
+      await axios.post('/api/qu-exams', data);
       $q.notify({
         type: 'positive',
-        message: 'Quiz created successfully',
+        message: 'Exam created successfully',
         icon: 'check_circle'
       });
     }
     
-    router.visit('/quizzes');
+    router.visit('/qu-exams');
   } catch (error) {
-    console.error('Failed to save quiz:', error);
+    console.error('Failed to save exam:', error);
     $q.notify({
       type: 'negative',
-      message: 'Failed to save quiz',
+      message: 'Failed to save exam',
       icon: 'error'
     });
   } finally {

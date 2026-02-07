@@ -308,7 +308,7 @@
              <iframe 
                v-if="selectedExamForPrint"
                id="printFrame"
-               :src="route('qu-student.exams.print', selectedExamForPrint?.id)" 
+               :src="route('qu.student.exams.print', selectedExamForPrint?.id)" 
                style="width: 100%; height: 100%; border: none;"
              ></iframe>
            </q-card-section>
@@ -339,7 +339,7 @@ const startDialog = ref(false);
 const selectedExam = ref(null);
 
 const applyFilters = () => {
-  router.get(route('qu-student.exams.index'), localFilters, {
+  router.get(route('qu.student.exams.index'), localFilters, {
     preserveState: true,
     preserveScroll: true
   });
@@ -369,7 +369,7 @@ const confirmStartExam = (exam) => {
 };
 
 const startExam = () => {
-  router.post(route('qu-student.exams.start', selectedExam.value.id), {}, {
+  router.post(route('qu.student.exams.start', selectedExam.value.id), {}, {
     onSuccess: () => {
       startDialog.value = false;
     },
@@ -384,7 +384,7 @@ const startExam = () => {
 };
 
 const resumeExam = (exam) => {
-  router.visit(route('qu-student.exams.take', {
+  router.visit(route('qu.student.exams.take', {
     quExam: exam.id,
     quAttempt: exam.attempt_stats.in_progress_attempt_id
   }));
@@ -393,7 +393,7 @@ const resumeExam = (exam) => {
 const viewResults = (exam) => {
   const lastAttemptId = exam.attempt_stats?.last_attempt_id;
   if (lastAttemptId) {
-    router.visit(route('qu-student.exams.results', {
+    router.visit(route('qu.student.exams.results', {
       quExam: exam.id,
       quAttempt: lastAttemptId
     }));
@@ -403,7 +403,7 @@ const viewResults = (exam) => {
 const printExam = (exam) => {
   // Open print view in new window
   window.open(
-    route('qu-student.exams.print', exam.id),
+    route('qu.student.exams.print', exam.id),
     '_blank',
     'width=800,height=600'
   );

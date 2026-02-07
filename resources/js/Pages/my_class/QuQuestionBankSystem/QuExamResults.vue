@@ -261,7 +261,7 @@ const capitalizeFirst = (str) => {
 };
 
 const backToExams = () => {
-  router.visit(route('qu-student.exams.index'));
+  router.visit(route('qu.student.exams.index'));
 };
 </script>
 

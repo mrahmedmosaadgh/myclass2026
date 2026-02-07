@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Subject;
 use App\Models\School;
 use App\Models\Curriculum;
+// Changed the import to use the correct Topic model
+use App\Models\my_class\Curriculums\CurriculumTopic as Topic;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
@@ -95,16 +97,25 @@ public function apiIndex(Request $request)
 public function getTopics(Request $request)
 {
     try {
-        $query = \App\Models\Topic::query();
+        $query = \App\Models\my_class\Curriculums\CurriculumTopic::query(); // Using the correct Topic model
+        
+        // Join with curricula and subjects to filter by subject
+        $query->join('curricula', 'curriculum_topics.curriculum_id', '=', 'curricula.id')
+              ->join('subjects', 'curricula.subject_id', '=', 'subjects.id');
         
         // Filter by subject if provided
         if ($request->has('subject_id')) {
-            $query->where('subject_id', $request->subject_id);
+            $query->where('curricula.subject_id', $request->subject_id);
         }
         
-        $topics = $query->select('id', 'name', 'subject_id', 'description')
-            ->orderBy('name')
-            ->get();
+        $topics = $query->select(
+            'curriculum_topics.id', 
+            'curriculum_topics.title as name', 
+            'curricula.subject_id', 
+            'curriculum_topics.description'
+        )
+        ->orderBy('curriculum_topics.title')
+        ->get();
         
         return response()->json([
             'success' => true,
@@ -116,7 +127,7 @@ public function getTopics(Request $request)
             'success' => false,
             'error' => [
                 'code' => 'TOPICS_ERROR',
-                'message' => 'Failed to retrieve topics',
+                'message' => 'Failed to retrieve topics: ' . $e->getMessage(),
                 'details' => config('app.debug') ? $e->getMessage() : null,
                 'timestamp' => now()->toIso8601String(),
             ],

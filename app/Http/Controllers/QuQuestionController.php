@@ -237,14 +237,16 @@ class QuQuestionController extends Controller
                 // Transform options to the expected format
                 $options = [];
                 if ($question->options && is_array($question->options)) {
-                    foreach ($question->options as $index => $option) {
+                    $indexCounter = 0;
+                    foreach ($question->options as $optionKey => $optionValue) {
                         $options[] = [
-                            'id' => $index + 1,
-                            'option_key' => chr(65 + $index), // A, B, C, D
-                            'option_text' => $option,
-                            'is_correct' => in_array($index, (array) $question->correct_answer),
-                            'order_index' => $index
+                            'id' => $indexCounter + 1,
+                            'option_key' => is_numeric($optionKey) ? chr(65 + $indexCounter) : $optionKey,
+                            'option_text' => $optionValue,
+                            'is_correct' => in_array($optionKey, (array) $question->correct_answer),
+                            'order_index' => $indexCounter
                         ];
+                        $indexCounter++;
                     }
                 }
 

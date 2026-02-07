@@ -108,22 +108,38 @@
       <q-card-section>
          <div class="text-h6 q-mb-md">Questions</div>
          <div v-if="exam.questions && exam.questions.length > 0">
-            <q-list separator bordered>
-                <q-expansion-item
-                    v-for="(question, index) in exam.questions"
-                    :key="question.id"
-                    group="questions"
-                    :label="`${index + 1}. ${truncateText(question.question_text, 80)}`"
-                    :caption="`Marks: ${question.marks} | Type: ${question.question_type}`"
-                    header-class="bg-grey-1"
+            <div class="q-gutter-y-md">
+                <q-card 
+                    v-for="(question, index) in exam.questions" 
+                    :key="question.id" 
+                    bordered 
+                    flat
                 >
-                    <q-card>
-                        <q-card-section>
-                            <QuQuestionDisplay :question="question" :readonly="true" :show-correct-answer="true" />
-                        </q-card-section>
-                    </q-card>
-                </q-expansion-item>
-            </q-list>
+                    <q-card-section class="bg-grey-1 row items-center justify-between">
+                        <div class="text-subtitle1">
+                            <strong>Q{{ index + 1 }}</strong> 
+                            <span class="text-caption text-grey-7 q-ml-sm">
+                                ({{ question.question_type }})
+                            </span>
+                        </div>
+                        <div class="row q-gutter-sm">
+                            <q-chip v-if="question.difficulty" :color="difficultyColor(question.difficulty)" text-color="white" size="sm">
+                                {{ question.difficulty }}
+                            </q-chip>
+                            <q-chip v-if="question.bloom_level" color="purple-3" :icon="getBloomIcon(question.bloom_level)" text-color="white" size="sm">
+                                {{ capitalizeFirst(question.bloom_level) }}
+                            </q-chip>
+                            <q-chip color="primary" text-color="white" size="sm">
+                                {{ question.marks }} {{ question.marks === 1 ? 'Mark' : 'Marks' }}
+                            </q-chip>
+                        </div>
+                    </q-card-section>
+                    <q-separator />
+                    <q-card-section>
+                        <QuQuestionDisplay :question="question" :readonly="true" :show-correct-answer="true" :hide-header="true" />
+                    </q-card-section>
+                </q-card>
+            </div>
          </div>
          <div v-else class="text-grey-7 text-center q-pa-lg">
             No questions added to this exam yet.
@@ -174,4 +190,28 @@ const truncateText = (text, length) => {
   return text.length > length ? text.substring(0, length) + '...' : text;
 };
 
+const capitalizeFirst = (str) => {
+  return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
+};
+
+const difficultyColor = (difficulty) => {
+  const colors = {
+    easy: 'green',
+    medium: 'orange',
+    hard: 'red'
+  };
+  return colors[difficulty] || 'grey';
+};
+
+const getBloomIcon = (level) => {
+  const icons = {
+    remember: 'psychology',
+    understand: 'lightbulb',
+    apply: 'build',
+    analyze: 'analytics',
+    evaluate: 'fact_check',
+    create: 'auto_awesome'
+  };
+  return icons[level] || 'help';
+};
 </script>

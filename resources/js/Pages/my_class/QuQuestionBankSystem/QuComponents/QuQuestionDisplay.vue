@@ -1,7 +1,7 @@
 <template>
   <div class="question-display">
     <!-- Question Header -->
-    <div class="row items-center q-mb-md">
+    <div v-if="!hideHeader" class="row items-center q-mb-md">
       <div class="text-subtitle1 text-weight-bold">
         Question {{ index ? `#${index}` : '' }}
       </div>
@@ -122,6 +122,10 @@ const props = defineProps({
     default: true
   },
   showCorrectAnswer: {
+    type: Boolean,
+    default: false
+  },
+  hideHeader: {
     type: Boolean,
     default: false
   }

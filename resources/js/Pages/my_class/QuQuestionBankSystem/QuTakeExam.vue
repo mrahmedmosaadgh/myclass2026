@@ -24,11 +24,11 @@
             <q-card-section>
               <div class="text-subtitle2 q-mb-md">Questions</div>
               <div class="text-caption text-grey-7 q-mb-sm">
-                Answered: {{ answeredCount }} / {{ questions.length }}
+                Answered: {{ answeredCount }} / {{ localQuestions.length }}
               </div>
               <div class="question-grid">
                 <q-btn
-                  v-for="(question, index) in questions"
+                  v-for="(question, index) in localQuestions"
                   :key="question.id"
                   :label="index + 1"
                   :color="getQuestionButtonColor(index)"
@@ -70,7 +70,7 @@
           <q-card>
             <q-card-section>
               <div class="text-caption text-grey-7 q-mb-sm">
-                Question {{ currentQuestionIndex + 1 }} of {{ questions.length }}
+                Question {{ currentQuestionIndex + 1 }} of {{ localQuestions.length }}
               </div>
               
               <QuQuestionDisplay
@@ -117,7 +117,7 @@
                 color="primary"
                 label="Next"
                 icon-right="chevron_right"
-                :disable="currentQuestionIndex === questions.length - 1"
+                :disable="currentQuestionIndex === localQuestions.length - 1"
                 @click="nextQuestion"
               />
             </q-card-actions>
@@ -137,11 +137,11 @@
           <p>Are you sure you want to submit your exam?</p>
           <div class="q-mt-md">
             <div class="text-caption text-grey-7">
-              Answered: {{ answeredCount }} / {{ questions.length }} questions
+              Answered: {{ answeredCount }} / {{ localQuestions.length }} questions
             </div>
-            <div v-if="answeredCount < questions.length" class="text-caption text-warning q-mt-xs">
+            <div v-if="answeredCount < localQuestions.length" class="text-caption text-warning q-mt-xs">
               <q-icon name="warning" size="sm" />
-              You have {{ questions.length - answeredCount }} unanswered question(s)
+              You have {{ localQuestions.length - answeredCount }} unanswered question(s)
             </div>
           </div>
         </q-card-section>
@@ -156,7 +156,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
 import { useQuasar } from 'quasar';
@@ -173,6 +173,7 @@ const props = defineProps({
   existing_answers: Object
 });
 
+const localQuestions = ref([...props.questions]);
 const currentQuestionIndex = ref(0);
 const answers = ref({ ...props.existing_answers });
 const lastSaved = ref(Date.now());
@@ -182,7 +183,7 @@ const submitDialog = ref(false);
 const isSubmitting = ref(false);
 let autoSaveInterval = null;
 
-const currentQuestion = computed(() => props.questions[currentQuestionIndex.value]);
+const currentQuestion = computed(() => localQuestions.value[currentQuestionIndex.value]);
 
 const currentAnswer = computed({
   get() {
@@ -251,13 +252,68 @@ const previousQuestion = () => {
 };
 
 const nextQuestion = () => {
-  if (currentQuestionIndex.value < props.questions.length - 1) {
+  if (currentQuestionIndex.value < localQuestions.value.length - 1) {
     currentQuestionIndex.value++;
   }
 };
 
 const onAnswerChange = () => {
   // Answer is automatically updated via v-model
+  saveLocalState();
+};
+
+const storageKey = computed(() => `qu_exam_${props.exam.id}_attempt_${props.attempt.id}`);
+
+const saveLocalState = () => {
+  if (isSubmitted.value) return;
+  
+  const state = {
+    answers: answers.value,
+    currentQuestionIndex: currentQuestionIndex.value,
+    questionOrder: localQuestions.value.map(q => q.id),
+    timestamp: Date.now()
+  };
+  
+  localStorage.setItem(storageKey.value, JSON.stringify(state));
+};
+
+const loadLocalState = () => {
+  const stored = localStorage.getItem(storageKey.value);
+  if (stored) {
+    try {
+      const state = JSON.parse(stored);
+      
+      // Restore answers (merge strategies could be complex, but let's assume local is latest/user-intent)
+      // Check timestamp if we wanted to be fancy vs server data, but user asked for "offline" persistence which implies local trust.
+      answers.value = { ...answers.value, ...state.answers };
+      
+      // Restore index
+      if (typeof state.currentQuestionIndex === 'number') {
+        currentQuestionIndex.value = Math.min(Math.max(0, state.currentQuestionIndex), props.questions.length - 1);
+      }
+      
+      // Restore Question Order
+      if (state.questionOrder && Array.isArray(state.questionOrder) && state.questionOrder.length === props.questions.length) {
+         // Sort localQuestions based on stored ID order
+         const orderMap = new Map(state.questionOrder.map((id, idx) => [id, idx]));
+         localQuestions.value.sort((a, b) => {
+           const idxA = orderMap.has(a.id) ? orderMap.get(a.id) : 9999;
+           const idxB = orderMap.has(b.id) ? orderMap.get(b.id) : 9999;
+           return idxA - idxB;
+         });
+      }
+      
+    } catch (e) {
+      console.error('Failed to restore local state', e);
+    }
+  } else {
+     // If no local state, save initial state (especially order)
+     saveLocalState();
+  }
+};
+
+const clearLocalState = () => {
+  localStorage.removeItem(storageKey.value);
 };
 
 const saveAnswers = async (showNotification = true) => {
@@ -267,7 +323,7 @@ const saveAnswers = async (showNotification = true) => {
   
   try {
     await axios.post(
-      route('qu-student.exams.auto-save', {
+      route('qu.student.exams.auto-save', {
         quExam: props.exam.id,
         quAttempt: props.attempt.id
       }),
@@ -275,6 +331,7 @@ const saveAnswers = async (showNotification = true) => {
     );
     
     lastSaved.value = Date.now();
+    saveLocalState(); // Also save locally on successful server save
     if (showNotification) {
       $q.notify({
         type: 'positive',
@@ -305,7 +362,7 @@ const submitExam = () => {
   isSubmitting.value = true;
   
   router.post(
-    route('qu-student.exams.submit', {
+    route('qu.student.exams.submit', {
       quExam: props.exam.id,
       quAttempt: props.attempt.id
     }),
@@ -314,6 +371,7 @@ const submitExam = () => {
       onSuccess: () => {
         isSubmitted.value = true;
         clearInterval(autoSaveInterval);
+        clearLocalState();
         $q.notify({
           type: 'positive',
           message: 'Exam submitted successfully!',
@@ -356,6 +414,13 @@ const handleBeforeUnload = (e) => {
 };
 
 onMounted(() => {
+  loadLocalState();
+  
+  // Watch for index changes to save state
+  watch(currentQuestionIndex, () => {
+    saveLocalState();
+  });
+
   // Auto-save every 30 seconds
   autoSaveInterval = setInterval(() => {
     saveAnswers(false);

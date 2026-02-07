@@ -30,21 +30,21 @@
             :options="subjects"
             option-value="id"
             option-label="name"
-            label="Subject"
-            clearable
+            label="Subject *"
             emit-value
             map-options
             @update:model-value="applyFilters"
             style="min-width: 200px"
+            :rules="[val => !!val || 'Subject is required']"
           />
           
           <q-select
             v-model="localFilters.exam_type"
             :options="examTypeOptions"
-            label="Exam Type"
-            clearable
+            label="Exam Type *"
             @update:model-value="applyFilters"
             style="min-width: 150px"
+            :rules="[val => !!val || 'Type is required']"
           />
 
           <q-select
@@ -79,35 +79,18 @@
           @request="onTableRequest"
         >
           <template v-slot:body-cell-title="props">
-            <q-td :props="props">
-              <div class="text-subtitle2">
+            <q-td :props="props" style="max-width: 250px">
+              <div class="text-subtitle2 ellipsis">
                 {{ props.row.title }}
+                <q-tooltip>{{ props.row.title }}</q-tooltip>
               </div>
-              <div v-if="props.row.description" class="text-caption text-grey-7">
+              <div v-if="props.row.description" class="text-caption text-grey-7 ellipsis">
                 {{ truncateText(props.row.description, 50) }}
               </div>
             </q-td>
           </template>
 
-          <template v-slot:body-cell-subject="props">
-            <q-td :props="props">
-              <q-chip dense color="primary" text-color="white">
-                {{ props.row.subject?.name }}
-              </q-chip>
-            </q-td>
-          </template>
 
-          <template v-slot:body-cell-exam_type="props">
-            <q-td :props="props">
-              <q-chip 
-                dense 
-                :color="examTypeColor(props.row.exam_type)"
-                text-color="white"
-              >
-                {{ capitalizeFirst(props.row.exam_type) }}
-              </q-chip>
-            </q-td>
-          </template>
 
           <template v-slot:body-cell-custom_group="props">
             <q-td :props="props">
@@ -145,66 +128,83 @@
 
           <template v-slot:body-cell-actions="props">
             <q-td :props="props">
-              <q-btn 
-                flat 
-                dense 
-                round
-                color="primary" 
-                icon="visibility" 
-                @click="viewExam(props.row)"
-              >
-                <q-tooltip>View</q-tooltip>
-              </q-btn>
-              <q-btn 
-                flat 
-                dense 
-                round
-                color="primary" 
-                icon="edit" 
-                @click="editExam(props.row)"
-              >
-                <q-tooltip>Edit</q-tooltip>
-              </q-btn>
-              <q-btn 
-                flat 
-                dense 
-                round
-                color="secondary" 
-                icon="content_copy" 
-                @click="duplicateExam(props.row)"
-              >
-                <q-tooltip>Duplicate</q-tooltip>
-              </q-btn>
-              <q-btn 
-                flat 
-                dense 
-                round
-                color="indigo" 
-                icon="print" 
-                @click="openPrintDialog(props.row)"
-              >
-                <q-tooltip>Print Preview</q-tooltip>
-              </q-btn>
-              <q-btn 
-                flat 
-                dense 
-                round
-                color="orange" 
-                icon="grading" 
-                @click="viewGrading(props.row)"
-              >
-                <q-tooltip>View Grading</q-tooltip>
-              </q-btn>
-              <q-btn 
-                flat 
-                dense 
-                round
-                color="negative" 
-                icon="delete" 
-                @click="confirmDelete(props.row)"
-              >
-                <q-tooltip>Delete</q-tooltip>
-              </q-btn>
+              <q-btn-dropdown flat dense rounded color="primary" icon="more_vert">
+                <q-list>
+                  <q-item clickable v-close-popup @click="viewExam(props.row)">
+                    <q-item-section avatar>
+                      <q-icon name="visibility" color="primary" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>View</q-item-label>
+                    </q-item-section>
+                  </q-item>
+
+                  <q-item clickable v-close-popup @click="copyStudentLink(props.row)">
+                    <q-item-section avatar>
+                      <q-icon name="link" color="teal" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Copy Student Link</q-item-label>
+                    </q-item-section>
+                  </q-item>
+
+                  <q-item clickable v-close-popup @click="editExam(props.row)">
+                    <q-item-section avatar>
+                      <q-icon name="edit" color="primary" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Edit Settings</q-item-label>
+                    </q-item-section>
+                  </q-item>
+
+                   <q-item clickable v-close-popup @click="goToBuilder(props.row)">
+                    <q-item-section avatar>
+                      <q-icon name="build" color="secondary" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Edit Questions</q-item-label>
+                    </q-item-section>
+                  </q-item>
+
+                  <q-item clickable v-close-popup @click="duplicateExam(props.row)">
+                    <q-item-section avatar>
+                      <q-icon name="content_copy" color="secondary" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Duplicate</q-item-label>
+                    </q-item-section>
+                  </q-item>
+
+                  <q-item clickable v-close-popup @click="openPrintDialog(props.row)">
+                    <q-item-section avatar>
+                      <q-icon name="print" color="indigo" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Print Preview</q-item-label>
+                    </q-item-section>
+                  </q-item>
+
+                  <q-item clickable v-close-popup @click="viewGrading(props.row)">
+                    <q-item-section avatar>
+                      <q-icon name="grading" color="orange" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>View Grading</q-item-label>
+                    </q-item-section>
+                  </q-item>
+
+                  <q-separator />
+
+                  <q-item clickable v-close-popup @click="confirmDelete(props.row)">
+                    <q-item-section avatar>
+                      <q-icon name="delete" color="negative" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label class="text-negative">Delete</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </q-btn-dropdown>
             </q-td>
           </template>
         </q-table>
@@ -286,7 +286,7 @@
           <iframe 
             v-if="selectedExamForPrint"
             id="printFrame"
-            :src="route('qu-student.exams.print', selectedExamForPrint?.id)" 
+            :src="route('qu.student.exams.print', selectedExamForPrint?.id)" 
             style="width: 100%; height: 100%; border: none;"
           ></iframe>
         </q-card-section>
@@ -396,10 +396,13 @@
 
 <script setup>
 import { ref, reactive, computed } from 'vue';
+import { useQuasar } from 'quasar';
 import { router } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
 import QuExamForm from './QuExamForm.vue';
 import QuGradingDialog from './QuGradingDialog.vue';
+
+const $q = useQuasar();
 
 // Print Dialog Logic
 const showPrintDialogState = ref(false);
@@ -424,7 +427,7 @@ const props = defineProps({
 
 const localFilters = reactive({
   subject_id: props.filters?.subject_id || (props.subjects.length > 0 ? props.subjects[0].id : null),
-  exam_type: props.filters?.exam_type || null,
+  exam_type: props.filters?.exam_type || 'quiz', // Default to quiz instead of null
   custom_group: props.filters?.custom_group || null,
   status: props.filters?.status || null
 });
@@ -455,8 +458,7 @@ const statusOptions = [
 const columns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left', sortable: true },
   { name: 'title', label: 'Title', field: 'title', align: 'left' },
-  { name: 'subject', label: 'Subject', field: 'subject', align: 'left' },
-  { name: 'exam_type', label: 'Type', field: 'exam_type', align: 'center' },
+  // Subject and Exam Type removed as they are filtered
   { name: 'custom_group', label: 'Group', field: 'custom_group', align: 'center' },
   { name: 'questions_count', label: 'Questions', field: 'questions_count', align: 'center' },
   { name: 'total_marks', label: 'Marks', field: 'total_marks', align: 'center' },
@@ -485,8 +487,8 @@ const changePage = (page) => {
   });
 };
 
-// Auto-apply filter if first subject was auto-selected
-if (!props.filters?.subject_id && localFilters.subject_id) {
+// Auto-apply filter if first subject was auto-selected or type defaulted
+if ((!props.filters?.subject_id && localFilters.subject_id) || (!props.filters?.exam_type && localFilters.exam_type)) {
   applyFilters();
 }
 
@@ -498,9 +500,31 @@ const viewExam = (exam) => {
   router.visit(route('qu-exams.show', exam.id));
 };
 
+const copyStudentLink = (exam) => {
+  const url = route('qu.student.exams.show', exam.id);
+  navigator.clipboard.writeText(url)
+    .then(() => {
+      $q.notify({
+        type: 'positive',
+        message: 'Student exam link copied to clipboard',
+        icon: 'content_copy',
+        position: 'top'
+      });
+    })
+    .catch((err) => {
+      console.error('Failed to copy: ', err);
+      $q.notify({
+        type: 'negative',
+        message: 'Failed to copy link',
+        icon: 'error'
+      });
+    });
+};
+
+
 const editExam = async (exam) => {
   try {
-    const response = await window.axios.get(route('qu-exams.edit', exam.id));
+    const response = await window.axios.get(route('qu-exams.data', exam.id));
     editingExam.value = response.data;
     createDialog.value = true;
   } catch (error) {
@@ -508,15 +532,30 @@ const editExam = async (exam) => {
   }
 };
 
-const duplicateExam = (exam) => {
-  // Create a copy of the exam with modified title
-  const duplicatedExam = {
-    ...exam,
-    title: `${exam.title} (Copy)`,
-    is_published: false
-  };
-  editingExam.value = duplicatedExam;
-  createDialog.value = true;
+const duplicateExam = async (exam) => {
+  try {
+    // Fetch full data for duplication to ensure settings etc are copied
+    const response = await window.axios.get(route('qu-exams.data', exam.id));
+    const fullExamData = response.data;
+    
+    // Create a copy of the exam with modified title
+    const duplicatedExam = {
+      ...fullExamData,
+      id: null, // Clear ID so it creates new
+      title: `${fullExamData.title} (Copy)`,
+      is_published: false
+    };
+    
+    // If we want to duplicate questions, we need to ensure getExamData returns them.
+    // user didn't explicitly ask for deep copy but "Duplicate" implies it.
+    // However, the form separates question selection now. 
+    // The form initializes question_ids from props.exam?.questions.
+    
+    editingExam.value = duplicatedExam;
+    createDialog.value = true;
+  } catch (error) {
+    console.error('Failed to load exam data for duplication', error);
+  }
 };
 
 const confirmDelete = (exam) => {
@@ -638,6 +677,19 @@ const onExamSaved = () => {
 // Nested Grading Interface Logic
 const showGradingInterface = ref(false);
 const currentAttemptId = ref(null);
+
+const goToBuilder = (exam) => {
+  // Use the route for editing which opens the builder
+  // We need to check if there is a specific route for builder or if 'qu-exams.edit' serves the builder page
+  // Based on your previous request "Question Selection in Edit Exam dialog remove it", 
+  // and "add icon btn to edit questions for the selected exam", 
+  // I assume 'qu-exams.edit' route renders QuQuizBuilder as per previous context.
+  
+  // Let's verify the route alias in web.php
+  // Route::get('/qu-exams/{id}/edit', ...)->name('qu-exams.edit'); -> renders QuQuizBuilder
+  
+  router.visit(route('qu-exams.edit', exam.id));
+};
 
 const onGradingComplete = () => {
   // Refresh the attempts list to show updated scores/status

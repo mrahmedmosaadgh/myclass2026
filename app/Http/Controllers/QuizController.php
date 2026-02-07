@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Quiz;
-use App\Models\Question;
+use App\Models\QuQuestion; // Changed from Question to QuQuestion
 use App\Models\Teacher;
 use App\Models\School;
 use Illuminate\Http\Request;
@@ -82,7 +82,7 @@ $schoolId= $teacher->school_id;
     public function show($id)
     {
         $quiz = Quiz::with([
-            'questions.questionType',
+            'questions.questionType', // This might need adjustment depending on pivot data
             'questions.options',
             'grade',
             'subject'
@@ -112,7 +112,7 @@ $schoolId= $teacher->school_id;
             'shuffle_options' => 'nullable|boolean',
             'allow_review' => 'nullable|boolean',
             'question_ids' => 'nullable|array',
-            'question_ids.*' => 'exists:questions,id',
+            'question_ids.*' => 'exists:qu_questions,id', // Changed to qu_questions table
         ]);
 
         // Use provided school_id or fall back to authenticated user's school
@@ -166,7 +166,7 @@ $schoolId= $teacher->school_id;
             'shuffle_options' => 'nullable|boolean',
             'allow_review' => 'nullable|boolean',
             'question_ids' => 'nullable|array',
-            'question_ids.*' => 'exists:questions,id',
+            'question_ids.*' => 'exists:qu_questions,id', // Changed to qu_questions table
         ]);
 
         DB::beginTransaction();

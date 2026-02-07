@@ -204,6 +204,13 @@ class QuExamController extends Controller
         ]);
     }
 
+    public function getExamData(QuExam $exam)
+    {
+        // Return full exam model for editing
+        $exam->load('questions');
+        return $exam;
+    }
+
     /**
      * Show the form for editing.
      */
@@ -614,7 +621,7 @@ class QuExamController extends Controller
         $userId = auth()->id();
         
         if (!$quExam->isAvailable()) {
-            return redirect()->route('qu-student.exams.index')
+            return redirect()->route('qu.student.exams.index')
                 ->with('error', 'This exam is not currently available.');
         }
 
@@ -675,7 +682,7 @@ class QuExamController extends Controller
             ->first();
 
         if ($existingAttempt) {
-            return redirect()->route('qu-student.exams.take', [
+            return redirect()->route('qu.student.exams.take', [
                 'quExam' => $quExam->id,
                 'quAttempt' => $existingAttempt->id
             ]);
@@ -694,7 +701,7 @@ class QuExamController extends Controller
             'started_at' => now(),
         ]);
 
-        return redirect()->route('qu-student.exams.take', [
+        return redirect()->route('qu.student.exams.take', [
             'quExam' => $quExam->id,
             'quAttempt' => $attempt->id
         ]);
@@ -712,7 +719,7 @@ class QuExamController extends Controller
 
         // Validate attempt is not completed
         if ($quAttempt->isCompleted()) {
-            return redirect()->route('qu-student.exams.results', [
+            return redirect()->route('qu.student.exams.results', [
                 'quExam' => $quExam->id,
                 'quAttempt' => $quAttempt->id
             ]);
@@ -834,7 +841,7 @@ class QuExamController extends Controller
         }
 
         if ($quAttempt->isCompleted()) {
-            return redirect()->route('qu-student.exams.results', [
+            return redirect()->route('qu.student.exams.results', [
                 'quExam' => $quExam->id,
                 'quAttempt' => $quAttempt->id
             ]);
@@ -912,7 +919,7 @@ class QuExamController extends Controller
         'graded_at' => $gradedAt
     ]);
 
-    return redirect()->route('qu-student.exams.results', [
+    return redirect()->route('qu.student.exams.results', [
         'quExam' => $quExam->id,
         'quAttempt' => $quAttempt->id
     ])->with('success', 'Exam submitted successfully!');
@@ -930,7 +937,7 @@ class QuExamController extends Controller
 
         // Validate attempt is completed
         if (!$quAttempt->isCompleted()) {
-            return redirect()->route('qu-student.exams.take', [
+            return redirect()->route('qu.student.exams.take', [
                 'quExam' => $quExam->id,
                 'quAttempt' => $quAttempt->id
             ]);

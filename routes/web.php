@@ -162,63 +162,7 @@ Route::middleware([
 
         Route::resource('teacher/period-activities', PeriodActivityController::class);
 
-        // QU Question Bank System Routes
-        Route::prefix('qu')->name('qu.')->group(function () {
-            // Question Management (Teachers & Admins)
-            Route::resource('questions', \App\Http\Controllers\QuQuestionController::class);
-            Route::post('questions/bulk-import', [\App\Http\Controllers\QuQuestionController::class, 'bulkImport'])
-                ->name('questions.bulk-import');
 
-            // Exam Management (Teachers & Admins)
-            Route::resource('exams', \App\Http\Controllers\QuExamController::class);
-            Route::get('exams/users/search', [\App\Http\Controllers\QuExamController::class, 'searchUsers'])
-                ->name('exams.users.search');
-            Route::get('exams/questions/available', [\App\Http\Controllers\QuExamController::class, 'getAvailableQuestions'])
-                ->name('exams.questions.available');
-            Route::get('exams/{exam}/grading-attempts', [\App\Http\Controllers\QuExamController::class, 'getGradingAttempts'])
-                ->name('exms.grading-attempts');
-            Route::get('exams/grading/{attempt}/data', [\App\Http\Controllers\QuExamController::class, 'getAttemptGradingData'])
-                ->name('exams.grading-data');
-
-            // Teacher Grading Routes
-            Route::get('grading', [\App\Http\Controllers\QuExamController::class, 'teacherGradingIndex'])
-                ->name('grading.index');
-            Route::get('grading/{attempt}', [\App\Http\Controllers\QuExamController::class, 'teacherGradeAttempt'])
-                ->name('grading.show');
-            Route::post('grading/{attempt}', [\App\Http\Controllers\QuExamController::class, 'saveGrades'])
-                ->name('grading.save');
-
-            // Analytics Routes
-            Route::get('analytics', [\App\Http\Controllers\QuExamController::class, 'analyticsIndex'])
-                ->name('analytics.index');
-            Route::get('analytics/{exam}', [\App\Http\Controllers\QuExamController::class, 'examAnalytics'])
-                ->name('analytics.exam');
-
-            // Student Exam Taking Routes
-            Route::prefix('student')->name('student.')->group(function () {
-                Route::get('exams', [\App\Http\Controllers\QuExamController::class, 'studentIndex'])
-                    ->name('exams.index');
-                Route::get('exams/{quExam}', [\App\Http\Controllers\QuExamController::class, 'studentShow'])
-                    ->name('exams.show');
-                Route::post('exams/{quExam}/start', [\App\Http\Controllers\QuExamController::class, 'startExam'])
-                    ->name('exams.start');
-                Route::get('exams/{quExam}/take/{quAttempt}', [\App\Http\Controllers\QuExamController::class, 'takeExam'])
-                    ->name('exams.take');
-                Route::post('exams/{quExam}/auto-save/{quAttempt}', [\App\Http\Controllers\QuExamController::class, 'autoSave'])
-                    ->name('exams.auto-save');
-                Route::post('exams/{quExam}/submit/{quAttempt}', [\App\Http\Controllers\QuExamController::class, 'submitExam'])
-                    ->name('exams.submit');
-                Route::get('exams/{quExam}/results/{quAttempt}', [\App\Http\Controllers\QuExamController::class, 'viewResults'])
-                    ->name('exams.results');
-                Route::get('exams/{quExam}/print', [\App\Http\Controllers\QuExamController::class, 'printExam'])
-                    ->name('exams.print');
-            });
-        });
-
-        // Teacher presentation / demo lesson editor route
-        Route::get('/teacher/presentation', function () {
-            return Inertia::render('my_class/teacher/peresntation_2/peresentation_2');
-        })->name('teacher.presentation');
     });
 
     // Teacher Import Routes

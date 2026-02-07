@@ -104,11 +104,11 @@ class SchoolLoginController extends Controller
         }
 
         // Check if user is active
-        if (!$user->is_active) {
-            throw ValidationException::withMessages([
-                'email' => ['Your account has been deactivated.'],
-            ]);
-        }
+        // if (!$user->is_active) {
+        //     throw ValidationException::withMessages([
+        //         'email' => ['Your account has been deactivated.'],
+        //     ]);
+        // }
 
         // Verify user belongs to this school
         $userSchoolId = $user->schoolId();
