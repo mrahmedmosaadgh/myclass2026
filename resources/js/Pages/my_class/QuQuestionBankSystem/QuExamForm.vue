@@ -585,7 +585,7 @@ watch(selectedQuestions, (newVal) => {
     points: q.marks 
   }));
   form.total_marks = newVal.reduce((sum, q) => sum + (Number(q.marks) || 0), 0);
-}, { deep: true });
+}, { deep: true, immediate: true });
 
 const computedTotalMarks = computed(() => {
   return selectedQuestions.value.reduce((sum, q) => sum + (Number(q.marks) || 0), 0);
