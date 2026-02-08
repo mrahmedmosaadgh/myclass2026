@@ -89,7 +89,7 @@ import EnhancedQuestionEditor from '../questions/EnhancedQuestionEditor.vue';
 import QuestionTypeSelector from '../questions/QuestionTypeSelector.vue';
 import QuizEngine from '../../quiz/QuizEngine.vue';
 import UniversalQuestionPlayer from '@/Components/QuestionSystem/UniversalQuestionPlayer.vue';
-import QuAIGeneratorDialog from '@/Pages/my_class/QuQuestionBankSystem/QuAIGeneratorDialog.vue';
+import QuAIGeneratorDialog from '@/Pages/my_class/QuQuestionBankSystem/QuComponents/QuQuestionAIGeneratorDialog.vue';
 import { useQuasar } from 'quasar';
 
 const props = defineProps({

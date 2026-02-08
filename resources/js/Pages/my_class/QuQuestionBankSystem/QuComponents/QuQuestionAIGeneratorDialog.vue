@@ -284,10 +284,21 @@
             icon="paste"
             :done="step > 3"
           >
+            <div class="row items-center justify-between q-mb-sm">
+              <div class="text-subtitle2">Paste AI Response (JSON)</div>
+              <q-btn
+                flat
+                dense
+                color="primary"
+                icon="content_paste"
+                label="Paste from Clipboard"
+                @click="pasteFromClipboard"
+              />
+            </div>
             <q-input
               v-model="aiResponse"
               type="textarea"
-              label="Paste AI Response (JSON)"
+              placeholder="Paste the JSON response from the AI here..."
               outlined
               rows="10"
               hint="Paste the JSON response from the AI"
@@ -345,17 +356,18 @@
                 </div>
               </q-banner>
 
-              <!-- Preview Table -->
-              <q-table
-                :rows="validatedQuestions"
-                :columns="previewColumns"
-                row-key="index"
-                flat
-                bordered
-                selection="multiple"
-                v-model:selected="selectedQuestions"
-                class="q-mb-md"
-              >
+                <q-table
+                  :rows="validatedQuestions"
+                  :columns="previewColumns"
+                  row-key="index"
+                  flat
+                  bordered
+                  selection="multiple"
+                  v-model:selected="selectedQuestions"
+                  class="q-mb-md"
+                  :pagination="{ rowsPerPage: 0 }"
+                  hide-bottom
+                >
                 <template v-slot:body-cell-number="props">
                   <q-td :props="props">
                     <strong>#{{ props.row.index + 1 }}</strong>
@@ -409,6 +421,7 @@ import { ref, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
 import { useQuasar } from 'quasar';
+import axios from 'axios';
 
 const $q = useQuasar();
 
@@ -431,6 +444,10 @@ const props = defineProps({
   gradeName: {
     type: String,
     default: ''
+  },
+  examTitle: {
+    type: String,
+    default: ''
   }
 });
 
@@ -445,7 +462,7 @@ const step = ref(1);
 const topics = ref([]);
 const validating = ref(false);
 const inserting = ref(false);
-const topicMode = ref('curriculum');
+const topicMode = ref('custom'); // Default to custom topic
 
 const config = ref({
   count: 10,
@@ -456,9 +473,45 @@ const config = ref({
   customTopic: '',
   learningObjectives: '',
   customInstructions: '',
-  latex: false,
+  latex: true, // Default to enabled
   language: 'English'
 });
+
+// Watch for dialog open to set custom topic from exam title
+import { watch } from 'vue';
+watch(() => props.modelValue, (val) => {
+  if (val && props.examTitle && !config.value.customTopic) {
+    config.value.customTopic = props.examTitle;
+  }
+});
+
+const pasteFromClipboard = async () => {
+  try {
+    const text = await navigator.clipboard.readText();
+    if (text) {
+      aiResponse.value = text;
+      $q.notify({
+        type: 'positive',
+        message: 'Pasted from clipboard',
+        icon: 'content_paste',
+        position: 'top'
+      });
+    } else {
+      $q.notify({
+        type: 'warning',
+        message: 'Clipboard is empty',
+        position: 'top'
+      });
+    }
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to read from clipboard',
+      caption: 'Please allow clipboard access or paste manually',
+      position: 'top'
+    });
+  }
+};
 
 const generatedPrompt = ref('');
 const aiResponse = ref('');
@@ -674,8 +727,13 @@ const selectInverse = () => {
 const bulkInsert = () => {
   inserting.value = true;
   
-  // Use only selected valid questions
-  const questionsToInsert = selectedQuestions.value.filter(q => q.valid);
+  // Use only selected valid questions and add custom_group from config
+  const questionsToInsert = selectedQuestions.value
+    .filter(q => q.valid)
+    .map(q => ({
+      ...q,
+      custom_group: config.value.customTopic // Use the custom topic (which defaults to exam title) as the group
+    }));
   
   if (questionsToInsert.length === 0) {
     $q.notify({
@@ -687,7 +745,7 @@ const bulkInsert = () => {
     return;
   }
   
-  // If in emit mode, just emit the questions and close
+  // If in emit mode (client-side only), just emit the question data
   if (props.emitDataOnly) {
     emit('imported', questionsToInsert);
     $q.notify({
@@ -701,31 +759,47 @@ const bulkInsert = () => {
     return;
   }
   
-  router.post(route('qu-questions.bulk-import'), {
+  // Server-side creation via axios
+  axios.post(route('qu.questions.bulk-store'), {
     questions: questionsToInsert
-  }, {
-    onSuccess: () => {
+  })
+  .then(response => {
+    // Check for created items
+    const created = response.data.created || [];
+    const skipped = response.data.skipped || [];
+    
+    if (created.length > 0) {
       $q.notify({
         type: 'positive',
-        message: `Successfully imported ${questionsToInsert.length} question${questionsToInsert.length !== 1 ? 's' : ''}!`,
+        message: `Successfully created ${created.length} questions!`,
         icon: 'check_circle',
         position: 'top'
       });
-      // Close dialog and emit success
+      
+      // Emit success with created questions
+      emit('success', created);
       showDialog.value = false;
-      emit('success');
-    },
-    onError: (errors) => {
+    }
+    
+    if (skipped.length > 0) {
       $q.notify({
-        type: 'negative',
-        message: 'Failed to import questions',
-        caption: Object.values(errors)[0],
+        type: 'warning',
+        message: `Skipped ${skipped.length} duplicates`,
         position: 'top'
       });
-    },
-    onFinish: () => {
-      inserting.value = false;
     }
+  })
+  .catch(error => {
+    console.error('Bulk insert error:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to create questions',
+      caption: error.response?.data?.message || error.message,
+      position: 'top'
+    });
+  })
+  .finally(() => {
+    inserting.value = false;
   });
 };
 

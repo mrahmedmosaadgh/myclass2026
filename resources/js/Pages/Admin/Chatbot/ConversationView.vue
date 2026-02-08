@@ -39,7 +39,7 @@ const sendReply = () => {
     if (!form.message.trim()) return;
     
     sending.value = true;
-    form.post(route('admin.chatbot.reply', props.conversation.id), {
+    form.post(route('admin.chatbot.admin.chatbot.reply', props.conversation.id), {
         preserveScroll: true,
         onSuccess: () => {
             form.reset();
@@ -106,7 +106,7 @@ const openImagePreview = (image) => {
             <!-- Header -->
             <div class="row items-center justify-between q-mb-md">
                 <div class="flex items-center">
-                    <Link :href="route('admin.chatbot.index')" class="text-grey-7 hover:text-primary transition-colors flex items-center no-underline q-mr-md">
+                    <Link :href="route('admin.chatbot.admin.chatbot.index')" class="text-grey-7 hover:text-primary transition-colors flex items-center no-underline q-mr-md">
                         <q-btn round flat icon="arrow_back" color="grey-7" />
                     </Link>
                     <div>

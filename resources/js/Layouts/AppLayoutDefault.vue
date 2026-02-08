@@ -233,10 +233,10 @@ const logout = () => {
 /* Layout structure */
 /* Layout structure */
 .fixed-status-widget {
-  position: fixed;
-  top: 4px;
+  position: block;
+  top: 40px;
   left: 4px;
-  z-index: 10000;
+  /* z-index: 10000; */
   display: flex;
   align-items: center;
   gap: 6px;

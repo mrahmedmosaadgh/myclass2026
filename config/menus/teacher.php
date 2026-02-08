@@ -82,7 +82,7 @@ return [
              [
                 'id' => 'exams',
                 'label' => ['en' => 'Exams', 'ar' => 'الامتحانات'],
-                'route' => 'qu-exams.index',
+                'route' => 'qu.exams.index',
                 'icon' => 'description',
             ],
             [

@@ -145,8 +145,28 @@ class SchoolBrowserController extends Controller
             ],
             'stats' => $stats,
             'hierarchy' => $classroomHierarchy,
-            'subjects' => $school->subjects,
-            'teachers' => $school->teachers,
+            'classrooms' => $school->classrooms->map(function ($classroom) {
+                return [
+                    'id' => $classroom->id,
+                    'name' => $classroom->name,
+                    'grade_id' => $classroom->grade_id,
+                    'grade_name' => $classroom->grade->name ?? 'N/A',
+                ];
+            }),
+            'subjects' => $school->subjects->map(function ($subject) {
+                return [
+                    'id' => $subject->id,
+                    'name' => $subject->name,
+                    'color_bg' => $subject->color_bg ?? '#cccccc',
+                    'color_text' => $subject->color_text ?? '#000000',
+                ];
+            }),
+            'teachers' => $school->teachers->map(function ($teacher) {
+                return [
+                    'id' => $teacher->id,
+                    'name' => $teacher->name,
+                ];
+            }),
             'assignments' => $assignments,
         ]);
     }
@@ -307,6 +327,15 @@ class SchoolBrowserController extends Controller
                 ],
                 'stats' => $stats,
                 'hierarchy' => $classroomHierarchy,
+                'classrooms' => $school->classrooms->map(function ($classroom) {
+                    return [
+                        'id' => $classroom->id,
+                        'name' => $classroom->name,
+                        'grade_id' => $classroom->grade_id,
+                        'grade_name' => $classroom->grade?->name ?? 'N/A',
+                        'stage_id' => $classroom->stage_id,
+                    ];
+                }) ?? [],
                 'subjects' => $school->subjects ?? [],
                 'teachers' => $school->teachers ?? [],
                 'assignments' => $assignments,

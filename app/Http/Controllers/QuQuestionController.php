@@ -23,12 +23,14 @@ class QuQuestionController extends Controller
             ->when($request->difficulty, fn($q) => $q->where('difficulty', $request->difficulty))
             ->when($request->bloom_level, fn($q) => $q->where('bloom_level', $request->bloom_level))
             ->when($request->question_type, fn($q) => $q->where('question_type', $request->question_type))
+            ->when($request->custom_group, fn($q) => $q->where('custom_group', 'like', '%' . $request->custom_group . '%'))
+            ->when($request->search, fn($q) => $q->where('question_text', 'like', '%' . $request->search . '%'))
             ->latest();
 
         return Inertia::render('my_class/QuQuestionBankSystem/QuQuestionList', [
             'questions' => $query->paginate(20),
             'subjects' => Subject::all(),
-            'filters' => $request->only(['subject_id', 'topic_id', 'difficulty', 'bloom_level', 'question_type'])
+            'filters' => $request->only(['subject_id', 'topic_id', 'difficulty', 'bloom_level', 'question_type', 'custom_group', 'search'])
         ]);
     }
 
@@ -50,6 +52,7 @@ class QuQuestionController extends Controller
         $validated = $request->validate([
             'subject_id' => 'required|exists:subjects,id',
             'topic_id' => 'nullable|exists:curriculum_topics,id',
+            'custom_group' => 'nullable|string|max:200',
             'question_text' => 'required|string',
             'question_type' => 'required|in:mcq,true_false,short,long',
             'options' => 'required_if:question_type,mcq,true_false|array',
@@ -100,6 +103,7 @@ class QuQuestionController extends Controller
         $validated = $request->validate([
             'subject_id' => 'required|exists:subjects,id',
             'topic_id' => 'nullable|exists:curriculum_topics,id',
+            'custom_group' => 'nullable|string|max:200',
             'question_text' => 'required|string',
             'question_type' => 'required|in:mcq,true_false,short,long',
             'options' => 'required_if:question_type,mcq,true_false|array',
@@ -124,6 +128,82 @@ class QuQuestionController extends Controller
 
         return redirect()->route('qu.questions.index')
             ->with('success', 'Question deleted successfully');
+    }
+
+    /**
+     * Store multiple questions from AI generation.
+     */
+    public function bulkStore(Request $request)
+    {
+        $validated = $request->validate([
+            'questions' => 'required|array|min:1|max:50',
+            'questions.*.subject_id' => 'required|exists:subjects,id',
+            'questions.*.topic_id' => 'nullable|exists:curriculum_topics,id',
+            'questions.*.custom_group' => 'nullable|string|max:200',
+            'questions.*.question_text' => 'required|string|min:10|max:1000',
+            'questions.*.question_type' => 'required|in:mcq,true_false,short,long',
+            'questions.*.options' => 'required_if:questions.*.question_type,mcq,true_false|array',
+            'questions.*.correct_answer' => 'required|array',
+            'questions.*.difficulty' => 'required|in:easy,medium,hard',
+            'questions.*.bloom_level' => 'nullable|in:remember,understand,apply,analyze,evaluate,create',
+            'questions.*.marks' => 'required|integer|min:1|max:100',
+        ]);
+
+        $created = [];
+        $skipped = [];
+        $errors = [];
+
+        foreach ($validated['questions'] as $index => $questionData) {
+            try {
+                // Check for duplicates (same question text + subject)
+                $exists = QuQuestion::where('question_text', $questionData['question_text'])
+                    ->where('subject_id', $questionData['subject_id'])
+                    ->first();
+
+                if ($exists) {
+                    $skipped[] = [
+                        'index' => $index,
+                        'question_text' => substr($questionData['question_text'], 0, 50) . '...',
+                        'reason' => 'Duplicate question'
+                    ];
+                    continue;
+                }
+
+                $question = QuQuestion::create([
+                    'subject_id' => $questionData['subject_id'],
+                    'topic_id' => $questionData['topic_id'] ?? null,
+                    'custom_group' => $questionData['custom_group'] ?? null,
+                    'question_text' => $questionData['question_text'],
+                    'question_type' => $questionData['question_type'],
+                    'options' => $questionData['options'] ?? [],
+                    'correct_answer' => $questionData['correct_answer'],
+                    'difficulty' => $questionData['difficulty'],
+                    'bloom_level' => $questionData['bloom_level'] ?? null,
+                    'marks' => $questionData['marks'],
+                    'created_by' => auth()->id(),
+                ]);
+
+                $created[] = $question;
+            } catch (\Exception $e) {
+                $errors[] = [
+                    'index' => $index,
+                    'question_text' => substr($questionData['question_text'] ?? 'Unknown', 0, 50),
+                    'error' => $e->getMessage()
+                ];
+            }
+        }
+
+        return response()->json([
+            'created' => $created,
+            'skipped' => $skipped,
+            'errors' => $errors,
+            'summary' => [
+                'total' => count($validated['questions']),
+                'created' => count($created),
+                'skipped' => count($skipped),
+                'errors' => count($errors)
+            ]
+        ], 201);
     }
 
     /**
@@ -195,7 +275,7 @@ class QuQuestionController extends Controller
                 'difficulty' => 'sometimes|string|in:easy,medium,hard',
                 'bloom_level' => 'sometimes|string|in:remember,understand,apply,analyze,evaluate,create',
                 'question_type' => 'sometimes|string|in:mcq,true_false,short,long',
-                'search' => 'sometimes|string|max:255',
+                'search' => 'nullable|string|max:255',
                 'per_page' => 'sometimes|integer|min:1|max:100',
                 'page' => 'sometimes|integer|min:1',
             ]);

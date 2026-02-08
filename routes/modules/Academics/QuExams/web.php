@@ -15,6 +15,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 
         // Question Management (Teachers & Admins)
         Route::resource('questions', \App\Http\Controllers\QuQuestionController::class);
+        Route::post('questions/bulk-store', [\App\Http\Controllers\QuQuestionController::class, 'bulkStore'])
+            ->name('questions.bulk-store');
         Route::post('questions/bulk-import', [\App\Http\Controllers\QuQuestionController::class, 'bulkImport'])
             ->name('questions.bulk-import');
 
@@ -71,12 +73,12 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 
     // Direct route to create exam
     Route::get('/qu-exams/create', function () {
-        return Inertia::render('my_class/QuQuestionBankSystem/QuQuizManagement/QuQuizBuilder');
+        return Inertia::render('my_class/QuQuestionBankSystem/QuExamForm');
     })->name('qu-exams.create');
 
     // Direct route to edit exam
     Route::get('/qu-exams/{id}/edit', function ($id) {
-        return Inertia::render('my_class/QuQuestionBankSystem/QuQuizManagement/QuQuizBuilder', ['quizId' => $id]);
+        return Inertia::render('my_class/QuQuestionBankSystem/QuExamForm', ['examId' => $id]);
     })->name('qu-exams.edit');
 
     // Aliases for the store and update routes to match what the frontend expects
@@ -90,6 +92,12 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     
     // Grading attempts route
     Route::get('/qu-exams/{exam}/grading-attempts', [\App\Http\Controllers\QuExamController::class, 'getGradingAttempts'])->name('qu-exams.grading-attempts');
+    
+    // Grading data route for individual attempts
+    Route::get('/qu-exams/grading/{attempt}/data', [\App\Http\Controllers\QuExamController::class, 'getAttemptGradingData'])->name('qu-exams.grading-data');
+    
+    // Save grades route for individual attempts
+    Route::post('/qu-grading/{attempt}/save', [\App\Http\Controllers\QuExamController::class, 'saveGrades'])->name('qu-grading.save');
 
     // Teacher presentation / demo lesson editor route
     Route::get('/teacher/presentation', function () {

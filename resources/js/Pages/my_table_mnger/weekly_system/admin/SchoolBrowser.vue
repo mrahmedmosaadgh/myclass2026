@@ -1,6 +1,7 @@
 <template>
  
     <div class="q-pa-md">
+      <Head :title="t('weeklySystem.schoolBrowser.title')" />
       <WeeklyPlanMenu />
       <!-- Header -->
       <div class="row items-center q-mb-md">
@@ -51,7 +52,16 @@
           </q-tab-panel>
 
           <q-tab-panel name="assignments">
-            <AssignmentsTable :assignments="schoolData.assignments || []" />
+            <AssignmentsTable 
+              :assignments="schoolData.assignments || []" 
+              :school-id="schoolDataStore.schoolId"
+              :classrooms="schoolData.classrooms || []"
+              :subjects="schoolData.subjects || []"
+              :teachers="schoolData.teachers || []"
+              @update:assignment="handleUpdateAssignment"
+              @delete:assignment="handleDeleteAssignment"
+              @create:assignment="handleCreateAssignment"
+            />
           </q-tab-panel>
         </q-tab-panels>
       </div>
@@ -67,8 +77,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
-import { router, usePage } from '@inertiajs/vue3';
+import { ref, onMounted, computed, watch } from 'vue';
+import { router, usePage, Head } from '@inertiajs/vue3';
 import { useQuasar } from 'quasar';
 import { route } from 'ziggy-js';
 import { useI18n } from 'vue-i18n';
@@ -89,6 +99,60 @@ const schoolDataStore = useSchoolDataStore(); // Use the store
 const schoolData = ref(null);
 const loading = ref(false);
 const activeTab = ref('overview');
+
+// Handle assignment updates
+const handleUpdateAssignment = async (assignment) => {
+  try {
+    await axios.put(route('weekly-system.api.assignments.update', assignment.id), assignment);
+    $q.notify({
+      type: 'positive',
+      message: 'Assignment updated successfully'
+    });
+    await loadSchoolData(); // Reload data
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to update assignment',
+      caption: error.response?.data?.message || error.message
+    });
+  }
+};
+
+// Handle assignment deletion
+const handleDeleteAssignment = async (assignmentId) => {
+  try {
+    await axios.delete(route('weekly-system.api.assignments.destroy', assignmentId));
+    $q.notify({
+      type: 'positive',
+      message: 'Assignment deleted successfully'
+    });
+    await loadSchoolData(); // Reload data
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to delete assignment',
+      caption: error.response?.data?.message || error.message
+    });
+  }
+};
+
+// Handle new assignment creation
+const handleCreateAssignment = async (assignment) => {
+  try {
+    await axios.post(route('weekly-system.api.assignments.store'), assignment);
+    $q.notify({
+      type: 'positive',
+      message: 'Assignment created successfully'
+    });
+    await loadSchoolData(); // Reload data
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to create assignment',
+      caption: error.response?.data?.message || error.message
+    });
+  }
+};
 
 // Load school data
 const loadSchoolData = async () => {

@@ -55,6 +55,15 @@
           />
 
           <q-input
+            v-model="filters.custom_group"
+            label="Group"
+            debounce="500"
+            clearable
+            style="min-width: 150px"
+            @update:model-value="loadQuestions"
+          />
+
+          <q-input
             v-model="filters.search"
             label="Search"
             debounce="500"
@@ -122,6 +131,18 @@
               <div class="text-caption text-grey-7">
                 {{ props.row.topic?.name }}
               </div>
+            </q-td>
+          </template>
+
+          <template v-slot:body-cell-custom_group="props">
+            <q-td :props="props">
+              <q-chip 
+                v-if="props.row.custom_group"
+                dense 
+                outline
+                color="primary"
+                :label="props.row.custom_group"
+              />
             </q-td>
           </template>
 
@@ -216,11 +237,14 @@
 import { ref, reactive, computed, watch, onMounted } from 'vue';
 import { route } from 'ziggy-js';
 import axios from 'axios';
+import { useQuasar } from 'quasar';
 import QuQuestionDisplay from './QuQuestionDisplay.vue';
+
+const $q = useQuasar();
 
 const props = defineProps({
   modelValue: Boolean,
-  subjectId: [Number, String],
+  subjectId: [Number, String, null],
   selectedQuestions: {
     type: Array,
     default: () => []
@@ -241,6 +265,7 @@ const filters = reactive({
   bloom_level: null,
   topic_id: null,
   question_type: null,
+  custom_group: '',
   search: ''
 });
 
@@ -262,6 +287,7 @@ const questionTypes = [
 const columns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left', sortable: true },
   { name: 'question_text', label: 'Question', field: 'question_text', align: 'left' },
+  { name: 'custom_group', label: 'Group', field: 'custom_group', align: 'left' },
   { name: 'question_type', label: 'Type', field: 'question_type', align: 'center' },
   { name: 'difficulty', label: 'Difficulty', field: 'difficulty', align: 'center' },
   { name: 'bloom_level', label: 'Bloom', field: 'bloom_level', align: 'center' },
@@ -294,6 +320,8 @@ const bloomDistribution = computed(() => {
 
 watch(() => props.modelValue, (newVal) => {
   if (newVal) {
+    // Reset filters and pagination when opening
+    pagination.value.page = 1;
     loadQuestions();
     loadTopics();
     selection.value = [...props.selectedQuestions];
@@ -304,36 +332,74 @@ watch(() => props.selectedQuestions, (newVal) => {
   selection.value = [...newVal];
 });
 
+watch(() => props.subjectId, () => {
+  loadQuestions();
+  loadTopics();
+});
+
 const loadQuestions = async () => {
-  if (!props.subjectId) return;
-  
   loading.value = true;
   try {
     const params = {
-      subject_id: props.subjectId,
       ...filters,
       page: pagination.value.page
     };
     
-    const response = await axios.get(route('qu-exams.questions.available'), { params });
-    questions.value = response.data.questions.data;
-    pagination.value.rowsNumber = response.data.questions.total;
+    if (props.subjectId) {
+      params.subject_id = props.subjectId;
+    }
+    
+    // Use the direct API route for reliable access
+    const response = await axios.get('/api/qu-questions', { params });
+    
+    // Handle standard pagination structure from Laravel Resource
+    if (response.data.data && Array.isArray(response.data.data)) {
+        questions.value = response.data.data;
+        pagination.value.rowsNumber = response.data.meta?.total || response.data.total || 0;
+        pagination.value.rowsPerPage = response.data.meta?.per_page || response.data.per_page || 50;
+    } else if (response.data.success && response.data.data) {
+        // Handle custom success wrapper if that's what backend returns
+        const data = response.data.data;
+        questions.value = data.data || [];
+        pagination.value.rowsNumber = data.total || 0;
+    } else {
+        questions.value = [];
+    }
   } catch (error) {
     console.error('Failed to load questions:', error);
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to load questions',
+      icon: 'error'
+    });
   } finally {
     loading.value = false;
   }
 };
 
 const loadTopics = async () => {
-  if (!props.subjectId) return;
-  
   try {
-    // This would need a route to get topics by subject
-    // For now, we'll skip this or you can add the route
-    topics.value = [];
+    const params = {};
+    if (props.subjectId) {
+      params.subject_id = props.subjectId;
+    }
+    
+    // Fetch topics from API
+    const response = await axios.get('/api/topics', { params });
+    
+    if (response.data.success) {
+      topics.value = response.data.data;
+    } else if (Array.isArray(response.data)) {
+       topics.value = response.data;
+    } else if (response.data.data && Array.isArray(response.data.data)) {
+       topics.value = response.data.data;
+    } else {
+       topics.value = [];
+    }
   } catch (error) {
     console.error('Failed to load topics:', error);
+    // Silent fail for topics, don't block user
+    topics.value = [];
   }
 };
 

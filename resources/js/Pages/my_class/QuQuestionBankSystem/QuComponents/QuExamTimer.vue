@@ -22,7 +22,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['time-warning', 'time-expired']);
+const emit = defineEmits(['time-warning', 'time-expired', 'tick']);
 
 const timeRemaining = ref(props.remainingSeconds);
 let intervalId = null;
@@ -48,6 +48,7 @@ const timerClass = computed(() => {
 
 const checkTime = () => {
   timeRemaining.value--;
+  emit('tick', timeRemaining.value);
 
   if (timeRemaining.value <= 0) {
     clearInterval(intervalId);

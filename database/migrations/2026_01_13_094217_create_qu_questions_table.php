@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('subject_id')->constrained()->onDelete('cascade');
             $table->foreignId('topic_id')->nullable()->constrained('curriculum_topics')->onDelete('set null');
+            $table->string('custom_group', 200)->nullable();
             $table->text('question_text');
             $table->enum('question_type', ['mcq', 'true_false', 'short', 'long']);
             $table->json('options')->nullable(); // {"A": "Text", "B": "Text"}

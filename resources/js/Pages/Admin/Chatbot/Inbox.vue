@@ -53,7 +53,7 @@ const refresh = () => {
 };
 
 const onRowClick = (evt, row) => {
-    router.visit(route('admin.chatbot.show', row.id));
+    router.visit(route('admin.chatbot.admin.chatbot.show', row.id));
 };
 
 watch(status, () => {

@@ -1,5 +1,5 @@
 <template>
-  <div class="question-display">
+  <div v-if="question" class="question-display">
     <!-- Question Header -->
     <div v-if="!hideHeader" class="row items-center q-mb-md">
       <div class="text-subtitle1 text-weight-bold">
@@ -107,7 +107,7 @@ import { renderMath } from '@/Utils/katex';
 const props = defineProps({
   question: {
     type: Object,
-    required: true
+    default: null
   },
   index: {
     type: Number,
@@ -139,10 +139,13 @@ const answer = ref({
 });
 
 const formattedQuestionText = computed(() => {
+  if (!props.question) return '';
   return renderMath(props.question.question_text);
 });
 
 const formattedOptions = computed(() => {
+  if (!props.question || !props.question.options) return [];
+  
   const options = props.question.options;
   if (!options) return [];
   

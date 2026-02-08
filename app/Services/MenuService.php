@@ -237,33 +237,49 @@ class MenuService
     }
     
     /**
-     * Filter config menu items by permission
+     * Filter config menu items by permission (Recursive)
      */
     private function filterConfigByPermission(array $items, $user): array
     {
         return collect($items)->filter(function ($item) use ($user) {
-            // If no permission specified, show it
-            if (!isset($item['permission'])) {
-                // If route specified, check if it exists
-                if (isset($item['route']) && !\Illuminate\Support\Facades\Route::has($item['route'])) {
+            // 1. Check permission for the item itself
+            if (isset($item['permission'])) {
+                // If user is guest/null, deny permission-based items
+                if (!$user) {
                     return false;
                 }
-                return true;
+                
+                // Check using Gate
+                try {
+                    if (!$user->can($item['permission'])) {
+                        return false;
+                    }
+                } catch (\Exception $e) {
+                    return false;
+                }
             }
-            
-            // If user is null (guest), they cannot have permissions
-            if (!$user) {
+
+            // 2. Validate route existence (if defined)
+            if (isset($item['route']) && !\Illuminate\Support\Facades\Route::has($item['route'])) {
+                // Optional: Log missing route warning?
+                // \Log::warning("Menu route missing: " . $item['route']);
                 return false;
             }
-            
-            // Check permission using Laravel's Gate
-            try {
-                return $user->can($item['permission']);
-            } catch (\Exception $e) {
-                // If permission check fails, hide the item
-                return false;
+
+            return true;
+        })
+        ->map(function ($item) use ($user) {
+            // 3. Recursively filter children
+            if (isset($item['children']) && is_array($item['children'])) {
+                $item['children'] = $this->filterConfigByPermission($item['children'], $user);
+                
+                // Optional: If children become empty and it was a dropdown (no route), maybe hide it?
+                // For now, we keep parent if it has no children but is allowed itself.
             }
-        })->values()->all();
+            return $item;
+        })
+        ->values() // Re-index array
+        ->all();
     }
     
     /**

@@ -106,6 +106,13 @@ return [
                 'permission' => 'manage quizzes', // Ensure this permission exists or remove line
              ],
              [
+                'id' => 'qu_exams',
+                'label' => ['en' => 'Qu Exams', 'ar' => 'الامتحانات الجديدة'],
+                'route' => 'qu.exams.index',
+                'icon' => 'assignment',
+                'permission' => 'manage quizzes',
+             ],
+             [
                 'id' => 'questions',
                 'label' => ['en' => 'Question Bank', 'ar' => 'بنك الأسئلة'],
                 'route' => 'questions.index1',
@@ -120,7 +127,7 @@ return [
                [
                 'id' => 'chatbot',
                 'label' => ['en' => 'Chatbot', 'ar' => 'روبوت الدردشة'],
-                'route' => 'admin.chatbot.index',
+                'route' => 'admin.chatbot.admin.chatbot.index',
                 'permission' => 'manage chatbot',
              ],
         ]

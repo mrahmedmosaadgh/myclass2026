@@ -132,23 +132,25 @@ class QuExam extends Model
               
             // Role Logic
               ->orWhere(function ($subQ) use ($user) {
-                  // Check if user has a role property or relation. 
+                  // Check if user has a role property or relation.
                   // Using 'role' column for now as per plan assumption, verifying next.
-                  $userRole = $user->role ?? null; 
+                  $userRole = $user->role ?? null;
                   
                   if ($userRole) {
                       $subQ->whereRaw("JSON_CONTAINS(JSON_EXTRACT(target_audience, '$.roles'), JSON_QUOTE(?))", [$userRole]);
                       
                       // Granular filters for students
-                      if ($userRole === 'student' && method_exists($user, 'student') && $user->student) { 
-                          $student = $user->student;
-                          $gradeId = $student->grade_id;
-                          $classroomId = $student->classroom_id;
-                          
-                          $subQ->where(function ($filterQ) use ($gradeId, $classroomId) {
-                             $filterQ->whereRaw("(JSON_EXTRACT(target_audience, '$.grade_ids') IS NULL OR JSON_CONTAINS(JSON_EXTRACT(target_audience, '$.grade_ids'), ?))", [$gradeId])
-                                     ->whereRaw("(JSON_EXTRACT(target_audience, '$.classroom_ids') IS NULL OR JSON_CONTAINS(JSON_EXTRACT(target_audience, '$.classroom_ids'), ?))", [$classroomId]);
-                          });
+                      if ($userRole === 'student') {
+                          $student = $user->student ?? null;
+                          if ($student) {
+                              $gradeId = $student->grade_id;
+                              $classroomId = $student->classroom_id;
+                              
+                              $subQ->where(function ($filterQ) use ($gradeId, $classroomId) {
+                                 $filterQ->whereRaw("(JSON_EXTRACT(target_audience, '$.grade_ids') IS NULL OR JSON_CONTAINS(JSON_EXTRACT(target_audience, '$.grade_ids'), ?))", [$gradeId])
+                                         ->whereRaw("(JSON_EXTRACT(target_audience, '$.classroom_ids') IS NULL OR JSON_CONTAINS(JSON_EXTRACT(target_audience, '$.classroom_ids'), ?))", [$classroomId]);
+                              });
+                          }
                       }
                   }
               });

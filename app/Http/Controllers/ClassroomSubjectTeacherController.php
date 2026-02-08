@@ -85,8 +85,30 @@ class ClassroomSubjectTeacherController extends Controller
             'classes_per_week' => 'required|integer|min:1',
         ]);
 
-        // Create the record with all required fields
-        $record = ClassroomSubjectTeacher::create($data);
+        // Create or update the record
+        $record = ClassroomSubjectTeacher::updateOrCreate(
+            [
+                'school_id' => $request->school_id,
+                'academic_year_id' => $activeYear->id,
+                'classroom_id' => $request->classroom_id,
+                'subject_id' => $request->subject_id,
+                'teacher_id' => $request->teacher_id,
+            ],
+            [
+                'grade_id' => $classroom->grade_id,
+                'classes_per_week' => $request->classes_per_week,
+                'data' => ['created_at' => now()->toDateTimeString(), 'updated_at' => now()->toDateTimeString()]
+            ]
+        );
+
+        // Return JSON for API calls
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Assignment created successfully',
+                'data' => $record
+            ]);
+        }
 
         return redirect()->back()->with('success', 'Record created successfully');
     }
@@ -110,7 +132,11 @@ class ClassroomSubjectTeacherController extends Controller
             ->first();
 
         if (!$activeYear) {
-            return redirect()->back()->with('error', 'No active academic year found for this school');
+            $error = 'No active academic year found for this school';
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => $error], 422);
+            }
+            return redirect()->back()->with('error', $error);
         }
 
         // Add academic_year_id to validated data
@@ -125,12 +151,30 @@ class ClassroomSubjectTeacherController extends Controller
 
         $classroomSubjectTeacher->update($validated);
 
+        // Return JSON for API calls
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Assignment updated successfully',
+                'data' => $classroomSubjectTeacher
+            ]);
+        }
+
         return redirect()->back()->with('success', 'Record updated successfully');
     }
 
-    public function destroy(ClassroomSubjectTeacher $classroomSubjectTeacher)
+    public function destroy(Request $request, ClassroomSubjectTeacher $classroomSubjectTeacher)
     {
         $classroomSubjectTeacher->delete();
+
+        // Return JSON for API calls
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Assignment deleted successfully'
+            ]);
+        }
+
         return redirect()->back()->with('success', 'Record deleted successfully');
     }
 

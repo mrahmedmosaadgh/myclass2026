@@ -38,6 +38,16 @@
             />
           </div>
 
+          <!-- Custom Group (Optional) -->
+          <div class="q-mb-md">
+            <q-input
+              v-model="form.custom_group"
+              label="Group (Optional)"
+              outlined
+              hint="e.g. Exam Title or Specific Chapter"
+            />
+          </div>
+
           <!-- Question Type -->
           <q-select
             v-model="form.question_type"
@@ -242,6 +252,7 @@ const bloomLevelOptions = [
 const form = useForm({
   subject_id: props.question?.subject_id || props.selectedSubjectId || null,
   topic_id: props.question?.topic_id || null,
+  custom_group: props.question?.custom_group || '',
   question_text: props.question?.question_text || '',
   question_type: props.question?.question_type || 'mcq',
   options: props.question?.options || { A: '', B: '', C: '', D: '' },

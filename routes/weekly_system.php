@@ -184,6 +184,14 @@ Route::middleware(['auth', 'verified'])->prefix('weekly-system')->name('weekly-s
             ->name('api.cst.restore');
         Route::delete('/cst/{id}', [\App\Http\Controllers\ClassroomSubjectTeacherController::class, 'softDelete'])
             ->name('api.cst.soft-delete');
+        
+        // Assignment (CST) CRUD endpoints for SchoolBrowser
+        Route::put('/assignments/{assignment}', [\App\Http\Controllers\ClassroomSubjectTeacherController::class, 'update'])
+            ->name('api.assignments.update');
+        Route::delete('/assignments/{assignment}', [\App\Http\Controllers\ClassroomSubjectTeacherController::class, 'destroy'])
+            ->name('api.assignments.destroy');
+        Route::post('/assignments', [\App\Http\Controllers\ClassroomSubjectTeacherController::class, 'store'])
+            ->name('api.assignments.store');
 
         // Sync analysis dashboard
         Route::get('/sync-analysis', [WeeklySystemController::class, 'getSyncAnalysis'])

@@ -8,10 +8,11 @@
           <div class="text-caption text-grey-7">{{ exam.subject?.name }}</div>
         </q-toolbar-title>
         <QuExamTimer
-          :remaining-seconds="attempt.remaining_seconds"
+          :remaining-seconds="currentRemainingSeconds"
           :auto-submit="handleAutoSubmit"
           @time-warning="onTimeWarning"
           @time-expired="onTimeExpired"
+          @tick="onTimerTick"
         />
       </q-toolbar>
     </q-header>
@@ -22,20 +23,35 @@
         <div class="navigation-sidebar">
           <q-card>
             <q-card-section>
-              <div class="text-subtitle2 q-mb-md">Questions</div>
+              <div class="q-mb-md">
+                <div class="text-subtitle2 q-mb-xs">Questions</div>
+                <div class="row q-gutter-xs">
+                   <q-badge 
+                    v-for="filter in filters" 
+                    :key="filter.value"
+                    :color="currentFilter === filter.value ? 'primary' : 'grey-3'"
+                    :text-color="currentFilter === filter.value ? 'white' : 'grey-8'"
+                    class="cursor-pointer"
+                    @click="currentFilter = filter.value"
+                  >
+                    {{ filter.label }}
+                  </q-badge>
+                </div>
+              </div>
+              
               <div class="text-caption text-grey-7 q-mb-sm">
                 Answered: {{ answeredCount }} / {{ localQuestions.length }}
               </div>
               <div class="question-grid">
                 <q-btn
-                  v-for="(question, index) in localQuestions"
+                  v-for="(question, index) in filteredQuestions"
                   :key="question.id"
-                  :label="index + 1"
-                  :color="getQuestionButtonColor(index)"
-                  :outline="currentQuestionIndex !== index"
-                  :unelevated="currentQuestionIndex === index"
+                  :label="question.originalIndex + 1"
+                  :color="getQuestionButtonColor(question.originalIndex)"
+                  :outline="currentQuestionIndex !== question.originalIndex"
+                  :unelevated="currentQuestionIndex === question.originalIndex"
                   size="sm"
-                  @click="navigateToQuestion(index)"
+                  @click="navigateToQuestion(question.originalIndex)"
                   class="question-nav-btn"
                 >
                   <q-icon
@@ -45,8 +61,20 @@
                     class="absolute-top-right"
                     style="margin: 2px"
                   />
+                  <q-icon
+                    v-if="isQuestionMarked(question.id)"
+                    name="flag"
+                    size="xs"
+                    color="warning"
+                    class="absolute-bottom-right"
+                    style="margin: 2px"
+                  />
                 </q-btn>
+                <div v-if="filteredQuestions.length === 0" class="text-caption text-grey-7 q-pa-md text-center col-12">
+                  No questions match filter
+                </div>
               </div>
+
             </q-card-section>
 
             <q-separator />
@@ -69,8 +97,18 @@
         <div class="question-area">
           <q-card>
             <q-card-section>
-              <div class="text-caption text-grey-7 q-mb-sm">
-                Question {{ currentQuestionIndex + 1 }} of {{ localQuestions.length }}
+              <div class="row items-center justify-between q-mb-sm">
+                <div class="text-caption text-grey-7">
+                  Question {{ currentQuestionIndex + 1 }} of {{ localQuestions.length }}
+                </div>
+                <q-btn
+                  flat
+                  dense
+                  :color="isQuestionMarked(currentQuestion?.id) ? 'warning' : 'grey'"
+                  :icon="isQuestionMarked(currentQuestion?.id) ? 'flag' : 'outlined_flag'"
+                  :label="isQuestionMarked(currentQuestion?.id) ? 'Marked for Review' : 'Mark for Review'"
+                  @click="toggleMarkForReview"
+                />
               </div>
               
               <QuQuestionDisplay
@@ -95,22 +133,13 @@
                 @click="previousQuestion"
               />
 
-              <div class="q-gutter-sm">
-                <q-btn
-                  outline
-                  color="primary"
-                  label="Save Progress"
-                  icon="save"
-                  @click="saveAnswers(true)"
-                  :loading="isSaving"
-                />
-                <q-btn
-                  color="negative"
-                  label="Submit Exam"
-                  icon="send"
-                  @click="confirmSubmit"
-                />
-              </div>
+              <q-btn
+                v-if="currentQuestionIndex === localQuestions.length - 1"
+                color="negative"
+                label="Submit Exam"
+                icon="send"
+                @click="confirmSubmit"
+              />
 
               <q-btn
                 flat
@@ -176,24 +205,53 @@ const props = defineProps({
 const localQuestions = ref([...props.questions]);
 const currentQuestionIndex = ref(0);
 const answers = ref({ ...props.existing_answers });
+const markedForReview = ref(new Set());
+
+const currentRemainingSeconds = ref(props.attempt.remaining_seconds);
 const lastSaved = ref(Date.now());
 const isSaving = ref(false);
 const isSubmitted = ref(false);
 const submitDialog = ref(false);
 const isSubmitting = ref(false);
+
+const currentFilter = ref('all');
 let autoSaveInterval = null;
+
+const filters = [
+  { label: 'All', value: 'all' },
+  { label: 'Solved', value: 'solved' },
+  { label: 'Unsolved', value: 'unsolved' },
+  { label: 'Marked', value: 'marked' }
+];
 
 const currentQuestion = computed(() => localQuestions.value[currentQuestionIndex.value]);
 
+const filteredQuestions = computed(() => {
+  return localQuestions.value.map((q, i) => ({ ...q, originalIndex: i }))
+    .filter(q => {
+      if (currentFilter.value === 'all') return true;
+      if (currentFilter.value === 'solved') return isQuestionAnswered(q.id);
+      if (currentFilter.value === 'unsolved') return !isQuestionAnswered(q.id);
+      if (currentFilter.value === 'marked') return isQuestionMarked(q.id);
+      return true;
+    });
+});
+
 const currentAnswer = computed({
   get() {
+    if (!currentQuestion.value) return {
+      selected_options: [],
+      answer_text: ''
+    };
     return answers.value[currentQuestion.value.id] || {
       selected_options: [],
       answer_text: ''
     };
   },
   set(value) {
-    answers.value[currentQuestion.value.id] = value;
+    if (currentQuestion.value) {
+      answers.value[currentQuestion.value.id] = value;
+    }
   }
 });
 
@@ -235,9 +293,26 @@ const isQuestionAnswered = (questionId) => {
   return hasSelectedOption || hasTextAnswer;
 };
 
+const isQuestionMarked = (questionId) => {
+  return markedForReview.value.has(questionId);
+};
+
+const toggleMarkForReview = () => {
+  if (!currentQuestion.value) return;
+  
+  const id = currentQuestion.value.id;
+  if (markedForReview.value.has(id)) {
+    markedForReview.value.delete(id);
+  } else {
+    markedForReview.value.add(id);
+  }
+  saveLocalState();
+};
+
 const getQuestionButtonColor = (index) => {
   if (currentQuestionIndex.value === index) return 'primary';
   const question = props.questions[index];
+  if (!question) return 'grey-5';
   return isQuestionAnswered(question.id) ? 'positive' : 'grey-5';
 };
 
@@ -252,6 +327,7 @@ const previousQuestion = () => {
 };
 
 const nextQuestion = () => {
+  if (!localQuestions.value || localQuestions.value.length === 0) return;
   if (currentQuestionIndex.value < localQuestions.value.length - 1) {
     currentQuestionIndex.value++;
   }
@@ -266,11 +342,15 @@ const storageKey = computed(() => `qu_exam_${props.exam.id}_attempt_${props.atte
 
 const saveLocalState = () => {
   if (isSubmitted.value) return;
+  if (!localQuestions.value || localQuestions.value.length === 0) return;
   
   const state = {
     answers: answers.value,
     currentQuestionIndex: currentQuestionIndex.value,
     questionOrder: localQuestions.value.map(q => q.id),
+    questionOrder: localQuestions.value.map(q => q.id),
+    markedForReview: Array.from(markedForReview.value),
+    remainingSeconds: currentRemainingSeconds.value,
     timestamp: Date.now()
   };
   
@@ -278,13 +358,14 @@ const saveLocalState = () => {
 };
 
 const loadLocalState = () => {
+  if (!props.questions || props.questions.length === 0) return;
+  
   const stored = localStorage.getItem(storageKey.value);
   if (stored) {
     try {
       const state = JSON.parse(stored);
       
-      // Restore answers (merge strategies could be complex, but let's assume local is latest/user-intent)
-      // Check timestamp if we wanted to be fancy vs server data, but user asked for "offline" persistence which implies local trust.
+      // Restore answers
       answers.value = { ...answers.value, ...state.answers };
       
       // Restore index
@@ -293,8 +374,9 @@ const loadLocalState = () => {
       }
       
       // Restore Question Order
-      if (state.questionOrder && Array.isArray(state.questionOrder) && state.questionOrder.length === props.questions.length) {
-         // Sort localQuestions based on stored ID order
+      if (state.questionOrder && Array.isArray(state.questionOrder) && 
+          state.questionOrder.length === props.questions.length && 
+          localQuestions.value && localQuestions.value.length > 0) {
          const orderMap = new Map(state.questionOrder.map((id, idx) => [id, idx]));
          localQuestions.value.sort((a, b) => {
            const idxA = orderMap.has(a.id) ? orderMap.get(a.id) : 9999;
@@ -302,12 +384,21 @@ const loadLocalState = () => {
            return idxA - idxB;
          });
       }
+
+      // Restore Marked for Review
+      if (state.markedForReview && Array.isArray(state.markedForReview)) {
+        markedForReview.value = new Set(state.markedForReview);
+      }
+
+      // Restore Timer
+      if (typeof state.remainingSeconds === 'number') {
+        currentRemainingSeconds.value = state.remainingSeconds;
+      }
       
     } catch (e) {
       console.error('Failed to restore local state', e);
     }
   } else {
-     // If no local state, save initial state (especially order)
      saveLocalState();
   }
 };
@@ -402,6 +493,14 @@ const onTimeWarning = (minutes) => {
 
 const onTimeExpired = () => {
   // Handled by timer component
+};
+
+const onTimerTick = (seconds) => {
+  currentRemainingSeconds.value = seconds;
+  // We don't save every tick to avoid thrashing storage, 
+  // but we save on question change and auto-save interval.
+  // If user closes tab, they might lose up to 30s of timer progress which is acceptable.
+  // Or we can throttle save here if strict accuracy is needed.
 };
 
 // Navigation guard

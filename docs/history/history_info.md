@@ -123,3 +123,9 @@ add all files, commit them, and push to this myclass2026_build repository
 
 
   try to remember this while creating any page the title of the page very easy   <Head title="My Page" /> and no need to imprt it its is imported in app.js
+
+
+---------------------------
+ git add docs/history/2026-02-08_05-40_exam_system_fixes_and_menu_sync.md && git commit -m "docs: add history file for exam system fixes and menu sync" && git push
+
+ cd public/build && git add . && git commit -m "build: update assets for exam fixes and menu sync" && git push origin main

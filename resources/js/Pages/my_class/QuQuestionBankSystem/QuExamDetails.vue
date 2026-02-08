@@ -91,7 +91,7 @@
 
                   <q-item-section side>
                     <div class="text-weight-bold text-primary">
-                      {{ attempt.score }} / {{ exam.total_marks }}
+                      {{ parseFloat(attempt.score) }} / {{ parseFloat(exam.total_marks) }}
                     </div>
                   </q-item-section>
                   

@@ -130,7 +130,7 @@ class QuExamController extends Controller
             'exam_type' => 'required|in:practice,quiz,midterm,final,survey',
             'custom_group' => 'nullable|string|max:100',
             'duration_minutes' => 'required|integer|min:1',
-            'total_marks' => 'required|integer|min:1',
+            'total_marks' => 'nullable|integer|min:0',
             'passing_score' => 'nullable|numeric|min:0|max:100',
             'max_attempts' => 'nullable|integer|min:1',
             'mark_calculation_method' => 'required|in:last,best,average',
@@ -144,7 +144,7 @@ class QuExamController extends Controller
             'bloom_distribution.analyze' => 'integer|min:0',
             'bloom_distribution.evaluate' => 'integer|min:0',
             'bloom_distribution.create' => 'integer|min:0',
-            'question_ids' => 'sometimes|required|array',
+            'question_ids' => 'nullable|array',
             'question_ids.*' => 'exists:qu_questions,id',
             'is_published' => 'boolean',
             'settings' => 'nullable|array',
@@ -161,14 +161,17 @@ class QuExamController extends Controller
         $validated['created_by'] = auth()->id();
         $exam = QuExam::create($validated);
 
-        // If Bloom distribution provided, auto-select questions
-        if (!empty($validated['bloom_distribution'])) {
+        // Determine question source: Manual selection takes precedence
+        $questionIds = [];
+        
+        if (!empty($validated['question_ids'])) {
+            $questionIds = $validated['question_ids'];
+        } elseif (!empty($validated['bloom_distribution'])) {
+            // Auto-select based on Bloom distribution if no manual questions
             $questionIds = $this->selectQuestionsByBloom(
                 $validated['subject_id'],
                 $validated['bloom_distribution']
             );
-        } else {
-            $questionIds = $validated['question_ids'] ?? [];
         }
 
         if (!empty($questionIds)) {
@@ -256,7 +259,7 @@ class QuExamController extends Controller
             'exam_type' => 'required|in:practice,quiz,midterm,final,survey',
             'custom_group' => 'nullable|string|max:100',
             'duration_minutes' => 'required|integer|min:1',
-            'total_marks' => 'required|integer|min:1',
+            'total_marks' => 'nullable|integer|min:0',
             'passing_score' => 'nullable|numeric|min:0|max:100',
             'max_attempts' => 'nullable|integer|min:1',
             'mark_calculation_method' => 'required|in:last,best,average',
@@ -264,7 +267,7 @@ class QuExamController extends Controller
             'end_date' => 'nullable|date|after:start_date',
             'publish_results_timing' => 'required|in:immediate,after_end,manual',
             'bloom_distribution' => 'nullable|array',
-            'question_ids' => 'sometimes|required|array',
+            'question_ids' => 'nullable|array',
             'is_published' => 'boolean',
             'settings' => 'nullable|array',
             'settings.shuffle_questions' => 'boolean',
@@ -279,14 +282,16 @@ class QuExamController extends Controller
 
         $exam->update($validated);
 
-        // Sync questions
-        if (!empty($validated['bloom_distribution'])) {
+        // Sync questions: Manual selection takes precedence
+        $questionIds = [];
+        
+        if (!empty($validated['question_ids'])) {
+            $questionIds = $validated['question_ids'];
+        } elseif (!empty($validated['bloom_distribution'])) {
             $questionIds = $this->selectQuestionsByBloom(
                 $validated['subject_id'],
                 $validated['bloom_distribution']
             );
-        } else {
-            $questionIds = $validated['question_ids'] ?? [];
         }
 
         $exam->questions()->sync($questionIds);
@@ -965,6 +970,8 @@ class QuExamController extends Controller
         $answeredQuestions = $quAttempt->answers->count();
         $timeTaken = $quAttempt->started_at->diffInMinutes($quAttempt->completed_at);
 
+            $percentage = $quExam->total_marks > 0 ? round(($quAttempt->score / $quExam->total_marks) * 100, 2) : 0;
+
         return Inertia::render('my_class/QuQuestionBankSystem/QuExamResults', [
             'exam' => [
                 'id' => $quExam->id,
@@ -983,8 +990,8 @@ class QuExamController extends Controller
             'statistics' => [
                 'total_questions' => $totalQuestions,
                 'answered_questions' => $answeredQuestions,
-                'percentage' => $quExam->total_marks > 0 ? round(($quAttempt->score / $quExam->total_marks) * 100, 2) : 0,
-                'passed' => $quExam->passing_score ? $quAttempt->score >= $quExam->passing_score : null,
+                'percentage' => $percentage,
+                'passed' => $quExam->passing_score ? $percentage >= $quExam->passing_score : null,
             ],
             'show_results' => $showResults,
             'show_correct_answers' => $showCorrectAnswers,
@@ -1110,7 +1117,7 @@ class QuExamController extends Controller
                 'min_score' => $minScore,
                 'max_score' => $maxScore,
                 'median_score' => $medianScore,
-                'pass_rate' => $exam->passing_score ? round(($attempts->where('score', '>=', $exam->passing_score)->count() / $attempts->count()) * 100, 1) : null
+                'pass_rate' => $exam->passing_score ? round(($attempts->filter(fn($a) => ($exam->total_marks > 0 ? ($a->score / $exam->total_marks) * 100 : 0) >= $exam->passing_score)->count() / $attempts->count()) * 100, 1) : null
             ],
             'question_stats' => $questionStats,
             'bloom_stats' => $bloomStats,

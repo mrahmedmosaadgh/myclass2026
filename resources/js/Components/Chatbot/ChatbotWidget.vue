@@ -180,13 +180,8 @@ const startConversation = async (selectedIntent) => {
         
         console.log('Final payload being sent:', payload);
         
-        try {
-            const response = await axios.post(route('chatbot.start'), payload);
-            console.log('Response received:', response.data);
-        } catch (error) {
-            console.error('Request failed:', error.response?.data || error);
-            throw error;
-        }
+        const response = await axios.post(route('chatbot.start'), payload);
+        console.log('Response received:', response.data);
         
         if (response.data.conversation) {
             conversation.value = response.data.conversation;
@@ -281,7 +276,7 @@ const sendMessage = async () => {
                 $q.notify({
                     type: 'negative',
                     message: 'Please enter a valid email address or leave it empty.',
-                    timeout: 4000
+                    timeout: 2000
                 });
             } else {
                 messages.value.pop(); 

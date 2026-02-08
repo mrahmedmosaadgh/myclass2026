@@ -9,6 +9,7 @@ class QuQuestion extends Model
     protected $fillable = [
         'subject_id',
         'topic_id',
+        'custom_group',
         'question_text',
         'question_type',
         'options',

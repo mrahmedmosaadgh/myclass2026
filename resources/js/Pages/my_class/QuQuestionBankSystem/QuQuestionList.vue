@@ -251,7 +251,7 @@ import { router } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
 import QuQuestionDisplay from './QuComponents/QuQuestionDisplay.vue';
 import QuQuestionForm from './QuQuestionForm.vue';
-import QuAIGeneratorDialog from './QuAIGeneratorDialog.vue';
+import QuAIGeneratorDialog from './QuComponents/QuQuestionAIGeneratorDialog.vue';
 
 const props = defineProps({
   questions: Object,

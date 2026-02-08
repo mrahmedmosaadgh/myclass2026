@@ -180,7 +180,7 @@
                     text-color="white"
                     size="lg"
                   >
-                    {{ question.student_answer?.marks_obtained ?? 0 }} / {{ question.marks }}
+                    {{ parseFloat(question.student_answer?.marks_obtained ?? 0) }} / {{ parseFloat(question.marks) }}
                   </q-chip>
                 </div>
               </div>
@@ -195,9 +195,9 @@
       <q-card-actions align="center" class="q-pa-md">
         <q-btn
           color="primary"
-          label="Back to Exams"
+          label="Back to Exam"
           icon="arrow_back"
-          @click="backToExams"
+          @click="backToExam"
         />
       </q-card-actions>
     </q-card>
@@ -260,8 +260,8 @@ const capitalizeFirst = (str) => {
   return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
 };
 
-const backToExams = () => {
-  router.visit(route('qu.student.exams.index'));
+const backToExam = () => {
+  router.visit(route('qu.student.exams.show', props.exam.id));
 };
 </script>
 
