@@ -261,8 +261,8 @@ class MenuService
 
             // 2. Validate route existence (if defined)
             if (isset($item['route']) && !\Illuminate\Support\Facades\Route::has($item['route'])) {
-                // Optional: Log missing route warning?
-                // \Log::warning("Menu route missing: " . $item['route']);
+                // Log missing route warning
+                \Log::warning("Menu route missing: " . $item['route'], ['item_id' => $item['id'] ?? 'unknown']);
                 return false;
             }
 

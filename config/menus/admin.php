@@ -1,12 +1,6 @@
 <?php
 
 return [
-    [
-        'id' => 'dashboard',
-        'label' => ['en' => 'Dashboard', 'ar' => 'لوحة القيادة'],
-        'route' => 'admin.dashboard', // Keep as is if valid, or v2.system-admin.dashboard
-        'icon' => 'dashboard',
-    ],
     // --- User & Organization Management ---
     [
         'id' => 'schools',
@@ -22,13 +16,6 @@ return [
         'icon' => 'people',
         'permission' => 'view users',
     ],
-    [
-        'id' => 'roles',
-        'label' => ['en' => 'Roles & Permissions', 'ar' => 'الأدوار والصلاحيات'],
-        'route' => 'admin.roles.index', // Verify if exists
-        'icon' => 'security',
-        'permission' => 'manage roles',
-    ],
 
     // --- Academic Structure ---
     [
@@ -36,24 +23,6 @@ return [
         'label' => ['en' => 'Academic Structure', 'ar' => 'الهيكل الأكاديمي'],
         'icon' => 'school',
         'children' => [
-            [
-                'id' => 'subjects',
-                'label' => ['en' => 'Subjects', 'ar' => 'المواد الدراسية'],
-                'route' => 'admin.subjects.index',
-                'permission' => 'manage subjects',
-            ],
-            [
-                'id' => 'classrooms',
-                'label' => ['en' => 'Classrooms', 'ar' => 'الفصول الدراسية'],
-                'route' => 'admin.classrooms.index',
-                'permission' => 'manage classrooms',
-            ],
-            [
-                'id' => 'grades',
-                'label' => ['en' => 'Grades / Levels', 'ar' => 'المراحل الدراسية'],
-                'route' => 'admin.grades.index',
-                'permission' => 'manage grades',
-            ],
         ]
     ],
 
@@ -74,6 +43,12 @@ return [
                 'label' => ['en' => 'Academic Calendar', 'ar' => 'التقويم الدراسي'],
                 'route' => 'admin.academic_calendar.index',
                 'icon' => 'event_note',
+            ],
+            [
+                'id' => 'my_schedule',
+                'label' => ['en' => 'My Schedule', 'ar' => 'جدولي'],
+                'route' => 'schedules.teacher.my-schedule',
+                'icon' => 'calendar_today',
             ],
         ]
     ],
@@ -119,6 +94,13 @@ return [
                 'permission' => 'manage questions',
              ],
              [
+                'id' => 'qu_questions',
+                'label' => ['en' => 'Qu Questions', 'ar' => 'أسئلة Qu'],
+                'route' => 'qu.questions.index',
+                'icon' => 'quiz',
+                'permission' => 'manage questions',
+             ],
+             [
                 'id' => 'behaviors',
                 'label' => ['en' => 'Behavior Management', 'ar' => 'إدارة السلوك'],
                 'route' => 'admin.behaviors',
@@ -144,18 +126,6 @@ return [
                 'label' => ['en' => 'Menu Management', 'ar' => 'إدارة القوائم'],
                 'route' => 'admin.menus.index', 
                 'permission' => 'manage-menus',
-            ],
-             [
-                'id' => 'branding',
-                'label' => ['en' => 'School Branding', 'ar' => 'العلامة التجارية'],
-                'route' => 'admin.school-branding.index',
-                'permission' => 'manage settings',
-             ],
-            [
-                'id' => 'settings',
-                'label' => ['en' => 'Global Settings', 'ar' => 'الإعدادات العامة'],
-                'route' => 'admin.settings.index',
-                'permission' => 'view settings',
             ],
              [
                 'id' => 'activity_logs',

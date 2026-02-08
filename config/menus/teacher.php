@@ -22,7 +22,7 @@ return [
             [
                 'id' => 'schedule',
                 'label' => ['en' => 'My Schedule', 'ar' => 'جدولي'],
-                'route' => 'teacher.timeline', 
+                'route' => 'schedules.teacher.my-schedule', 
                 'icon' => 'calendar_today',
             ],
             [
@@ -30,12 +30,6 @@ return [
                 'label' => ['en' => 'Assignments', 'ar' => 'الواجبات'],
                 'route' => 'teacher.my-weekly-plans',
                 'icon' => 'assignment',
-            ],
-             [
-                'id' => 'courses',
-                'label' => ['en' => 'My Courses', 'ar' => 'دوراتي'],
-                'route' => 'teacher.courses', // Found in grep
-                'icon' => 'menu_book',
             ],
         ]
     ],
@@ -57,12 +51,6 @@ return [
                 'label' => ['en' => 'Grades', 'ar' => 'الدرجات'],
                 'route' => 'teacher.grades',
                 'icon' => 'grade',
-            ],
-             [
-                'id' => 'progress',
-                'label' => ['en' => 'Progress Report', 'ar' => 'تقرير التقدم'],
-                'route' => 'teacher.progress', // Found in grep
-                'icon' => 'trending_up',
             ],
         ]
     ],
@@ -88,7 +76,7 @@ return [
             [
                 'id' => 'questions',
                 'label' => ['en' => 'Question Bank', 'ar' => 'بنك الأسئلة'],
-                'route' => 'qu-questions.index',
+                'route' => 'qu.questions.index',
                 'icon' => 'storage',
             ],
         ]
