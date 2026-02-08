@@ -119,8 +119,9 @@ const logout = () => {
       <div class="status-name">{{ user.name }}</div>
 
       <!-- Dropdown Menu -->
+       
       <q-menu>
-        <q-list style="min-width: 150px">
+        <q-list style="min-width: 150px w-24">
           <InertiaLinkWrapper :href="getRoute('profile.show')">
             <q-item clickable v-close-popup>
               <q-item-section avatar>
@@ -163,12 +164,12 @@ const logout = () => {
     <!-- Main container -->
     <div class="layout-container">
       <!-- Floating Action Button (FAB) - Hidden when sidebar is open -->
-      <q-btn
+       <q-btn
         v-if="!sidebarOpen"
         fab
         color="white"
         text-color="primary"
-        class="fab-menu"
+        class="fab-menu "
         @click="toggleSidebar"
         size="lg"
       >
@@ -233,7 +234,8 @@ const logout = () => {
 /* Layout structure */
 /* Layout structure */
 .fixed-status-widget {
-  position: block;
+  /* position: block; */
+  width: fit-content;
   top: 40px;
   left: 4px;
   /* z-index: 10000; */
