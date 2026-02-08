@@ -14913,3 +14913,12 @@ Stack trace:
 [2026-02-08 03:41:32] local.INFO: Role Override Applied: admin  
 [2026-02-08 03:41:33] local.INFO: Menu Request: {"user_id":19,"actual_role":"teacher","requested_role":"admin","is_admin":false,"has_super_admin":true} 
 [2026-02-08 03:41:33] local.INFO: Role Override Applied: admin  
+[2026-02-08 03:45:22] local.INFO: Menu Request: {"user_id":19,"actual_role":"teacher","requested_role":"admin","is_admin":false,"has_super_admin":true} 
+[2026-02-08 03:45:22] local.INFO: Role Override Applied: admin  
+[2026-02-08 03:46:08] local.INFO: Menu Request: {"user_id":810,"actual_role":"student","requested_role":"student","is_admin":false,"has_super_admin":false} 
+[2026-02-08 03:46:08] local.INFO: Menu Request: {"user_id":19,"actual_role":"teacher","requested_role":"admin","is_admin":false,"has_super_admin":true} 
+[2026-02-08 03:46:08] local.INFO: Role Override Applied: admin  
+[2026-02-08 03:46:08] local.INFO: Menu Request: {"user_id":19,"actual_role":"teacher","requested_role":"admin","is_admin":false,"has_super_admin":true} 
+[2026-02-08 03:46:08] local.INFO: Role Override Applied: admin  
+[2026-02-08 03:47:26] local.INFO: Menu Request: {"user_id":19,"actual_role":"teacher","requested_role":"admin","is_admin":false,"has_super_admin":true} 
+[2026-02-08 03:47:26] local.INFO: Role Override Applied: admin  

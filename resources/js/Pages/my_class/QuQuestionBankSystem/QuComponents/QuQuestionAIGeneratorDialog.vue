@@ -601,7 +601,8 @@ const generatePrompt = () => {
           correct_answer: ["B"],
           difficulty: "medium",
           bloom_level: "understand",
-          marks: 1
+          marks: 1,
+          custom_group: "${config.value.customTopic || 'Example Group'}"
         }
       ]
     }, null, 2),
@@ -615,7 +616,8 @@ const generatePrompt = () => {
     '- question_type must be one of: mcq, true_false, short, long',
     '- difficulty must be one of: easy, medium, hard',
     '- bloom_level is optional, one of: remember, understand, apply, analyze, evaluate, create',
-    '- marks should be a positive integer'
+    '- marks should be a positive integer',
+    `- custom_group is optional: "${config.value.customTopic || ''}"`
   ];
 
   generatedPrompt.value = promptParts.filter(Boolean).join('\n');
