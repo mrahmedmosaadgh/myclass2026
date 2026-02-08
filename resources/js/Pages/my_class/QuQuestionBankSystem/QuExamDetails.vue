@@ -2,7 +2,7 @@
   <Head :title="exam.title" />
   <div class="q-pa-md bg-grey-1" style="min-height: 100vh">
     <div class="row justify-center">
-      <div class="col-12 col-md-10 col-lg-8">
+      <div class="col-12">
         <q-card class="rounded-xl shadow-2">
           <!-- Header -->
           <div class="bg-primary text-white q-pa-lg rounded-borders-top">

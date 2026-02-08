@@ -193,6 +193,8 @@ import axios from 'axios';
 import QuExamTimer from './QuComponents/QuExamTimer.vue';
 import QuQuestionDisplay from './QuComponents/QuQuestionDisplay.vue';
 
+defineOptions({ layout: null });
+
 const $q = useQuasar();
 
 const props = defineProps({
