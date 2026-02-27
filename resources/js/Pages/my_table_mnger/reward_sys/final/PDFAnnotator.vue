@@ -74,9 +74,8 @@
           ref="pageContainer"
           :style="{ transform: `scale(${zoomLevel})`, transformOrigin: 'top center' }"
         >
-          <component
+          <VuePdfEmbed
             :key="`page-${currentPage}`"
-            :is="VuePdfEmbed"
             :source="pdfUrl"
             :page="currentPage"
             :width="1200"
@@ -94,65 +93,316 @@
 
 <script setup>
 import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
-// import html2canvas from 'html2canvas'  // DISABLED
-// import { jsPDF } from 'jspdf'          // DISABLED
+import VuePdfEmbed from 'vue-pdf-embed'
+import html2canvas from 'html2canvas'
+import { jsPDF } from 'jspdf'
 
-// ... (rest of imports)
+// State
+const pdfUrl = ref('')
+const currentPage = ref(1)
+const numPages = ref(1)
+const tool = ref('pen') // 'pen' or 'eraser'
+const color = ref('black')
+const colors = ref([
+  { name: 'Black', value: 'black' },
+  { name: 'Red', value: '#e74c3c' },
+  { name: 'Blue', value: '#3498db' },
+  { name: 'Green', value: '#27ae60' },
+  { name: 'Yellow', value: '#f1c40f' },
+  { name: 'Orange', value: '#e67e22' },
+  { name: 'Purple', value: '#9b59b6' },
+  { name: 'Pink', value: '#e91e63' },
+  { name: 'Brown', value: '#795548' },
+  { name: 'Gray', value: '#95a5a6' },
+])
+const drawings = ref({}) // { page: [{color, points: [{x,y}], tool}] }
+const zoomLevel = ref(1)
+const zoomMode = ref('custom') // 'custom', 'fitWidth', 'fitHeight'
+const renderScale = ref(2) // Higher = better quality (1-4)
+
+// Canvas
+const pageWrapper = ref(null)
+const pageContainer = ref(null)
+const drawCanvas = ref(null)
+let ctx = null
+let isDrawing = false
+let currentPath = []
+
+// Load PDF
+const loadPdf = (e) => {
+  const file = e.target.files[0]
+  if (!file || !file.type.includes('pdf')) return alert('Please select a PDF file')
+  if (file.size > 50 * 1024 * 1024) return alert('File too big (max 50 MB)')
+
+  pdfUrl.value = URL.createObjectURL(file)
+  currentPage.value = 1
+  numPages.value = 1
+  drawings.value = {}
+}
+
+// PDF Loaded → Get Total Pages
+const onPDFLoaded = (pdf) => {
+  numPages.value = pdf.numPages
+  console.log('PDF loaded with', numPages.value, 'pages')
+}
+
+// Page Rendered → Setup Canvas + Restore Drawings
+const onPageRendered = async () => {
+  await nextTick()
+  console.log('Page', currentPage.value, 'rendered')
+  setupCanvas()
+  restoreDrawings()
+}
+
+// Setup Canvas Over PDF
+const setupCanvas = () => {
+  const pdfCanvas = pageContainer.value?.querySelector('.pdf-embed canvas')
+  if (!pdfCanvas || !drawCanvas.value) return
+
+  const rect = pdfCanvas.getBoundingClientRect()
+  drawCanvas.value.width = rect.width
+  drawCanvas.value.height = rect.height
+  drawCanvas.value.style.width = `${rect.width}px`
+  drawCanvas.value.style.height = `${rect.height}px`
+
+  ctx = drawCanvas.value.getContext('2d', { willReadFrequently: true })
+  ctx.lineWidth = 3
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+
+  // Clear old events
+  const canvas = drawCanvas.value
+  canvas.onmousedown = canvas.ontouchstart = null
+
+  // Mouse events
+  canvas.addEventListener('mousedown', startDrawing)
+  canvas.addEventListener('mousemove', drawing)
+  canvas.addEventListener('mouseup', stopDrawing)
+  canvas.addEventListener('mouseout', stopDrawing)
+
+  // Touch events (mobile)
+  canvas.addEventListener('touchstart', e => { e.preventDefault(); startDrawing(e.touches[0]) }, { passive: false })
+  canvas.addEventListener('touchmove', e => { e.preventDefault(); drawing(e.touches[0]) }, { passive: false })
+  canvas.addEventListener('touchend', stopDrawing)
+
+  restoreDrawings()
+}
+
+// Tool Selection
+const setTool = (newTool) => {
+  tool.value = newTool
+  if (newTool === 'eraser') {
+    if (drawCanvas.value) {
+      drawCanvas.value.style.cursor = 'crosshair'
+    }
+  } else {
+    if (drawCanvas.value) {
+      drawCanvas.value.style.cursor = 'crosshair'
+    }
+  }
+}
+
+// Drawing (with zoom support)
+const getCanvasCoordinates = (e) => {
+  const rect = drawCanvas.value.getBoundingClientRect()
+  const x = (e.clientX - rect.left) / zoomLevel.value
+  const y = (e.clientY - rect.top) / zoomLevel.value
+  return { x, y }
+}
+
+const startDrawing = (e) => {
+  isDrawing = true
+  const { x, y } = getCanvasCoordinates(e)
+  currentPath = [{ x, y }]
+
+  if (!drawings.value[currentPage.value]) drawings.value[currentPage.value] = []
+  
+  if (tool.value === 'eraser') {
+    // Eraser mode - we'll handle this in drawing()
+    drawings.value[currentPage.value].push({ 
+      tool: 'eraser', 
+      color: 'white', 
+      points: currentPath,
+      lineWidth: 20 // Thicker for eraser
+    })
+  } else {
+    // Pen mode
+    drawings.value[currentPage.value].push({ 
+      tool: 'pen',
+      color: color.value, 
+      points: currentPath,
+      lineWidth: 3
+    })
+  }
+}
+
+const drawing = (e) => {
+  if (!isDrawing || !ctx || currentPath.length === 0) return
+  const { x, y } = getCanvasCoordinates(e)
+
+  currentPath.push({ x, y })
+
+  if (tool.value === 'eraser') {
+    // Eraser mode - use destination-out composite
+    ctx.globalCompositeOperation = 'destination-out'
+    ctx.strokeStyle = 'rgba(0,0,0,1)'
+    ctx.lineWidth = 20
+  } else {
+    // Pen mode
+    ctx.globalCompositeOperation = 'source-over'
+    ctx.strokeStyle = color.value
+    ctx.lineWidth = 3
+  }
+  
+  ctx.beginPath()
+  ctx.moveTo(currentPath[currentPath.length - 2].x, currentPath[currentPath.length - 2].y)
+  ctx.lineTo(x, y)
+  ctx.stroke()
+}
+
+const stopDrawing = () => { isDrawing = false }
+
+const restoreDrawings = () => {
+  if (!ctx || !drawCanvas.value) return
+  ctx.clearRect(0, 0, drawCanvas.value.width, drawCanvas.value.height)
+  const strokes = drawings.value[currentPage.value] || []
+  strokes.forEach(s => {
+    if (s.tool === 'eraser') {
+      ctx.globalCompositeOperation = 'destination-out'
+      ctx.strokeStyle = 'rgba(0,0,0,1)'
+      ctx.lineWidth = s.lineWidth || 20
+    } else {
+      ctx.globalCompositeOperation = 'source-over'
+      ctx.strokeStyle = s.color
+      ctx.lineWidth = s.lineWidth || 3
+    }
+    ctx.beginPath()
+    s.points.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y))
+    ctx.stroke()
+  })
+  // Reset to default
+  ctx.globalCompositeOperation = 'source-over'
+}
+
+// Controls
+const undoLastStroke = () => {
+  if (drawings.value[currentPage.value]?.length) {
+    drawings.value[currentPage.value].pop()
+    restoreDrawings()
+  }
+}
+
+const clearCurrentPage = () => {
+  drawings.value[currentPage.value] = []
+  restoreDrawings()
+}
+
+const prevPage = () => { if (currentPage.value > 1) currentPage.value-- }
+const nextPage = () => { if (currentPage.value < numPages.value) currentPage.value++ }
+
+// Zoom Controls
+const zoomIn = () => {
+  if (zoomLevel.value < 3) {
+    zoomLevel.value = Math.min(3, zoomLevel.value + 0.25)
+    zoomMode.value = 'custom'
+  }
+}
+
+const zoomOut = () => {
+  if (zoomLevel.value > 0.5) {
+    zoomLevel.value = Math.max(0.5, zoomLevel.value - 0.25)
+    zoomMode.value = 'custom'
+  }
+}
+
+const resetZoom = () => {
+  zoomLevel.value = 1
+  zoomMode.value = 'custom'
+}
+
+const fitWidth = async () => {
+  await nextTick()
+  const wrapper = pageWrapper.value
+  const container = pageContainer.value
+  if (!wrapper || !container) return
+  
+  const wrapperWidth = wrapper.clientWidth - 40 // padding
+  const containerWidth = container.scrollWidth / zoomLevel.value // original width
+  
+  zoomLevel.value = wrapperWidth / containerWidth
+  zoomMode.value = 'fitWidth'
+}
+
+const fitHeight = async () => {
+  await nextTick()
+  const wrapper = pageWrapper.value
+  const container = pageContainer.value
+  if (!wrapper || !container) return
+  
+  const wrapperHeight = wrapper.clientHeight - 40 // padding
+  const containerHeight = container.scrollHeight / zoomLevel.value // original height
+  
+  zoomLevel.value = wrapperHeight / containerHeight
+  zoomMode.value = 'fitHeight'
+}
 
 // Save Current Page
 const downloadCurrentPage = async () => {
-  // const data = await html2canvas(pageContainer.value, { scale: 2, useCORS: true })
-  // const link = document.createElement('a')
-  // link.download = `page-${currentPage.value}.png`
-  // link.href = data.toDataURL()
-  // link.click()
-  alert('Sorry, saving page is temporarily disabled.')
+  const data = await html2canvas(pageContainer.value, { scale: 2, useCORS: true })
+  const link = document.createElement('a')
+  link.download = `page-${currentPage.value}.png`
+  link.href = data.toDataURL()
+  link.click()
 }
 
 // Save All Pages as PDF
 const downloadAllPages = async () => {
-    alert('Sorry, saving PDF is temporarily disabled.')
-//   const pdf = new jsPDF()
-//   const originalPage = currentPage.value
+  const pdf = new jsPDF()
+  const originalPage = currentPage.value
 
-//   for (let p = 1; p <= numPages.value; p++) {
-//     currentPage.value = p
-//     await nextTick()
-//     await new Promise(r => setTimeout(r, 400)) // Wait for render
+  for (let p = 1; p <= numPages.value; p++) {
+    currentPage.value = p
+    await nextTick()
+    await new Promise(r => setTimeout(r, 400)) // Wait for render
 
-//     const data = await html2canvas(pageContainer.value, {
-//       scale: 2,
-//       useCORS: true,
-//       backgroundColor: '#ffffff',
-//       onclone: (doc) => {
-//         // Fix modern CSS issues
-//         doc.querySelectorAll('*').forEach(el => {
-//           const s = el.style
-//           if (s.background?.includes('oklch')) s.background = '#ffffff'
-//           if (s.color?.includes('oklch')) s.color = '#000000'
-//         })
-//       }
-//     })
+    const data = await html2canvas(pageContainer.value, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      onclone: (doc) => {
+        // Fix modern CSS issues
+        doc.querySelectorAll('*').forEach(el => {
+          const s = el.style
+          if (s.background?.includes('oklch')) s.background = '#ffffff'
+          if (s.color?.includes('oklch')) s.color = '#000000'
+        })
+      }
+    })
 
-//     const img = data.toDataURL('image/jpeg', 0.95)
-//     if (p > 1) pdf.addPage()
-//     pdf.addImage(img, 'JPEG', 0, 0, 210, 297)
-//   }
+    const img = data.toDataURL('image/jpeg', 0.95)
+    if (p > 1) pdf.addPage()
+    pdf.addImage(img, 'JPEG', 0, 0, 210, 297)
+  }
 
-//   pdf.save('annotated-document.pdf')
-//   currentPage.value = originalPage
+  pdf.save('annotated-document.pdf')
+  currentPage.value = originalPage
 }
 
-// ...
+const resetPdf = () => {
+  if (pdfUrl.value) URL.revokeObjectURL(pdfUrl.value)
+  pdfUrl.value = ''
+  currentPage.value = 1
+  drawings.value = {}
+}
 
-onMounted(async () => {
-  try {
-    // const module = await import('vue-pdf-embed') // DISABLED
-    // VuePdfEmbed.value = module.default
-    console.warn('PDF Viewer in Annotator is temporarily disabled.')
-  } catch (err) {
-    console.error('Failed to load PDF viewer:', err)
-  }
+// Watch page changes
+watch(currentPage, async () => {
+  await nextTick()
+  setupCanvas()
+})
+
+onMounted(() => {
+  console.log('PDFAnnotator mounted')
 })
 
 onUnmounted(() => {

@@ -17,7 +17,7 @@
 
 <script setup>
  
-import PDFAnnotator from './PDFAnnotator.vue'  // Adjust path if in /final/ folder
+import PDFAnnotator from './PDFAnnotator.vue'
 </script>
 
 <style scoped>

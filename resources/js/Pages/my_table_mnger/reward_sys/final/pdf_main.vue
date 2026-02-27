@@ -46,7 +46,7 @@
 </template>
 
 <script setup>
-import { ref,onUnmounted  } from 'vue'
+import { ref, onUnmounted } from 'vue'
 // import div from '@/Layouts/div.vue'
 import PDFViewer from './PDFViewer.vue'
 

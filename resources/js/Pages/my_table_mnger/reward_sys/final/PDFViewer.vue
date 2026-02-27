@@ -26,9 +26,8 @@
     </div>
 
     <!-- PDF Viewer -->
-    <component
-      v-if="pdfUrl && !error && VuePdfEmbed"
-      :is="VuePdfEmbed"
+    <vue-pdf-embed
+      v-if="pdfUrl && !error"
       :source="pdfUrl"
       @loaded="onLoaded"
       @load-failed="onLoadFailed"
@@ -37,20 +36,16 @@
       :text-layer="true"
       :annotation-layer="true"
     />
-    
-    <!-- Show loading state while component is loading -->
-    <div v-else-if="pdfUrl && !error && !VuePdfEmbed" class="loading-overlay">
-      <div class="spinner"></div>
-      <p class="loading-text">جاري تحميل مكون العرض...</p>
-    </div>
   </div>
 </template>
 
 <script>
+import VuePdfEmbed from 'vue-pdf-embed'
+
 export default {
   name: 'PDFViewer',
   components: {
-    // Don't register VuePdfEmbed here since we're loading it dynamically
+    VuePdfEmbed
   },
   props: {
     pdfUrl: {
@@ -61,46 +56,14 @@ export default {
   data() {
     return {
       isLoading: true,
-      error: null,
-      VuePdfEmbed: null // Will hold the dynamically imported component
-    }
-  },
-  async created() {
-    // Load the PDF component only when needed
-    if (this.pdfUrl) {
-      try {
-        // const module = await import('vue-pdf-embed') // DISABLED
-        // this.VuePdfEmbed = module.default
-        this.error = 'عذراً، عارض PDF معطل حالياً للتحديث'
-        this.isLoading = false
-      } catch (err) {
-        console.error('Failed to load PDF viewer:', err)
-        this.error = 'تعذر تحميل مكون عرض PDF'
-        this.isLoading = false
-      }
-    } else {
-      this.isLoading = false
+      error: null
     }
   },
   watch: {
-    async pdfUrl(newUrl) {
+    pdfUrl(newUrl) {
       if (newUrl) {
         this.isLoading = true
         this.error = null
-        
-// Load the PDF component dynamically when a URL is provided
-        try {
-          // const module = await import('vue-pdf-embed') // DISABLED
-          // this.VuePdfEmbed = module.default
-          this.error = 'عذراً، عارض PDF معطل حالياً للتحديث'
-          this.isLoading = false
-        } catch (err) {
-          console.error('Failed to load PDF viewer:', err)
-          this.error = 'تعذر تحميل مكون عرض PDF'
-          this.isLoading = false
-        }
-      } else {
-        this.VuePdfEmbed = null
       }
     }
   },
@@ -124,17 +87,10 @@ export default {
       if (this.pdfUrl) {
         this.isLoading = true
         this.error = null
-        // Reload the PDF component
-        /* import('vue-pdf-embed')
-          .then(module => {
-            this.VuePdfEmbed = module.default
-          })
-          .catch(err => {
-            console.error('Failed to reload PDF viewer:', err)
-            this.error = 'تعذر تحميل مكون عرض PDF'
-          }) */
-           this.error = 'عذراً، عارض PDF معطل حالياً للتحديث'
-           this.isLoading = false
+        // Force reload
+        setTimeout(() => {
+          this.$forceUpdate()
+        }, 100)
       }
     }
   },
