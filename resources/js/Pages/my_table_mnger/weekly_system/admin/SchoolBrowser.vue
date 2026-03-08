@@ -103,12 +103,19 @@ const activeTab = ref('overview');
 // Handle assignment updates
 const handleUpdateAssignment = async (assignment) => {
   try {
-    await axios.put(route('weekly-system.api.assignments.update', assignment.id), assignment);
+    const response = await axios.put(route('weekly-system.api.assignments.update', assignment.id), assignment);
     $q.notify({
       type: 'positive',
       message: 'Assignment updated successfully'
     });
-    await loadSchoolData(); // Reload data
+    
+    // Update local state directly instead of reloading everything
+    if (response.data && response.data.data && schoolData.value && schoolData.value.assignments) {
+      const index = schoolData.value.assignments.findIndex(a => a.id === assignment.id);
+      if (index !== -1) {
+        schoolData.value.assignments[index] = response.data.data;
+      }
+    }
   } catch (error) {
     $q.notify({
       type: 'negative',
@@ -126,7 +133,11 @@ const handleDeleteAssignment = async (assignmentId) => {
       type: 'positive',
       message: 'Assignment deleted successfully'
     });
-    await loadSchoolData(); // Reload data
+    
+    // Remove from local state directly
+    if (schoolData.value && schoolData.value.assignments) {
+      schoolData.value.assignments = schoolData.value.assignments.filter(a => a.id !== assignmentId);
+    }
   } catch (error) {
     $q.notify({
       type: 'negative',
@@ -139,12 +150,19 @@ const handleDeleteAssignment = async (assignmentId) => {
 // Handle new assignment creation
 const handleCreateAssignment = async (assignment) => {
   try {
-    await axios.post(route('weekly-system.api.assignments.store'), assignment);
+    const response = await axios.post(route('weekly-system.api.assignments.store'), assignment);
     $q.notify({
       type: 'positive',
       message: 'Assignment created successfully'
     });
-    await loadSchoolData(); // Reload data
+    
+    // Add to local state directly
+    if (response.data && response.data.data && schoolData.value) {
+      if (!schoolData.value.assignments) {
+        schoolData.value.assignments = [];
+      }
+      schoolData.value.assignments.push(response.data.data);
+    }
   } catch (error) {
     $q.notify({
       type: 'negative',

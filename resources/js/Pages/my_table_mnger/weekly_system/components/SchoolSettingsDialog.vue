@@ -12,7 +12,7 @@
             <div class="col-12">
               <q-select
                 v-model="selectedSchool"
-                :options="schoolDataStore.schools"
+                :options="filteredSchools"
                 option-value="id"
                 option-label="name"
                 label="Select School *"
@@ -20,6 +20,9 @@
                 dense
                 emit-value
                 map-options
+                use-input
+                input-debounce="0"
+                @filter="filterSchools"
                 @update:model-value="onSchoolChange"
                 :loading="schoolDataStore.loading"
                 :rules="[val => !!val || 'School selection is required']"
@@ -36,13 +39,16 @@
             <div class="col-12 col-md-4">
               <q-select
                 v-model="selectedAcademicYear"
-                :options="academicYears"
+                :options="filteredAcademicYears"
                 option-value="id"
                 option-label="name"
                 label="Academic Year *"
                 outlined
                 dense
                 map-options
+                use-input
+                input-debounce="0"
+                @filter="filterAcademicYears"
                 :rules="[val => !!val || 'Academic year is required']"
               >
                 <template v-slot:prepend>
@@ -54,13 +60,16 @@
             <div class="col-12 col-md-4">
               <q-select
                 v-model="selectedSemester"
-                :options="semesters"
+                :options="filteredSemesters"
                 option-value="id"
                 option-label="name"
                 label="Semester *"
                 outlined
                 dense
                 map-options
+                use-input
+                input-debounce="0"
+                @filter="filterSemesters"
                 :rules="[val => !!val || 'Semester is required']"
               >
                 <template v-slot:prepend>
@@ -167,6 +176,51 @@ const selectedAcademicYear = ref(null);
 const selectedSemester = ref(null);
 const academicYears = ref([]);
 const semesters = ref([]);
+
+// Searchable options state
+const filteredSchools = ref([]);
+const filteredAcademicYears = ref([]);
+const filteredSemesters = ref([]);
+
+// Filter functions
+const filterSchools = (val, update) => {
+  if (val === '') {
+    update(() => {
+      filteredSchools.value = schoolDataStore.schools;
+    });
+    return;
+  }
+  update(() => {
+    const needle = val.toLowerCase();
+    filteredSchools.value = schoolDataStore.schools.filter(v => v.name.toLowerCase().indexOf(needle) > -1);
+  });
+};
+
+const filterAcademicYears = (val, update) => {
+  if (val === '') {
+    update(() => {
+      filteredAcademicYears.value = academicYears.value;
+    });
+    return;
+  }
+  update(() => {
+    const needle = val.toLowerCase();
+    filteredAcademicYears.value = academicYears.value.filter(v => v.name.toLowerCase().indexOf(needle) > -1);
+  });
+};
+
+const filterSemesters = (val, update) => {
+  if (val === '') {
+    update(() => {
+      filteredSemesters.value = semesters.value;
+    });
+    return;
+  }
+  update(() => {
+    const needle = val.toLowerCase();
+    filteredSemesters.value = semesters.value.filter(v => v.name.toLowerCase().indexOf(needle) > -1);
+  });
+};
 
 // Watch for changes in modelValue to control dialog visibility
 watch(() => props.modelValue, (value) => {

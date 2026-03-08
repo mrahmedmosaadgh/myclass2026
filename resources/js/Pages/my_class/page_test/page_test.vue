@@ -1,14 +1,16 @@
 <template>
     <AppLayout title="Component Testing">
         <template #header>
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
                 Component Testing Page
             </h2>
         </template>
-
+        <div class="py-12"> 
+        <master_component />
+        </div>
         <div class="py-12">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-6">
+                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-xl sm:rounded-lg p-6">
                     <my_tabs
                         v-model="selectedTab"
                         :options="tabs"
@@ -27,12 +29,12 @@
                         </div>
                         <!-- resources\js\Pages\my_class\page_test\ExampleUsage_my_button1.vue -->
                         <div v-if="selectedTab === 'ExampleUsage_my_button1'">
-                            <h3 class="text-lg font-medium mb-4">ExampleUsage_my_button1</h3>
+                            <h3 class="text-lg font-medium text-gray-800 dark:text-gray-200 mb-4">ExampleUsage_my_button1</h3>
                             <ExampleUsage_my_button1 />
                         </div>
 
                         <div v-if="selectedTab === 'component3'">
-                            <h3 class="text-lg font-medium mb-4">Component 3</h3>
+                            <h3 class="text-lg font-medium text-gray-800 dark:text-gray-200 mb-4">Component 3</h3>
                             <!-- <TestComponent3 /> -->
                         </div>
                     </div>
@@ -49,7 +51,8 @@ import my_tabs from './my_tabs.vue';
 import my_tabs2 from './my_tabs2.vue';
 import card2 from './cards/card2.vue';
 import ExampleUsage_my_button1 from './ExampleUsage_my_button1.vue';
-
+ 
+import master_component from './cards_vue/master-component.vue';
 // resources/js/Pages/my_class/page_test/cards/card2.vue
 
 const selectedTab = ref('component1');
@@ -74,37 +77,3 @@ watch(selectedTab, (newValue) => {
     console.log('Selected tab changed:', newValue);
 });
 </script>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

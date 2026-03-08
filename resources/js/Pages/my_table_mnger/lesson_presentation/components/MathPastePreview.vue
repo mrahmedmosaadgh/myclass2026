@@ -6,7 +6,22 @@
         <q-icon name="auto_fix_high" size="md" color="primary" />
         <div class="text-h6 text-primary font-bold">Smart Paste Studio</div>
       </div>
-      <div class="flex gap-2">
+      <div class="flex gap-2 items-center">
+        <!-- Copy AI Prompt Button -->
+        <q-btn
+          flat
+          dense
+          no-caps
+          :icon="aiPromptCopied ? 'check_circle' : 'smart_toy'"
+          :label="aiPromptCopied ? 'Copied!' : 'Copy AI Prompt'"
+          :color="aiPromptCopied ? 'positive' : 'deep-purple'"
+          class="ai-prompt-btn rounded-lg px-3 text-xs font-semibold"
+          @click="copyAiPrompt"
+        >
+          <q-tooltip anchor="bottom middle" self="top middle" :offset="[0, 6]" class="text-xs">
+            Copies a prompt to tell AI to fix the text for math rendering ($...$)
+          </q-tooltip>
+        </q-btn>
         <q-btn flat round icon="close" v-close-popup color="grey-7" />
       </div>
     </div>
@@ -45,9 +60,11 @@
           <q-toggle v-model="filters.lists" label="Lists & Blockquotes" color="teal" dense class="text-sm" />
           <q-toggle v-model="filters.tables" label="Tables (GitHub Style)" color="cyan" dense class="text-sm" />
           <q-toggle v-model="filters.separators" label="Horizontal Lines" color="cyan" dense class="text-sm" />
+          <q-toggle v-model="filters.pageBreaks" label="Page Breaks (---page---)" color="red" dense class="text-sm" />
           <q-toggle v-model="filters.newlines" label="Preserve Newlines" color="indigo" dense class="text-sm" />
           <q-toggle v-model="filters.codeBlocks" label="Code Blocks (```)" color="blue-grey" dense class="text-sm" />
           <q-toggle v-model="filters.links" label="Clickable Links" color="light-blue" dense class="text-sm" />
+          <q-toggle v-model="filters.images" label="Images (![alt](url))" color="teal-6" dense class="text-sm" />
 
           <div class="text-xs font-bold text-gray-500 uppercase mt-2 mb-1">Math & Data</div>
           <q-toggle v-model="filters.math" label="Render Math ($...$)" color="blue" dense class="text-sm" />
@@ -82,9 +99,11 @@
             <q-btn flat dense size="sm" icon="content_paste" label="Paste Clipboard" color="primary" @click="pasteFromClipboard" />
           </div>
           <textarea
+            ref="textareaRef"
             v-model="rawText"
+            @paste="handleRawPaste"
             class="flex-1 p-4 w-full resize-none outline-none font-mono text-sm text-gray-600 overflow-auto"
-            placeholder="Paste your text here..."
+            placeholder="Paste your text or images here..."
           ></textarea>
         </div>
 
@@ -131,9 +150,31 @@ const props = defineProps({
 
 const emit = defineEmits(['insert']);
 
+const aiPromptCopied = ref(false);
+
+const AI_MATH_PROMPT = `You are a KaTeX math formatter. Rewrite last text so that every math expression is properly formatted for KaTeX rendering using $...$ (inline) or $$...$$ (display block).
+
+Rules:
+- Inline: $expression$ | Block: $$expression$$
+- Fractions: \\frac{a}{b} | Powers: x^2, x^{10} | Roots: \\sqrt{x}
+- Greek: \\pi, \\alpha, \\theta, \\beta | Dot: \\cdot | Sub: a_1
+- DO NOT change non-math text. Return ONLY the formatted text.`;
+
+const copyAiPrompt = async () => {
+  try {
+    await navigator.clipboard.writeText(AI_MATH_PROMPT);
+    aiPromptCopied.value = true;
+    setTimeout(() => { aiPromptCopied.value = false; }, 2500);
+  } catch (e) {
+    console.error('Failed to copy AI prompt:', e);
+  }
+};
+
 const rawText = ref('');
 const findText = ref('');
 const replaceText = ref('');
+const textareaRef = ref(null);
+
 const filters = ref({
   // Text Formatting
   markdown: true,
@@ -143,9 +184,11 @@ const filters = ref({
   lists: true,
   tables: true,
   separators: true,
+  pageBreaks: true,
   newlines: true,
   codeBlocks: false,
   links: false,
+  images: true,
   
   // Math & Data
   math: true,
@@ -167,9 +210,11 @@ const defaultFilters = {
   lists: true,
   tables: true,
   separators: true,
+  pageBreaks: true,
   newlines: true,
   codeBlocks: false,
   links: false,
+  images: true,
   
   // Math & Data
   math: true,
@@ -202,10 +247,57 @@ const resetDefaults = () => {
 const pasteFromClipboard = async () => {
   try {
     const text = await navigator.clipboard.readText();
-    rawText.value = text;
+    rawText.value += text;
   } catch (e) {
     console.log('Clipboard access denied or empty');
   }
+};
+
+const handleRawPaste = async (e) => {
+  const items = e.clipboardData?.items;
+  if (!items) return;
+
+  let hasImage = false;
+
+  // We loop to see if there are any images
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].type.indexOf('image') !== -1) {
+      hasImage = true;
+      const file = items[i].getAsFile();
+      if (!file) continue;
+      
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64Url = event.target.result;
+        const imgMarkdown = `\n![Pasted Image](${base64Url})\n`;
+        // Insert image at cursor
+        insertAtCursor(imgMarkdown);
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  // If there was an image, we DO NOT prevent default if there's also text.
+  // The browser will naturally paste the text, and our FileReader will insert the image markdown asynchronously.
+};
+
+const insertAtCursor = (text) => {
+  const el = textareaRef.value;
+  if (!el) {
+    rawText.value += text;
+    return;
+  }
+  const startPos = el.selectionStart;
+  const endPos = el.selectionEnd;
+  
+  rawText.value = rawText.value.substring(0, startPos) + 
+                  text + 
+                  rawText.value.substring(endPos);
+                  
+  setTimeout(() => {
+    el.selectionStart = el.selectionEnd = startPos + text.length;
+    el.focus();
+  }, 10);
 };
 
 onMounted(() => {
@@ -236,9 +328,13 @@ const applyFilters = (text) => {
     res = res.replace(/==(.*?)==/g, '<mark>$1</mark>'); // Highlight
   }
 
-  // 3. Separators
+  // 3. Separators & Page Breaks
   if (filters.value.separators) {
     res = res.replace(/^(\*\*\*|---)$/gm, '<hr class="my-4 border-t border-gray-300">');
+  }
+  
+  if (filters.value.pageBreaks) {
+    res = res.replace(/^---page---$/gm, '<div class="page-break" style="page-break-before: always; border-top: 2px dashed #f44336; padding-top: 20px; margin-top: 40px; position: relative;"><span style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: white; padding: 0 10px; color: #f44336; font-size: 10px; font-weight: bold; letter-spacing: 2px;">PAGE BREAK</span></div>');
   }
 
   // 4. Blanks (Convert underscores to blank spaces)
@@ -288,28 +384,52 @@ const applyFilters = (text) => {
     res = res.replace(/```([\s\S]*?)```/g, '<pre class="bg-gray-100 p-3 rounded-lg overflow-x-auto my-2"><code class="font-mono text-sm">$1</code></pre>');
   }
 
-  // 8. Links
+  // 8. Links & Images
+  if (filters.value.images) {
+    // Markdown images: ![alt](url)
+    res = res.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0; border: 1px solid #e2e8f0;" />');
+  }
+  
   if (filters.value.links) {
-    // Markdown links: [text](url)
-    res = res.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-blue-600 hover:underline" target="_blank" rel="noopener">$1</a>');
+    // Markdown links: [text](url) - Note: Uses a negative lookbehind proxy so we don't match images again if both are enabled.
+    res = res.replace(/(?<!!)\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-blue-600 hover:underline" target="_blank" rel="noopener">$1</a>');
     
     // Auto-link URLs
-    res = res.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" class="text-blue-600 hover:underline" target="_blank" rel="noopener">$1</a>');
+    res = res.replace(/(?<!src=")(https?:\/\/[^\s<]+)/g, '<a href="$1" class="text-blue-600 hover:underline" target="_blank" rel="noopener">$1</a>');
   }
 
-  // 9. Currency & Dollar Fixes (Unified)
-  if (filters.value.currency) {
-    // Fix $30$ -> &dollar;30 (number wrapped in dollars - if has decimal, treat as currency)
-    res = res.replace(/\$(\d+(?:[.,]\d+)?)\$/g, (match, num) => {
-      // If it looks like currency (has decimal), escape it
-      if (num.includes('.') || num.includes(',')) {
-        return `&dollar;${num}`;
-      }
-      // Otherwise keep it as is (might be math)
-      return match;
-    });
+  // 9. Math Rendering (KaTeX) - Must run BEFORE currency so $...$ is preserved!
+  if (filters.value.math) {
+    // First, convert LaTeX \(...\) to $...$ for inline math
+    res = res.replace(/\\\((.+?)\\\)/g, '$$$1$$');
     
-    // Fix standalone currency: $40 or $38.50 -> &dollar;40 or &dollar;38.50
+    // Convert LaTeX \[...\] to $$...$$ for display math
+    res = res.replace(/\\\[(.+?)\\\]/g, '$$$$$$1$$$$$$');
+    
+    // Render $$...$$ (display math) FIRST
+    res = res.replace(/\$\$(.+?)\$\$/g, (match, mathContent) => {
+      try {
+        const html = katex.renderToString(mathContent, { throwOnError: false, displayMode: true });
+        return html.replace(/\n/g, ' '); // Strip newlines to prevent `<br>` injection
+      } catch (e) {
+        return match;
+      }
+    });
+
+    // Now render all $...$ (inline math)
+    res = res.replace(/(?<!\\)\$((?:[^$]|\\.)+)(?<!\\)\$/g, (match, mathContent) => {
+      try {
+        const html = katex.renderToString(mathContent, { throwOnError: false, displayMode: false });
+        return html.replace(/\n/g, ' '); // Strip newlines to prevent `<br>` injection
+      } catch (e) {
+        return match;
+      }
+    });
+  }
+
+  // 10. Currency & Dollar Fixes (Unified)
+  if (filters.value.currency) {
+    // Treat standalone currency: $40 or $38.50 -> &dollar;40 or &dollar;38.50
     // Only match $ when directly followed by a digit (no space)
     res = res.replace(/\$(\d+(?:[.,]\d+)?)/g, '&dollar;$1');
     
@@ -328,8 +448,8 @@ const applyFilters = (text) => {
   if (filters.value.trimSpaces) {
     // Remove multiple spaces
     res = res.replace(/ {2,}/g, ' ');
-    // Trim leading/trailing spaces on each line
-    res = res.replace(/^\s+|\s+$/gm, '');
+    // Trim leading/trailing spaces on each line WITHOUT removing newlines
+    res = res.replace(/^[ \t]+|[ \t]+$/gm, '');
   }
 
   // 12. Fix Arabic Numbers
@@ -354,36 +474,7 @@ const applyFilters = (text) => {
 
 
 
-  // 14. Math Rendering (KaTeX)
-  if (filters.value.math) {
-    // First, convert LaTeX \(...\) to $...$ for inline math
-    res = res.replace(/\\\((.+?)\\\)/g, '$$$1$$');
-    
-    // Convert LaTeX \[...\] to $$...$$ for display math
-    res = res.replace(/\\\[(.+?)\\\]/g, '$$$$$$1$$$$$$');
-    
-    // Now render all $...$ (inline math)
-    res = res.replace(/(?<!\\)\$((?:[^$]|\\.)+)(?<!\\)\$/g, (match, mathContent) => {
-      // Skip if it's just numbers (likely currency)
-      if (/^\s*[\d,.]+\s*$/.test(mathContent)) return match;
-      try {
-        return katex.renderToString(mathContent, { throwOnError: false, displayMode: false });
-      } catch (e) {
-        return match;
-      }
-    });
-    
-    // Render $$...$$ (display math)
-    res = res.replace(/\$\$(.+?)\$\$/g, (match, mathContent) => {
-      try {
-        return katex.renderToString(mathContent, { throwOnError: false, displayMode: true });
-      } catch (e) {
-        return match;
-      }
-    });
-  }
-
-  // 15. Preserve Newlines
+  // 14. Preserve Newlines
   if (filters.value.newlines) {
     res = res.replace(/\n/g, '<br>');
   }
@@ -393,7 +484,10 @@ const applyFilters = (text) => {
 
 const previewHtml = computed(() => {
   const html = applyFilters(rawText.value);
-  return DOMPurify.sanitize(html);
+  // Allow data: URIs for Base64 pasted images
+  return DOMPurify.sanitize(html, {
+    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|data):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i
+  });
 });
 
 const insert = () => {

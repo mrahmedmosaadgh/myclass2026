@@ -60,7 +60,7 @@ class ClassroomSubjectTeacher extends Model
 
     public function getGradeNameAttribute()
     {
-        return $this->classroom->grade ? $this->classroom->grade->name : null;
+        return optional($this->classroom)->grade ? optional($this->classroom)->grade->name : null;
     }
 
     public function getClassroomNameAttribute()

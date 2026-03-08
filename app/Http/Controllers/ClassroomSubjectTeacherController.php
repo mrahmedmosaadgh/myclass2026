@@ -101,19 +101,38 @@ class ClassroomSubjectTeacherController extends Controller
             ]
         );
 
+        $record->load(['classroom.grade', 'subject', 'teacher']);
+
+        $formattedData = [
+            'id' => $record->id,
+            'school_id' => $record->school_id,
+            'classroom_id' => $record->classroom_id,
+            'classroom_name' => $record->classroom?->name,
+            'grade_name' => $record->classroom?->grade?->name,
+            'subject_id' => $record->subject_id,
+            'subject_name' => $record->subject?->name,
+            'subject_color_bg' => $record->subject?->color_bg,
+            'subject_color_text' => $record->subject?->color_text,
+            'teacher_id' => $record->teacher_id,
+            'teacher_name' => $record->teacher?->name,
+            'classes_per_week' => $record->classes_per_week,
+            'color_custom' => $record->color_custom,
+            'color_custom_text' => $record->color_custom_text,
+        ];
+
         // Return JSON for API calls
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
                 'message' => 'Assignment created successfully',
-                'data' => $record
+                'data' => $formattedData
             ]);
         }
 
         return redirect()->back()->with('success', 'Record created successfully');
     }
 
-    public function update(Request $request, ClassroomSubjectTeacher $classroomSubjectTeacher)
+    public function update(Request $request, ClassroomSubjectTeacher $assignment)
     {
         $classroom = Classroom::findOrFail($request->classroom_id);
         $request->merge(['grade_id' => $classroom->grade_id]);
@@ -143,29 +162,58 @@ class ClassroomSubjectTeacherController extends Controller
         $validated['academic_year_id'] = $activeYear->id;
 
         // Preserve existing data and merge new data
-        $existingData = $classroomSubjectTeacher->data ?? [];
+        $existingData = $assignment->data ?? [];
         if (is_string($existingData)) {
             $existingData = json_decode($existingData, true) ?? [];
         }
         $validated['data'] = array_merge($existingData, ['updated_at' => now()->toDateTimeString()]);
 
-        $classroomSubjectTeacher->update($validated);
+        try {
+            $assignment->update($validated);
+        } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+            $errorMsg = 'An assignment with this teacher, subject, and classroom already exists.';
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => $errorMsg], 422);
+            }
+            return redirect()->back()->with('error', $errorMsg);
+        }
+
+        // Freshly load the updated model with all relationships to ensure we return current data
+        $updatedAssignment = ClassroomSubjectTeacher::with(['classroom.grade', 'subject', 'teacher'])
+            ->find($assignment->id);
+
+        $formattedData = [
+            'id' => $updatedAssignment->id,
+            'school_id' => $updatedAssignment->school_id,
+            'classroom_id' => $updatedAssignment->classroom_id,
+            'classroom_name' => $updatedAssignment->classroom?->name,
+            'grade_name' => $updatedAssignment->classroom?->grade?->name,
+            'subject_id' => $updatedAssignment->subject_id,
+            'subject_name' => $updatedAssignment->subject?->name,
+            'subject_color_bg' => $updatedAssignment->subject?->color_bg,
+            'subject_color_text' => $updatedAssignment->subject?->color_text,
+            'teacher_id' => $updatedAssignment->teacher_id,
+            'teacher_name' => $updatedAssignment->teacher?->name,
+            'classes_per_week' => $updatedAssignment->classes_per_week,
+            'color_custom' => $updatedAssignment->color_custom,
+            'color_custom_text' => $updatedAssignment->color_custom_text,
+        ];
 
         // Return JSON for API calls
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
                 'message' => 'Assignment updated successfully',
-                'data' => $classroomSubjectTeacher
+                'data' => $formattedData
             ]);
         }
 
         return redirect()->back()->with('success', 'Record updated successfully');
     }
 
-    public function destroy(Request $request, ClassroomSubjectTeacher $classroomSubjectTeacher)
+    public function destroy(Request $request, ClassroomSubjectTeacher $assignment)
     {
-        $classroomSubjectTeacher->delete();
+        $assignment->delete();
 
         // Return JSON for API calls
         if ($request->expectsJson()) {

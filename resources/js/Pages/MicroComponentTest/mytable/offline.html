@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#667eea">
+  <title>Offline - Schedule Timeline</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+
+    .container {
+      text-align: center;
+      padding: 40px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      max-width: 500px;
+    }
+
+    h1 {
+      font-size: 48px;
+      margin-bottom: 20px;
+      animation: pulse 2s infinite;
+    }
+
+    p {
+      font-size: 18px;
+      margin-bottom: 30px;
+      opacity: 0.9;
+    }
+
+    .icon {
+      font-size: 80px;
+      margin-bottom: 20px;
+      display: block;
+    }
+
+    button {
+      padding: 15px 40px;
+      font-size: 16px;
+      background: white;
+      color: #667eea;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 600;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.7;
+      }
+    }
+
+    .status {
+      margin-top: 20px;
+      padding: 15px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      font-size: 14px;
+    }
+
+    .tip {
+      margin-top: 15px;
+      font-size: 13px;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <span class="icon">📡</span>
+    <h1>You're Offline</h1>
+    <p>It looks like you've lost your internet connection. Don't worry, you can still view your cached schedule!</p>
+    
+    <button onclick="retryConnection()">Try Again</button>
+    
+    <div class="status">
+      <strong>Status:</strong> <span id="status-text">Checking connection...</span>
+    </div>
+    
+    <div class="tip">
+      💡 Tip: The Schedule Timeline app works offline with cached data
+    </div>
+  </div>
+
+  <script>
+    let retryCount = 0;
+    const maxRetries = 5;
+
+    async function checkConnection() {
+      const statusText = document.getElementById('status-text');
+      
+      if (navigator.onLine) {
+        statusText.textContent = '✅ Online! Redirecting...';
+        setTimeout(() => {
+          window.location.href = '/index.html';
+        }, 1000);
+      } else {
+        statusText.textContent = '❌ Offline - No internet connection';
+      }
+    }
+
+    async function retryConnection() {
+      const statusText = document.getElementById('status-text');
+      
+      if (retryCount >= maxRetries) {
+        statusText.textContent = '⚠️ Max retries reached. Please check your connection.';
+        return;
+      }
+
+      retryCount++;
+      statusText.textContent = `🔄 Retrying... (${retryCount}/${maxRetries})`;
+      
+      // Simulate connection check
+      setTimeout(() => {
+        checkConnection();
+      }, 2000);
+    }
+
+    // Listen for online/offline events
+    window.addEventListener('online', () => {
+      document.getElementById('status-text').textContent = '✅ Back online!';
+      setTimeout(() => {
+        window.location.href = '/index.html';
+      }, 1500);
+    });
+
+    window.addEventListener('offline', () => {
+      document.getElementById('status-text').textContent = '❌ Connection lost';
+    });
+
+    // Initial check
+    checkConnection();
+
+    // Register service worker communication
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then((registration) => {
+        registration.active.postMessage({ type: 'CLIENTS_CLAIM' });
+      });
+    }
+  </script>
+</body>
+</html>

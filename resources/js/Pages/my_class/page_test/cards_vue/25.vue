@@ -1,0 +1,1091 @@
+<style scoped>
+  /* -- FULL VERSION OF THIS CARD[WITH SOUND] IS AVAILABLE HERE - praashoo7.github.io/NFS-MW-MenuCard -- */
+
+  .main {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 1em;
+    user-select: none;
+  }
+  .mainTitle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+  .mainTitle span {
+    color: white;
+    font-weight: bold;
+    font-family: Montserrat Regular;
+    margin-top: -2em;
+    margin-bottom: 2em;
+    letter-spacing: 0.9em;
+    margin-left: 0.8em;
+    font-size: 0.85em;
+  }
+  .bottomText {
+    margin-top: 1em;
+    color: white;
+    font-weight: bold;
+    font-family: Montserrat Regular;
+  }
+
+  .open:checked ~ .overlay {
+    display: block;
+  }
+  .open:checked ~ .menu {
+    display: block;
+  }
+  .open:checked ~ .corner1 {
+    animation: 0.35s openCorner1 linear forwards;
+  }
+  .open:checked ~ .corner2 {
+    animation: 0.35s openCorner2 linear forwards;
+  }
+  .open:checked ~ .corner3 {
+    animation: 0.35s openCorner3 linear forwards;
+  }
+  .open:checked ~ .corner4 {
+    animation: 0.35s openCorner4 linear forwards;
+  }
+  .open:checked ~ .menu .middleDiv {
+    animation: 0.15s openMiddleMenu linear forwards;
+  }
+
+  .overlay {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-color: rgb(10, 10, 10, 0.75);
+    z-index: 2;
+    display: none;
+  }
+
+  .menuWrapper {
+    left: 50%;
+    top: 51%;
+    transform: translate(-50%, -50%);
+  }
+
+  .menuWrapper {
+    position: absolute;
+    width: 17.5em;
+    display: none;
+    height: max-content;
+    z-index: 3;
+  }
+  .menuWrapper .menu,
+  .menuOpenBtns {
+    position: relative;
+    width: 17.5em;
+    height: max-content;
+    background-color: #020203;
+    outline: 5px solid #4b4b47;
+    border: 1px solid black;
+    z-index: 3;
+  }
+
+  .menuOpenBtns {
+    position: relative;
+    width: 17.5em;
+    display: block;
+    z-index: 1;
+    opacity: 1;
+  }
+  .selectionBtns {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: white;
+    margin: 1em;
+    padding: 1em;
+  }
+  .selectionBtns .open {
+    text-align: center;
+    font-weight: bold;
+    font-family: Montserrat Regular;
+  }
+  .open {
+    position: relative;
+  }
+
+  .corner1,
+  .corner2,
+  .corner3,
+  .corner4 {
+    position: absolute;
+    width: 1em;
+    height: 1em;
+    background-color: transparent;
+    margin: -1em;
+    transform: rotateY(180deg);
+    z-index: 4;
+  }
+  .corner1 {
+    top: 50%;
+    left: 50%;
+    border-top: 2px solid #fefeff;
+    border-left: 2px solid #fefeff;
+    transform: rotateZ(180deg);
+    animation: 0.35s openCorner1 ease forwards;
+  }
+  .corner2 {
+    top: 50%;
+    right: 50%;
+    border-top: 2px solid #fefeff;
+    border-right: 2px solid #fefeff;
+    transform: rotateZ(180deg);
+    animation: 0.35s openCorner2 ease forwards;
+  }
+  .corner3 {
+    bottom: 50%;
+    left: 50%;
+    border-bottom: 2px solid #fefeff;
+    border-left: 2px solid #fefeff;
+    transform: rotateZ(180deg);
+    animation: 0.35s openCorner3 ease forwards;
+  }
+  .corner4 {
+    bottom: 50%;
+    right: 50%;
+    border-bottom: 2px solid #fefeff;
+    border-right: 2px solid #fefeff;
+    transform: rotateZ(180deg);
+    animation: 0.35s openCorner4 ease forwards;
+  }
+
+  .topHeadingDiv {
+    width: 100%;
+    height: 3.5em;
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    color: white;
+    font-family: Montserrat Regular;
+    font-weight: bold;
+    font-size: 1.25em;
+    background: repeating-linear-gradient(
+      135deg,
+      #222221,
+      #222221 10px,
+      transparent 10px,
+      transparent 20px
+    );
+    border-bottom: 5px solid #222221;
+  }
+  .middleDiv {
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    color: white;
+    background-color: transparent;
+    font-family: Montserrat Regular;
+    font-weight: bold;
+    font-size: 1em;
+    position: relative;
+    width: 100%;
+    height: 7em;
+  }
+  .middleDiv::after {
+    content: "";
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    background: repeating-linear-gradient(
+      135deg,
+      #222221,
+      #222221 10px,
+      transparent 10px,
+      transparent 20px
+    );
+    opacity: 0.15;
+  }
+  .bottomDiv {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 5em;
+    gap: 1em;
+    background: repeating-linear-gradient(
+      135deg,
+      #222221,
+      #222221 10px,
+      transparent 10px,
+      transparent 20px
+    );
+    border-top: 5px solid #222221;
+  }
+  .bottomDiv .buttons {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: end;
+    width: 100%;
+    height: 3em;
+    background-color: rgb(0, 0, 0, 0.7);
+  }
+  .yes,
+  .no {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 5em;
+    height: 2em;
+    margin: 0 1em 0 0;
+    background-color: #272727;
+    color: white;
+    font-family: Montserrat Regular;
+    font-weight: bold;
+    font-size: 1em;
+  }
+
+  .yes:hover,
+  .no:hover {
+    color: #a37434;
+  }
+  .yes:hover span,
+  .no:hover span {
+    animation: hoverText 1s ease-in-out infinite;
+  }
+  @keyframes hoverText {
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+
+  .yes:hover .cornerBtn11,
+  .yes:hover .cornerBtn12,
+  .yes:hover .cornerBtn13,
+  .yes:hover .cornerBtn14 {
+    opacity: 1;
+  }
+  .no:hover .cornerBtn21,
+  .no:hover .cornerBtn22,
+  .no:hover .cornerBtn23,
+  .no:hover .cornerBtn24 {
+    opacity: 1;
+  }
+
+  .cornerBtn11,
+  .cornerBtn12,
+  .cornerBtn13,
+  .cornerBtn14,
+  .cornerBtn21,
+  .cornerBtn22,
+  .cornerBtn23,
+  .cornerBtn24,
+  .cornerCBtn1,
+  .cornerCBtn2,
+  .cornerCBtn3,
+  .cornerCBtn4 {
+    position: absolute;
+    width: 0.75em;
+    height: 0.75em;
+    background-color: transparent;
+    margin: -0.45em;
+    opacity: 0;
+  }
+  .cornerCBtn1,
+  .cornerCBtn2,
+  .cornerCBtn3,
+  .cornerCBtn4 {
+    margin: -1em;
+  }
+  .cornerBtn11,
+  .cornerBtn21 {
+    top: 0;
+    left: 0;
+    border-top: 2px solid #a37434;
+    border-left: 2px solid #a37434;
+  }
+  .cornerBtn12,
+  .cornerBtn22 {
+    top: 0;
+    right: 0;
+    border-top: 2px solid #a37434;
+    border-right: 2px solid #a37434;
+  }
+  .cornerBtn13,
+  .cornerBtn23 {
+    bottom: 0;
+    left: 0;
+    border-bottom: 2px solid #a37434;
+    border-left: 2px solid #a37434;
+  }
+  .cornerBtn14,
+  .cornerBtn24 {
+    bottom: 0;
+    right: 0;
+    border-bottom: 2px solid #a37434;
+    border-right: 2px solid #a37434;
+  }
+  .cornerCBtn1 {
+    top: 0;
+    left: 0;
+    border-top: 2px solid #ebd518;
+    border-left: 2px solid #ebd518;
+  }
+  .cornerCBtn2 {
+    top: 0;
+    right: 0;
+    border-top: 2px solid #ebd518;
+    border-right: 2px solid #ebd518;
+  }
+  .cornerCBtn3 {
+    bottom: 0;
+    left: 0;
+    border-bottom: 2px solid #ebd518;
+    border-left: 2px solid #ebd518;
+  }
+  .cornerCBtn4 {
+    bottom: 0;
+    right: 0;
+    border-bottom: 2px solid #ebd518;
+    border-right: 2px solid #ebd518;
+  }
+
+  .clickSVG {
+    fill: white;
+    width: 50px;
+    height: 50px;
+  }
+  .open:hover .clickSVG {
+    fill: #ebd518;
+    animation: svgHover 0.5s ease-in-out infinite;
+  }
+  @keyframes svgHover {
+    0% {
+      scale: 1;
+    }
+    50% {
+      scale: 0.95;
+    }
+    100% {
+      scale: 1;
+    }
+  }
+
+  .open:hover .cornerCBtn1,
+  .open:hover .cornerCBtn2,
+  .open:hover .cornerCBtn3,
+  .open:hover .cornerCBtn4 {
+    opacity: 1;
+  }
+  .open:hover span {
+    display: inline-block;
+    animation: openSpanHover 0.75s ease infinite;
+  }
+  @keyframes openSpanHover {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(0.9);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  @keyframes openCorner1 {
+    20% {
+      transform: rotateY(180deg) rotateZ(0);
+    }
+    50% {
+      top: 0;
+      left: 50%;
+    }
+    51% {
+      transform: rotateY(0deg);
+    }
+    100% {
+      top: 0;
+      left: 0;
+      transform: rotateY(0deg);
+    }
+  }
+  @keyframes openCorner2 {
+    20% {
+      transform: rotateY(180deg) rotateZ(0);
+    }
+    50% {
+      top: 0;
+      right: 50%;
+    }
+    51% {
+      transform: rotateY(0deg);
+    }
+    100% {
+      top: 0;
+      right: 0;
+      transform: rotateY(0deg);
+    }
+  }
+  @keyframes openCorner3 {
+    20% {
+      transform: rotateY(180deg) rotateZ(0);
+    }
+    50% {
+      bottom: 0;
+      left: 50%;
+    }
+    51% {
+      transform: rotateY(0deg);
+    }
+    100% {
+      bottom: 0;
+      left: 0;
+      transform: rotateY(0deg);
+    }
+  }
+  @keyframes openCorner4 {
+    20% {
+      transform: rotateY(180deg) rotateZ(0);
+    }
+    50% {
+      bottom: 0;
+      right: 50%;
+    }
+    51% {
+      transform: rotateY(0deg);
+    }
+    100% {
+      bottom: 0;
+      right: 0;
+      transform: rotateY(0deg);
+    }
+  }
+  @keyframes closeCorner1 {
+    0% {
+      top: 0;
+      left: 0;
+      transform: rotateY(0deg) rotateZ(0);
+    }
+    50% {
+      top: 0;
+      left: 50%;
+      transform: rotateY(180deg) rotateZ(0);
+    }
+    50.5% {
+      transform: rotateY(180deg) rotateZ(0deg);
+    }
+    89% {
+      transform: rotateY(180deg) rotateZ(0deg);
+    }
+    89.5% {
+      transform: rotateY(180deg) rotateZ(180deg);
+    }
+    90% {
+      left: 50%;
+      top: 50%;
+      transform: rotateY(180deg) rotateZ(180deg);
+    }
+    95% {
+      transform: rotateY(0deg) rotateZ(180deg);
+    }
+    100% {
+      transform: rotateY(0deg) rotateZ(180deg);
+    }
+  }
+  @keyframes closeCorner2 {
+    0% {
+      top: 0;
+      right: 0;
+      transform: rotateY(0deg) rotateZ(0);
+    }
+    50% {
+      top: 0;
+      right: 50%;
+      transform: rotateY(180deg) rotateZ(0);
+    }
+    50.5% {
+      transform: rotateY(180deg) rotateZ(0deg);
+    }
+    89% {
+      transform: rotateY(180deg) rotateZ(0deg);
+    }
+    89.5% {
+      transform: rotateY(180deg) rotateZ(180deg);
+    }
+    90% {
+      right: 50%;
+      top: 50%;
+      transform: rotateY(180deg) rotateZ(180deg);
+    }
+    95% {
+      transform: rotateY(0deg) rotateZ(180deg);
+    }
+    100% {
+      transform: rotateY(0deg) rotateZ(180deg);
+    }
+  }
+  @keyframes closeCorner3 {
+    0% {
+      bottom: 0;
+      left: 0;
+      transform: rotateY(0deg) rotateZ(0);
+    }
+    50% {
+      bottom: 0;
+      left: 50%;
+      transform: rotateY(180deg) rotateZ(0);
+    }
+    50.5% {
+      transform: rotateY(180deg) rotateZ(0deg);
+    }
+    89% {
+      transform: rotateY(180deg) rotateZ(0deg);
+    }
+    89.5% {
+      transform: rotateY(180deg) rotateZ(180deg);
+    }
+    90% {
+      left: 50%;
+      bottom: 50%;
+      transform: rotateY(180deg) rotateZ(180deg);
+    }
+    95% {
+      transform: rotateY(0deg) rotateZ(180deg);
+    }
+    100% {
+      transform: rotateY(0deg) rotateZ(180deg);
+    }
+  }
+  @keyframes closeCorner4 {
+    0% {
+      bottom: 0;
+      right: 0;
+      transform: rotateY(0deg) rotateZ(0);
+    }
+    50% {
+      bottom: 0;
+      right: 50%;
+      transform: rotateY(180deg) rotateZ(0);
+    }
+    50.5% {
+      transform: rotateY(180deg) rotateZ(0deg);
+    }
+    89% {
+      transform: rotateY(180deg) rotateZ(0deg);
+    }
+    89.5% {
+      transform: rotateY(180deg) rotateZ(180deg);
+    }
+    90% {
+      right: 50%;
+      bottom: 50%;
+      transform: rotateY(180deg) rotateZ(180deg);
+    }
+    95% {
+      transform: rotateY(0deg) rotateZ(180deg);
+    }
+    100% {
+      transform: rotateY(0deg) rotateZ(180deg);
+    }
+  }
+  @keyframes openMiddleMenu {
+    0% {
+      background-color: transparent;
+    }
+    25% {
+      background-color: grey;
+    }
+    50% {
+      background-color: transparent;
+    }
+    75% {
+      background-color: grey;
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
+  @keyframes closeMiddleMenu {
+    0% {
+      background-color: transparent;
+    }
+    25% {
+      background-color: grey;
+    }
+    50% {
+      background-color: transparent;
+    }
+    75% {
+      background-color: grey;
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
+
+  @keyframes menuOpen {
+    0% {
+      opacity: 0;
+      display: block;
+    }
+    49.5% {
+      opacity: 0;
+      display: block;
+    }
+    50% {
+      opacity: 1;
+      display: block;
+    }
+    100% {
+      opacity: 1;
+      display: block;
+    }
+  }
+  @keyframes overlayOpen {
+    0% {
+      display: none;
+    }
+    100% {
+      display: block;
+    }
+  }
+  @keyframes overlayClose {
+    0% {
+      display: block;
+    }
+    100% {
+      display: none;
+    }
+  }
+  @keyframes menuWrapperClose {
+    0% {
+      display: block;
+    }
+    99% {
+      display: block;
+    }
+    100% {
+      display: none;
+    }
+  }
+  @keyframes menuClose {
+    0% {
+      opacity: 1;
+      display: block;
+    }
+    25% {
+      opacity: 0;
+      display: block;
+    }
+    40% {
+      opacity: 0;
+      display: block;
+    }
+    50% {
+      opacity: 0;
+      display: block;
+    }
+    75% {
+      opacity: 0;
+      display: none;
+    }
+    100% {
+      opacity: 0;
+      display: none;
+    }
+  }
+
+  .open,
+  .yesCheck {
+    z-index: 5;
+  }
+  .open:checked ~ .overlay {
+    display: block;
+  }
+  .open:checked ~ .corner1 {
+    animation: 0.35s openCorner1 linear forwards;
+  }
+  .open:checked ~ .corner2 {
+    animation: 0.35s openCorner2 linear forwards;
+  }
+  .open:checked ~ .corner3 {
+    animation: 0.35s openCorner3 linear forwards;
+  }
+  .open:checked ~ .corner4 {
+    animation: 0.35s openCorner4 linear forwards;
+  }
+  .open:checked ~ .menuWrapper {
+    display: block;
+  }
+  .open:checked ~ .menuWrapper .menu {
+    animation: 0.45s menuOpen linear forwards;
+  }
+  .open:checked ~ .menuWrapper .menu .middleDiv {
+    animation: 0.22s openMiddleMenu 0.11s linear forwards;
+  }
+
+  .yesCheck,
+  .noCheck {
+    display: none;
+  }
+  .yesCheck:checked ~ .menuWrapper .menu .bottomDiv .buttons .no {
+    opacity: 0;
+  }
+  .noCheck:checked ~ .menuWrapper .menu .bottomDiv .buttons .yes {
+    opacity: 0;
+  }
+
+  .yesCheck:checked ~ .menuWrapper .menu .bottomDiv .buttons .yes {
+    background-color: rgb(163, 116, 52, 0.25);
+    color: rgb(163, 116, 52, 1);
+  }
+  .noCheck:checked ~ .menuWrapper .menu .bottomDiv .buttons .no {
+    background-color: rgb(163, 116, 52, 0.25);
+    color: rgb(163, 116, 52, 1);
+  }
+
+  .yesCheck:checked ~ .menuWrapper .menu .middleDiv,
+  .noCheck:checked ~ .menuWrapper .menu .middleDiv {
+    animation: 0.25s closeMiddleMenu linear forwards;
+  }
+
+  .yesCheck:checked ~ .menuWrapper .corner1,
+  .noCheck:checked ~ .menuWrapper .corner1 {
+    animation: 0.35s closeCorner1 linear forwards;
+  }
+  .yesCheck:checked ~ .menuWrapper .corner2,
+  .noCheck:checked ~ .menuWrapper .corner2 {
+    animation: 0.35s closeCorner2 linear forwards;
+  }
+  .yesCheck:checked ~ .menuWrapper .corner3,
+  .noCheck:checked ~ .menuWrapper .corner3 {
+    animation: 0.35s closeCorner3 linear forwards;
+  }
+  .yesCheck:checked ~ .menuWrapper .corner4,
+  .noCheck:checked ~ .menuWrapper .corner4 {
+    animation: 0.35s closeCorner4 linear forwards;
+  }
+
+  .yesCheck:checked ~ .menuWrapper,
+  .noCheck:checked ~ .menuWrapper {
+    animation: 0.4s menuWrapperClose linear forwards;
+  }
+  .yesCheck:checked ~ .menuWrapper .menu,
+  .noCheck:checked ~ .menuWrapper .menu {
+    animation: 0.4s menuClose 0.1s step-end forwards;
+  }
+  .yesCheck:checked ~ .overlay,
+  .noCheck:checked ~ .overlay {
+    animation: 0.4s overlayClose linear forwards;
+  }
+</style>
+
+<template>
+  <div class="main">
+    <div class="mainTitle">
+      <svg
+        preserveAspectRatio="xMidYMid meet"
+        viewBox="0 0 245.000000 36.000000"
+        height="36.000000pt"
+        width="150.000000pt"
+        xmlns="http://www.w3.org/2000/svg"
+        version="1.0"
+      >
+        <g
+          stroke="none"
+          fill="#ffffff"
+          transform="translate(0.000000,36.000000) scale(0.100000,-0.100000)"
+        >
+          <path
+            d="M2195 350 c-3 -5 2 -24 11 -42 9 -18 17 -57 18 -87 l1 -53 -50 -14
+      c-61 -16 -65 -16 -65 -4 0 5 16 12 35 16 19 3 35 11 35 16 0 10 -27 6 -64 -8
+      -9 -3 -16 -1 -16 5 0 6 7 11 15 11 28 0 87 29 80 40 -4 6 -19 5 -42 -5 -19 -8
+      -46 -15 -59 -15 -27 0 -40 -16 -27 -33 5 -7 10 -25 12 -42 4 -42 19 -47 65
+      -21 35 20 56 23 141 24 107 2 155 8 155 22 0 5 -26 26 -57 46 -69 43 -120 89
+      -139 127 -15 27 -38 35 -49 17z m86 -106 c7 -8 29 -24 49 -34 20 -10 42 -26
+      49 -34 12 -14 9 -16 -22 -16 -19 0 -44 -3 -54 -6 -11 -3 -8 1 7 11 l25 16 -37
+      -5 -36 -4 -4 44 c-3 47 2 53 23 28z"
+          ></path>
+          <path
+            d="M161 241 c-11 -27 -21 -62 -21 -77 0 -26 0 -26 -41 14 -39 39 -75 60
+      -86 49 -6 -6 17 -76 31 -95 8 -11 12 -9 19 10 l9 23 26 -31 c15 -17 37 -33 48
+      -36 19 -5 22 0 28 44 5 32 11 48 19 45 13 -4 14 -10 16 -74 1 -31 5 -43 16
+      -43 11 0 15 12 15 45 0 43 1 44 40 55 22 6 38 15 35 20 -3 6 -16 5 -31 0 -31
+      -12 -62 -13 -48 -2 5 5 28 14 52 21 23 6 42 17 42 23 0 6 -9 8 -22 3 -61 -19
+      -109 -28 -115 -22 -4 4 1 23 10 42 16 33 16 35 -2 35 -13 0 -25 -16 -40 -49z"
+          ></path>
+          <path
+            d="M1904 258 c-19 -37 -33 -49 -49 -42 -5 3 -2 -1 8 -10 13 -10 17 -21
+      12 -35 -6 -20 -9 -19 -52 19 -25 22 -54 40 -64 40 -23 0 -23 0 -4 -36 8 -16
+      15 -35 15 -43 0 -22 -28 6 -51 51 -14 28 -26 38 -43 38 -21 0 -27 -8 -42 -57
+      l-18 -58 -6 50 c-6 57 -15 75 -37 75 -10 0 -13 -6 -9 -16 15 -38 17 -64 8 -80
+      -9 -16 -12 -13 -26 20 -9 21 -16 42 -16 47 0 5 -10 9 -22 9 -20 0 -23 -5 -23
+      -45 0 -51 -18 -66 -23 -18 -4 38 -32 35 -32 -4 0 -57 46 -85 72 -43 16 25 25
+      25 33 0 9 -29 104 -29 123 0 7 11 22 20 33 20 11 0 32 -9 46 -20 14 -11 37
+      -20 52 -20 16 0 21 3 14 8 -13 8 -7 52 8 52 4 0 16 -13 26 -30 13 -22 25 -30
+      45 -30 24 0 28 4 28 28 0 34 10 72 19 72 3 0 18 -21 33 -45 23 -37 32 -45 58
+      -45 21 0 30 5 30 16 0 11 -6 13 -19 9 -13 -4 -24 1 -35 17 -24 33 -20 48 12
+      48 33 0 43 7 36 25 -4 10 -12 11 -33 4 -35 -12 -84 10 -70 32 13 20 11 29 -6
+      29 -8 0 -22 -15 -31 -32z m-214 -78 c9 -16 8 -20 -5 -20 -8 0 -15 9 -15 20 0
+      11 2 20 5 20 2 0 9 -9 15 -20z"
+          ></path>
+          <path
+            d="M826 213 l5 -58 -20 23 c-10 12 -21 28 -23 34 -9 25 -38 -1 -38 -34
+      0 -18 -3 -44 -7 -57 -5 -19 -2 -22 13 -19 10 2 21 14 24 27 l5 23 15 -26 c22
+      -41 54 -32 60 18 l5 40 13 -37 c15 -42 74 -97 103 -97 18 0 16 4 -12 27 -31
+      27 -89 133 -89 164 0 17 -19 29 -45 29 -10 0 -12 -14 -9 -57z"
+          ></path>
+          <path
+            d="M372 214 c-29 -26 -59 -59 -68 -75 -13 -26 -13 -30 1 -36 9 -3 56 6
+      103 20 113 34 192 44 192 25 0 -8 -21 -35 -47 -61 l-48 -46 0 42 c0 39 -2 42
+      -28 45 -26 3 -27 2 -15 -17 9 -15 10 -30 2 -60 -19 -70 11 -64 123 26 47 39
+      58 60 42 79 -16 19 -66 17 -188 -6 -57 -11 -107 -18 -110 -14 -6 6 53 64 104
+      101 25 19 27 22 10 22 -11 0 -44 -20 -73 -45z"
+          ></path>
+          <path
+            d="M457 220 l-26 -40 22 0 c14 0 29 11 40 29 37 62 4 72 -36 11z"
+          ></path>
+          <path
+            d="M1065 209 l-54 -50 -12 23 c-15 30 -28 38 -59 38 -18 0 -21 -3 -11
+      -9 9 -6 10 -14 3 -27 -15 -29 3 -64 32 -64 13 0 26 -6 29 -12 3 -10 18 -9 68
+      5 78 22 188 46 212 47 9 0 17 -5 17 -12 0 -16 -47 -76 -71 -88 -18 -10 -19 -9
+      -13 15 7 30 -10 55 -38 55 -16 0 -17 -3 -8 -20 8 -14 8 -32 1 -57 -11 -37 -7
+      -53 10 -53 15 0 124 85 147 115 17 22 21 23 33 9 14 -17 60 -15 67 4 2 6 -3
+      12 -11 12 -9 0 -17 -6 -20 -12 -4 -13 -37 42 -37 61 0 5 15 11 33 13 41 4 37
+      23 -6 23 -17 1 -40 5 -50 9 -11 5 -23 4 -30 -3 -6 -6 -21 -11 -34 -11 -35 0
+      -27 -17 9 -18 17 0 35 -7 39 -14 7 -10 -7 -15 -59 -20 -37 -4 -101 -14 -142
+      -22 -112 -22 -114 -11 -8 69 46 34 55 45 38 45 -12 0 -44 -22 -75 -51z m-95
+      -51 c0 -16 -3 -19 -11 -11 -6 6 -8 16 -5 22 11 17 16 13 16 -11z"
+          ></path>
+          <path
+            d="M1152 220 c-22 -39 -22 -40 -3 -40 11 0 28 14 40 34 26 41 26 46 4
+      46 -10 0 -28 -18 -41 -40z"
+          ></path>
+        </g>
+      </svg>
+      <br />
+      <span>MENU CARD</span>
+    </div>
+
+    <input hidden="" class="yesCheck" id="yesCheck" name="toggle" type="radio" />
+    <input hidden="" class="noCheck" id="noCheck" name="toggle" type="radio" />
+    <input hidden="" class="open" name="toggle" type="radio" id="openMenu" />
+
+    <div class="menuOpenBtns">
+      <div class="corner1"></div>
+      <div class="corner2"></div>
+      <div class="corner3"></div>
+      <div class="corner4"></div>
+      <div class="topHeadingDiv">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 50 60"
+          height="65"
+          width="55"
+          style="padding-left: 0.75em; padding-right: 0.45em;"
+        >
+          <circle
+            stroke-width="3"
+            stroke="#D9D9D9"
+            r="23.5"
+            cy="30"
+            cx="25"
+          ></circle>
+          <path
+            fill="white"
+            d="M20.25 34.5C20.15 34.2333 20.0333 33.8667 19.9 33.4C19.8 32.9 19.75 32.3667 19.75 31.8C19.75 30.4667 20.15 29.4667 20.95 28.8C21.75 28.1333 23.0167 27.8 24.75 27.8H27.85C28.9167 27.8 29.65 27.55 30.05 27.05C30.4833 26.55 30.7 25.7833 30.7 24.75V22.45C30.6667 21.5833 30.4333 20.95 30 20.55C29.5667 20.15 28.8167 19.95 27.75 19.95H23.5C21.4667 19.95 19.7333 20.0667 18.3 20.3C16.8667 20.5333 15.7667 20.75 15 20.95L14 16.6C14.7667 16.1333 15.9667 15.7667 17.6 15.5C19.2333 15.2333 21.3667 15.1 24 15.1H28.65C31.6833 15.1 33.8833 15.7833 35.25 17.15C36.6167 18.5167 37.3 20.2333 37.3 22.3V25.45C37.3 27.5833 36.65 29.2333 35.35 30.4C34.0833 31.5667 32.3667 32.15 30.2 32.15H26.45C25.5833 32.15 24.9833 32.3333 24.65 32.7C24.3167 33.0667 24.0833 33.6667 23.95 34.5H20.25ZM22.15 45C20.9167 45 20.0167 44.75 19.45 44.25C18.8833 43.75 18.6 42.9167 18.6 41.75C18.6 40.55 18.8667 39.7167 19.4 39.25C19.9667 38.75 20.8833 38.5 22.15 38.5C23.4167 38.5 24.3333 38.75 24.9 39.25C25.4667 39.7167 25.75 40.55 25.75 41.75C25.75 42.8833 25.4667 43.7167 24.9 44.25C24.3333 44.75 23.4167 45 22.15 45Z"
+          ></path>
+        </svg>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 54 13"
+          height="26"
+          width="108"
+        >
+          <path
+            fill="white"
+            d="M2.628 8.964L1.044 8.1V5.076C1.588 4.908 2.024 4.716 2.352 4.5C2.512 4.388 2.668 4.256 2.82 4.104C2.98 3.952 3.128 3.776 3.264 3.576C4.064 3.992 4.796 4.2 5.46 4.2C6.028 4.2 6.312 4.016 6.312 3.648C6.312 3.56 6.288 3.48 6.24 3.408C6.2 3.336 6.156 3.268 6.108 3.204C6.06 3.132 6.016 3.064 5.976 3C5.944 2.928 5.932 2.852 5.94 2.772C5.94 2.452 6.108 2.292 6.444 2.292C6.836 2.292 7.032 2.516 7.032 2.964C7.032 3.396 6.8 3.928 6.336 4.56L4.884 6.552L6.636 7.572V10.896C5.756 11.152 4.972 11.588 4.284 12.204C3.596 11.772 2.952 11.556 2.352 11.556C1.776 11.556 1.22 11.772 0.684 12.204L0.456 12.012L2.628 8.964ZM3.924 7.932L2.1 10.488C2.516 10.344 2.896 10.272 3.24 10.272C3.736 10.272 4.296 10.44 4.92 10.776V8.484L3.924 7.932ZM3.552 7.68L5.148 5.424C5.036 5.432 4.928 5.44 4.824 5.448C4.72 5.448 4.62 5.448 4.524 5.448C3.852 5.448 3.248 5.268 2.712 4.908V7.188L3.552 7.68ZM10.92 12.204C9.984 11.612 9.116 11.252 8.316 11.124V10.956C8.572 10.812 8.736 10.596 8.808 10.308C8.848 10.124 8.868 9.832 8.868 9.432V6.408C8.868 5.976 8.84 5.708 8.784 5.604C8.728 5.5 8.592 5.448 8.376 5.448H8.316L8.232 5.268C8.264 5.252 8.292 5.24 8.316 5.232C8.348 5.216 8.384 5.2 8.424 5.184C8.96 4.952 9.488 4.704 10.008 4.44C10.528 4.168 11.044 3.88 11.556 3.576L13.62 6.252L10.536 8.832V10.392C10.792 10.504 11.04 10.62 11.28 10.74C11.528 10.86 11.772 10.988 12.012 11.124L13.236 10.308L13.404 10.548L10.92 12.204ZM12.264 6.816L10.536 4.62V8.256L12.264 6.816ZM16.7078 12.204C16.1318 11.612 15.4438 11.212 14.6438 11.004V10.74C14.8998 10.604 15.0638 10.436 15.1358 10.236C15.1838 10.108 15.2078 9.864 15.2078 9.504V2.844C15.2078 2.244 15.1558 1.828 15.0518 1.596C14.9398 1.34 14.7158 1.12 14.3798 0.935999L14.4638 0.684C14.7118 0.787999 14.9478 0.907999 15.1718 1.044C15.3958 1.172 15.6078 1.324 15.8078 1.5C16.2718 0.971999 16.8998 0.608 17.6918 0.408L17.7878 0.684C17.4118 0.948 17.1718 1.212 17.0678 1.476C16.9638 1.716 16.9118 2.148 16.9118 2.772V10.32L17.7398 10.896L18.0878 10.632L18.3158 10.896L16.7078 12.204ZM21.7364 12.204C20.8004 11.612 19.9324 11.252 19.1324 11.124V10.956C19.3884 10.812 19.5524 10.596 19.6244 10.308C19.6644 10.124 19.6844 9.832 19.6844 9.432V6.408C19.6844 5.976 19.6564 5.708 19.6004 5.604C19.5444 5.5 19.4084 5.448 19.1924 5.448H19.1324L19.0484 5.268C19.0804 5.252 19.1084 5.24 19.1324 5.232C19.1644 5.216 19.2004 5.2 19.2404 5.184C19.7764 4.952 20.3044 4.704 20.8244 4.44C21.3444 4.168 21.8604 3.88 22.3724 3.576L24.4364 6.252L21.3524 8.832V10.392C21.6084 10.504 21.8564 10.62 22.0964 10.74C22.3444 10.86 22.5884 10.988 22.8284 11.124L24.0524 10.308L24.2204 10.548L21.7364 12.204ZM23.0804 6.816L21.3524 4.62V8.256L23.0804 6.816ZM28.1243 12.204C27.3483 11.676 26.4923 11.364 25.5563 11.268V11.076C25.7643 10.9 25.9003 10.708 25.9643 10.5C26.0043 10.34 26.0243 10.1 26.0243 9.78V6.324C26.0243 5.964 25.9963 5.732 25.9403 5.628C25.8843 5.516 25.7483 5.46 25.5323 5.46H25.3643V5.268C26.2603 4.988 27.1323 4.424 27.9803 3.576L29.9603 4.692L29.1203 5.952L27.7043 5.148V10.332L29.1683 11.004L29.8883 10.416L30.0803 10.644L28.1243 12.204ZM33.13 1.38V3.924H34.558V4.848H33.13V10.284C33.282 10.388 33.422 10.488 33.55 10.584C33.686 10.68 33.814 10.772 33.934 10.86L34.462 10.44L34.714 10.728L32.926 12.204C32.35 11.62 31.678 11.224 30.91 11.016V10.8C31.142 10.624 31.29 10.444 31.354 10.26C31.418 10.068 31.45 9.7 31.45 9.156V4.848H30.73V4.56L33.13 1.38ZM37.1358 12.204C36.5118 11.572 35.9678 11.112 35.5038 10.824V10.668C35.7678 10.588 35.9358 10.412 36.0078 10.14C36.0318 10.036 36.0438 9.784 36.0438 9.384V5.208L35.4558 4.704L36.8598 3.576L38.2878 4.752L37.7118 5.28V10.548L38.1918 10.956L38.6958 10.548L38.8998 10.824L37.1358 12.204ZM37.4478 0.167999L38.8518 0.227999L37.4478 2.16L37.0278 2.124L37.4478 0.167999ZM45.0145 10.884C43.9425 11.316 43.1265 11.756 42.5665 12.204C41.5265 11.436 40.4865 11.012 39.4465 10.932V10.728C39.6865 10.544 39.8385 10.26 39.9025 9.876C39.9265 9.748 39.9385 9.404 39.9385 8.844V4.98C40.8505 4.676 41.6505 4.208 42.3385 3.576C42.7465 3.872 43.1705 4.124 43.6105 4.332C44.0585 4.532 44.5265 4.696 45.0145 4.824V10.884ZM41.5825 10.092L43.3585 10.848V5.688L41.5825 4.92V10.092ZM47.896 3.576C47.944 3.616 48.004 3.664 48.076 3.72C48.38 3.976 48.58 4.176 48.676 4.32C48.804 4.52 48.868 4.784 48.868 5.112C48.868 5.216 48.872 5.288 48.88 5.328L50.98 3.576L52.228 4.812L53.02 4.044L53.272 4.308C52.896 4.66 52.656 4.972 52.552 5.244C52.448 5.5 52.396 5.924 52.396 6.516V9.408C52.396 9.624 52.396 9.8 52.396 9.936C52.396 10.064 52.4 10.148 52.408 10.188C52.456 10.556 52.588 10.74 52.804 10.74C52.884 10.74 53.016 10.676 53.2 10.548C53.216 10.532 53.232 10.516 53.248 10.5C53.272 10.484 53.3 10.464 53.332 10.44L53.536 10.776L51.748 12.204C51.708 12.172 51.672 12.14 51.64 12.108C51.608 12.084 51.584 12.064 51.568 12.048C51.176 11.704 50.936 11.408 50.848 11.16C50.76 10.912 50.716 10.428 50.716 9.708V5.436L50.056 4.752L48.88 5.724V10.404L49.456 11.028L47.992 12.204L46.54 10.992L47.2 10.368V6.012C47.2 5.788 47.196 5.604 47.188 5.46C47.18 5.316 47.16 5.208 47.128 5.136C47.104 5.056 47.068 5.004 47.02 4.98C46.972 4.948 46.908 4.932 46.828 4.932C46.764 4.932 46.624 4.992 46.408 5.112L46.216 4.848L47.896 3.576Z"
+          ></path>
+        </svg>
+      </div>
+      <div class="selectionBtns">
+        <label class="open" for="openMenu">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 100 100"
+            class="clickSVG"
+          >
+            <g clip-path="url(#clip0_758_3916)">
+              <path
+                d="M94.1344 15.0975L81.9113 2.38228C81.0256 1.47686 79.6478 1.26035 78.5455 1.89021C67.838 7.95257 54.237 1.59496 51.9538 0.433666C51.2255 -0.0387259 50.2807 -0.137141 49.4541 0.19747C49.2769 0.256519 49.1194 0.354934 48.962 0.453349C46.6 1.65401 33.0581 7.93288 22.39 1.90989C21.2877 1.28003 19.9099 1.49655 19.0242 2.40196L6.78135 15.0975C6.13181 15.7864 5.85625 16.7509 6.07276 17.676C6.13181 17.9122 11.6627 41.394 8.10011 53.4203C8.08042 53.4793 8.06074 53.5384 8.06074 53.5974C7.7655 54.8178 1.84092 83.8502 49.5525 99.8524C50.1626 100.049 50.7728 100.049 51.3436 99.8524C99.0749 83.8502 93.1503 54.8178 92.8747 53.5974C92.855 53.5384 92.8354 53.4793 92.8354 53.4203C89.2727 41.394 94.8037 17.9122 94.8627 17.676C95.0595 16.7509 94.8037 15.7667 94.1344 15.0975ZM87.4619 54.8768C87.7178 56.294 91.4969 80.1891 50.4579 94.2821C9.35981 80.1497 13.1193 56.5892 13.4539 54.8768C16.859 43.1457 13.0209 23.4628 11.8202 17.8728L21.583 7.71637C33.1369 12.9324 46.1867 7.85415 50.4579 5.88585C54.7291 7.85415 67.7789 12.9324 79.3328 7.71637L89.0956 17.8728C87.8752 23.4628 84.0567 43.1457 87.4619 54.8768Z"
+              ></path>
+              <rect height="5" width="73" y="10" x="14"></rect>
+              <rect height="5" width="80" y="27" x="11"></rect>
+              <rect height="5" width="78" y="44" x="12"></rect>
+              <rect height="5" width="78" y="62" x="12"></rect>
+              <rect height="5" width="53" y="81" x="24"></rect>
+            </g>
+            <defs>
+              <clipPath id="clip0_758_3916">
+                <rect fill="white" height="100" width="100"></rect>
+              </clipPath>
+            </defs>
+          </svg>
+          <div class="cornerCBtn1"></div>
+          <div class="cornerCBtn2"></div>
+          <div class="cornerCBtn3"></div>
+          <div class="cornerCBtn4"></div>
+        </label>
+        <label class="open" for="openMenu">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 100 100"
+            class="clickSVG"
+          >
+            <g clip-path="url(#clip0_758_3916)">
+              <path
+                d="M94.1344 15.0975L81.9113 2.38228C81.0256 1.47686 79.6478 1.26035 78.5455 1.89021C67.838 7.95257 54.237 1.59496 51.9538 0.433666C51.2255 -0.0387259 50.2807 -0.137141 49.4541 0.19747C49.2769 0.256519 49.1194 0.354934 48.962 0.453349C46.6 1.65401 33.0581 7.93288 22.39 1.90989C21.2877 1.28003 19.9099 1.49655 19.0242 2.40196L6.78135 15.0975C6.13181 15.7864 5.85625 16.7509 6.07276 17.676C6.13181 17.9122 11.6627 41.394 8.10011 53.4203C8.08042 53.4793 8.06074 53.5384 8.06074 53.5974C7.7655 54.8178 1.84092 83.8502 49.5525 99.8524C50.1626 100.049 50.7728 100.049 51.3436 99.8524C99.0749 83.8502 93.1503 54.8178 92.8747 53.5974C92.855 53.5384 92.8354 53.4793 92.8354 53.4203C89.2727 41.394 94.8037 17.9122 94.8627 17.676C95.0595 16.7509 94.8037 15.7667 94.1344 15.0975ZM87.4619 54.8768C87.7178 56.294 91.4969 80.1891 50.4579 94.2821C9.35981 80.1497 13.1193 56.5892 13.4539 54.8768C16.859 43.1457 13.0209 23.4628 11.8202 17.8728L21.583 7.71637C33.1369 12.9324 46.1867 7.85415 50.4579 5.88585C54.7291 7.85415 67.7789 12.9324 79.3328 7.71637L89.0956 17.8728C87.8752 23.4628 84.0567 43.1457 87.4619 54.8768Z"
+              ></path>
+              <rect height="5" width="73" y="10" x="14"></rect>
+              <rect height="5" width="80" y="27" x="11"></rect>
+              <rect height="5" width="78" y="44" x="12"></rect>
+              <rect height="5" width="78" y="62" x="12"></rect>
+              <rect height="5" width="53" y="81" x="24"></rect>
+            </g>
+            <defs>
+              <clipPath id="clip0_758_3916">
+                <rect fill="white" height="100" width="100"></rect>
+              </clipPath>
+            </defs>
+          </svg>
+          <div class="cornerCBtn1"></div>
+          <div class="cornerCBtn2"></div>
+          <div class="cornerCBtn3"></div>
+          <div class="cornerCBtn4"></div>
+        </label>
+        <label class="open" for="openMenu">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 100 100"
+            class="clickSVG"
+          >
+            <g clip-path="url(#clip0_758_3916)">
+              <path
+                d="M94.1344 15.0975L81.9113 2.38228C81.0256 1.47686 79.6478 1.26035 78.5455 1.89021C67.838 7.95257 54.237 1.59496 51.9538 0.433666C51.2255 -0.0387259 50.2807 -0.137141 49.4541 0.19747C49.2769 0.256519 49.1194 0.354934 48.962 0.453349C46.6 1.65401 33.0581 7.93288 22.39 1.90989C21.2877 1.28003 19.9099 1.49655 19.0242 2.40196L6.78135 15.0975C6.13181 15.7864 5.85625 16.7509 6.07276 17.676C6.13181 17.9122 11.6627 41.394 8.10011 53.4203C8.08042 53.4793 8.06074 53.5384 8.06074 53.5974C7.7655 54.8178 1.84092 83.8502 49.5525 99.8524C50.1626 100.049 50.7728 100.049 51.3436 99.8524C99.0749 83.8502 93.1503 54.8178 92.8747 53.5974C92.855 53.5384 92.8354 53.4793 92.8354 53.4203C89.2727 41.394 94.8037 17.9122 94.8627 17.676C95.0595 16.7509 94.8037 15.7667 94.1344 15.0975ZM87.4619 54.8768C87.7178 56.294 91.4969 80.1891 50.4579 94.2821C9.35981 80.1497 13.1193 56.5892 13.4539 54.8768C16.859 43.1457 13.0209 23.4628 11.8202 17.8728L21.583 7.71637C33.1369 12.9324 46.1867 7.85415 50.4579 5.88585C54.7291 7.85415 67.7789 12.9324 79.3328 7.71637L89.0956 17.8728C87.8752 23.4628 84.0567 43.1457 87.4619 54.8768Z"
+              ></path>
+              <rect height="5" width="73" y="10" x="14"></rect>
+              <rect height="5" width="80" y="27" x="11"></rect>
+              <rect height="5" width="78" y="44" x="12"></rect>
+              <rect height="5" width="78" y="62" x="12"></rect>
+              <rect height="5" width="53" y="81" x="24"></rect>
+            </g>
+            <defs>
+              <clipPath id="clip0_758_3916">
+                <rect fill="white" height="100" width="100"></rect>
+              </clipPath>
+            </defs>
+          </svg>
+          <div class="cornerCBtn1"></div>
+          <div class="cornerCBtn2"></div>
+          <div class="cornerCBtn3"></div>
+          <div class="cornerCBtn4"></div>
+        </label>
+      </div>
+    </div>
+
+    <div class="overlay"></div>
+
+    <div class="menuWrapper">
+      <div class="corner1"></div>
+      <div class="corner2"></div>
+      <div class="corner3"></div>
+      <div class="corner4"></div>
+      <div class="menu">
+        <div class="topHeadingDiv">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 32 33"
+            height="56"
+            width="55"
+            style="padding-left: 0.75em; padding-right: 0.45em;"
+          >
+            <g clip-path="url(#clip0_762_3935)">
+              <rect
+                fill="#D9D9D9"
+                transform="rotate(-25.7724 0 1.86914)"
+                height="36.8638"
+                width="2"
+                y="1.86914"
+              ></rect>
+              <path
+                fill="#D9D9D9"
+                d="M30.2017 1.0752L32.0281 1.89022L17.6341 34.1459L15.8077 33.3309L30.2017 1.0752Z"
+              ></path>
+              <rect fill="#D9D9D9" height="2" width="13" x="19"></rect>
+              <rect fill="#D9D9D9" height="2" width="14"></rect>
+              <rect fill="#D9D9D9" height="16" width="3" x="15"></rect>
+              <rect fill="#D9D9D9" height="3" width="3" y="19" x="15"></rect>
+            </g>
+            <defs>
+              <clipPath id="clip0_762_3935">
+                <rect fill="white" height="33" width="32"></rect>
+              </clipPath>
+            </defs>
+          </svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 54 13"
+            height="26"
+            width="108"
+          >
+            <path
+              fill="white"
+              d="M4.616 12.204C4.264 11.884 4.02 11.608 3.884 11.376C3.82 11.264 3.764 11.124 3.716 10.956C3.676 10.788 3.64 10.6 3.608 10.392L1.352 12.204C0.48 11.548 0.0440001 10.808 0.0440001 9.984C0.0440001 9.144 0.508 8.188 1.436 7.116L1.64 6.888L0.176 4.284C0.24 4.292 0.308 4.296 0.38 4.296C0.452 4.296 0.528 4.296 0.608 4.296C1.328 4.296 1.996 4.056 2.612 3.576C3.58 4.08 4.344 4.332 4.904 4.332C5.176 4.332 5.432 4.204 5.672 3.948L5.912 4.104C5.64 4.52 5.468 4.872 5.396 5.16C5.324 5.44 5.288 5.924 5.288 6.612V9.564C5.288 9.948 5.3 10.2 5.324 10.32C5.38 10.64 5.528 10.8 5.768 10.8C5.88 10.8 6.04 10.724 6.248 10.572L6.416 10.8L4.616 12.204ZM1.808 7.152C1.576 7.752 1.46 8.356 1.46 8.964C1.46 9.628 1.812 10.26 2.516 10.86L3.608 9.984V7.908L1.808 7.152ZM0.716 4.584L1.988 6.876L3.608 7.572V5.556L0.716 4.584ZM9.64175 1.38V3.924H11.0698V4.848H9.64175V10.284C9.79375 10.388 9.93375 10.488 10.0618 10.584C10.1978 10.68 10.3258 10.772 10.4458 10.86L10.9738 10.44L11.2258 10.728L9.43775 12.204C8.86175 11.62 8.18975 11.224 7.42175 11.016V10.8C7.65375 10.624 7.80175 10.444 7.86575 10.26C7.92975 10.068 7.96175 9.7 7.96175 9.156V4.848H7.24175V4.56L9.64175 1.38ZM14.2355 1.38V3.924H15.6635V4.848H14.2355V10.284C14.3875 10.388 14.5275 10.488 14.6555 10.584C14.7915 10.68 14.9195 10.772 15.0395 10.86L15.5675 10.44L15.8195 10.728L14.0315 12.204C13.4555 11.62 12.7835 11.224 12.0155 11.016V10.8C12.2475 10.624 12.3955 10.444 12.4595 10.26C12.5235 10.068 12.5555 9.7 12.5555 9.156V4.848H11.8355V4.56L14.2355 1.38ZM19.2013 12.204C18.2653 11.612 17.3973 11.252 16.5973 11.124V10.956C16.8533 10.812 17.0173 10.596 17.0893 10.308C17.1293 10.124 17.1493 9.832 17.1493 9.432V6.408C17.1493 5.976 17.1213 5.708 17.0653 5.604C17.0093 5.5 16.8733 5.448 16.6573 5.448H16.5973L16.5133 5.268C16.5453 5.252 16.5733 5.24 16.5973 5.232C16.6293 5.216 16.6653 5.2 16.7053 5.184C17.2413 4.952 17.7693 4.704 18.2893 4.44C18.8093 4.168 19.3253 3.88 19.8373 3.576L21.9013 6.252L18.8173 8.832V10.392C19.0733 10.504 19.3213 10.62 19.5613 10.74C19.8093 10.86 20.0533 10.988 20.2933 11.124L21.5173 10.308L21.6853 10.548L19.2013 12.204ZM20.5453 6.816L18.8173 4.62V8.256L20.5453 6.816ZM24.1851 3.576C24.2331 3.616 24.2931 3.664 24.3651 3.72C24.6691 3.976 24.8691 4.176 24.9651 4.32C25.0931 4.52 25.1571 4.784 25.1571 5.112C25.1571 5.216 25.1611 5.288 25.1691 5.328L27.2691 3.576L28.5171 4.812L29.3091 4.044L29.5611 4.308C29.1851 4.66 28.9451 4.972 28.8411 5.244C28.7371 5.5 28.6851 5.924 28.6851 6.516V9.408C28.6851 9.624 28.6851 9.8 28.6851 9.936C28.6851 10.064 28.6891 10.148 28.6971 10.188C28.7451 10.556 28.8771 10.74 29.0931 10.74C29.1731 10.74 29.3051 10.676 29.4891 10.548C29.5051 10.532 29.5211 10.516 29.5371 10.5C29.5611 10.484 29.5891 10.464 29.6211 10.44L29.8251 10.776L28.0371 12.204C27.9971 12.172 27.9611 12.14 27.9291 12.108C27.8971 12.084 27.8731 12.064 27.8571 12.048C27.4651 11.704 27.2251 11.408 27.1371 11.16C27.0491 10.912 27.0051 10.428 27.0051 9.708V5.436L26.3451 4.752L25.1691 5.724V10.404L25.7451 11.028L24.2811 12.204L22.8291 10.992L23.4891 10.368V6.012C23.4891 5.788 23.4851 5.604 23.4771 5.46C23.4691 5.316 23.4491 5.208 23.4171 5.136C23.3931 5.056 23.3571 5.004 23.3091 4.98C23.2611 4.948 23.1971 4.932 23.1171 4.932C23.0531 4.932 22.9131 4.992 22.6971 5.112L22.5051 4.848L24.1851 3.576ZM32.9269 1.38V3.924H34.3549V4.848H32.9269V10.284C33.0789 10.388 33.2189 10.488 33.3469 10.584C33.4829 10.68 33.6109 10.772 33.7309 10.86L34.2589 10.44L34.5109 10.728L32.7229 12.204C32.1469 11.62 31.4749 11.224 30.7069 11.016V10.8C30.9389 10.624 31.0869 10.444 31.1509 10.26C31.2149 10.068 31.2469 9.7 31.2469 9.156V4.848H30.5269V4.56L32.9269 1.38ZM36.9327 12.204C36.3087 11.572 35.7647 11.112 35.3007 10.824V10.668C35.5647 10.588 35.7327 10.412 35.8047 10.14C35.8287 10.036 35.8407 9.784 35.8407 9.384V5.208L35.2527 4.704L36.6567 3.576L38.0847 4.752L37.5087 5.28V10.548L37.9887 10.956L38.4927 10.548L38.6967 10.824L36.9327 12.204ZM37.2447 0.167999L38.6487 0.227999L37.2447 2.16L36.8247 2.124L37.2447 0.167999ZM44.8114 10.884C43.7394 11.316 42.9234 11.756 42.3634 12.204C41.3234 11.436 40.2834 11.012 39.2434 10.932V10.728C39.4834 10.544 39.6354 10.26 39.6994 9.876C39.7234 9.748 39.7354 9.404 39.7354 8.844V4.98C40.6474 4.676 41.4474 4.208 42.1354 3.576C42.5434 3.872 42.9674 4.124 43.4074 4.332C43.8554 4.532 44.3234 4.696 44.8114 4.824V10.884ZM41.3794 10.092L43.1554 10.848V5.688L41.3794 4.92V10.092ZM47.6929 3.576C47.7409 3.616 47.8009 3.664 47.8729 3.72C48.1769 3.976 48.3769 4.176 48.4729 4.32C48.6009 4.52 48.6649 4.784 48.6649 5.112C48.6649 5.216 48.6689 5.288 48.6769 5.328L50.7769 3.576L52.0249 4.812L52.8169 4.044L53.0689 4.308C52.6929 4.66 52.4529 4.972 52.3489 5.244C52.2449 5.5 52.1929 5.924 52.1929 6.516V9.408C52.1929 9.624 52.1929 9.8 52.1929 9.936C52.1929 10.064 52.1969 10.148 52.2049 10.188C52.2529 10.556 52.3849 10.74 52.6009 10.74C52.6809 10.74 52.8129 10.676 52.9969 10.548C53.0129 10.532 53.0289 10.516 53.0449 10.5C53.0689 10.484 53.0969 10.464 53.1289 10.44L53.3329 10.776L51.5449 12.204C51.5049 12.172 51.4689 12.14 51.4369 12.108C51.4049 12.084 51.3809 12.064 51.3649 12.048C50.9729 11.704 50.7329 11.408 50.6449 11.16C50.5569 10.912 50.5129 10.428 50.5129 9.708V5.436L49.8529 4.752L48.6769 5.724V10.404L49.2529 11.028L47.7889 12.204L46.3369 10.992L46.9969 10.368V6.012C46.9969 5.788 46.9929 5.604 46.9849 5.46C46.9769 5.316 46.9569 5.208 46.9249 5.136C46.9009 5.056 46.8649 5.004 46.8169 4.98C46.7689 4.948 46.7049 4.932 46.6249 4.932C46.5609 4.932 46.4209 4.992 46.2049 5.112L46.0129 4.848L47.6929 3.576Z"
+            ></path>
+          </svg>
+        </div>
+
+        <div class="middleDiv">
+          <span style="padding-left: 1.5em; padding-right: 1.5em;"
+            >Are you sure you want to choose this option?</span
+          >
+        </div>
+
+        <div class="bottomDiv">
+          <div class="buttons">
+            <label class="yes" for="yesCheck">
+              <input class="yesCheck" type="radio" />
+              <span>Yes</span>
+              <div class="cornerBtn11"></div>
+              <div class="cornerBtn12"></div>
+              <div class="cornerBtn13"></div>
+              <div class="cornerBtn14"></div>
+            </label>
+            <label class="no" for="noCheck">
+              <input class="noCheck" type="radio" />
+              <span>No</span>
+              <div class="cornerBtn21"></div>
+              <div class="cornerBtn22"></div>
+              <div class="cornerBtn23"></div>
+              <div class="cornerBtn24"></div>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <span class="bottomText">Click for more!</span>
+  </div>
+</template>

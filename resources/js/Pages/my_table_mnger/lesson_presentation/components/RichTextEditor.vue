@@ -135,6 +135,13 @@
         <q-tooltip>Auto-Format Math (Detect & Fix)</q-tooltip>
       </q-btn>
 
+      <q-separator vertical inset />
+
+      <!-- Page Break Button -->
+      <q-btn @click="insertPageBreak" flat dense size="sm" color="red-6" icon="horizontal_split">
+        <q-tooltip>Insert Printer Page Break</q-tooltip>
+      </q-btn>
+
       <!-- AI Assistant Button -->
       <q-btn @click="showAIAssistant = true" flat dense size="sm" color="accent" icon="psychology">
         <q-tooltip>AI Assistant</q-tooltip>
@@ -145,7 +152,7 @@
     <!-- Editor Area -->
     <div
       ref="editor"
-      class="max-h-96 overflow-y-auto markdown prose dark:prose-invert w-full break-words markdown-new-styling"
+      class="max-h-96 overflow-y-auto markdown prose max-w-none dark:prose-invert w-full break-words markdown-new-styling"
       contenteditable="true"
       @input="onInput"
       @blur="onInput"
@@ -292,6 +299,22 @@ const insertMath = (html) => {
   restoreSelection();
   document.execCommand('insertHTML', false, html);
   showMathEditor.value = false;
+  saveSelection();
+  onInput();
+};
+
+const insertPageBreak = () => {
+  restoreSelection();
+  const html = '<div class="page-break" style="page-break-before: always; border-top: 2px dashed #f44336; padding-top: 20px; margin-top: 40px; margin-bottom: 20px; position: relative;" contenteditable="false"><span style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: white; padding: 0 10px; color: #f44336; font-size: 10px; font-weight: bold; letter-spacing: 2px;">PAGE BREAK</span></div><p><br></p>';
+  document.execCommand('insertHTML', false, html);
+  
+  // Try to find the newly inserted element to scroll it into view
+  setTimeout(() => {
+    if (editor.value) {
+      editor.value.focus();
+    }
+  }, 10);
+  
   saveSelection();
   onInput();
 };

@@ -85,11 +85,20 @@ const performRender = (text, katex) => {
     });
 
     // Replace inline math $...$ or \(...\)
-    renderedText = renderedText.replace(/(\$|\\\()([\s\S]*?)(\$|\\\))/g, function (match, start, content, end) {
-        if (start === '$' && end === '$') {
-            const index = arguments[arguments.length - 2];
-            if (index > 0 && renderedText[index - 1] === '\\') {
-                return '$' + content + '$';
+    // Fixed regex to properly handle consecutive inline math expressions
+    renderedText = renderedText.replace(/\$(.*?)\$|\\\((.*?)\\\)/g, function (match, content1, content2) {
+        const content = content1 || content2;  // Use content from either capture group
+    
+        // Check if this $...$ pair is part of a $$...$$ sequence
+        if (match.startsWith('$') && match.endsWith('$')) {
+            // Verify this isn't part of a double-dollar sequence by checking context
+            const matchStart = arguments[arguments.length - 2];
+            const prevChar = matchStart > 0 ? renderedText.charAt(matchStart - 1) : '';
+            const nextChar = matchStart + match.length < renderedText.length ? renderedText.charAt(matchStart + match.length) : '';
+            
+            if ((prevChar === '$' || nextChar === '$') && !content.startsWith('$') && !content.endsWith('$')) {
+                // This is likely part of $$...$$, so return original match to be handled by the display math regex
+                return match;
             }
         }
 

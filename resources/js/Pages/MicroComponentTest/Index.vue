@@ -54,6 +54,87 @@
                         <q-item-label caption>Live Q&A Components</q-item-label>
                     </q-item-section>
                 </q-item>
+                
+                <!-- New chart components -->
+                <q-item clickable v-close-popup @click="currentView = 'chart'">
+                    <q-item-section avatar>
+                        <span class="text-xl">📊</span>
+                    </q-item-section>
+                    <q-item-section>
+                        <q-item-label>ECharts Components</q-item-label>
+                        <q-item-label caption>Various Chart Components</q-item-label>
+                    </q-item-section>
+                </q-item>
+                
+                <q-item clickable v-close-popup @click="currentView = 'multiplication'">
+                    <q-item-section avatar>
+                        <span class="text-xl">✖️</span>
+                    </q-item-section>
+                    <q-item-section>
+                        <q-item-label>Multiplication Table</q-item-label>
+                        <q-item-label caption>Multiplication Learning Component</q-item-label>
+                    </q-item-section>
+                </q-item>
+                
+                <q-item clickable v-close-popup @click="currentView = 'multiplication2'">
+                    <q-item-section avatar>
+                        <span class="text-xl">🎯</span>
+                    </q-item-section>
+                    <q-item-section>
+                        <q-item-label>Multiplication Drag &amp; Drop</q-item-label>
+                        <q-item-label caption>Drag and Match Multiplication</q-item-label>
+                    </q-item-section>
+                </q-item>
+
+                <q-item clickable v-close-popup @click="currentView = 'multiplication3'">
+                    <q-item-section avatar>
+                        <span class="text-xl">🔢</span>
+                    </q-item-section>
+                    <q-item-section>
+                        <q-item-label>Multiple Choice Quiz</q-item-label>
+                        <q-item-label caption>Modular Multiplication Quiz</q-item-label>
+                    </q-item-section>
+                </q-item>
+
+                <q-item clickable v-close-popup @click="currentView = 'multiplication4'">
+                    <q-item-section avatar>
+                        <span class="text-xl">📝</span>
+                    </q-item-section>
+                    <q-item-section>
+                        <q-item-label>Tables Diploma</q-item-label>
+                        <q-item-label caption>Input Based Multiplcation Quiz</q-item-label>
+                    </q-item-section>
+                </q-item>
+                
+                <q-item clickable v-close-popup @click="currentView = 'ixllineplot'">
+                    <q-item-section avatar>
+                        <span class="text-xl">📈</span>
+                    </q-item-section>
+                    <q-item-section>
+                        <q-item-label>IXL Line Plot</q-item-label>
+                        <q-item-label caption>Interactive Line Plot Visualization</q-item-label>
+                    </q-item-section>
+                </q-item>
+                
+                <q-item clickable v-close-popup @click="currentView = 'presentation'">
+                    <q-item-section avatar>
+                        <span class="text-xl">📽️</span>
+                    </q-item-section>
+                    <q-item-section>
+                        <q-item-label>Presentation Editor</q-item-label>
+                        <q-item-label caption>PowerPoint-like Slide Editor</q-item-label>
+                    </q-item-section>
+                </q-item>
+                
+                <q-item clickable v-close-popup @click="currentView = 'mytable'">
+                    <q-item-section avatar>
+                        <span class="text-xl">🗓️</span>
+                    </q-item-section>
+                    <q-item-section>
+                        <q-item-label>Schedule Timeline</q-item-label>
+                        <q-item-label caption>Interactive HTML Schedule</q-item-label>
+                    </q-item-section>
+                </q-item>
             </q-list>
         </q-btn-dropdown>
     </div>
@@ -292,6 +373,163 @@
             </ul>
         </div>
     </div>
+    
+    <!-- Chart Components View -->
+    <div v-show="currentView === 'chart'" class="animate-fade-in">
+        <h2 class="text-xl font-bold mb-4">ECharts Components Test</h2>
+        <div class="grid gap-6">
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold mb-2">EChart Component</h3>
+                <EChartComponent 
+                  title="Sample Chart"
+                  type="bar"
+                  :labels="['Jan', 'Feb', 'Mar', 'Apr', 'May']"
+                  :datasets="[{ name: 'Sales', data: [10, 20, 15, 25, 30] }]"
+                />
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold mb-2">EChart Component V2</h3>
+                <EChartComponent_v2 
+                  title="Performance Metrics"
+                  type="line"
+                  :labels="['Mon', 'Tue', 'Wed', 'Thu', 'Fri']"
+                  :datasets="[{ name: 'Tasks', data: [12, 19, 3, 5, 2] }]"
+                />
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold mb-2">Test Chart V2</h3>
+                <TestChartV2 />
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold mb-2">Dynamic Tree Editor</h3>
+                <DynamicTreeEditor />
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold mb-2">Drag & Drop Component</h3>
+                <DragDrop>
+                  <div class="p-4 bg-gray-200 rounded">Drag me around!</div>
+                </DragDrop>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Multiplication Component View -->
+    <div v-show="currentView === 'multiplication'" class="animate-fade-in">
+        <h2 class="text-xl font-bold mb-4">Multiplication Table Component</h2>
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold mb-2">Multiplication Practice</h3>
+            <mulitp />
+        </div>
+    </div>
+    
+    <!-- Multiplication Drag & Drop Component View -->
+    <div v-show="currentView === 'multiplication2'" class="animate-fade-in">
+        <h2 class="text-xl font-bold mb-4">Multiplication Drag &amp; Drop Component</h2>
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold mb-2">Drag and Match Multiplication</h3>
+            <multip2 />
+        </div>
+    </div>
+
+    <!-- Multiple Choice Quiz (multip3) -->
+    <div v-show="currentView === 'multiplication3'" class="animate-fade-in">
+        <h2 class="text-xl font-bold mb-4">Multiple Choice Quiz</h2>
+        <div class="bg-white rounded-lg shadow p-6">
+            <MultipleChoiceQuiz
+                :questions="multip3Questions"
+                @quiz-complete="handleQuizComplete"
+            />
+
+            <!-- Progress Badge — shown after the quiz is submitted at least once -->
+            <div v-if="studentProgress.completedAt" class="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg text-center">
+                <p class="text-green-800 font-semibold text-sm">✅ Last Result saved</p>
+                <p class="text-2xl font-bold text-green-700 mt-1">
+                    {{ studentProgress.correctCount }} / {{ studentProgress.total }}
+                    <span class="text-base font-normal text-green-600">({{ studentProgress.percentage }}%)</span>
+                </p>
+                <p class="text-xs text-green-500 mt-1">Completed at {{ new Date(studentProgress.completedAt).toLocaleTimeString() }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tables Diploma (multip4) -->
+    <div v-show="currentView === 'multiplication4'" class="animate-fade-in">
+        <h2 class="text-xl font-bold mb-4">Tables Diploma Quiz</h2>
+        <div class="bg-white rounded-lg shadow p-6">
+            <InputQuiz 
+                @quiz-complete="handleMultip4Complete"
+            />
+            
+            <!-- Progress log -->
+            <div v-if="multip4Progress.completedAt" class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-center">
+                <p class="text-blue-800 font-semibold text-sm">✅ Diploma Finished!</p>
+                <p class="text-2xl font-bold text-blue-700 mt-1">
+                    Time Limit Challenge Passed
+                </p>
+                <p class="text-md text-blue-600 font-medium">Clear Time: {{ multip4Progress.formattedTime }}</p>
+                <p class="text-xs text-blue-500 mt-1">Completed at {{ new Date(multip4Progress.completedAt).toLocaleTimeString() }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- IXL Line Plot Component -->
+    <div v-show="currentView === 'ixllineplot'" class="animate-fade-in">
+        <h2 class="text-xl font-bold mb-4">IXL Line Plot Visualization</h2>
+        <div class="bg-white rounded-lg shadow p-6">
+            <IXLLinePlotExample />
+        </div>
+        
+        <!-- Component Documentation -->
+        <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <h3 class="text-lg font-semibold mb-3 text-blue-900">📋 Component Features</h3>
+            <div class="grid md:grid-cols-2 gap-4 text-sm text-blue-800">
+                <div>
+                    <h4 class="font-medium mb-2">📊 Visualization Components</h4>
+                    <ul class="space-y-1 list-disc list-inside">
+                        <li>X Marks on Number Line</li>
+                        <li>Configurable Ticks and Labels</li>
+                        <li>Responsive SVG Rendering</li>
+                        <li>Animation Support</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-medium mb-2">🎯 Smart Score Features</h4>
+                    <ul class="space-y-1 list-disc list-inside">
+                        <li>Visual Progress Representation</li>
+                        <li>Color-Coded Mastery Levels</li>
+                        <li>Adaptive Scoring Display</li>
+                        <li>Performance Analytics</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="mt-4 pt-4 border-t border-blue-200">
+                <h4 class="font-medium text-blue-900 mb-2">🔧 Usage Information</h4>
+                <p class="text-sm text-blue-700">
+                    This component demonstrates reusable Vue components for educational data visualization.
+                    The components are designed to work with any lesson or question type and use JSON-based
+                    configuration for easy maintenance and scaling.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Presentation Editor Component -->
+    <div v-show="currentView === 'presentation'" class="animate-fade-in h-screen -mx-6 -mt-6">
+        <PresentationEditor />
+    </div>
+    
+    <!-- Schedule Timeline Component -->
+    <div v-show="currentView === 'mytable'" class="animate-fade-in">
+        <h2 class="text-xl font-bold mb-4">Schedule Timeline</h2>
+        <div class="bg-white rounded-lg shadow p-6">
+            <MyTableSchedule />
+        </div>
+    </div>
 
     <div class="mt-6 text-xs text-gray-500">This page and components are intentionally minimal so you can iterate and copy them elsewhere when ready.</div>
   </div>
@@ -309,6 +547,64 @@ import SecureNumpad from './comptest/SecureNumpad/SecureNumpad.vue';
 import QuestionDisplay from './comptest/realtimetest/QuestionDisplay.vue';
 import QuestionInput from './comptest/realtimetest/QuestionInput.vue';
 
+// Import chart components from test1/charts directory
+import EChartComponent from './comptest/test1/charts/EChartComponent.vue';
+import EChartComponent_v2 from './comptest/test1/charts/EChartComponent_v2.vue';
+import TestChartV2 from './comptest/test1/charts/TestChartV2.vue';
+import DynamicTreeEditor from './comptest/test1/charts/DynamicTreeEditor.vue';
+import DragDrop from './comptest/test1/charts/DragDrop.vue';
+// Removed TreeNode import to prevent circular dependency - it's imported internally by DynamicTreeEditor
+
+// Import multiplication components
+import mulitp from './comptest/test1/multiplication/mulitp.vue';
+import multip2 from './comptest/test1/multiplication/multip2.vue';
+import MultipleChoiceQuiz from './comptest/test1/multiplication/multip3/MultipleChoiceQuiz.vue';
+import quizData from './comptest/test1/multiplication/multip3/quizData.js';
+import InputQuiz from './comptest/test1/multiplication/multip4/InputQuiz.vue';
+
+// Import IXL Line Plot components
+import IXLLinePlotExample from './comptest/test1/smartscore/examples/IXLLinePlotExample.vue';
+
+// Import Presentation Editor component
+import { PresentationEditor } from './comptest/test1/ppt';
+
+// Import MyTableSchedule component
+import MyTableSchedule from './mytable/MyTableSchedule/MyTableSchedule.vue';
+
+// multip3 — quiz data and student progress
+const multip3Questions = ref(quizData);
+const studentProgress = ref({
+    correctCount: 0,
+    total:        0,
+    percentage:   0,
+    completedAt:  null,
+});
+
+const handleQuizComplete = ({ correctCount, total, percentage }) => {
+    studentProgress.value = {
+        correctCount,
+        total,
+        percentage,
+        completedAt: new Date().toISOString(),
+    };
+    console.log('[Index] Quiz complete — studentProgress saved:', studentProgress.value);
+};
+
+// multip4 — Tables Diploma
+const multip4Progress = ref({
+    time: 0,
+    formattedTime: '',
+    completedAt: null,
+});
+
+const handleMultip4Complete = ({ time, formattedTime }) => {
+    multip4Progress.value = {
+        time,
+        formattedTime,
+        completedAt: new Date().toISOString(),
+    };
+    console.log('[Index] multip4 Quiz complete:', multip4Progress.value);
+};
 
 defineOptions({
   layout: AppLayoutDefault
@@ -320,12 +616,57 @@ const currentViewLabel = computed(() => {
         case 'audio': return 'Audio Player';
         case 'numpad': return 'Secure Numpad';
         case 'realtime': return 'Real-time Questions';
+        case 'chart': return 'ECharts Components';
+        case 'multiplication': return 'Multiplication Table';
+        case 'multiplication2': return 'Multiplication Drag & Drop';
+        case 'multiplication3': return 'Multiple Choice Quiz';
+        case 'multiplication4': return 'Tables Diploma';
+        case 'ixllineplot': return 'IXL Line Plot';
+        case 'presentation': return 'Presentation Editor';
+        case 'mytable': return 'Schedule Timeline';
         default: return 'Micro Dropdown';
     }
 });
 
 // Numpad Demo State
 const numpadValue = ref('');
+
+// Schedule Timeline Demo State
+import fullScheduleData from './mytable/full_schedule.json';
+
+const periodTimes = {
+  1: { start: '07:30', end: '08:15' },
+  2: { start: '08:15', end: '09:00' },
+  3: { start: '09:00', end: '09:45' },
+  4: { start: '10:00', end: '10:45' }, // 15m break
+  5: { start: '10:45', end: '11:30' },
+  6: { start: '11:45', end: '12:30' }, // 15m break
+  7: { start: '12:30', end: '13:15' },
+  8: { start: '13:15', end: '14:00' },
+};
+
+const classColors = {
+  '7A': '#FF6B6B',
+  '5B': '#4ECDC4',
+  '4A': '#45B7D1',
+  '5A': '#FDCB6E',
+};
+
+const mappedScheduleItems = computed(() => {
+    return fullScheduleData.map(day => {
+        return {
+            id: day.dayIndex,
+            label: day.day,
+            events: day.classes.filter(c => c.sub).map((c) => ({
+                id: `${day.dayIndex}-${c.p}`,
+                startTime: periodTimes[c.p]?.start || '00:00',
+                endTime: periodTimes[c.p]?.end || '01:00',
+                color: c.nafs ? '#A55EEA' : (classColors[c.sub] || '#8e44ad'),
+                label: c.sub + (c.nafs ? ' (NAFS)' : '')
+            }))
+        };
+    });
+});
 
 const selected = ref('');
 const options = [

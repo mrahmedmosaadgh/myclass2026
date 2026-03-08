@@ -16,7 +16,7 @@
   align-items: center;
   justify-content: center;
   color: #2d3748;
-  transition: all 0.5s ease;
+  transition: all 0.05s ease;
 }
 
 /* Simple clean cover */
@@ -29,7 +29,7 @@
   border-radius: 15px;
   cursor: pointer;
   transform-origin: left;
-  transition: transform 0.7s cubic-bezier(0.645, 0.045, 0.355, 1);
+  transition: transform 0.4s cubic-bezier(0.645, 0.045, 0.355, 1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -98,7 +98,7 @@
   backdrop-filter: blur(10px);
   border-radius: 15px;
   transform-origin: left;
-  transition: all 0.5s ease;
+  transition: all 0.15s ease;
   overflow: hidden;
 }
 </style>

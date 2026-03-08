@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Full Weekly Schedule</title>
+    <style>
+        :root {
+            --header-bg: #4a4a4a;
+            --day-bg: #5a5a5a;
+            --day-text: #fce4ce;
+            --border-color: #222;
+            --7a-color: #ffff00;
+            --4a-color: #dbeafe;
+            --other-color: #ffffff;
+            --live-glow: #ff2a2a;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px 20px;
+            margin: 0;
+        }
+
+        .header-container {
+            width: 100%;
+            max-width: 1000px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .header-title {
+            margin: 0; 
+            color: #333; 
+        }
+
+        .controls {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .toggle-btn {
+            padding: 10px 16px;
+            margin-top: 2px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2), inset 0 2px 0 rgba(255,255,255,0.2);
+            transition: all 0.2s;
+        }
+
+        .toggle-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 8px rgba(16, 185, 129, 0.3);
+        }
+
+        /* Grouping the clock and the time left indicator */
+        .time-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 6px;
+        }
+
+        .clock {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #3b82f6;
+            background: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        /* NEW: Header Time Left Badge */
+        .header-time-left {
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: var(--live-glow);
+            background: #ffebe9;
+            padding: 4px 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 42, 42, 0.2);
+            display: none; /* Hidden by default until an active class is found */
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 42, 42, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(255, 42, 42, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 42, 42, 0); }
+        }
+
+        table {
+            width: 100%;
+            max-width: 1000px;
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: 2px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            text-align: center;
+            padding: 12px 5px;
+            width: 11%;
+        }
+
+        th {
+            background-color: var(--header-bg);
+            color: white;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .period-num { font-size: 1.1rem; font-weight: bold; display: block; }
+        .period-time { font-size: 0.75rem; color: #ccc; }
+
+        .day-col {
+            background-color: var(--day-bg);
+            color: var(--day-text);
+            font-size: 1.1rem;
+            font-weight: bold;
+            text-align: left;
+            padding-left: 15px;
+            width: 12%;
+        }
+
+        .subject-cell {
+            font-size: 1.2rem;
+            font-weight: 900;
+            color: #111;
+            position: relative;
+            transition: all 0.3s;
+            overflow: hidden; 
+        }
+
+        .nafs-text {
+            display: block;
+            font-size: 0.7rem;
+            font-weight: normal;
+            color: #444;
+            margin-top: 5px;
+            position: relative;
+            z-index: 5; 
+        }
+        
+        .subject-cell span.main-text {
+            position: relative;
+            z-index: 5;
+        }
+
+        .sub-7A { background-color: var(--7a-color); }
+        .sub-4A { background-color: var(--4a-color); }
+        .sub-other { background-color: var(--other-color); }
+        .sub-free { background-color: white; }
+
+        .is-current-class {
+            box-shadow: inset 0 0 0 3px var(--live-glow), 0 0 15px rgba(255, 42, 42, 0.4);
+            z-index: 10;
+        }
+
+        .is-current-day {
+            border-left: 5px solid var(--live-glow);
+        }
+
+        .cell-progress-line {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: rgba(255, 42, 42, 0.8);
+            z-index: 1;
+            pointer-events: none;
+            box-shadow: 0 0 8px rgba(255, 42, 42, 0.6);
+        }
+
+        .cell-progress-line::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: -4px;
+            width: 10px;
+            height: 10px;
+            background: var(--live-glow);
+            border-radius: 50%;
+            box-shadow: 0 0 5px rgba(255, 42, 42, 0.8);
+        }
+
+        .cell-progress-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 42, 42, 0.1);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .error-message {
+            color: red;
+            font-weight: bold;
+            padding: 20px;
+            background: #ffebe9;
+            border: 1px solid red;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header-container">
+    <h2 class="header-title" id="main-title">Full Weekly View</h2>
+    <div class="controls">
+        <button id="toggle-view-btn" class="toggle-btn" onclick="toggleViewMode()">Show Today Only</button>
+        <div class="time-wrapper">
+            <div id="clock" class="clock">00:00:00</div>
+            <div id="header-time-left" class="header-time-left"></div>
+        </div>
+    </div>
+</div>
+
+<div id="error-box" class="error-message"></div>
+
+<table id="schedule-table">
+    <thead>
+        <tr>
+            <th>Day</th>
+            <th><span class="period-num">1</span><span class="period-time">(9:00 - 9:30)</span></th>
+            <th><span class="period-num">2</span><span class="period-time">(9:30 - 10:00)</span></th>
+            <th><span class="period-num">3</span><span class="period-time">(10:00 - 10:30)</span></th>
+            <th><span class="period-num">4</span><span class="period-time">(10:30 - 11:00)</span></th>
+            <th><span class="period-num">5</span><span class="period-time">(11:00 - 11:30)</span></th>
+            <th><span class="period-num">6</span><span class="period-time">(11:30 - 12:00)</span></th>
+            <th><span class="period-num">7</span><span class="period-time">(12:00 - 12:25)</span></th>
+            <th><span class="period-num">8</span><span class="period-time">(12:25 - 12:50)</span></th>
+        </tr>
+    </thead>
+    <tbody id="table-body">
+    </tbody>
+</table>
+
+<script>
+    let scheduleData = [];
+    let isShowingAllDays = true; 
+
+    // Time slots stored in total minutes from midnight
+    const timeSlots = [
+        { start: 9*60, end: 9*60+30 },      
+        { start: 9*60+30, end: 10*60 },     
+        { start: 10*60, end: 10*60+30 },    
+        { start: 10*60+30, end: 11*60 },    
+        { start: 11*60, end: 11*60+30 },    
+        { start: 11*60+30, end: 12*60 },    
+        { start: 12*60, end: 12*60+25 },    
+        { start: 12*60+25, end: 12*60+50 }  
+    ];
+
+    async function init() {
+        try {
+            const response = await fetch('full_schedule.json');
+            if (!response.ok) throw new Error("HTTP error " + response.status);
+            
+            scheduleData = await response.json();
+            
+            buildTable();
+            updateLiveIndicator();
+            setInterval(updateLiveIndicator, 1000); 
+
+        } catch (error) {
+            console.error("Failed to load:", error);
+            const errorBox = document.getElementById('error-box');
+            errorBox.style.display = "block";
+            errorBox.innerHTML = `Could not load full_schedule.json.<br><br>Make sure you are using a local web server.`;
+            document.getElementById('schedule-table').style.display = "none";
+        }
+    }
+
+    function buildTable() {
+        const tbody = document.getElementById('table-body');
+        tbody.innerHTML = ''; 
+        
+        scheduleData.forEach(dayRow => {
+            const tr = document.createElement('tr');
+            tr.id = `row-day-${dayRow.dayIndex}`;
+            
+            let html = `<td class="day-col">${dayRow.day}</td>`;
+            
+            dayRow.classes.forEach((c, index) => {
+                let colorClass = 'sub-free';
+                if (c.sub === '7A') colorClass = 'sub-7A';
+                else if (c.sub === '4A') colorClass = 'sub-4A';
+                else if (c.sub !== '') colorClass = 'sub-other';
+
+                const nafsHTML = c.nafs ? `<span class="nafs-text">(NAFS M)</span>` : '';
+                
+                html += `<td class="subject-cell ${colorClass}" id="cell-${dayRow.dayIndex}-${index}">
+                            <span class="main-text">${c.sub}</span>
+                            ${nafsHTML}
+                         </td>`;
+            });
+            
+            tr.innerHTML = html;
+            tbody.appendChild(tr);
+        });
+
+        applyViewFilter();
+    }
+
+    function toggleViewMode() {
+        isShowingAllDays = !isShowingAllDays;
+        
+        const btn = document.getElementById('toggle-view-btn');
+        const title = document.getElementById('main-title');
+
+        if (isShowingAllDays) {
+            btn.innerText = "Show Today Only";
+            title.innerText = "Full Weekly View";
+        } else {
+            btn.innerText = "Show All Days";
+            title.innerText = "Today's View";
+        }
+        applyViewFilter();
+    }
+
+    function applyViewFilter() {
+        let currentDayIndex = new Date().getDay(); 
+        if (currentDayIndex > 4) currentDayIndex = 0; 
+
+        scheduleData.forEach(dayRow => {
+            const tr = document.getElementById(`row-day-${dayRow.dayIndex}`);
+            if (!tr) return;
+
+            if (isShowingAllDays) {
+                tr.style.display = ''; 
+            } else {
+                tr.style.display = (dayRow.dayIndex === currentDayIndex) ? '' : 'none'; 
+            }
+        });
+    }
+
+    function updateLiveIndicator() {
+        if (scheduleData.length === 0) return; 
+
+        const now = new Date();
+        const currentDayIndex = now.getDay(); 
+        
+        const currentTotalSecs = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+
+        document.getElementById('clock').innerText = 
+            now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+        // Cleanup grid elements
+        document.querySelectorAll('.is-current-class').forEach(el => el.classList.remove('is-current-class'));
+        document.querySelectorAll('.is-current-day').forEach(el => el.classList.remove('is-current-day'));
+        document.querySelectorAll('.cell-progress-line, .cell-progress-fill').forEach(el => el.remove());
+
+        const headerTimeLeft = document.getElementById('header-time-left');
+        let activePeriodFound = false;
+
+        const dayRow = document.getElementById(`row-day-${currentDayIndex}`);
+        if (dayRow) {
+            dayRow.querySelector('.day-col').classList.add('is-current-day');
+        }
+
+        if (currentDayIndex >= 0 && currentDayIndex <= 4) {
+            for (let i = 0; i < timeSlots.length; i++) {
+                
+                const startSecs = timeSlots[i].start * 60;
+                const endSecs = timeSlots[i].end * 60;
+
+                if (currentTotalSecs >= startSecs && currentTotalSecs < endSecs) {
+                    const activeCell = document.getElementById(`cell-${currentDayIndex}-${i}`);
+                    
+                    if (activeCell) {
+                        activeCell.classList.add('is-current-class');
+                        
+                        const totalDurationSecs = endSecs - startSecs;
+                        const elapsedSecs = currentTotalSecs - startSecs;
+                        const percentDone = (elapsedSecs / totalDurationSecs) * 100;
+
+                        // Calculate remaining time and update the header
+                        const timeRemainingSecs = endSecs - currentTotalSecs;
+                        const minsLeft = Math.floor(timeRemainingSecs / 60);
+                        const secsLeft = timeRemainingSecs % 60;
+                        
+                        // We also specify which period is currently running for clarity
+                        headerTimeLeft.innerText = `${minsLeft}:${secsLeft.toString().padStart(2, '0')} left in Period ${i + 1}`;
+                        headerTimeLeft.style.display = "block";
+                        activePeriodFound = true;
+
+                        const line = document.createElement('div');
+                        line.className = 'cell-progress-line';
+                        line.style.top = `${percentDone}%`;
+
+                        const fill = document.createElement('div');
+                        fill.className = 'cell-progress-fill';
+                        fill.style.height = `${percentDone}%`;
+
+                        activeCell.appendChild(fill);
+                        activeCell.appendChild(line);
+                    }
+                    break; 
+                }
+            }
+        }
+
+        // If no class is currently happening, hide the header countdown
+        if (!activePeriodFound) {
+            headerTimeLeft.style.display = "none";
+        }
+    }
+
+    init();
+</script>
+
+</body>
+</html>

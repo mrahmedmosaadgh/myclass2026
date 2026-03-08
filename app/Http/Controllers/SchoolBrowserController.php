@@ -253,6 +253,7 @@ class SchoolBrowserController extends Controller
                     // Use null-safe operators (?->) to prevent errors on missing relationships
                     return [
                         'id' => $assignment->id,
+                        'school_id' => $assignment->school_id,  // Add this line
                         'classroom_id' => $assignment->classroom_id,
                         'classroom_name' => $assignment->classroom?->name,
                         'grade_name' => $assignment->classroom?->grade?->name,

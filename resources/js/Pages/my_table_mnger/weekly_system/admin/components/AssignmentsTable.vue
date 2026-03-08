@@ -17,37 +17,46 @@
           <div class="col-12 col-md-3">
             <q-select
               v-model="filters.classroom"
-              :options="classroomOptions"
+              :options="filteredClassroomOptions"
               label="Filter by Classroom"
               outlined
               dense
               clearable
               emit-value
               map-options
+              use-input
+              input-debounce="0"
+              @filter="filterClassrooms"
             />
           </div>
           <div class="col-12 col-md-3">
             <q-select
               v-model="filters.subject"
-              :options="subjectOptions"
+              :options="filteredSubjectOptions"
               label="Filter by Subject"
               outlined
               dense
               clearable
               emit-value
               map-options
+              use-input
+              input-debounce="0"
+              @filter="filterSubjects"
             />
           </div>
           <div class="col-12 col-md-3">
             <q-select
               v-model="filters.teacher"
-              :options="teacherOptions"
+              :options="filteredTeacherOptions"
               label="Filter by Teacher"
               outlined
               dense
               clearable
               emit-value
               map-options
+              use-input
+              input-debounce="0"
+              @filter="filterTeachers"
             />
           </div>
           <div class="col-12 col-md-3 flex items-center">
@@ -98,11 +107,14 @@
               <q-select
                 v-if="editMode"
                 v-model="props.row.classroom_id"
-                :options="classroomOptions"
+                :options="filteredClassroomOptions"
                 dense
                 outlined
                 emit-value
                 map-options
+                use-input
+                input-debounce="0"
+                @filter="filterClassrooms"
                 @update:model-value="(val) => updateAssignment(props.row, 'classroom_id', val)"
               />
               <span v-else>{{ props.row.classroom_name }}</span>
@@ -125,11 +137,14 @@
               <q-select
                 v-else
                 v-model="props.row.subject_id"
-                :options="subjectOptions"
+                :options="filteredSubjectOptions"
                 dense
                 outlined
                 emit-value
                 map-options
+                use-input
+                input-debounce="0"
+                @filter="filterSubjects"
                 @update:model-value="(val) => updateAssignment(props.row, 'subject_id', val)"
               />
             </q-td>
@@ -144,11 +159,14 @@
               <q-select
                 v-else
                 v-model="props.row.teacher_id"
-                :options="teacherOptions"
+                :options="filteredTeacherOptions"
                 dense
                 outlined
                 emit-value
                 map-options
+                use-input
+                input-debounce="0"
+                @filter="filterTeachers"
                 @update:model-value="(val) => updateAssignment(props.row, 'teacher_id', val)"
               />
             </q-td>
@@ -214,30 +232,39 @@
         <q-card-section class="q-pt-none">
           <q-select
             v-model="newAssignment.classroom_id"
-            :options="classroomOptions"
+            :options="filteredClassroomOptions"
             label="Classroom"
             outlined
             class="q-mb-md"
             emit-value
             map-options
+            use-input
+            input-debounce="0"
+            @filter="filterClassrooms"
           />
           <q-select
             v-model="newAssignment.subject_id"
-            :options="subjectOptions"
+            :options="filteredSubjectOptions"
             label="Subject"
             outlined
             class="q-mb-md"
             emit-value
             map-options
+            use-input
+            input-debounce="0"
+            @filter="filterSubjects"
           />
           <q-select
             v-model="newAssignment.teacher_id"
-            :options="teacherOptions"
+            :options="filteredTeacherOptions"
             label="Teacher"
             outlined
             class="q-mb-md"
             emit-value
             map-options
+            use-input
+            input-debounce="0"
+            @filter="filterTeachers"
           />
           <q-input
             v-model.number="newAssignment.classes_per_week"
@@ -330,28 +357,20 @@ const classroomOptions = computed(() => {
     classrooms = props.assignments
       .map(a => ({
         id: a.classroom_id,
-        name: a.classroom_name,
-        grade_id: null,
-        grade_name: a.grade_name || 'Unknown Grade'
+        name: a.classroom_name
       }))
       .filter((c, index, self) => 
         index === self.findIndex(x => x.id === c.id)
       );
   }
   
-  // Return flat list sorted by grade and name
+  // Return flat list sorted by name
   return classrooms
     .map(c => ({
-      label: `${c.grade_name || 'N/A'} - ${c.name}`,
-      value: c.id,
-      grade_name: c.grade_name || 'Unknown Grade'
+      label: c.name,
+      value: c.id
     }))
-    .sort((a, b) => {
-      // Sort by grade first, then by classroom name
-      const gradeCompare = a.grade_name.localeCompare(b.grade_name);
-      if (gradeCompare !== 0) return gradeCompare;
-      return a.label.localeCompare(b.label);
-    });
+    .sort((a, b) => a.label.localeCompare(b.label));
 });
 
 const subjectOptions = computed(() => {
@@ -399,6 +418,57 @@ const teacherOptions = computed(() => {
     )
     .sort((a, b) => a.label.localeCompare(b.label));
 });
+
+// Searchable options state
+const filteredClassroomOptions = ref([]);
+const filteredSubjectOptions = ref([]);
+const filteredTeacherOptions = ref([]);
+
+import { watch } from 'vue';
+
+watch(classroomOptions, (newVal) => { filteredClassroomOptions.value = newVal; }, { immediate: true });
+watch(subjectOptions, (newVal) => { filteredSubjectOptions.value = newVal; }, { immediate: true });
+watch(teacherOptions, (newVal) => { filteredTeacherOptions.value = newVal; }, { immediate: true });
+
+// Filter functions
+const filterClassrooms = (val, update) => {
+  if (val === '') {
+    update(() => {
+      filteredClassroomOptions.value = classroomOptions.value;
+    });
+    return;
+  }
+  update(() => {
+    const needle = val.toLowerCase();
+    filteredClassroomOptions.value = classroomOptions.value.filter(v => v.label.toLowerCase().indexOf(needle) > -1);
+  });
+};
+
+const filterSubjects = (val, update) => {
+  if (val === '') {
+    update(() => {
+      filteredSubjectOptions.value = subjectOptions.value;
+    });
+    return;
+  }
+  update(() => {
+    const needle = val.toLowerCase();
+    filteredSubjectOptions.value = subjectOptions.value.filter(v => v.label.toLowerCase().indexOf(needle) > -1);
+  });
+};
+
+const filterTeachers = (val, update) => {
+  if (val === '') {
+    update(() => {
+      filteredTeacherOptions.value = teacherOptions.value;
+    });
+    return;
+  }
+  update(() => {
+    const needle = val.toLowerCase();
+    filteredTeacherOptions.value = teacherOptions.value.filter(v => v.label.toLowerCase().indexOf(needle) > -1);
+  });
+};
 
 // Filtered assignments
 const filteredAssignments = computed(() => {
@@ -473,13 +543,6 @@ const addAssignment = () => {
 
 // Columns definition
 const columns = [
-  {
-    name: 'grade_name',
-    label: 'Grade',
-    field: 'grade_name',
-    align: 'left',
-    sortable: true
-  },
   {
     name: 'classroom_name',
     label: 'Classroom',

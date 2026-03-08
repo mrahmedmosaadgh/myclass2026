@@ -129,6 +129,8 @@
           :active-slide="currentSlide"
           @selectSlide="(slide) => currentSlideIndex = filteredSlides.indexOf(slide)"
           @addSlide="addSlide"
+          @deleteSlide="deleteSlide"
+          @printSlide="printSlide"
           class="fit"
        />
     </q-drawer>
@@ -137,7 +139,7 @@
     <q-page-container>
       <q-page class="q-pa-md bg-grey-2 row justify-center" ref="pageContainer">
         <!-- Editor Area -->
-         <div class="col-12 col-lg-10" style="max-width: 1200px">
+         <div class="col-12">
            <transition
               appear
               enter-active-class="animated fadeIn"
@@ -211,6 +213,9 @@
                        />
                        <q-btn flat round color="primary" icon="visibility" @click="showSingleSlidePreview = true">
                           <q-tooltip>Preview Slide</q-tooltip>
+                       </q-btn>
+                       <q-btn flat round color="orange" icon="print" @click="printSlide(currentSlide)">
+                          <q-tooltip>Print Slide</q-tooltip>
                        </q-btn>
                        <q-btn flat round color="negative" icon="delete" @click="deleteSlide(currentSlide)">
                           <q-tooltip>Delete Slide</q-tooltip>
@@ -663,6 +668,97 @@ const deleteSlide = (slideToDelete) => {
       });
     }
   });
+};
+
+const printSlide = (slide) => {
+  if (!slide) return;
+
+  const printWindow = window.open('', '_blank');
+  
+  // Bring in KaTeX stylesheet so any equations in the HTML render beautifully
+  const mathStyles = '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">';
+  
+  let content = '';
+  if (slide.slide_type === 'text') {
+    content = slide.slide_content?.text || '<p>No content provided.</p>';
+  } else if (slide.slide_type === 'question') {
+    const qs = slide.slide_content?.questions || [];
+    content = qs.map((q, i) => `
+      <div class="question-container">
+        <p class="question-title"><strong>${i + 1}. ${q.text}</strong></p>
+        ${q.options ? `<div class="options-container">` + q.options.map((opt, j) => `
+          <div class="option"><strong>${String.fromCharCode(65 + j)}.</strong> ${opt.text}</div>
+        `).join('') + `</div>` : ''}
+      </div>
+    `).join('');
+  } else if (slide.slide_type === 'image') {
+    content = `<img src="${slide.slide_content?.url}" alt="Slide Image" style="max-width: 100%; border-radius: 8px;"/>`;
+  } else {
+    content = `<p class="unsupported">Print preview for <strong>${slide.slide_type}</strong> slides is optimized for web only.</p>`;
+  }
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="utf-8">
+        <title>Print Slide - ${presentation.value.name || 'Lesson'}</title>
+        ${mathStyles}
+        <style>
+          body { 
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
+            padding: 40px; 
+            color: #333;
+            line-height: 1.6;
+          }
+          .slide-wrapper { 
+            max-width: 800px; 
+            margin: 0 auto; 
+          }
+          .header {
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+          }
+          .header h2 { margin: 0 0 5px 0; color: #1976d2; font-size: 24px; }
+          .subtitle { font-size: 14px; color: #777; }
+          .question-container {
+            margin-bottom: 30px;
+            page-break-inside: avoid;
+          }
+          .question-title { font-size: 1.1em; margin-bottom: 15px; }
+          .options-container { margin-left: 20px; }
+          .option { margin-bottom: 10px; font-size: 1.05em; }
+          .unsupported { padding: 20px; background: #f5f5f5; border-left: 4px solid #ff9800; border-radius: 4px; }
+          img { max-width: 100%; }
+          table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+          th { background-color: #f9fafb; font-weight: 600; }
+          tr:nth-child(even) { background-color: #fdfdfd; }
+          .page-break { page-break-before: always !important; break-before: always !important; border: none !important; margin: 0 !important; padding: 0 !important; height: 1px; color: transparent !important; }
+          .page-break span { display: none !important; }
+          @media print {
+            body { padding: 0; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="slide-wrapper">
+          <div class="header">
+            <h2>${presentation.value.name || 'Lesson Slide'}</h2>
+          </div>
+          <div class="content-body">
+            ${content}
+          </div>
+        </div>
+      </body>
+    </html>
+  `);
+  
+  printWindow.document.close();
+  printWindow.focus();
+  // Wait exactly 1 second for the CDN styles to load before initiating OS print
+  setTimeout(() => { printWindow.print(); }, 1000);
 };
 
 const stripHtml = (html) => {

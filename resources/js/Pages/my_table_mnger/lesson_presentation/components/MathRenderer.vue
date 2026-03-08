@@ -29,43 +29,45 @@ const renderedContent = computed(() => {
   const inline = escapeRegex(props.inlineDelimiter);
   const display = escapeRegex(props.displayDelimiter);
 
-  // Regex to match display math ($$...$$) or inline math ($...$)
-  // We prioritize display math first
-  const regex = new RegExp(`${display}([\\s\\S]*?)${display}|${inline}([\\s\\S]*?)${inline}`, 'g');
-
-  let lastIndex = 0;
-  let html = '';
-  let match;
-
-  while ((match = regex.exec(props.content)) !== null) {
-    // Add text before the match
-    const textBefore = props.content.slice(lastIndex, match.index);
-    html += escapeHtml(textBefore);
-
-    const displayMath = match[1];
-    const inlineMath = match[2];
-
+  // Fixed regex to properly handle consecutive inline math expressions
+  let html = props.content;
+  
+  // First handle display math ($$...$$)
+  html = html.replace(new RegExp(`${display}(.*?)${display}`, 'g'), (match, content) => {
     try {
-      if (displayMath) {
-        html += katex.renderToString(displayMath, {
-          throwOnError: false,
-          displayMode: true
-        });
-      } else if (inlineMath) {
-        html += katex.renderToString(inlineMath, {
-          throwOnError: false,
-          displayMode: false
-        });
-      }
+      return katex.renderToString(content, {
+        throwOnError: false,
+        displayMode: true
+      });
     } catch (e) {
-      html += `<span class="text-red-500">Error: ${e.message}</span>`;
+      return `<span class="text-red-500">Error: ${e.message}</span>`;
+    }
+  });
+
+  // Then handle inline math ($...$) - this prevents conflicts with display math
+  html = html.replace(new RegExp(`${inline}(.*?)${inline}`, 'g'), (match, content) => {
+    // Check if this is actually part of a double delimiter (display math that was already processed)
+    if (match.startsWith(props.inlineDelimiter) && match.endsWith(props.inlineDelimiter)) {
+      // Verify this isn't part of a double-delimiter sequence by checking context
+      const matchStart = arguments[arguments.length - 2];
+      const prevChar = matchStart > 0 ? props.content.charAt(matchStart - 1) : '';
+      const nextChar = matchStart + match.length < props.content.length ? props.content.charAt(matchStart + match.length) : '';
+      
+      // If it was already processed as display math, skip it
+      if ((prevChar === props.inlineDelimiter || nextChar === props.inlineDelimiter)) {
+        return match; // Return as-is, it was already processed
+      }
     }
 
-    lastIndex = regex.lastIndex;
-  }
-
-  // Add remaining text
-  html += escapeHtml(props.content.slice(lastIndex));
+    try {
+      return katex.renderToString(content, {
+        throwOnError: false,
+        displayMode: false
+      });
+    } catch (e) {
+      return `<span class="text-red-500">Error: ${e.message}</span>`;
+    }
+  });
 
   return html;
 });

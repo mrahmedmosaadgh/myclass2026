@@ -86,8 +86,19 @@
                   </div>
                 </div>
                 
-                <!-- Delete Button (on hover) -->
-                <div class="delete-overlay" v-if="canEdit">
+                <!-- Actions Button (on hover) -->
+                <div class="actions-overlay" v-if="canEdit">
+                  <q-btn
+                    round
+                    dense
+                    size="xs"
+                    icon="print"
+                    color="indigo"
+                    class="q-mb-xs"
+                    @click.stop="$emit('printSlide', slide)"
+                  >
+                    <q-tooltip>Print Slide</q-tooltip>
+                  </q-btn>
                   <q-btn
                     round
                     dense
@@ -135,6 +146,7 @@ const emit = defineEmits([
     "update:currentSection_data",
     "addSlide",
     "deleteSlide",
+    "printSlide",
     "selectSlide",
 ]);
 
@@ -421,16 +433,18 @@ const getSlideTypeLabel = (type) => {
   color: #1976d2;
 }
 
-.delete-overlay {
+.actions-overlay {
   position: absolute;
   top: 50%;
   right: 6px;
   transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
   opacity: 0;
   transition: opacity 0.2s ease;
 }
 
-.slide-thumbnail:hover .delete-overlay {
+.slide-thumbnail:hover .actions-overlay {
   opacity: 1;
 }
 
