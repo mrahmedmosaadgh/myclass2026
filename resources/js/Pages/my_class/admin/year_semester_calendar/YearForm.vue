@@ -15,7 +15,7 @@
             label="Start Date"
             filled
             dense
-            @change="suggestName"
+            @update:model-value="suggestName"
             :rules="[val => !!val || 'Required']"
           />
         </div>
@@ -71,25 +71,31 @@ import { useForm } from '@inertiajs/vue3';
 
 const emit = defineEmits(['created']);
 
+const today = new Date();
+const currentYear = today.getFullYear();
+// If we are currently after July, maybe suggest next year, otherwise current year
+const startYear = today.getMonth() >= 6 ? currentYear : currentYear; 
+
 const form = useForm({
-  start_date: '',
-  end_date: '',
-  name: '',
+  start_date: `${startYear}-07-01`,
+  end_date: `${startYear + 1}-06-30`,
+  name: `${startYear}-${startYear + 1}`,
 });
 
 const suggestName = () => {
   if (form.start_date) {
-    const year = new Date(form.start_date).getFullYear();
-    if (!form.name || form.name === `${year-1}-${year}` || form.name === `${year}-${year+1}`) {
-      form.name = `${year}-${year + 1}`;
-    }
+    const startDate = new Date(form.start_date);
+    const selectedYear = startDate.getFullYear();
     
-    // Suggest end date (1 year later)
-    if (!form.end_date) {
-      const end = new Date(form.start_date);
-      end.setFullYear(end.getFullYear() + 1);
-      form.end_date = end.toISOString().split('T')[0];
-    }
+    // Always auto-update the name based on the new start year
+    form.name = `${selectedYear}-${selectedYear + 1}`;
+    
+    // Auto-update end date (June 30th of following year)
+    const end = new Date(form.start_date);
+    end.setFullYear(end.getFullYear() + 1);
+    end.setMonth(5); // June (0-indexed)
+    end.setDate(30);
+    form.end_date = end.toISOString().split('T')[0];
   }
 };
 

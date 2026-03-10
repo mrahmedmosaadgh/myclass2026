@@ -1,0 +1,39 @@
+/**
+ * Enterprise Quiz System - Master Styles
+ * 
+ * This is the main entry point for all quiz system styles.
+ * Import this file to get all quiz styling.
+ * 
+ * Usage in Vue components:
+ * <style>
+ * @import './styles/index.css';
+ * </style>
+ * 
+ * Or in main app:
+ * import './quiz/styles/index.css';
+ */
+
+/* Base styles - Design tokens and CSS variables */
+@import './quiz-base.css';
+
+/* Component-specific styles */
+@import './quiz-components.css';
+
+/* Animations and transitions */
+@import './quiz-animations.css';
+
+/* Responsive design */
+@import './quiz-responsive.css';
+
+/**
+ * Style Loading Order:
+ * 1. quiz-base.css - Defines all CSS custom properties (design tokens)
+ * 2. quiz-components.css - Component-specific styles using the tokens
+ * 3. quiz-animations.css - All animations and transitions
+ * 4. quiz-responsive.css - Responsive breakpoints and media queries
+ * 
+ * This order ensures:
+ * - Design tokens are available to all components
+ * - Base component styles are defined before animations
+ * - Responsive overrides come last to take precedence
+ */

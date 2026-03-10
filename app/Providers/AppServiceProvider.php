@@ -25,8 +25,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app['router']->aliasMiddleware('track_last_active', TrackLastActive::class);
         $this->app['router']->aliasMiddleware('log_page_visit', LogPageVisit::class);
 
-        // Register Observers
-        \App\Models\Menu::observe(\App\Observers\MenuObserver::class);
+
 
         // Create symbolic link if it doesn't exist
         if (!file_exists(public_path('storage'))) {

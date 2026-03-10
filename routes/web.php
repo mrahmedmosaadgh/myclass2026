@@ -8,6 +8,7 @@ use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PeriodActivityController;
 use App\Http\Controllers\puzzle1Controller;
+use App\Http\Controllers\PageViewController;  // Add page view controller import
 use App\Http\Controllers\ScheduleAdminNewController;
 use App\Http\Controllers\ScheduleTimingController;
 use App\Http\Controllers\SchoolBrandingController;
@@ -66,8 +67,7 @@ Route::middleware([
         return Inertia::render('Dashboard');
     })->name('dashboard');
 
-    // Navigation Menu (moved from api.php to share session state)
-    Route::get('/api/navigation/menu', [\App\Http\Controllers\Api\NavigationController::class, 'index']);
+
 
     // Quick link to Course Management
     Route::get('/courses', function () {
@@ -108,15 +108,6 @@ Route::middleware([
         return Inertia::render('BarcodeScanner');
     })->name('barcode-scanner');
 
-    // Vocabulary Flashcards Routes
-    Route::get('/vocabulary-flashcards', [App\Http\Controllers\VocabularyFlashcardsController::class, 'index'])->name('vocabulary-flashcards');
-    Route::get('/vocabulary-flashcards/practice', function () {
-        return Inertia::render('VocabularyFlashcards/Index', ['mode' => 'practice']);
-    })->name('vocabulary-flashcards.practice');
-    Route::get('/vocabulary-flashcards/quiz', function () {
-        return Inertia::render('VocabularyFlashcards/Index', ['mode' => 'quiz']);
-    })->name('vocabulary-flashcards.quiz');
-    Route::post('/vocabulary-flashcards', [App\Http\Controllers\VocabularyFlashcardsController::class, 'store'])->name('vocabulary-flashcards.store');
 
     Route::get('/page-test', function () {
         return Inertia::render('my_class/page_test/page_test');
@@ -188,36 +179,9 @@ Route::get('/ct', function () {
     Route::post('teachers/import/process', [\App\Http\Controllers\TeacherImportController::class, 'processImport'])
         ->name('myteachers.import.process');
 
-    // Admin Menu Management
-    Route::middleware(['permission:manage-menus'])->group(function () {
-        Route::get('/admin/menus', [App\Http\Controllers\Admin\MenuController::class, 'index'])
-            ->name('admin.menus.index');
 
-        // API endpoints for menu management (using session auth)
-        Route::prefix('api/admin/menus')->group(function () {
-            Route::post('/', [App\Http\Controllers\Admin\MenuController::class, 'store']);
-            Route::put('/{menu}', [App\Http\Controllers\Admin\MenuController::class, 'update']);
-            Route::delete('/{menu}', [App\Http\Controllers\Admin\MenuController::class, 'destroy']);
-            Route::post('/reorder', [App\Http\Controllers\Admin\MenuController::class, 'reorder']);
-            Route::post('/bulk-import', [App\Http\Controllers\Admin\MenuController::class, 'bulkImport']);
 
-            // Helper endpoints
-            Route::get('/helpers/presets', [App\Http\Controllers\Admin\MenuController::class, 'searchPresets']);
-            Route::get('/helpers/routes', [App\Http\Controllers\Admin\MenuController::class, 'getAvailableRoutes']);
-            Route::get('/helpers/permissions', [App\Http\Controllers\Admin\MenuController::class, 'getAvailablePermissions']);
-            Route::get('/helpers/modules', [App\Http\Controllers\Admin\MenuController::class, 'getAvailableModules']);
-            Route::get('/helpers/parents', [App\Http\Controllers\Admin\MenuController::class, 'getAvailableParents']);
-            Route::get('/helpers/ai-prompt', [App\Http\Controllers\Admin\MenuController::class, 'generateAIPrompt']);
-        });
-    });
 
-    // Chatbot - Admin Routes
-    Route::middleware(['role:admin'])->prefix('admin/chatbot')->name('admin.chatbot.')->group(function () {
-        Route::get('/', [App\Http\Controllers\Admin\ChatbotAdminController::class, 'index'])->name('admin.chatbot.index');
-        Route::get('/{conversation}', [App\Http\Controllers\Admin\ChatbotAdminController::class, 'show'])->name('admin.chatbot.show');
-        Route::post('/{conversation}/reply', [App\Http\Controllers\Admin\ChatbotAdminController::class, 'reply'])->name('admin.chatbot.reply');
-        Route::patch('/{conversation}/status', [App\Http\Controllers\Admin\ChatbotAdminController::class, 'updateStatus'])->name('admin.chatbot.update');
-    });
 
     // School branding settings (admin only)
     Route::prefix('admin/school-branding')
@@ -225,49 +189,9 @@ Route::get('/ct', function () {
         ->group(function () {
             Route::get('/', [SchoolBrandingController::class, 'index'])->name('admin.school-branding.index');
             Route::put('/{school}', [SchoolBrandingController::class, 'update'])->name('admin.school-branding.update');
-            Route::post('/{school}/logo', [SchoolBrandingController::class, 'uploadLogo'])->name('admin.school-branding.upload-logo');
-            Route::post('/{school}/background', [SchoolBrandingController::class, 'uploadBackground'])->name('admin.school-branding.upload-background');
-            Route::get('/{school}/login-link', [SchoolBrandingController::class, 'generateLoginLink'])->name('admin.school-branding.login-link');
-            Route::get('/{school}/preview', [SchoolBrandingController::class, 'preview'])->name('admin.school-branding.preview');
         });
     
-    // Skill Practice Routes
-    Route::prefix('skill-practice')->name('skill-practice.')->group(function () {
-        // Skill Categories
-        Route::get('/categories', [\App\Http\Controllers\SkillCategoryController::class, 'index'])->name('categories.index');
-        Route::get('/categories/{id}', [\App\Http\Controllers\SkillCategoryController::class, 'show'])->name('categories.show');
-        
-        // Skills
-        Route::get('/skills', [\App\Http\Controllers\SkillController::class, 'index'])->name('skills.index');
-        Route::get('/skills/{skill}', [\App\Http\Controllers\SkillController::class, 'show'])->name('skills.show');
-        
-        // Skill Practice Sessions
-        Route::post('/skills/{skill}/start', [\App\Http\Controllers\SkillPracticeController::class, 'start'])->name('skills.start');
-        Route::post('/practice/next-question', [\App\Http\Controllers\SkillPracticeController::class, 'nextQuestion'])->name('practice.next-question');
-        Route::post('/practice/submit-answer', [\App\Http\Controllers\SkillPracticeController::class, 'submitAnswer'])->name('practice.submit-answer');
-        Route::post('/practice/end-session/{session}', [\App\Http\Controllers\SkillPracticeController::class, 'endSession'])->name('practice.end-session');
-        
-        // Skill Progress
-        Route::get('/progress', [\App\Http\Controllers\SkillProgressController::class, 'index'])->name('progress.index');
-        Route::get('/progress/{skill}', [\App\Http\Controllers\SkillProgressController::class, 'show'])->name('progress.show');
-        Route::get('/awards', [\App\Http\Controllers\SkillProgressController::class, 'awards'])->name('awards');
-    });
-    
-    // Admin Skill Management Routes
-    Route::prefix('admin/skills')->name('admin.skills.')->middleware('role:teacher|admin')->group(function () {
-        Route::get('/', [\App\Http\Controllers\SkillCategoryController::class, 'adminIndex'])->name('index');
-        Route::get('/categories', [\App\Http\Controllers\SkillCategoryController::class, 'adminIndex'])->name('categories.index');
-        Route::get('/skills', [\App\Http\Controllers\SkillController::class, 'adminIndex'])->name('skills.index');
-        Route::post('/skills', [\App\Http\Controllers\SkillController::class, 'store'])->name('skills.store');
-        Route::put('/skills/{skill}', [\App\Http\Controllers\SkillController::class, 'update'])->name('skills.update');
-        Route::delete('/skills/{skill}', [\App\Http\Controllers\SkillController::class, 'destroy'])->name('skills.destroy');
-        
-        // Skill Questions Management
-        Route::get('/manage-questions', [\App\Http\Controllers\SkillQuestionLinkController::class, 'adminIndex'])->name('manage-questions');
-        Route::post('/skills/{skill}/link-questions', [\App\Http\Controllers\SkillQuestionLinkController::class, 'linkQuestions'])->name('skills.link-questions');
-        Route::delete('/skills/{skill}/unlink-question/{question}', [\App\Http\Controllers\SkillQuestionLinkController::class, 'unlinkQuestion'])->name('skills.unlink-question');
-        Route::get('/skills/{skill}/linked-questions', [\App\Http\Controllers\SkillQuestionLinkController::class, 'getLinkedQuestions'])->name('skills.linked-questions');
-    });
+
 });
 
 // Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
@@ -342,11 +266,19 @@ include dirname(__DIR__).'/routes/r_teacher.php';
 include dirname(__DIR__).'/routes/r_student.php';
 include dirname(__DIR__).'/routes/r_out.php';
 include dirname(__DIR__).'/routes/lessons.php';
-include dirname(__DIR__).'/routes/weekly_plans.php';
+// Legacy features route consolidation
+include dirname(__DIR__).'/routes/old_features.php';
+
+// MyClass2026 Role-Based Routes
+include dirname(__DIR__).'/routes/myclass2026/roles/teacher.php';
+include dirname(__DIR__).'/routes/myclass2026/roles/school-admin.php';
+include dirname(__DIR__).'/routes/myclass2026/roles/student.php';
+include dirname(__DIR__).'/routes/myclass2026/roles/parent.php';
+
+// include dirname(__DIR__).'/routes/weekly_plans.php';
 include dirname(__DIR__).'/routes/acadimy.php';
 include dirname(__DIR__).'/routes/qudrat_routes.php';
-include dirname(__DIR__).'/routes/course_management.php';
-include dirname(__DIR__).'/routes/dp.php';
+// include dirname(__DIR__).'/routes/dp.php';
 // include dirname(__DIR__) . '/routes/weekly_system.php';
 
 // TickTick Task Management Routes
@@ -381,35 +313,7 @@ Route::get('/storage/{path}', function ($path) {
     return response()->json(['error' => 'File not found'], 404);
 })->where('path', '.*');
 
-// Chat Routes
-Route::middleware(['auth'])->group(function () {
-    // Conversations
-    Route::get('/conversations', [ConversationController::class, 'index'])->name('conversations.index');
-    Route::get('/conversations/create', [ConversationController::class, 'create'])->name('conversations.create');
-    Route::post('/conversations', [ConversationController::class, 'store'])->name('conversations.store');
-    Route::get('/conversations/{conversation}', [ConversationController::class, 'show'])->name('conversations.show');
 
-    // Messages
-    Route::post('/conversations/{conversation}/messages', [ChatMessageController::class, 'store'])->name('messages.store');
-    Route::post('/conversations/{conversation}/typing', [ChatMessageController::class, 'typing'])->name('messages.typing');
-    Route::post('/conversations/{conversation}/mark-seen', [ChatMessageController::class, 'markAsSeen'])->name('messages.mark-seen');
-});
-
-// User Messages Routes (moved from API)
-Route::middleware(['auth'])->group(function () {
-    Route::get('/user-messages', [App\Http\Controllers\UserMessageController::class, 'index'])->name('user-messages.index');
-    Route::post('/user-messages', [App\Http\Controllers\UserMessageController::class, 'store'])->name('user-messages.store');
-    Route::post('/user-messages/{user_message}/read', [App\Http\Controllers\UserMessageController::class, 'markAsRead'])->name('user-messages.mark-as-read');
-    Route::get('/user-messages/users', [App\Http\Controllers\UserMessageController::class, 'getUsers'])->name('user-messages.users');
-});
-
-// Private Chat Routes
-Route::middleware(['auth'])->group(function () {
-    Route::get('/private-chat', [App\Http\Controllers\PrivateChatController::class, 'index'])->name('private-chat.index');
-    Route::get('/private-chat/{userId}', [App\Http\Controllers\PrivateChatController::class, 'chat'])->name('private-chat.chat');
-    Route::post('/private-chat/{conversationId}/send', [App\Http\Controllers\PrivateChatController::class, 'sendMessage'])->name('private-chat.send-message');
-    Route::get('/private-chat/{conversationId}/messages', [App\Http\Controllers\PrivateChatController::class, 'getMessages'])->name('private-chat.get-messages');
-});
 
 Route::group(['prefix' => 'admin/schedules', 'as' => 'admin.schedules.'], function () {
     // ... existing routes ...
@@ -462,6 +366,10 @@ Route::middleware([
     Route::get('/resume-system', function () {
         return Inertia::render('modules/resumes/Index');
     })->name('resume-system');
+    
+    // Page view counter routes
+    Route::post('/page-views', [PageViewController::class, 'increment'])->name('page-views.increment');
+    Route::get('/page-views/count', [PageViewController::class, 'getCount'])->name('page-views.count');
     // Optionally, keep the old route or remove:
     // Route::get('/resume-themes', ...);
     Route::get('/project-tasks', function () {
@@ -541,28 +449,7 @@ Route::middleware([
 // ->name('developer.')
     ->group(function () {
 
-        Route::get('/reward_sys', function () {
-            return Inertia::render('my_table_mnger/reward_sys/reward_sys');
-            // resources\js\Pages\my_table_mnger/reward_sys/reward_sys.vue
-            // my_table_mnger/reward_sys/reward_sys
-        })->name('reward_sys');
 
-        Route::get('/reward_sys/quiz', function () {
-            return Inertia::render('my_table_mnger/reward_sys/reward_sys');
-        })->name('reward_sys.quiz');
-
-        // Admin Behavior Management
-        Route::get('/admin/behaviors', function () {
-            return Inertia::render('my_table_mnger/reward_sys/admin/BehaviorManagement');
-        })->name('admin.behaviors');
-
-        // Reward system drawing tool
-        Route::get('/reward-system/drawing', function () {
-            return Inertia::render('my_table_mnger/reward_sys/drawing/DrawingMain');
-        })->name('reward.system.drawing');
-
-        // Lesson Presentation Routes (moved to separate file)
-        require __DIR__.'/web_lesson_presentation.php';
 
         // Quiz Management Routes
         Route::prefix('quizzes')->name('quizzes.')->group(function () {

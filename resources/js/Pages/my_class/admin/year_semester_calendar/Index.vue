@@ -122,6 +122,25 @@
                   <span class="text-weight-bold">{{ year.end_date.split('T')[0] }}</span>
                 </div>
               </div>
+
+              <!-- Active Semester Selector -->
+              <div class="row items-center q-gutter-sm q-mt-sm">
+                <q-icon name="bookmark" color="primary" size="xs" />
+                <span class="text-caption text-weight-bold text-grey-6 uppercase">Active Semester:</span>
+                <q-select
+                  :model-value="year.semesters.find(s => s.active)?.id"
+                  :options="year.semesters.filter(s => s.start_date && s.end_date).map(s => ({ label: s.name, value: s.id, semester: s }))"
+                  option-value="value"
+                  option-label="label"
+                  emit-value
+                  map-options
+                  dense
+                  borderless
+                  class="text-weight-bold text-primary"
+                  style="min-width: 140px"
+                  @update:model-value="(semId) => setActiveSemester(year, semId)"
+                />
+              </div>
             </div>
             
             <div class="col-auto">
@@ -137,11 +156,11 @@
                 </q-card>
                 
                 <q-btn
-                  @click="previewCalendar(year)"
-                  color="primary"
+                  @click="openAIDialog(year)"
+                  color="secondary"
                   unelevated
-                  icon="visibility"
-                  label="Preview Calendar"
+                  icon="auto_awesome"
+                  label="AI Setup"
                   class="text-weight-bold"
                   size="md"
                 />
@@ -152,8 +171,13 @@
 
         <!-- Semesters Grid -->
         <div class="row q-col-gutter-md q-mb-lg">
-          <div v-for="semester in year.semesters" :key="semester.id" class="col-12 col-md-6 col-xl-3">
-            <SemesterCard :semester="semester" />
+          <div v-for="(item, index) in semestersWithGaps(year)" :key="item.id || index" class="col-12 col-md-6 col-xl-3">
+            <template v-if="item.isGap">
+              <UnassignedDaysCard :gap="item" class="h-full" />
+            </template>
+            <template v-else>
+              <SemesterCard :semester="item" :year-id="year.id" class="h-full" />
+            </template>
           </div>
         </div>
 
@@ -174,37 +198,46 @@
       </p>
     </q-card>
 
-    <!-- Calendar Preview Dialog -->
-    <q-dialog v-model="showCalendarDialog" maximized transition-show="slide-up" transition-hide="slide-down">
-      <q-card>
-        <q-card-section class="bg-primary text-white row items-center q-pb-md">
-          <div class="col">
-            <div class="text-h5 text-weight-bold">Calendar Preview</div>
-            <div class="text-subtitle2 text-blue-2">{{ selectedYear?.name }}</div>
-          </div>
-          <q-btn flat round dense icon="close" @click="closeDialog" />
-        </q-card-section>
-
-        <q-card-section class="q-pa-lg" style="max-height: calc(100vh - 100px); overflow-y: auto;">
-          <CalendarPreview v-if="selectedYear" :yearId="selectedYear.id" />
-        </q-card-section>
-      </q-card>
-    </q-dialog>
+    <!-- AI Generator Dialog -->
+    <CalendarAIGeneratorDialog
+      v-if="selectedYearForAI"
+      v-model="showAIDialog"
+      :yearId="selectedYearForAI.id"
+      :yearName="selectedYearForAI.name"
+      :schoolId="selectedYearForAI.school_id"
+      @success="handleAISuccess"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { Head, router } from '@inertiajs/vue3';
+import { ref, watch } from 'vue';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import { useQuasar } from 'quasar';
 import axios from 'axios';
 import YearForm from './YearForm.vue';
 import SemesterCard from './SemesterCard.vue';
+import UnassignedDaysCard from './UnassignedDaysCard.vue';
 import MissingDaysList from './MissingDaysList.vue';
-import CalendarPreview from './CalendarPreview.vue';
+import CalendarAIGeneratorDialog from './CalendarAIGeneratorDialog.vue';
 import ExcelManager from '@/Components/import_excel_sys/ExcelManager.vue';
 
 const $q = useQuasar();
+const page = usePage();
+
+// Show backend flash messages (success / warning) as Quasar notifications
+watch(
+  () => page.props.flash,
+  (flash) => {
+    if (flash?.success) {
+      $q.notify({ message: flash.success, color: 'positive', icon: 'check_circle', position: 'top', timeout: 5000 });
+    }
+    if (flash?.warning) {
+      $q.notify({ message: flash.warning, color: 'warning', icon: 'warning', position: 'top', timeout: 8000 });
+    }
+  },
+  { immediate: true }
+);
 
 const props = defineProps({
   academicYears: Array,
@@ -213,6 +246,8 @@ const props = defineProps({
 // Dialog states
 const showYearDialog = ref(false);
 const showImportExportDialog = ref(false);
+const showAIDialog = ref(false);
+const selectedYearForAI = ref(null);
 
 // Export template data
 const exportTemplateData = ref([
@@ -249,6 +284,77 @@ const calculateTotalDays = (year) => {
   return year.semesters.reduce((acc, sem) => acc + sem.calendar_count, 0);
 };
 
+// Build the full-year timeline as a flat array of [SemesterCard | UnassignedDaysCard] items
+const semestersWithGaps = (year) => {
+  const result = [];
+
+  const toDate = (str) => str ? new Date(str.split('T')[0]) : null;
+  const toDaysDiff = (a, b) => Math.round((b - a) / 86400000);
+  const formatDate = (d) => d.toISOString().split('T')[0];
+  const addDays = (d, n) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
+
+  if (!year.semesters || year.semesters.length === 0) return [];
+
+  const yearStart = toDate(year.start_date);
+  const yearEnd   = toDate(year.end_date);
+
+  if (!yearStart || !yearEnd) return year.semesters;
+
+  // Semesters that have real dates (fully or partially defined)
+  const positioned = year.semesters
+    .filter(s => s.start_date && s.end_date)
+    .sort((a, b) => toDate(a.start_date) - toDate(b.start_date));
+
+  // Semesters with no dates - show at end
+  const unscheduled = year.semesters.filter(s => !s.start_date || !s.end_date);
+
+  let cursor = yearStart;
+
+  for (const sem of positioned) {
+    const semStart = toDate(sem.start_date);
+    const semEnd   = toDate(sem.end_date);
+
+    // Gap BEFORE this semester
+    const gapDays = toDaysDiff(cursor, semStart);
+    if (gapDays >= 1) {
+      result.push({
+        isGap: true,
+        startDate: formatDate(cursor),
+        endDate: formatDate(addDays(semStart, -1)),
+        days: gapDays,
+      });
+    }
+
+    // The semester itself
+    result.push(sem);
+    cursor = addDays(semEnd, 1);
+  }
+
+  // Gap AFTER last positioned semester (or entire year if none)
+  const trailingDays = toDaysDiff(cursor, addDays(yearEnd, 1));
+  if (trailingDays >= 1) {
+    result.push({
+      isGap: true,
+      startDate: formatDate(cursor),
+      endDate: formatDate(yearEnd),
+      days: trailingDays,
+    });
+  }
+
+  // Unscheduled semesters (no dates) appended at end
+  result.push(...unscheduled);
+
+  return result;
+};
+
+const setActiveSemester = (year, semesterId) => {
+  const semester = year.semesters.find(s => s.id === semesterId);
+  if (!semester) return;
+  router.put(route('admin.academic_calendar.year.set_active_semester', { year: year.id, semester: semesterId }), {}, {
+    preserveScroll: true,
+  });
+};
+
 const toggleYearActive = (year) => {
   router.put(route('admin.academic_calendar.year.toggle', year.id), {}, {
     preserveScroll: true,
@@ -258,14 +364,15 @@ const toggleYearActive = (year) => {
 const showCalendarDialog = ref(false);
 const selectedYear = ref(null);
 
-const previewCalendar = (year) => {
-  selectedYear.value = year;
-  showCalendarDialog.value = true;
+// AI Setup Handlers
+const openAIDialog = (year) => {
+  selectedYearForAI.value = year;
+  showAIDialog.value = true;
 };
 
-const closeDialog = () => {
-  showCalendarDialog.value = false;
-  selectedYear.value = null;
+const handleAISuccess = () => {
+  showAIDialog.value = false;
+  router.reload({ preserveScroll: true });
 };
 
 // Import/Export handlers

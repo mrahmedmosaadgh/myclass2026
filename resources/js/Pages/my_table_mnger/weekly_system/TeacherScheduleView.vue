@@ -279,7 +279,7 @@
 import { ref, computed } from 'vue'
 import { Head } from '@inertiajs/vue3'
 import TimetableGrid from './components/timetable/TimetableGrid.vue'
-import RewardSystemContent from '@/Pages/my_table_mnger/reward_sys/reward_sys.vue'
+import RewardSystemContent from '@/Pages/old_features/my_table_mnger/reward_sys/reward_sys.vue'
 
 import { useI18n } from 'vue-i18n'
 

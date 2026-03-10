@@ -10,6 +10,7 @@ use Inertia\Inertia;
 use App\Http\Controllers\LoadSchoolsController;
 use App\Http\Controllers\ClassroomSubjectTeacherController;
 use App\Http\Controllers\Student\ScheduleController;
+use App\Http\Controllers\Admin\PageViewsReportController;
 
 Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->group(function () {
     // Dashboard
@@ -56,16 +57,23 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->group(fu
     // Year, Semester & Calendar Management
     Route::get('academic-calendar', [App\Http\Controllers\YearSemesterCalendarController::class, 'index'])->name('admin.academic_calendar.index');
     Route::post('academic-calendar/year', [App\Http\Controllers\YearSemesterCalendarController::class, 'storeYear'])->name('admin.academic_calendar.year.store');
+    Route::post('academic-calendar/year/{year}/ai-setup', [\App\Http\Controllers\YearSemesterCalendarController::class, 'applyAISemesterSetup'])->name('admin.academic_calendar.year.ai_setup');
     Route::put('academic-calendar/year/{year}/toggle', [App\Http\Controllers\YearSemesterCalendarController::class, 'toggleYearActive'])->name('admin.academic_calendar.year.toggle');
     Route::get('academic-calendar/year/{year}/calendar-data', [App\Http\Controllers\YearSemesterCalendarController::class, 'getCalendarData'])->name('admin.academic_calendar.year.calendar_data');
     Route::post('academic-calendar/semester/{semester}', [App\Http\Controllers\YearSemesterCalendarController::class, 'updateSemester'])->name('admin.academic_calendar.semester.update');
     Route::post('academic-calendar/semester/{semester}/generate', [App\Http\Controllers\YearSemesterCalendarController::class, 'generateCalendar'])->name('admin.academic_calendar.semester.generate');
+    Route::get('academic-calendar/semester/{semester}/events', [App\Http\Controllers\YearSemesterCalendarController::class, 'getSemesterEvents'])->name('admin.academic_calendar.semester.events');
+    Route::put('academic-calendar/year/{year}/active-semester/{semester}', [App\Http\Controllers\YearSemesterCalendarController::class, 'setActiveSemester'])->name('admin.academic_calendar.year.set_active_semester');
     Route::get('academic-calendar/year/{year}/missing-days', [App\Http\Controllers\YearSemesterCalendarController::class, 'getMissingDays'])->name('admin.academic_calendar.year.missing_days');
     
     // Calendar Import/Export (JSON-based for ExcelManager)
     Route::post('academic-calendar/import', [App\Http\Controllers\CalendarImportController::class, 'importCalendarData'])->name('admin.academic_calendar.import');
     Route::get('academic-calendar/year/{year}/export', [App\Http\Controllers\CalendarImportController::class, 'exportCalendarData'])->name('admin.academic_calendar.export_data');
     Route::get('academic-calendar/export-template', [App\Http\Controllers\CalendarImportController::class, 'getExportTemplate'])->name('admin.academic_calendar.export_template');
+    
+    // Page Views Report Routes
+    Route::get('/page-views', [PageViewsReportController::class, 'index'])->name('admin.page-views.report');
+    Route::get('/page-views/export', [PageViewsReportController::class, 'export'])->name('admin.page-views.export');
     
     // Calendar Bulk Operations
     Route::post('academic-calendar/bulk-update', [App\Http\Controllers\YearSemesterCalendarController::class, 'bulkUpdateCalendar'])->name('admin.academic_calendar.bulk_update');

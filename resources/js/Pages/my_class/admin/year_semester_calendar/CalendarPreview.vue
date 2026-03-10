@@ -12,8 +12,9 @@
     </div>
 
     <div v-else class="column no-wrap q-gutter-y-lg">
-      <!-- Semester Tabs -->
+      <!-- Semester Tabs (only shown when viewing full year) -->
       <q-tabs
+        v-if="!props.semesterId"
         v-model="selectedSemester"
         dense
         class="text-grey"
@@ -73,7 +74,8 @@ import { ref, computed, onMounted } from 'vue';
 import axios from 'axios';
 
 const props = defineProps({
-  yearId: Number,
+  yearId:     { type: Number, required: true },
+  semesterId: { type: Number, default: null }, // When set, locks the view to this semester
 });
 
 const loading = ref(true);
@@ -110,9 +112,12 @@ const filteredCalendar = computed(() => {
 
 onMounted(async () => {
   try {
-    const response = await axios.get(`/admin/academic-calendar/year/${props.yearId}/calendar-data`);
+    const response = await axios.get(route('admin.academic_calendar.year.calendar_data', { year: props.yearId }));
     calendarData.value = response.data;
-    if (semesters.value.length > 0) {
+    // Pre-select: locked semester takes priority, then first available
+    if (props.semesterId) {
+      selectedSemester.value = props.semesterId;
+    } else if (semesters.value.length > 0) {
       selectedSemester.value = semesters.value[0].id;
     }
   } catch (error) {

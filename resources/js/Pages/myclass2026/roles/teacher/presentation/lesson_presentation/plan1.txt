@@ -1,0 +1,77 @@
+### Updated & Final Course System (With Teacher Full Control on Lesson Access)
+
+Here’s the improved and finalized version that perfectly matches your latest requirement:
+
+**Teacher has 100% control over which lessons a student can even SEE or START.**
+
+No lesson is automatically open — even the first one.
+
+### Core Principle
+→ A lesson is completely invisible + locked for the student until the teacher explicitly “Opens” it for that student.
+
+Only after the teacher opens it → the student can begin the Learn stage.
+
+### Updated Lesson Flow (With Teacher Gate at the Very Beginning)
+
+| Step | Who Controls | Student Sees | Details |
+|------|--------------|--------------|-------|
+| 0. Lesson Locked (Default) | Teacher | Not visible or grayed out with lock icon + “Waiting for teacher to open” | Teacher must click “Open Lesson” for this student |
+| 1. Learn Stage | Teacher opens → Student | “Start Learning” button appears | Student completes slides/videos |
+| 2. Practice Stage | Auto after 100% Learn | Upload hand-written solutions (min 5 marks total) | Student uploads image or uses drawing pad |
+| 3. Teacher Checks Practice | Teacher | “Waiting for teacher to check” | Teacher gives 0–10 marks |
+| 4. Quiz Unlocked | Only if Practice ≥ 6/10 | Quiz button appears | 4 quiz versions, random each time |
+| 5. Pass Quiz (≥80%) OR Fail | Student + System | Color changes based on attempts | See color rules below |
+| 6. Next Lesson | Only two ways to unlock next lesson: <br>• Student passes quiz ≥80% <br>OR <br>• Teacher uses “Force Pass” (even if red) | Next lesson still locked/gray until teacher manually opens it | Teacher decides when to open the next one |
+
+### Teacher Dashboard Controls (Per Student, Per Lesson)
+
+| Action | Description |
+|-------|-------------|
+| Open Lesson | Makes lesson visible and startable for this student |
+| Lock Lesson | Hides/disables it again (even mid-progress) |
+| View Practice Submission | See image/drawing + give mark 0–10 |
+| Grant +1 Extra Quiz Attempt | Allows 4th attempt |
+| Force Pass Lesson | Unlocks next lesson even if student failed all 4 quizzes (lesson becomes Red → Force Passed) |
+| Reset Lesson | Wipe all progress (rare) |
+
+### Final Color System (Same as before, but now with initial state)
+
+| Status | Color | Meaning |
+|-------|-------|--------|
+| Not Opened | GRAY + Lock | Teacher hasn’t opened it yet |
+| Opened, not started | LIGHT BLUE | Student can start Learn |
+| In Progress (Learn or Practice) | BLUE | Ongoing |
+| Practice submitted, waiting check | PURPLE | Waiting for teacher |
+| Passed 1st attempt (≥80%) | GREEN | Perfect |
+| Passed 2nd attempt | YELLOW | Good |
+| Passed 3rd attempt | DARK YELLOW | Acceptable |
+| Passed 4th attempt (teacher extra) | ORANGE | Mercy pass |
+| Failed all 4 attempts | RED | Blocked — only teacher can Force Pass |
+
+### Progress Bar (Now More Accurate)
+- Only counts lessons that teacher has opened
+- Example: Teacher opened 10 lessons → Student has 6 Green, 2 Yellow, 1 Red, 1 in progress → Progress = 80% (8/10 passed)
+
+### Student View (Clean & Clear)
+
+```
+[ Progress: 60% ]  █████████▒░░░░░░░░░░
+
+Lesson 1: Algebra Basics          GREEN      Completed
+Lesson 2: Linear Equations        YELLOW     Completed  
+Lesson 3: Quadratic Equations     RED        Failed ×4 → Ask teacher
+Lesson 4: Functions               GRAY + Lock  Waiting for teacher to open
+Lesson 5: Graphs                  GRAY + Lock  Waiting for teacher to open
+```
+
+### Summary: Perfect Control for Teachers
+- Nothing auto-opens → zero surprise
+- Teacher decides pace 100%
+- Strong students → teacher opens next lessons quickly
+- Weak students → teacher opens slowly, gives personal help
+- Full handwriting proof + fair quiz (4 versions)
+- Clear visual feedback with colors
+
+This is the strongest, most professional, teacher-controlled system possible.
+
+ 

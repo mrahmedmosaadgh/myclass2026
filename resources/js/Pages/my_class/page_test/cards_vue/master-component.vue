@@ -66,6 +66,7 @@ export default {
         { name: '8', displayName: 'Interactive Menu Card' },
         { name: '9', displayName: 'Hover Reveal Card' },
         { name: '44', displayName: 'Pricing Card 44' },
+        { name: 'gum1-btn', displayName: 'Gum1 Button' },
         { name: 'avatar-stack', displayName: 'Avatar Stack' },
         { name: 'book', displayName: 'Book Component' },
         { name: 'borderup', displayName: 'Border Up Component' },

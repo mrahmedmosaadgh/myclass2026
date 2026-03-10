@@ -26,10 +26,16 @@ return [
                 'icon' => 'calendar_today',
             ],
             [
-                'id' => 'assignments',
-                'label' => ['en' => 'Assignments', 'ar' => 'الواجبات'],
-                'route' => 'teacher.my-weekly-plans',
+                'id' => 'weekly_plans',
+                'label' => ['en' => 'Weekly Plans', 'ar' => 'الخطط الأسبوعية'],
+                'route' => 'teacher.planning.weekly-plans.index',
                 'icon' => 'assignment',
+            ],
+            [
+                'id' => 'daily_tasks',
+                'label' => ['en' => 'Daily Tasks', 'ar' => 'المهام اليومية'],
+                'route' => 'teacher.planning.daily-tasks.index',
+                'icon' => 'task',
             ],
         ]
     ],
@@ -78,6 +84,12 @@ return [
                 'label' => ['en' => 'Question Bank', 'ar' => 'بنك الأسئلة'],
                 'route' => 'qu.questions.index',
                 'icon' => 'storage',
+            ],
+            [
+                'id' => 'vocabulary',
+                'label' => ['en' => 'Vocabulary Flashcards', 'ar' => 'البطاقات التعليمية للمفردات'],
+                'route' => 'teacher.tools.vocabulary.index',
+                'icon' => 'style',
             ],
         ]
     ],

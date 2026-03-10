@@ -34,7 +34,7 @@ return [
     [
         'id' => 'conversations',
         'label' => ['en' => 'Messages', 'ar' => 'الرسائل'],
-        'route' => 'conversations.index',
+        'route' => 'student.communication.messages.index',
         'icon' => 'chat',
     ],
 ];

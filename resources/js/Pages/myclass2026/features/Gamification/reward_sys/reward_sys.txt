@@ -1,0 +1,87 @@
+Reward System – Overview
+
+Purpose
+- Teacher-facing tool to manage classroom behavior rewards and attendance.
+- Records positive/negative behaviors as points, shows student summaries, supports avatar management, and displays a leaderboard.
+
+Front-End (Vue + Quasar)
+- Main page: `resources\js\Pages\my_table_mnger\reward_sys\reward_sys.vue`
+  - Classroom selection and roster load (lines 26–40, 2260–2271)
+  - Period selection with persistence (lines 43–55, 679–717, 3331–3384)
+  - Student cards grid (lines 97–113) with behavior and avatar actions
+  - Behavior dialog (lines 166–195) using `BehaviorManager`
+  - Avatar upload/camera capture (lines 897–922, 924–973) via `CameraCapture`
+  - Leaderboard dialog (lines 210–353) with period toggle; data via `/api/leaderboard`
+  - Settings dialog (lines 356–618) for attendance, TTS, avatar editing
+  - JSON paste/preview utility (lines 149–164, 120–147)
+
+Subcomponents
+- `StudentCard.vue` (reward_sys_comp): displays avatar, name parts, totals, emits `open-behavior` and `open-camera`.
+- `BehaviorManager.vue`: positive/negative tabs, confirmation, TTS when `read` is true; POST `/api/student-behaviors`; emits `recorded`.
+- `PeriodSelectionRefactored.vue`: two-way period fields, saves/loads from `localStorage`.
+- `CameraCapture.vue`: file upload or camera, crop selection, emits `{ dataUrl }` to parent.
+
+State & Persistence
+- Attendance/settings persisted in `localStorage` key `reward-system-settings` with validation, sanitization, compression fallbacks (reward_sys.vue:1404–1517, 1679–1741, 1743–1862).
+- Last selection persisted in `reward-system-last-selection` (reward_sys.vue:698–717, 720–762, 3359–3384).
+- Presence rule: `isStudentPresent(id)` → `settings.attendance[id] !== false` (reward_sys.vue:2698–2701).
+- Attendance auto-syncs when classroom roster changes (reward_sys.vue:2608–2693).
+
+Backend (Laravel)
+- Routes: `routes\api.php` (Sanctum+web middleware for protected APIs)
+  - `GET /api/behaviors` → Behavior list (`BehaviorController::index`)
+  - `POST /api/student-behaviors` → record behavior (`StudentBehaviorController::store`)
+  - `GET /api/student-behaviors/{student}` → summary (positive, negative, total) (`show`)
+  - `POST /api/students/{student}/avatar` → upload avatar (`StudentController::uploadAvatar`)
+  - `GET /api/leaderboard` → aggregate leaderboard by date range (`StudentBehaviorController::leaderboard`)
+- Classroom roster for teacher:
+  - `GET /my_classes_with_students` (routes\web.php:384)
+  - Controller: `ClassroomSubjectTeacherController::my_classes_with_students` attaches `students` to each class row (lines 419–448)
+
+Data Flow
+- Classroom selection triggers `handleClassroomSelection(id, students)` and sets `fetchData.my_sel_classroom_students`.
+- Behavior recording posts `{ student_id, behavior_id, points, period_code, date }` (BehaviorManager.vue:365–373) then refreshes summary (`GET /api/student-behaviors/{id}`) and optionally leaderboard.
+- Leaderboard computes start date for week/month/all and requests top 5; merges student names/avatars from current roster (reward_sys.vue:1060–1159).
+- Avatar upload creates FormData and posts to `/api/students/{id}/avatar`; response updates local student avatar (reward_sys.vue:975–998).
+
+Key UX Details
+- Kid-friendly visuals and sound: podium, medals, glow animations, optional TTS.
+- Attendance UI: per-student toggle, mark-all present/absent, summary count and progress bar.
+- Student cards adapt based on presence (disabled/greyed when absent).
+
+Important References
+- Main page: `reward_sys.vue`
+- Components: `BehaviorManager.vue`, `reward_sys_comp\StudentCard.vue`, `reward_sys_comp\PeriodSelectionRefactored.vue`, `reward_sys_comp\CameraCapture.vue`
+- Controllers: `BehaviorController.php`, `StudentBehaviorController.php`, `StudentController.php`, `ClassroomSubjectTeacherController.php`
+- Routes: `routes\api.php`, `routes\web.php`
+
+Assumptions & Middleware
+- Protected APIs require `auth:sanctum` and `web` middleware (routes\api.php).
+- Current teacher is derived from authenticated user when filtering class data.
+
+Current Gaps/Notes
+- Attendance is client-side only; no backend persistence implemented.
+- Some roadmap-related imports exist but are not used in the template.
+
+Database (Migration): student_behaviors
+- File: `database\migrations\2025_10_18_112034_create_student_behaviors_table.php`
+- Table: `student_behaviors`
+- Columns
+  - `id`
+  - `school_id` (FK `schools.id`, cascadeOnDelete)
+  - `year_id` (FK `academic_years.id`, cascadeOnDelete)
+  - `student_id` (FK `students.id`, cascadeOnDelete)
+  - `behavior_id` (FK `behaviors.id`, cascadeOnDelete)
+  - `subject_id` (FK `subjects.id`, nullable, nullOnDelete)
+  - `teacher_id` (FK `teachers.id`, nullable, nullOnDelete)
+  - `classroom_id` (FK `classrooms.id`, nullable, nullOnDelete)
+  - `attend` (tinyInteger, nullable)
+  - `period_code` (string, e.g. `school.year.semester.week.day.period` like `1.7.1.2`)
+  - `date` (date)
+  - `time` (time, nullable)
+  - `points` (integer)
+  - `notes` (text, nullable)
+  - `timestamps`
+- Purpose & usage
+  - Stores per-student behavior events with context (school/year/subject/teacher/classroom, attendance, time, period).
+  - Matches frontend payload in BehaviorManager: `{ student_id, behavior_id, points, period_code, date }` and extends with server-side context.

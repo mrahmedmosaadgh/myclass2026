@@ -11,7 +11,7 @@ return [
     [
         'id' => 'conversations',
         'label' => ['en' => 'Messages', 'ar' => 'الرسائل'],
-        'route' => 'conversations.index',
+        'route' => 'parent.communication.messages.index',
         'icon' => 'chat',
     ],
 ];

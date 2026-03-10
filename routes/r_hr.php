@@ -48,7 +48,6 @@ Route::middleware(['auth', 'verified', 'role:admin|hr_admin|super_admin'])->pref
 
 Route::middleware(['auth', 'verified', 'role:admin|super_admin'])->prefix('admin')->name('admin.')->group(function () {
     // Resource Routes
-Route::get('/teachers', [TeacherManagementController::class, 'index']);
 
     Route::resource('hr', HRController::class);
     
@@ -60,14 +59,6 @@ Route::get('/teachers', [TeacherManagementController::class, 'index']);
     Route::resource('stage', StageController::class);
     Route::resource('grade', GradeController::class);
     Route::resource('classroom', ClassroomController::class);
-    Route::resource('teacher', TeacherController::class);
-    Route::resource('student-parent', StudentParentController::class);
-    Route::get('students/download-template-with-classroom', [StudentController::class, 'downloadTemplateWithClassroom'])
-        ->name('students.download-template-with-classroom');
-    Route::get('students/download-template', [StudentController::class, 'downloadTemplate'])
-        ->name('students.download-template');
-    Route::get('students/filtered', [StudentController::class, 'getFiltered'])->name('students.filtered');
-    Route::resource('students', StudentController::class);
     Route::resource('grade-subject', GradeSubjectController::class);
     Route::resource('semester-test', SemesterTestController::class);
 
@@ -109,54 +100,6 @@ Route::get('/teachers', [TeacherManagementController::class, 'index']);
         Route::post('grade-subject/undo-import/{importId}', [GradeSubjectController::class, 'undoImport'])
         ->name('grade-subject.undo-import');
 
-    // Teacher Routes
-    Route::get('teacher/export', [TeacherController::class, 'export'])
-        ->name('teacher.export');
-    Route::post('teacher/import', [TeacherController::class, 'import'])
-        ->name('teacher.import');
-    Route::post('teacher/validate-import', [TeacherController::class, 'validateImport'])
-        ->name('teacher.validate-import');
-    Route::post('teacher/undo-import/{importId}', [TeacherController::class, 'undoImport'])
-        ->name('teacher.undo-import');
-
-    // Student Parent Routes
-    Route::get('student-parent/export', [StudentParentController::class, 'export'])
-        ->name('student-parent.export');
-    Route::post('student-parent/validate-import', [StudentParentController::class, 'validateImport'])
-        ->name('student-parent.validate-import');
-    Route::post('student-parent/import', [StudentParentController::class, 'import'])
-        ->name('student-parent.import');
-    Route::post('student-parent/undo-import/{importId}', [StudentParentController::class, 'undoImport'])
-        ->name('student-parent.undo-import');
-
-
-
-
-    // Student Routes
-    Route::post('students/validate-import', [StudentController::class, 'validateImport'])
-        ->name('students.validate-import');
-    Route::post('students/get-school-students/{school_id}', [StudentController::class, 'get_school_students'])
-        ->name('students.get-school-students');
-    Route::post('students/import-with-classroom', [StudentController::class, 'importWithClassroom'])
-        ->name('students.import-with-classroom');
-    Route::post('students/validate-import-batch', [StudentController::class, 'validateImportBatch'])
-        ->name('students.validate-import-batch');
-    Route::post('students/import', [StudentController::class, 'import'])
-        ->name('students.import');
-
-
-
-    
-    // Student Promotion Routes
-    Route::post('students/promote', [StudentController::class, 'promoteStudents'])
-        ->name('students.promote');
-    Route::post('students/promotion-preview', [StudentController::class, 'getPromotionPreview'])
-        ->name('students.promotion-preview');
-    Route::get('students/classroom-mapping-suggestions', [StudentController::class, 'getClassroomMappingSuggestions'])
-        ->name('students.classroom-mapping-suggestions');
-    Route::get('students/{student}/classroom-history', [StudentController::class, 'getClassroomHistory'])
-        ->name('students.classroom-history');
-
 
      Route::post('subject/import', [SubjectController::class, 'import'])
         ->name('subjects.import');
@@ -171,8 +114,6 @@ Route::get('/teachers', [TeacherManagementController::class, 'index']);
         ->name('subject.update-lesson-plan-templates');
 
 
-    Route::post('students/undo-import/{importId}', [StudentController::class, 'undoImport'])
-        ->name('students.undo-import');
 
     // Filter Routes
     Route::get('stages/by-school/{schoolId}', [SchoolFilterController::class, 'getStagesBySchool'])

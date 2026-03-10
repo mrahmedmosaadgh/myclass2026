@@ -34,8 +34,8 @@ return [
         'children' => [
             [
                 'id' => 'curriculum',
-                'label' => ['en' => 'Curriculum Mgmt', 'ar' => 'إدارة المناهج'],
-                'route' => 'admin.curriculum.management',
+                'label' => ['en' => 'Course Mgmt', 'ar' => 'إدارة المقررات'],
+                'route' => 'school-admin.curriculum.courses.index',
                 'icon' => 'book',
             ],
             [
@@ -60,9 +60,27 @@ return [
         'icon' => 'badge',
         'children' => [
              [
+                'id' => 'teachers',
+                'label' => ['en' => 'Teachers', 'ar' => 'المعلمين'],
+                'route' => 'school-admin.users.teachers.index',
+                'icon' => 'school',
+             ],
+             [
+                'id' => 'students',
+                'label' => ['en' => 'Students', 'ar' => 'الطلاب'],
+                'route' => 'school-admin.users.students.index',
+                'icon' => 'face',
+             ],
+             [
+                'id' => 'parents',
+                'label' => ['en' => 'Parents', 'ar' => 'أولياء الأمور'],
+                'route' => 'school-admin.users.parents.index',
+                'icon' => 'family_restroom',
+             ],
+             [
                 'id' => 'teachers_import',
                 'label' => ['en' => 'Import Teachers', 'ar' => 'استيراد المعلمين'],
-                'route' => 'teachers.import',
+                'route' => 'teacher.import', // Adjusted to match old_features.php naming
                 'icon' => 'upload',
              ],
         ]
@@ -103,13 +121,33 @@ return [
              [
                 'id' => 'behaviors',
                 'label' => ['en' => 'Behavior Management', 'ar' => 'إدارة السلوك'],
-                'route' => 'admin.behaviors',
+                'route' => 'school-admin.modules.gamification.index',
                 'permission' => 'manage behaviors',
+             ],
+             [
+                'id' => 'skills',
+                'label' => ['en' => 'Skill Management', 'ar' => 'إدارة المهارات'],
+                'route' => 'school-admin.modules.skills.index',
+                'icon' => 'psychology',
+                'permission' => 'manage skills',
+             ],
+             [
+                'id' => 'qudrat',
+                'label' => ['en' => 'Qudrat', 'ar' => 'القدرات'],
+                'icon' => 'analytics',
+                'children' => [
+                    [
+                        'id' => 'page_views_report',
+                        'label' => ['en' => 'Page Views Report', 'ar' => 'تقرير زيارات الصفحة'],
+                        'route' => 'admin.page-views.report',
+                        'icon' => 'bar_chart',
+                    ],
+                ],
              ],
                [
                 'id' => 'chatbot',
                 'label' => ['en' => 'Chatbot', 'ar' => 'روبوت الدردشة'],
-                'route' => 'admin.chatbot.admin.chatbot.index',
+                'route' => 'admin.chatbot.index',
                 'permission' => 'manage chatbot',
              ],
         ]

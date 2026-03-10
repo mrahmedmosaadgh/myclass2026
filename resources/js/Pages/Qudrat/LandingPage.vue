@@ -1,9 +1,40 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { ref, onMounted } from 'vue';
 
-defineProps({
+const props = defineProps({
     canLogin: Boolean,
     canRegister: Boolean,
+    viewCount: {
+        type: Number,
+        default: 0
+    }
+});
+
+// Reactive view count
+const viewCountState = ref(props.viewCount);
+
+// Function to increment the view count
+const incrementViewCount = async () => {
+    try {
+        await router.post('/page-views', {
+            page_name: 'qudrat_landing_page',
+            referrer: document.referrer
+        }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                // Update the local count after successful increment
+                viewCountState.value++;
+            }
+        });
+    } catch (error) {
+        console.error('Failed to increment view count:', error);
+    }
+};
+
+// Increment view count when component is mounted
+onMounted(() => {
+    incrementViewCount();
 });
 </script>
 
@@ -123,6 +154,16 @@ defineProps({
                         <p class="mx-auto mt-2 max-w-md text-base text-gray-500 sm:text-lg md:max-w-3xl md:text-xl font-arabic" lang="ar">
                             الدورة الشاملة التي صممها معلمون خبراء لمساعدتك في تحقيق +90 في اختبار القدرات.
                         </p>
+                        
+                        <!-- Display view counter -->
+                        <div class="mt-4 inline-flex items-center px-4 py-2 bg-gray-100 rounded-full text-sm font-medium text-gray-700">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            {{ viewCountState }} visitors have viewed this page
+                        </div>
+                        
                         <div class="mx-auto mt-5 max-w-md sm:flex sm:justify-center md:mt-8">
                             <div class="rounded-md shadow">
                                 <Link :href="route('register')" class="flex w-full items-center justify-center rounded-md border border-transparent bg-indigo-600 px-8 py-3 text-base font-medium text-white hover:bg-indigo-700 md:py-4 md:px-10 md:text-lg">

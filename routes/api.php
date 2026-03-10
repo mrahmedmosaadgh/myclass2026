@@ -191,6 +191,9 @@ Route::prefix('behavior')->group(function () {
 
 Route::apiResource('student-behaviors', StudentBehaviorController::class);
 
+// Smart Scanner API
+Route::middleware(['auth:sanctum', 'web'])->post('/scan/submit', [\App\Http\Controllers\Api\ScanController::class, 'submit']);
+
 // AI Assistant API
 Route::middleware(['auth:sanctum', 'web'])->post('/ai/complete', [App\Http\Controllers\AIController::class, 'complete']);
 
@@ -333,8 +336,6 @@ Route::middleware(['auth:sanctum', 'web'])->group(function () {
     Route::delete('/delete-media', [App\Http\Controllers\MediaUploadController::class, 'delete']);
 });
 
-// Navigation API (Database-driven menus)
-Route::middleware(['auth:sanctum', 'web'])->get('/navigation', [NavigationController::class, 'index']);
 
 // Config-Based Menu API (New Simple Approach)
 // Config-Based Menu API (New Simple Approach)

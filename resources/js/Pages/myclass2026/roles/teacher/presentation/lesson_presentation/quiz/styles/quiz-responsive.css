@@ -1,0 +1,813 @@
+/**
+ * Enterprise Quiz System - Responsive Design
+ * 
+ * This file contains responsive styles for all breakpoints:
+ * - Mobile layout (< 640px)
+ * - Tablet layout (640px - 1024px)
+ * - Desktop layout (> 1024px)
+ * - Touch-friendly targets on mobile
+ * 
+ * Requirements: Responsive Design (Cross-device compatibility)
+ */
+
+/* ============================================================================
+   Base Styles (Mobile First Approach)
+   Default styles are optimized for mobile devices
+   ============================================================================ */
+
+.quiz-engine {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: var(--quiz-space-4);
+  box-sizing: border-box;
+}
+
+/* ============================================================================
+   Mobile Layout (< 640px)
+   Optimized for small screens and touch interaction
+   ============================================================================ */
+
+@media (max-width: 639px) {
+  /* Container */
+  .quiz-engine {
+    padding: var(--quiz-space-3);
+  }
+
+  /* Header */
+  .quiz-header {
+    margin-bottom: var(--quiz-space-5);
+    padding-bottom: var(--quiz-space-3);
+  }
+
+  /* Progress Indicator */
+  .progress-bar-container {
+    margin-bottom: var(--quiz-space-3);
+  }
+
+  .progress-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--quiz-space-1);
+    font-size: var(--quiz-text-xs);
+  }
+
+  .question-counter {
+    font-size: var(--quiz-text-xs);
+  }
+
+  .progress-percentage {
+    font-size: var(--quiz-text-xs);
+  }
+
+  .progress-bar {
+    height: var(--quiz-progress-height-sm);
+  }
+
+  /* Time Remaining */
+  .time-remaining {
+    padding: var(--quiz-space-2) var(--quiz-space-3);
+    font-size: var(--quiz-text-xs);
+  }
+
+  /* Question Content */
+  .question-content {
+    margin-bottom: var(--quiz-space-6);
+  }
+
+  .question-header {
+    margin-bottom: var(--quiz-space-3);
+  }
+
+  .question-number {
+    font-size: var(--quiz-text-lg);
+  }
+
+  .question-text {
+    font-size: var(--quiz-text-base);
+    padding: var(--quiz-space-3);
+    margin-bottom: var(--quiz-space-4);
+    line-height: var(--quiz-leading-relaxed);
+  }
+
+  /* Hints */
+  .hints-section {
+    margin-bottom: var(--quiz-space-4);
+  }
+
+  .hints-section details {
+    padding: var(--quiz-space-2);
+  }
+
+  .hints-section summary {
+    font-size: var(--quiz-text-xs);
+    padding: var(--quiz-space-2);
+  }
+
+  .hints-list {
+    font-size: var(--quiz-text-xs);
+    margin-top: var(--quiz-space-2);
+    padding-left: var(--quiz-space-4);
+  }
+
+  /* Options List */
+  .options-list {
+    gap: var(--quiz-space-2);
+  }
+
+  .option-item {
+    padding: var(--quiz-space-3);
+    gap: var(--quiz-space-2);
+    margin-bottom: 0;
+  }
+
+  .option-label {
+    width: var(--quiz-option-label-size-sm);
+    height: var(--quiz-option-label-size-sm);
+    font-size: var(--quiz-text-sm);
+  }
+
+  .option-text {
+    font-size: var(--quiz-text-sm);
+    line-height: var(--quiz-leading-normal);
+  }
+
+  /* Feedback */
+  .option-feedback {
+    margin-top: var(--quiz-space-2);
+    padding-top: var(--quiz-space-2);
+  }
+
+  .feedback-icon {
+    font-size: var(--quiz-text-xl);
+  }
+
+  .rationale {
+    margin-top: var(--quiz-space-2);
+    padding: var(--quiz-space-2);
+  }
+
+  .rationale-label {
+    font-size: 0.6875rem; /* 11px */
+  }
+
+  .rationale-text {
+    font-size: var(--quiz-text-xs);
+  }
+
+  /* Explanation Panel */
+  .explanation-panel {
+    margin-top: var(--quiz-space-4);
+    padding: var(--quiz-space-3);
+  }
+
+  .explanation-panel strong {
+    font-size: var(--quiz-text-xs);
+    margin-bottom: var(--quiz-space-1);
+  }
+
+  .explanation-panel p {
+    font-size: var(--quiz-text-sm);
+  }
+
+  /* Footer */
+  .quiz-footer {
+    margin-top: var(--quiz-space-6);
+    padding-top: var(--quiz-space-4);
+  }
+
+  /* Navigation Controls */
+  .navigation-controls {
+    flex-direction: column;
+    gap: var(--quiz-space-2);
+    margin-bottom: var(--quiz-space-4);
+  }
+
+  .nav-button {
+    width: 100%;
+    padding: var(--quiz-space-3) var(--quiz-space-4);
+    font-size: var(--quiz-text-sm);
+    justify-content: center;
+  }
+
+  .prev-button {
+    order: 2;
+  }
+
+  .next-button,
+  .finish-button {
+    order: 1;
+    margin-left: 0;
+  }
+
+  /* Question Navigator */
+  .question-navigator {
+    padding: var(--quiz-space-3);
+  }
+
+  .navigator-label {
+    font-size: var(--quiz-text-xs);
+    margin-bottom: var(--quiz-space-2);
+  }
+
+  .navigator-dots {
+    justify-content: center;
+    gap: var(--quiz-space-1);
+  }
+
+  .nav-dot {
+    width: 2rem;
+    height: 2rem;
+    font-size: var(--quiz-text-xs);
+  }
+
+  /* Reduce hover effects on mobile */
+  .option-item:hover:not([aria-disabled="true"]) {
+    transform: none;
+  }
+
+  .nav-button:hover:not(:disabled) {
+    transform: none;
+  }
+
+  .nav-dot:hover {
+    transform: none;
+  }
+}
+
+/* ============================================================================
+   Small Mobile (< 375px)
+   Extra small screens like iPhone SE
+   ============================================================================ */
+
+@media (max-width: 374px) {
+  .quiz-engine {
+    padding: var(--quiz-space-2);
+  }
+
+  .question-text {
+    font-size: var(--quiz-text-sm);
+    padding: var(--quiz-space-2);
+  }
+
+  .option-item {
+    padding: var(--quiz-space-2);
+  }
+
+  .option-label {
+    width: 1.5rem;
+    height: 1.5rem;
+    font-size: var(--quiz-text-xs);
+  }
+
+  .option-text {
+    font-size: var(--quiz-text-xs);
+  }
+
+  .nav-button {
+    padding: var(--quiz-space-2) var(--quiz-space-3);
+    font-size: var(--quiz-text-xs);
+  }
+
+  .nav-dot {
+    width: 1.75rem;
+    height: 1.75rem;
+    font-size: 0.6875rem;
+  }
+}
+
+/* ============================================================================
+   Tablet Layout (640px - 1024px)
+   Optimized for tablets in both portrait and landscape
+   ============================================================================ */
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  /* Container */
+  .quiz-engine {
+    max-width: 720px;
+    padding: var(--quiz-space-5);
+  }
+
+  /* Header */
+  .quiz-header {
+    margin-bottom: var(--quiz-space-6);
+  }
+
+  /* Progress Indicator */
+  .progress-info {
+    font-size: var(--quiz-text-sm);
+  }
+
+  .progress-bar {
+    height: var(--quiz-progress-height);
+  }
+
+  /* Question Content */
+  .question-number {
+    font-size: var(--quiz-text-xl);
+  }
+
+  .question-text {
+    font-size: var(--quiz-text-lg);
+    padding: var(--quiz-space-4);
+  }
+
+  /* Options */
+  .option-item {
+    padding: var(--quiz-space-4);
+    gap: var(--quiz-space-3);
+  }
+
+  .option-label {
+    width: var(--quiz-option-label-size);
+    height: var(--quiz-option-label-size);
+    font-size: var(--quiz-text-base);
+  }
+
+  .option-text {
+    font-size: var(--quiz-text-base);
+  }
+
+  /* Navigation */
+  .navigation-controls {
+    flex-direction: row;
+    gap: var(--quiz-space-3);
+  }
+
+  .nav-button {
+    width: auto;
+    padding: var(--quiz-space-3) var(--quiz-space-5);
+    font-size: var(--quiz-text-base);
+  }
+
+  .next-button,
+  .finish-button {
+    margin-left: auto;
+  }
+
+  /* Question Navigator */
+  .navigator-dots {
+    justify-content: flex-start;
+    gap: var(--quiz-space-2);
+  }
+
+  .nav-dot {
+    width: var(--quiz-nav-dot-size);
+    height: var(--quiz-nav-dot-size);
+    font-size: var(--quiz-text-sm);
+  }
+
+  /* Enable subtle hover effects */
+  .option-item:hover:not([aria-disabled="true"]) {
+    transform: translateX(4px);
+  }
+}
+
+/* ============================================================================
+   Tablet Portrait (640px - 768px)
+   ============================================================================ */
+
+@media (min-width: 640px) and (max-width: 767px) {
+  .quiz-engine {
+    max-width: 640px;
+  }
+
+  .question-text {
+    font-size: var(--quiz-text-base);
+  }
+}
+
+/* ============================================================================
+   Tablet Landscape (768px - 1024px)
+   ============================================================================ */
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .quiz-engine {
+    max-width: 768px;
+  }
+
+  .question-text {
+    font-size: var(--quiz-text-lg);
+  }
+
+  /* Two-column layout for options if space allows */
+  .options-list.two-column {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--quiz-space-3);
+  }
+}
+
+/* ============================================================================
+   Desktop Layout (> 1024px)
+   Optimized for large screens with mouse/keyboard
+   ============================================================================ */
+
+@media (min-width: 1024px) {
+  /* Container */
+  .quiz-engine {
+    max-width: var(--quiz-container-max-width);
+    padding: var(--quiz-space-8);
+  }
+
+  /* Header */
+  .quiz-header {
+    margin-bottom: var(--quiz-space-8);
+    padding-bottom: var(--quiz-space-5);
+  }
+
+  /* Progress Indicator */
+  .progress-info {
+    font-size: var(--quiz-text-base);
+  }
+
+  .progress-bar {
+    height: 10px;
+  }
+
+  /* Question Content */
+  .question-number {
+    font-size: var(--quiz-text-2xl);
+  }
+
+  .question-text {
+    font-size: var(--quiz-text-xl);
+    padding: var(--quiz-space-5);
+    margin-bottom: var(--quiz-space-6);
+  }
+
+  /* Hints */
+  .hints-section details {
+    padding: var(--quiz-space-4);
+  }
+
+  .hints-section summary {
+    font-size: var(--quiz-text-base);
+  }
+
+  .hints-list {
+    font-size: var(--quiz-text-base);
+  }
+
+  /* Options */
+  .options-list {
+    gap: var(--quiz-space-4);
+  }
+
+  .option-item {
+    padding: var(--quiz-space-5);
+    gap: var(--quiz-space-4);
+  }
+
+  .option-label {
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: var(--quiz-text-lg);
+  }
+
+  .option-text {
+    font-size: var(--quiz-text-lg);
+  }
+
+  /* Feedback */
+  .feedback-icon {
+    font-size: var(--quiz-text-3xl);
+  }
+
+  .rationale {
+    padding: var(--quiz-space-4);
+  }
+
+  .rationale-text {
+    font-size: var(--quiz-text-base);
+  }
+
+  /* Explanation */
+  .explanation-panel {
+    padding: var(--quiz-space-5);
+  }
+
+  .explanation-panel p {
+    font-size: var(--quiz-text-lg);
+  }
+
+  /* Footer */
+  .quiz-footer {
+    margin-top: var(--quiz-space-10);
+    padding-top: var(--quiz-space-6);
+  }
+
+  /* Navigation */
+  .navigation-controls {
+    gap: var(--quiz-space-4);
+  }
+
+  .nav-button {
+    padding: var(--quiz-space-4) var(--quiz-space-8);
+    font-size: var(--quiz-text-lg);
+  }
+
+  /* Question Navigator */
+  .question-navigator {
+    padding: var(--quiz-space-5);
+  }
+
+  .navigator-label {
+    font-size: var(--quiz-text-base);
+  }
+
+  .navigator-dots {
+    gap: var(--quiz-space-3);
+  }
+
+  .nav-dot {
+    width: 3rem;
+    height: 3rem;
+    font-size: var(--quiz-text-base);
+  }
+
+  /* Enhanced hover effects for desktop */
+  .option-item:hover:not([aria-disabled="true"]) {
+    transform: translateX(8px);
+  }
+
+  .nav-button:hover:not(:disabled) {
+    transform: scale(1.02);
+  }
+
+  .nav-dot:hover {
+    transform: scale(1.15);
+  }
+}
+
+/* ============================================================================
+   Large Desktop (> 1280px)
+   Extra space for comfortable reading
+   ============================================================================ */
+
+@media (min-width: 1280px) {
+  .quiz-engine {
+    max-width: 900px;
+    padding: var(--quiz-space-10);
+  }
+
+  .question-text {
+    font-size: var(--quiz-text-2xl);
+    padding: var(--quiz-space-6);
+  }
+
+  .option-text {
+    font-size: var(--quiz-text-xl);
+  }
+}
+
+/* ============================================================================
+   Extra Large Desktop (> 1536px)
+   Maximum comfortable reading width
+   ============================================================================ */
+
+@media (min-width: 1536px) {
+  .quiz-engine {
+    max-width: 1000px;
+  }
+}
+
+/* ============================================================================
+   Touch-Friendly Targets
+   Ensure minimum 44x44px touch targets on touch devices
+   ============================================================================ */
+
+@media (hover: none) and (pointer: coarse) {
+  /* Touch device detected */
+  
+  .option-item {
+    min-height: var(--quiz-touch-target);
+    padding: var(--quiz-space-4);
+  }
+
+  .nav-button {
+    min-height: var(--quiz-touch-target);
+    min-width: var(--quiz-touch-target);
+    padding: var(--quiz-space-4) var(--quiz-space-6);
+  }
+
+  .nav-dot {
+    min-width: var(--quiz-touch-target);
+    min-height: var(--quiz-touch-target);
+  }
+
+  .hints-section summary {
+    min-height: var(--quiz-touch-target);
+    padding: var(--quiz-space-3);
+  }
+
+  /* Increase tap target spacing */
+  .options-list {
+    gap: var(--quiz-space-3);
+  }
+
+  .navigator-dots {
+    gap: var(--quiz-space-2);
+  }
+
+  /* Disable hover effects on touch devices */
+  .option-item:hover:not([aria-disabled="true"]),
+  .nav-button:hover:not(:disabled),
+  .nav-dot:hover {
+    transform: none;
+  }
+
+  /* Add active state feedback instead */
+  .option-item:active:not([aria-disabled="true"]) {
+    background-color: var(--quiz-active-bg);
+    transform: scale(0.98);
+  }
+
+  .nav-button:active:not(:disabled) {
+    transform: scale(0.95);
+  }
+
+  .nav-dot:active {
+    transform: scale(0.9);
+  }
+}
+
+/* ============================================================================
+   Landscape Orientation
+   Optimize for landscape mode on mobile/tablet
+   ============================================================================ */
+
+@media (max-width: 1023px) and (orientation: landscape) {
+  .quiz-engine {
+    padding: var(--quiz-space-4) var(--quiz-space-6);
+  }
+
+  .quiz-header {
+    margin-bottom: var(--quiz-space-4);
+  }
+
+  .question-content {
+    margin-bottom: var(--quiz-space-4);
+  }
+
+  .question-text {
+    padding: var(--quiz-space-3);
+    margin-bottom: var(--quiz-space-3);
+  }
+
+  .options-list {
+    gap: var(--quiz-space-2);
+  }
+
+  .option-item {
+    padding: var(--quiz-space-3);
+  }
+
+  .quiz-footer {
+    margin-top: var(--quiz-space-4);
+    padding-top: var(--quiz-space-3);
+  }
+
+  /* Compact navigation in landscape */
+  .navigation-controls {
+    margin-bottom: var(--quiz-space-3);
+  }
+
+  .nav-button {
+    padding: var(--quiz-space-2) var(--quiz-space-4);
+  }
+}
+
+/* ============================================================================
+   Print Styles
+   Optimize for printing quiz content
+   ============================================================================ */
+
+@media print {
+  .quiz-engine {
+    max-width: 100%;
+    padding: 0;
+    background: white;
+    color: black;
+  }
+
+  /* Hide interactive elements */
+  .navigation-controls,
+  .question-navigator,
+  .time-remaining,
+  .hints-section {
+    display: none !important;
+  }
+
+  /* Show all content */
+  .quiz-header,
+  .question-content,
+  .quiz-footer {
+    page-break-inside: avoid;
+  }
+
+  /* Optimize colors for print */
+  .option-item {
+    border: 2px solid #000;
+    background: white;
+  }
+
+  .option-item.correct {
+    border: 3px solid #000;
+  }
+
+  .option-item.incorrect {
+    border: 3px dashed #000;
+  }
+
+  /* Remove shadows and effects */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Ensure readable text */
+  .question-text,
+  .option-text,
+  .explanation-panel {
+    color: #000;
+    background: white;
+  }
+
+  /* Page breaks */
+  .question-content {
+    page-break-after: always;
+  }
+
+  .question-content:last-child {
+    page-break-after: auto;
+  }
+}
+
+/* ============================================================================
+   Container Queries (Future-proof)
+   When container queries are widely supported
+   ============================================================================ */
+
+@supports (container-type: inline-size) {
+  .quiz-engine {
+    container-type: inline-size;
+    container-name: quiz;
+  }
+
+  @container quiz (max-width: 640px) {
+    .options-list {
+      gap: var(--quiz-space-2);
+    }
+  }
+
+  @container quiz (min-width: 768px) {
+    .options-list.two-column {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--quiz-space-3);
+    }
+  }
+}
+
+/* ============================================================================
+   Aspect Ratio Adjustments
+   Optimize for different screen aspect ratios
+   ============================================================================ */
+
+/* Ultra-wide screens */
+@media (min-aspect-ratio: 21/9) {
+  .quiz-engine {
+    max-width: 1000px;
+  }
+}
+
+/* Square-ish screens */
+@media (min-aspect-ratio: 4/5) and (max-aspect-ratio: 5/4) {
+  .quiz-engine {
+    max-width: 700px;
+  }
+}
+
+/* ============================================================================
+   Foldable Devices
+   Support for devices with fold/hinge
+   ============================================================================ */
+
+@media (horizontal-viewport-segments: 2) {
+  .quiz-engine {
+    /* Adjust layout for dual-screen devices */
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--quiz-space-8);
+  }
+
+  .quiz-header,
+  .question-content {
+    grid-column: 1;
+  }
+
+  .quiz-footer {
+    grid-column: 2;
+  }
+}
