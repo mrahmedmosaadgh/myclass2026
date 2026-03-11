@@ -23,5 +23,13 @@ Route::middleware(['auth'])->prefix('qdrat')->name('qdrat.')->group(function () 
     Route::resource('question-difficulties', \App\Http\Controllers\QudratQuantitative\QdratQuestionDifficultyController::class);
 
     // Questions
-    Route::resource('questions', \App\Http\Controllers\QudratQuantitative\QdratQuestionController::class);
+    Route::resource('questions', \App\Http\Controllers\QudratQuantitative\QdratQuestionController::class)->names([
+        'index' => 'qdrat.questions.index',
+        'create' => 'qdrat.questions.create',
+        'store' => 'qdrat.questions.store',
+        'show' => 'qdrat.questions.show',
+        'edit' => 'qdrat.questions.edit',
+        'update' => 'qdrat.questions.update',
+        'destroy' => 'qdrat.questions.destroy',
+    ]);
 });

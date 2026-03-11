@@ -66,6 +66,29 @@ class User extends Authenticatable
     {
         return $this->hasOne(HR::class);
     }
+
+    // BM2 Basic Math Platform Relationships
+    public function bm2Assessments()
+    {
+        return $this->hasMany(\App\Models\Bm2Assessment::class, 'student_id');
+    }
+
+    public function bm2LearningPaths()
+    {
+        return $this->hasMany(\App\Models\Bm2LearningPath::class, 'student_id');
+    }
+
+    public function bm2Badges()
+    {
+        return $this->belongsToMany(\App\Models\Bm2Badge::class, 'bm2_student_badges', 'student_id', 'badge_id')
+            ->withPivot('assessment_id', 'earned_for', 'earned_at', 'points_awarded')
+            ->withTimestamps();
+    }
+
+    public function bm2StudentAvatar()
+    {
+        return $this->hasOne(\App\Models\Bm2StudentAvatar::class, 'student_id');
+    }
     /**
      * Get the conversations that the user belongs to.
      */

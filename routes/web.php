@@ -575,3 +575,48 @@ if (file_exists($modulesPath)) {
         }
     }
 }
+
+// Load Course Modules Routes (e.g. Courses/bm)
+$coursesPath = base_path('routes/Courses');
+if (file_exists($coursesPath)) {
+    $courses = scandir($coursesPath);
+    foreach ($courses as $course) {
+        if ($course === '.' || $course === '..') {
+            continue;
+        }
+
+        $courseWebRoute = $coursesPath.'/'.$course.'/web.php';
+        if (file_exists($courseWebRoute)) {
+            require $courseWebRoute;
+        }
+    }
+}
+
+// BM2 Basic Math Platform Web Routes
+Route::middleware(['auth'])->prefix('bm2')->group(function () {
+    // Assessment Pages
+    Route::get('/assessment/start', function () {
+        return Inertia::render('Courses/bm2/Assessment/Start');
+    })->name('bm2.assessment.start');
+
+    Route::get('/assessment/{id}', function () {
+        return Inertia::render('Courses/bm2/Assessment/Take');
+    })->name('bm2.assessment.take');
+
+    Route::get('/assessment/{id}/results', function () {
+        return Inertia::render('Courses/bm2/Assessment/Results');
+    })->name('bm2.assessment.results');
+
+    // Student Dashboard
+    Route::get('/dashboard', function () {
+        return Inertia::render('Courses/bm2/Dashboard');
+    })->name('bm2.dashboard');
+
+    Route::get('/learning-paths', function () {
+        return Inertia::render('Courses/bm2/LearningPaths');
+    })->name('bm2.learning-paths');
+
+    Route::get('/badges', function () {
+        return Inertia::render('Courses/bm2/Badges');
+    })->name('bm2.badges');
+});

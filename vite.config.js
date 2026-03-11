@@ -110,6 +110,13 @@ export default defineConfig(({ mode }) => {
                             id.includes('resources/js/Pages/my_class/teacher')) {
                             return 'feature-teacher-portal';
                         }
+
+                        // Group Basic Math (BM) sections
+                        if (id.includes('resources/js/Pages/Courses/bm') ||
+                            id.includes('resources/js/Components/Courses/bm') ||
+                            id.includes('resources/js/Composables/Courses/bm')) {
+                            return 'feature-bm';
+                        }
                     }
                 },
             },

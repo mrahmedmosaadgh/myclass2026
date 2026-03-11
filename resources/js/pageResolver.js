@@ -15,6 +15,9 @@ export function resolvePageComponent(pageName) {
         'my_class': () => import(`./Pages/my_class/${pageName.replace('my_class/', '')}.vue`),
         'my_class/hr': () => import(`./Pages/my_class/hr/${pageName.replace('my_class/hr/', '')}.vue`),
 
+        // Courses & Learning Modules
+        'Courses': () => import(`./Pages/Courses/${pageName.replace('Courses/', '')}.vue`),
+
         // Modules
         'old_features/Admin/SkillManagement': () => import(`./Pages/old_features/Admin/SkillManagement/${pageName.replace('old_features/Admin/SkillManagement/', '')}.vue`),
         'Admin': () => import(`./Pages/old_features/Admin/${pageName.replace('Admin/', '')}.vue`),
