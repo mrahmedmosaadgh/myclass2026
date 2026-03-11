@@ -129,11 +129,10 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { router } from '@inertiajs/vue3';
 import { usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 
-const router = useRouter();
 const page = usePage();
 
 // State
@@ -160,7 +159,7 @@ const startAssessment = async () => {
     const { assessment, question } = response.data.data;
 
     // Navigate to assessment taking page
-    router.push(`/bm2/assessment/${assessment.id}`);
+    router.visit(`/bm2/assessment/${assessment.id}`);
   } catch (error) {
     console.error('Error starting assessment:', error);
     alert('Oops! Something went wrong. Please try again.');

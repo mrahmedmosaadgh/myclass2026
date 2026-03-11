@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Bm2Assessment;
 use App\Models\Bm2AssessmentQuestion;
 use App\Models\Bm2LearningPath;
+use App\Models\Bm2QuestionBank;
 use App\Services\Bm2AdaptiveScoringService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;

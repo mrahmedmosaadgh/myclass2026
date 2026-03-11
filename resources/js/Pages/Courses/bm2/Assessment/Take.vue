@@ -172,11 +172,10 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { useBm2FirebaseSync } from '@/composables/useBm2FirebaseSync';
 
-const router = useRouter();
 const props = defineProps({
   id: {
     type: [Number, String],
@@ -288,8 +287,8 @@ const completeAssessment = async () => {
   try {
     const response = await axios.post(`/api/v2/bm2/assessment/${props.id}/complete`);
     
-    // Navigate to results page
-    router.push(`/bm2/assessment/${props.id}/results`);
+    // Navigate to results page using Inertia
+    router.visit(`/bm2/assessment/${props.id}/results`);
   } catch (error) {
     console.error('Error completing assessment:', error);
   }
@@ -297,7 +296,7 @@ const completeAssessment = async () => {
 
 const confirmExit = () => {
   if (confirm('Are you sure you want to exit? Your progress will be lost.')) {
-    router.push('/bm2/dashboard');
+    router.visit('/bm2/dashboard');
   }
 };
 
