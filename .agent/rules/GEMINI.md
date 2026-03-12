@@ -21,9 +21,10 @@ Agent activated → Check frontmatter "skills:" → Read SKILL.md (INDEX) → Re
 
 ### 2. Enforcement Protocol
 
-1. **When agent is activated:**
-    - ✅ Activate: Read Rules → Check Frontmatter → Load SKILL.md → Apply All.
-2. **Forbidden:** Never skip reading agent rules or skill instructions. "Read → Understand → Apply" is mandatory.
+1. **When agent is activated (MANDATORY STARTUP CHECK):**
+    - 🛑 **GIT SYNC CHECK:** Before writing ANY code or creating plans, you MUST run `git fetch` and `git status` to check if the local branch is behind the remote. If it is behind, you MUST STOP and instruct the user to sync using `git pull --rebase --autostash` or ask for permission to run it yourself.
+    - ✅ **Proceed:** Read Rules → Check Frontmatter → Load SKILL.md → Apply All.
+2. **Forbidden:** Never skip reading agent rules, skill instructions, or the Git Sync Check. "Read → Understand → Apply" is mandatory.
 
 ---
 
