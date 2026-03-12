@@ -11,7 +11,7 @@ use App\Models\School;
 class CurriculumLesson extends Model
 {
     protected $fillable = [
-        'school_id',
+        'curriculum_version_id',
         'topic_id',
         'lesson_number',
         'lesson_title',
@@ -20,11 +20,9 @@ class CurriculumLesson extends Model
         'standard',
         'strand',
         'content',
-        'skill',
         'activities',
         'assignment',
         'assessment',
-        'objective',
         'data',
         'type'
     ];
@@ -35,9 +33,9 @@ class CurriculumLesson extends Model
     ];
 
     // Relationships
-    public function school(): BelongsTo
+    public function curriculumVersion(): BelongsTo
     {
-        return $this->belongsTo(School::class);
+        return $this->belongsTo(\App\Models\CurriculumVersion::class, 'curriculum_version_id');
     }
 
     public function topic(): BelongsTo
@@ -47,7 +45,7 @@ class CurriculumLesson extends Model
 
     public function curriculum()
     {
-        return $this->topic->curriculum();
+        return $this->curriculumVersion ? $this->curriculumVersion->curriculum() : null;
     }
 
     public function lessonPlans(): HasMany
@@ -60,12 +58,15 @@ class CurriculumLesson extends Model
         return $this->hasMany(QuestionBank::class, 'curriculum_lessons_id');
     }
 
-    // Scopes
-    public function scopeForCurriculum($query, $curriculumId)
+    public function skills()
     {
-        return $query->whereHas('topic', function ($q) use ($curriculumId) {
-            $q->where('curriculum_id', $curriculumId);
-        });
+        return $this->morphToMany(\App\Models\Skill::class, 'skillable');
+    }
+
+    // Scopes
+    public function scopeForVersion($query, $versionId)
+    {
+        return $query->where('curriculum_version_id', $versionId);
     }
 
     public function scopeByType($query, $type)

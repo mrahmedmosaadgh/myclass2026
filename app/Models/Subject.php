@@ -34,10 +34,7 @@ class Subject extends Model
         return $this->belongsTo(School::class);
     }
 
-    public function lessons()
-    {
-        return $this->hasMany(Lesson::class);
-    }
+    // removed lessons() as Lesson model is dropped
 
 public function curricula()
 {

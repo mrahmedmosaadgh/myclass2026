@@ -52,8 +52,15 @@ class AcademicYear extends Model
         });
 
         static::created(function ($academicYear) {
-            // Semesters are created separately by the user via AI Setup or manually.
-            // No auto-creation here.
+            for ($i = 1; $i <= 4; $i++) {
+                Semester::create([
+                    'name' => "Semester $i",
+                    'semester_number' => $i,
+                    'academic_year_id' => $academicYear->id,
+                    'school_id' => $academicYear->school_id,
+                    'active' => $i === 1, // Default the first semester as active
+                ]);
+            }
         });
 
         static::updating(function ($academicYear) {

@@ -10,16 +10,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class CurriculumTopic extends Model
 {
     protected $fillable = [
-        'curriculum_id',
+        'curriculum_version_id',
         'number',
         'title',
         'description'
     ];
 
     // Relationships
-    public function curriculum(): BelongsTo
+    public function curriculumVersion(): BelongsTo
     {
-        return $this->belongsTo(Curriculum::class);
+        return $this->belongsTo(\App\Models\CurriculumVersion::class, 'curriculum_version_id');
     }
 
     public function lessons(): HasMany
@@ -28,9 +28,9 @@ class CurriculumTopic extends Model
     }
 
     // Scopes
-    public function scopeForCurriculum($query, $curriculumId)
+    public function scopeForVersion($query, $versionId)
     {
-        return $query->where('curriculum_id', $curriculumId);
+        return $query->where('curriculum_version_id', $versionId);
     }
 
     // Helper methods

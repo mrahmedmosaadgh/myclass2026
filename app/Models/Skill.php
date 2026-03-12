@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 
 class Skill extends Model
 {
@@ -49,6 +50,11 @@ class Skill extends Model
     public function awards()
     {
         return $this->hasMany(SkillAward::class);
+    }
+
+    public function curriculumLessons(): MorphToMany
+    {
+        return $this->morphedByMany(\App\Models\my_class\Curriculums\CurriculumLesson::class, 'skillable');
     }
 
     // Methods

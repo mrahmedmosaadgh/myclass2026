@@ -9,7 +9,6 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class YearSemesterCalendarController extends Controller
 {
@@ -53,6 +52,7 @@ class YearSemesterCalendarController extends Controller
         $user = auth()->user();
         $schoolId = $user->schoolId();
 
+        // Validate that user has a school assigned
         if (!$schoolId) {
             return back()->withErrors(['school' => 'You must be assigned to a school before creating academic years. Please contact your administrator.']);
         }
@@ -60,20 +60,20 @@ class YearSemesterCalendarController extends Controller
         $startDate = Carbon::parse($request->start_date);
         $name = $request->name ?: $startDate->year . '-' . ($startDate->year + 1);
 
+        // Check if name already exists
         if (AcademicYear::where('name', $name)->where('school_id', $schoolId)->exists()) {
             return back()->withErrors(['name' => 'The academic year name has already been taken.']);
         }
 
         AcademicYear::create([
-            'name'       => $name,
+            'name' => $name,
             'start_date' => $request->start_date,
-            'end_date'   => $request->end_date,
-            'school_id'  => $schoolId,
-            'active'     => true,
+            'end_date' => $request->end_date,
+            'school_id' => $schoolId,
+            'active' => true,
         ]);
 
-        return redirect()->back()->with('success',
-            'Academic Year created! Now use AI Setup or add semesters manually to define your schedule.');
+        return redirect()->back()->with('success', 'Academic Year and 4 Semesters created successfully.');
     }
 
     public function updateSemester(Request $request, Semester $semester)
@@ -232,47 +232,6 @@ class YearSemesterCalendarController extends Controller
         return redirect()->back()->with('success', 'Academic year status updated.');
     }
 
-    public function getSemesterEvents(Semester $semester)
-    {
-        $schoolId = auth()->user()->schoolId();
-        if ($semester->school_id !== $schoolId) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
-
-        $events = Calendar::where('semester_id', $semester->id)
-            ->where('status', '!=', 1) // Exclude normal work days
-            ->orderBy('date')
-            ->get(['id', 'date', 'status', 'day_number', 'data'])
-            ->map(function ($cal) {
-                $date = $cal->date instanceof \Carbon\Carbon ? $cal->date : \Carbon\Carbon::parse($cal->date);
-                return [
-                    'id'          => $cal->id,
-                    'date'        => $date->format('Y-m-d'),
-                    'day_of_week' => $date->dayOfWeek, // 0=Sun, 5=Fri, 6=Sat
-                    'status'      => $cal->status,
-                    'label'       => $cal->data['ai_event_name'] ?? $cal->data['ai_vacation_name'] ?? null,
-                ];
-            });
-
-        return response()->json($events);
-    }
-
-    public function setActiveSemester(AcademicYear $year, Semester $semester)
-    {
-        $schoolId = auth()->user()->schoolId();
-        if ($year->school_id !== $schoolId || $semester->academic_year_id !== $year->id) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
-
-        // Deactivate all semesters for this year
-        Semester::where('academic_year_id', $year->id)->update(['active' => false]);
-
-        // Activate the selected one
-        $semester->update(['active' => true]);
-
-        return redirect()->back()->with('success', "{$semester->name} is now the active semester.");
-    }
-
     public function getCalendarData(AcademicYear $year)
     {
         $calendars = Calendar::with('semester')
@@ -335,235 +294,5 @@ class YearSemesterCalendarController extends Controller
         ];
 
         return response()->json($stats);
-    }
-
-    /**
-     * Auto-generate a full year of calendar records starting from July 1.
-     * Returns ['skipped', existingCount] if records already exist, or ['generated', 0] on success.
-     */
-    private function autoGenerateFullCalendar(AcademicYear $year): array
-    {
-        $year->load('semesters');
-
-        // Check for existing records — do NOT override
-        $existingCount = Calendar::where('academic_year_id', $year->id)->count();
-        if ($existingCount > 0) {
-            return ['skipped', $existingCount];
-        }
-
-        // Reload semesters to ensure we have the 4 automatically created by the AcademicYear model event
-        $year->load('semesters');
-        $defaultSemester = $year->semesters->sortBy('semester_number')->first();
-
-        $start      = Carbon::parse($year->start_date)->startOfDay();
-        $end        = Carbon::parse($year->end_date)->endOfDay();
-        $current    = $start->copy();
-        $weekNumber = 1;
-        $records    = [];
-        $now        = now()->toDateTimeString();
-
-        while ($current <= $end) {
-            $dayOfWeek = $current->dayOfWeek;    // 0=Sun … 6=Sat
-            $dayNumber = $current->dayOfWeekIso; // 1=Mon … 7=Sun
-            $status    = in_array($dayOfWeek, [5, 6]) ? 0 : 1; // Fri/Sat = Day Off
-
-            // Map to semester by date range
-            $semester = $year->semesters->first(function ($s) use ($current) {
-                if (!$s->start_date || !$s->end_date) return false;
-                return $current->between(
-                    Carbon::parse($s->start_date)->startOfDay(),
-                    Carbon::parse($s->end_date)->endOfDay()
-                );
-            });
-
-            // Fallback to the first automatically created semester
-            $semesterId = $semester ? $semester->id : $defaultSemester?->id;
-
-            $records[] = [
-                'date'             => $current->format('Y-m-d'),
-                'school_id'        => $year->school_id,
-                'academic_year_id' => $year->id,
-                'semester_id'      => $semesterId,
-                'status'           => $status,
-                'week_number'      => $weekNumber,
-                'day_number'       => $dayNumber,
-                'created_at'       => $now,
-                'updated_at'       => $now,
-            ];
-
-            if ($dayOfWeek === 6) { // End of Saturday = new week
-                $weekNumber++;
-            }
-            $current->addDay();
-        }
-
-        // Bulk insert in chunks to avoid memory issues on large datasets
-        collect($records)->chunk(500)->each(fn($chunk) => Calendar::insert($chunk->all()));
-
-        return ['generated', 0];
-    }
-
-    /**
-     * Apply AI Setup to Academic Year Semesters and Calendars.
-     * Takes the AI JSON payload, updates semesters, vacations, and events.
-     */
-    public function applyAISemesterSetup(Request $request, AcademicYear $year)
-    {
-        $validated = $request->validate([
-            'mode'     => 'nullable|in:update,replace',
-            'semesters' => 'required|array',
-            'semesters.*.number' => 'required|integer|min:1|max:4',
-            'semesters.*.name' => 'required|string|max:255',
-            'semesters.*.start_date' => 'required|date',
-            'semesters.*.end_date' => 'required|date|after_or_equal:semesters.*.start_date',
-            'semesters.*.vacations' => 'nullable|array',
-            'semesters.*.vacations.*.name' => 'required_with:semesters.*.vacations|string|max:255',
-            'semesters.*.vacations.*.start_date' => 'required_with:semesters.*.vacations|date',
-            'semesters.*.vacations.*.end_date' => 'required_with:semesters.*.vacations|date|after_or_equal:semesters.*.vacations.*.start_date',
-            'semesters.*.events' => 'nullable|array',
-            'semesters.*.events.*.name' => 'required_with:semesters.*.events|string|max:255',
-            'semesters.*.events.*.date' => 'required_with:semesters.*.events|date',
-            'semesters.*.events.*.type' => 'required_with:semesters.*.events|string|in:activity,test,exam,holiday'
-        ]);
-
-        $mode = $request->input('mode', 'update');
-
-        DB::beginTransaction();
-        try {
-            // REPLACE MODE: wipe all existing data first
-            if ($mode === 'replace') {
-                Calendar::withTrashed()->where('academic_year_id', $year->id)->forceDelete();
-                Semester::withTrashed()->where('academic_year_id', $year->id)->forceDelete();
-            }
-
-            // ── PASS 1: Create / update semesters & collect event data ────────────
-            $pendingVacations = [];
-            $pendingEvents    = [];
-
-            foreach ($validated['semesters'] as $semData) {
-                $semester = Semester::withTrashed()->firstOrNew([
-                    'academic_year_id' => $year->id,
-                    'semester_number'  => $semData['number'],
-                ]);
-                if ($semester->trashed()) {
-                    $semester->restore();
-                }
-                $semester->fill([
-                    'name'       => $semData['name'],
-                    'start_date' => $semData['start_date'],
-                    'end_date'   => $semData['end_date'],
-                    'school_id'  => $year->school_id,
-                ])->save();
-
-                // Collect vacations & events keyed by semester id (for later pass)
-                if (!empty($semData['vacations'])) {
-                    foreach ($semData['vacations'] as $v) {
-                        $pendingVacations[] = [
-                            'semester_id' => $semester->id,
-                            'start_date'  => $v['start_date'],
-                            'end_date'    => $v['end_date'],
-                            'name'        => $v['name'],
-                        ];
-                    }
-                }
-                if (!empty($semData['events'])) {
-                    foreach ($semData['events'] as $e) {
-                        $pendingEvents[] = [
-                            'semester_id' => $semester->id,
-                            'date'        => $e['date'],
-                            'type'        => $e['type'],
-                            'name'        => $e['name'],
-                        ];
-                    }
-                }
-            }
-
-            // ── PASS 2: Generate the FULL YEAR calendar ────────────────────────────
-            $year->load('semesters');
-            $semesters = $year->semesters->filter(fn($s) => $s->start_date && $s->end_date)->values();
-
-            $yearStart  = Carbon::parse($year->start_date);
-            $yearEnd    = Carbon::parse($year->end_date);
-            $weekNumber = 1;
-            $records    = [];
-            $current    = $yearStart->copy();
-
-            while ($current <= $yearEnd) {
-                $dow   = $current->dayOfWeek; // 0=Sun … 6=Sat
-                $semId = null;
-                foreach ($semesters as $s) {
-                    if ($current->between(Carbon::parse($s->start_date), Carbon::parse($s->end_date))) {
-                        $semId = $s->id;
-                        break;
-                    }
-                }
-
-                $records[] = [
-                    'date'             => $current->format('Y-m-d'),
-                    'semester_id'      => $semId,
-                    'academic_year_id' => $year->id,
-                    'school_id'        => $year->school_id,
-                    'status'           => in_array($dow, [5, 6]) ? 0 : 1, // Fri/Sat = day off
-                    'week_number'      => $weekNumber,
-                    'day_number'       => $current->dayOfWeekIso,
-                    'data'             => null,
-                    'created_at'       => now(),
-                    'updated_at'       => now(),
-                ];
-
-                if ($dow === 6) $weekNumber++;
-                $current->addDay();
-            }
-
-            if ($mode === 'replace') {
-                collect($records)->chunk(500)->each(fn($chunk) => Calendar::insert($chunk->all()));
-            } else {
-                collect($records)->chunk(500)->each(function ($chunk) {
-                    Calendar::upsert(
-                        $chunk->toArray(),
-                        ['date', 'school_id'],
-                        ['semester_id', 'status', 'week_number', 'day_number', 'updated_at']
-                    );
-                });
-            }
-
-            // ── PASS 3: Apply vacations & events (AFTER calendar rows exist) ───────
-            foreach ($pendingVacations as $v) {
-                Calendar::where('academic_year_id', $year->id)
-                    ->whereBetween('date', [$v['start_date'], $v['end_date']])
-                    ->update([
-                        'status'      => 0,
-                        'semester_id' => $v['semester_id'],
-                        'data'        => json_encode(['ai_vacation_name' => $v['name']]),
-                        'updated_at'  => now(),
-                    ]);
-            }
-
-            foreach ($pendingEvents as $e) {
-                $statusId = match (strtolower($e['type'])) {
-                    'activity' => 2,
-                    'test'     => 3,
-                    'exam'     => 4,
-                    'holiday'  => 0,
-                    default    => 1,
-                };
-                Calendar::where('academic_year_id', $year->id)
-                    ->where('date', $e['date'])
-                    ->update([
-                        'status'      => $statusId,
-                        'semester_id' => $e['semester_id'],
-                        'data'        => json_encode(['ai_event_name' => $e['name'], 'event_type' => $e['type']]),
-                        'updated_at'  => now(),
-                    ]);
-            }
-
-            DB::commit();
-            return response()->json(['message' => 'AI Configuration applied successfully']);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('AI Semester Setup failed: ' . $e->getMessage());
-            return response()->json(['message' => 'Failed to apply AI configuration: ' . $e->getMessage()], 500);
-        }
     }
 }

@@ -106,6 +106,13 @@ php artisan serve
 npm run dev
 
 
+test card instead:
+
+Card Number: 4111 1111 1111 1111
+Expiry: 12 / 26
+CVC: 123
+
+
  create the required history file in docs/history (with what you did and what still need to be done if you have)with the correct timestamped name and title, then stage, commit with the specified message format, and push to your current branch.
 
 

@@ -1,0 +1,118 @@
+# Curriculum Architecture Improvements (Updated Plan)
+
+This plan combines all decisions from our review sessions.
+
+### Summary of All Decisions
+| # | Decision | Status |
+|---|---|---|
+| 1 | **Editions Pattern** — introduce `curriculum_versions` for year-to-year versioning | ✅ Agreed |
+| 2 | **Flat + Nested lessons** — `topic_id` nullable on `curriculum_lessons` | ✅ Agreed |
+| 3 | **Remove `active` from `curricula`** — status lives in `curriculum_versions` only | ✅ Agreed |
+| 4 | **`curriculum_maps` links to `curriculum_version_id`** not `curriculum_id` | ✅ Agreed |
+| 5 | **Drop standalone `lessons` table** and `App\Models\Lesson` (confirmed safe) | ✅ Agreed |
+| 6 | **Granular skill tagging** — `skills` + `skillables` pivot table | ✅ Agreed |
+| 7 | **Gamification hooks** — JSON column on `curriculum_lesson_plans` | ✅ Agreed |
+| 8 | **JSON Cast enforcement** — DTOs/Casts for `weekly_plan` and `plan` columns | ✅ Agreed |
+
+## Proposed Changes
+
+### Phase A: The Editions Pattern (Versioning Core)
+
+Replace individual lesson soft-deletion with a full curriculum versioning system.
+
+#### [MODIFY] [curricula table](file:///c:/my_project/myclass2026-main/database/migrations/2024_11_30_130314_create_curricula_table.php)
+- Remove the `active` tinyInteger column. The `curricula` table now only holds permanent metadata: `name`, `school_id`, `grade_id`, `subject_id`, `description`, and timestamps.
+
+#### [NEW] `curriculum_versions` table
+- `id`, `curriculum_id` (FK → `curricula`), `title`, `academic_year`, `status` (enum: `draft`, `active`, `archived`), `version_number`, timestamps.
+
+#### [MODIFY] [curriculum_topics table](file:///c:/my_project/myclass2026-main/database/migrations/2024_11_30_130327_create_curriculum_topics_table.php)
+- Change `curriculum_id` FK → `curriculum_version_id` (FK → `curriculum_versions`).
+
+#### [MODIFY] [curriculum_lessons table](file:///c:/my_project/myclass2026-main/database/migrations/2024_11_30_130328_create_curriculum_lessons_table.php)
+- Add `curriculum_version_id` (FK → `curriculum_versions`) for flat support.
+- Make `topic_id` **nullable** — allows both flat (no topic) and nested (with topic) curricula.
+- Remove `school_id` (it is inherited through `curriculum_version → curriculum → school`).
+- **No more** `SoftDeletes` or `version` column — versioning is handled at the `curriculum_versions` level.
+
+#### [MODIFY] [curriculum_maps table](file:///c:/my_project/myclass2026-main/database/migrations/2025_05_22_064638_create_curriculum_maps_table.php)
+- Replace `curriculum_id` with `curriculum_version_id` (FK → `curriculum_versions`). Teachers always map a specific edition.
+
+---
+
+### Phase B: Granular Skill Tagging
+
+Extract text-based skills for gap analysis.
+
+#### [NEW] `skills` table
+- `id`, `name`, `domain`, `standard`, timestamps.
+
+#### [NEW] `skillables` polymorphic pivot table
+- `skill_id`, `skillable_id`, `skillable_type` — attach skills to `curriculum_lessons` and assessment questions.
+
+#### [MODIFY] [curriculum_lessons table](file:///c:/my_project/myclass2026-main/database/migrations/2024_11_30_130328_create_curriculum_lessons_table.php)
+- Remove the free-text `skill` and `objective` columns (replaced by the pivot).
+
+---
+
+### Phase C: Gamification Integration
+
+#### [MODIFY] [curriculum_lesson_plans table](file:///c:/my_project/myclass2026-main/database/migrations/2025_05_22_025858_create_curriculum_lesson_plans_table.php)
+- Add `gamification_hooks` JSON column (e.g., `{events: [{trigger: 'completion', points: 10, badge_id: 5}] }`).
+
+---
+
+### Phase D: Cleanup — Remove Legacy Flat Lessons
+
+#### [DELETE] [2025_05_20_000000_create_lessons_table.php](file:///c:/my_project/myclass2026-main/database/migrations/2025_05_20_000000_create_lessons_table.php)
+- Confirmed safe: no controller, route, or Vue component actively uses it.
+
+#### [DELETE] [App\Models\Lesson.php](file:///c:/my_project/myclass2026-main/App/Models/Lesson.php)
+- Remove the orphaned [Lesson](file:///c:/my_project/myclass2026-main/app/Models/Lesson.php#9-178) model. The only reference is an unused relationship in [Subject.php](file:///c:/my_project/myclass2026-main/app/Models/Subject.php) which will also be cleaned up.
+
+#### [MODIFY] [Subject.php](file:///c:/my_project/myclass2026-main/app/Models/Subject.php) Model
+- Remove the `hasMany(Lesson::class)` relationship.
+
+---
+
+### Phase E: JSON Cast Enforcement
+
+#### [NEW] `app/Casts/WeeklyPlanCast.php`
+#### [NEW] `app/Casts/LessonPlanCast.php`
+- Custom Cast classes to enforce a strict JSON schema before data is serialized/deserialized.
+
+#### [MODIFY] `CurriculumMap.php` Model
+- Apply `WeeklyPlanCast` to the `weekly_plan` column.
+
+#### [MODIFY] [CurriculumLessonPlan.php](file:///c:/my_project/myclass2026-main/app/Models/CurriculumLessonPlan.php) Model
+- Apply `LessonPlanCast` to the `plan` column.
+
+---
+
+## Architectural Flow (Final)
+
+```text
+[Curriculum] Grade 4 Math (school, grade, subject)
+   |
+   |---> [Version 1] 2024/2025 — Archived
+   |        |---> [Topic: Fractions]
+   |        |       |---> [Lesson: Intro to Fractions (ID:10)] <--- Old teacher plans
+   |        |---> [Lesson: Standalone (no topic, ID:11)] -- Flat lesson
+   |
+   |---> [Version 2] 2025/2026 — Active
+            |---> [Topic: Fractions]
+            |       |---> [Lesson: Intro to Fractions (ID:45)] <--- New teacher plans
+```
+
+## Verification Plan
+
+### Automated Tests
+- Migration runs without error.
+- Cloning a `curriculum_version` duplicates all nested topics and lessons with new IDs.
+- Old `curriculum_lesson_plans` remain linked to original lesson IDs after cloning.
+- Skill pivot attaches/detaches correctly from lessons.
+- JSON Casts reject malformed payloads.
+
+### Manual Verification
+- Confirm no existing controller breaks after removing `school_id` from `curriculum_lessons`.
+- Verify the `curriculum_maps` query filters correctly by `curriculum_version_id`.

@@ -27,6 +27,7 @@ return new class extends Migration
             $table->text('objectives')->nullable();
             $table->json('materials')->nullable()->comment('Teaching materials and resources');
             $table->json('plan')->nullable()->comment('Detailed lesson plan structure');
+            $table->json('gamification_hooks')->nullable()->comment('Hooks for gamification events');
             $table->tinyInteger('status')->default(0)->comment('0=draft, 1=active, 2=completed');
             $table->date('planned_date')->nullable();
             $table->timestamps();

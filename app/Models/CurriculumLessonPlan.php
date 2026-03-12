@@ -26,6 +26,7 @@ class CurriculumLessonPlan extends Model
         'objectives',
         'materials',
         'plan',
+        'gamification_hooks',
         'status',
         'planned_date'
     ];
@@ -33,7 +34,8 @@ class CurriculumLessonPlan extends Model
     protected $casts = [
         'co_teacher_ids' => 'json',
         'materials' => 'json',
-        'plan' => 'json',
+        'plan' => \App\Casts\LessonPlanCast::class,
+        'gamification_hooks' => 'json',
         'status' => 'integer',
         'planned_date' => 'date',
         'page_number' => 'integer'

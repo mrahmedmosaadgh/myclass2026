@@ -18,7 +18,7 @@ return new class extends Migration
             $table->foreignId('subject_id')->constrained('subjects')->onDelete('cascade');
             $table->foreignId('grade_id')->constrained('grades')->onDelete('cascade');
             $table->foreignId('teacher_id')->constrained('teachers')->onDelete('cascade');
-            $table->foreignId('curriculum_id')->nullable()->constrained('curricula')->onDelete('cascade');
+            $table->foreignId('curriculum_version_id')->nullable()->constrained('curriculum_versions')->onDelete('cascade');
             $table->string('title')->nullable();
             $table->text('description')->nullable();
             $table->json('weekly_plan')->nullable()->comment('JSON structure: {week_number: {lessons: [], objectives: [], assessments: []}}');

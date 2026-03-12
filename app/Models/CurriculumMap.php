@@ -16,7 +16,7 @@ class CurriculumMap extends Model
         'subject_id',
         'grade_id',
         'teacher_id',
-        'curriculum_id',
+        'curriculum_version_id',
         'title',
         'description',
         'weekly_plan',
@@ -26,7 +26,7 @@ class CurriculumMap extends Model
     ];
 
     protected $casts = [
-        'weekly_plan' => 'json',
+        'weekly_plan' => \App\Casts\WeeklyPlanCast::class,
         'status' => 'integer',
         'start_date' => 'date',
         'end_date' => 'date'
@@ -58,9 +58,9 @@ class CurriculumMap extends Model
         return $this->belongsTo(Teacher::class);
     }
 
-    public function curriculum(): BelongsTo
+    public function curriculumVersion(): BelongsTo
     {
-        return $this->belongsTo(Curriculum::class);
+        return $this->belongsTo(CurriculumVersion::class, 'curriculum_version_id');
     }
 
     // Scopes

@@ -13,12 +13,9 @@ return new class extends Migration
     {
         Schema::create('curriculum_lessons', function (Blueprint $table) {
 $table->id();
-    // Link to topic instead of duplicating topic strings
-    $table->foreignId('topic_id')->constrained('curriculum_topics')->onDelete('cascade');
-    
-    // School ID might still be needed here if you want school-specific lesson overrides,
-    // otherwise, it usually belongs to the Curriculum or Topic level.
-    $table->foreignId('school_id')->constrained()->onDelete('cascade');
+    $table->foreignId('curriculum_version_id')->constrained('curriculum_versions')->onDelete('cascade');
+    // Link to topic (nullable to allow flat structure)
+    $table->foreignId('topic_id')->nullable()->constrained('curriculum_topics')->onDelete('cascade');
 
     // $table->tinyInteger('selected')->default(1);
     $table->string('lesson_number');
@@ -30,11 +27,9 @@ $table->id();
     $table->string('standard')->nullable();
     $table->string('strand')->nullable();
     $table->text('content')->nullable();
-    $table->text('skill')->nullable();
     $table->text('activities')->nullable();
     $table->text('assignment')->nullable();
     $table->text('assessment')->nullable();
-    $table->text('objective')->nullable();
     
     $table->json('data')->nullable();
     $table->enum('type', ['main', 'revision', 'quiz', 'project', 'extra'])->default('main');

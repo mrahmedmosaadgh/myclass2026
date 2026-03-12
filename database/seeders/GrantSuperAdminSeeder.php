@@ -24,7 +24,6 @@ class GrantSuperAdminSeeder extends Seeder
 
         // 1. Ensure Super Admin role exists
         $role = Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
-        $devRole = Role::firstOrCreate(['name' => 'developer', 'guard_name' => 'web']);
 
         // 2. Assign role to user
         if (!$user->hasRole('super_admin')) {
@@ -32,14 +31,6 @@ class GrantSuperAdminSeeder extends Seeder
             $this->command->info("Granted 'super_admin' role to {$user->name} ({$user->email})");
         } else {
             $this->command->info("User {$user->name} already has 'super_admin' role.");
-        }
-
-        // 2b. Assign developer role to user
-        if (!$user->hasRole('developer')) {
-            $user->assignRole($devRole);
-            $this->command->info("Granted 'developer' role to {$user->name} ({$user->email})");
-        } else {
-            $this->command->info("User {$user->name} already has 'developer' role.");
         }
         
         // 3. Optional: Sync all permissions to the role to be sure

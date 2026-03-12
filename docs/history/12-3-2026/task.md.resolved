@@ -1,0 +1,32 @@
+# Curriculum Improvements Tasks
+
+- [ ] **Phase A: Editions Pattern (Versioning Core)**
+  - [ ] Modify `curricula` migration: remove `active` column
+  - [ ] Create new migration: `curriculum_versions` table
+  - [ ] Modify `curriculum_topics` migration: swap `curriculum_id` for `curriculum_version_id`
+  - [ ] Modify `curriculum_lessons` migration:
+    - [ ] Add `curriculum_version_id` FK (for flat lessons)
+    - [ ] Make `topic_id` nullable (for flat vs nested support)
+    - [ ] Remove `school_id` (inherited through version chain)
+    - [ ] Remove `SoftDeletes` and any `version` column ideas
+  - [ ] Modify `curriculum_maps` migration: replace `curriculum_id` with `curriculum_version_id`
+  - [ ] Update Eloquent Models: `Curriculum`, `CurriculumTopic`, `CurriculumLesson`, `CurriculumMap`
+
+- [ ] **Phase B: Granular Skill Tagging**
+  - [ ] Create `skills` migration and `Skill` model
+  - [ ] Create `skillables` polymorphic pivot migration
+  - [ ] Modify `curriculum_lessons` migration: remove free-text `skill` and `objective` columns
+
+- [ ] **Phase C: Gamification Integration**
+  - [ ] Modify `curriculum_lesson_plans` migration: add `gamification_hooks` JSON column
+
+- [ ] **Phase D: Cleanup — Remove Legacy Flat Lessons**
+  - [ ] Delete [2025_05_20_000000_create_lessons_table.php](file:///c:/my_project/myclass2026-main/database/migrations/2025_05_20_000000_create_lessons_table.php)
+  - [ ] Delete [app/Models/Lesson.php](file:///c:/my_project/myclass2026-main/app/Models/Lesson.php)
+  - [ ] Remove unused `hasMany(Lesson::class)` from [Subject.php](file:///c:/my_project/myclass2026-main/app/Models/Subject.php)
+
+- [ ] **Phase E: JSON Cast Enforcement**
+  - [ ] Create `app/Casts/WeeklyPlanCast.php`
+  - [ ] Create `app/Casts/LessonPlanCast.php`
+  - [ ] Apply `WeeklyPlanCast` to `CurriculumMap` model
+  - [ ] Apply `LessonPlanCast` to `CurriculumLessonPlan` model
