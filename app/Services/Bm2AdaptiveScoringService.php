@@ -36,6 +36,52 @@ class Bm2AdaptiveScoringService
     }
 
     /**
+     * Get all questions for an assessment (non-adaptive, load all at once).
+     * 
+     * @param Bm2Assessment $assessment
+     * @return array
+     */
+    public function getAllQuestionsForAssessment(Bm2Assessment $assessment): array
+    {
+        // Get a balanced mix of questions across difficulties
+        $easyQuestions = $this->getQuestionsByDifficultyCount($assessment, 'easy', 5);
+        $mediumQuestions = $this->getQuestionsByDifficultyCount($assessment, 'medium', 5);
+        $hardQuestions = $this->getQuestionsByDifficultyCount($assessment, 'hard', 3);
+
+        $allQuestions = array_merge($easyQuestions, $mediumQuestions, $hardQuestions);
+        
+        // Shuffle to mix difficulties
+        shuffle($allQuestions);
+
+        return $allQuestions;
+    }
+
+    /**
+     * Get specific count of questions by difficulty.
+     * 
+     * @param Bm2Assessment $assessment
+     * @param string $difficulty
+     * @param int $count
+     * @return array
+     */
+    private function getQuestionsByDifficultyCount(Bm2Assessment $assessment, string $difficulty, int $count): array
+    {
+        $usedQuestionIds = $assessment->questions()
+            ->whereNotNull('question_bank_id')
+            ->pluck('question_bank_id')
+            ->toArray();
+
+        return Bm2QuestionBank::query()
+            ->active()
+            ->ofDifficulty($difficulty)
+            ->whereNotIn('id', $usedQuestionIds)
+            ->inRandomOrder()
+            ->limit($count)
+            ->get()
+            ->toArray();
+    }
+
+    /**
      * Get a question of specific difficulty.
      * 
      * @param Bm2Assessment $assessment

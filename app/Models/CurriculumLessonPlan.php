@@ -13,6 +13,7 @@ class CurriculumLessonPlan extends Model
 
     protected $fillable = [
         'school_id',
+        'curriculum_id',
         'curriculum_lesson_id',
         'subject_id',
         'grade_id',

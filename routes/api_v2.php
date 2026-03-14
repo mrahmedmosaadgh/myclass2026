@@ -15,12 +15,14 @@ Route::prefix('v2')->group(function () {
     // Public V2 APIs can go here
     
     // Authenticated V2 APIs
-    Route::middleware(['auth:sanctum'])->group(function () {
+    Route::middleware(['auth:sanctum','web'])->group(function () {
         // BM2 Basic Math Platform Routes
         Route::prefix('bm2')->group(function () {
             // Assessment Routes
             Route::post('/assessment/start', [App\Http\Controllers\Bm2AssessmentController::class, 'start']);
-            Route::post('/assessment/{assessmentId}/submit', [App\Http\Controllers\Bm2AssessmentController::class, 'submitAnswer']);
+            Route::get('/assessment/{assessmentId}/questions', [App\Http\Controllers\Bm2AssessmentController::class, 'getAllQuestions']);
+            Route::post('/assessment/{assessmentId}/submit', [App\Http\Controllers\Bm2AssessmentController::class, 'submitAnswer']); // Individual (legacy)
+            Route::post('/assessment/{assessmentId}/submit-all', [App\Http\Controllers\Bm2AssessmentController::class, 'submitAllAnswers']); // Bulk submission
             Route::get('/assessment/{assessmentId}/next', [App\Http\Controllers\Bm2AssessmentController::class, 'getNextQuestion']);
             Route::post('/assessment/{assessmentId}/complete', [App\Http\Controllers\Bm2AssessmentController::class, 'complete']);
             Route::get('/assessment/{assessmentId}/results', [App\Http\Controllers\Bm2AssessmentController::class, 'getResults']);
@@ -43,6 +45,13 @@ Route::prefix('v2')->group(function () {
             Route::get('/student/assessment-results/{assessmentId}', [App\Http\Controllers\Bm2StudentController::class, 'assessmentResults']);
             Route::post('/student/learning-path/{pathId}/progress', [App\Http\Controllers\Bm2StudentController::class, 'updateLearningPathProgress']);
             Route::get('/student/statistics', [App\Http\Controllers\Bm2StudentController::class, 'statistics']);
+
+            // Teacher Dashboard Routes
+            Route::get('/teacher/dashboard', [App\Http\Controllers\Bm2TeacherController::class, 'dashboard']);
+            Route::get('/teacher/student/{studentId}/progress', [App\Http\Controllers\Bm2TeacherController::class, 'studentProgress']);
+            Route::get('/teacher/class-skills', [App\Http\Controllers\Bm2TeacherController::class, 'classSkillAnalysis']);
+            Route::get('/teacher/leaderboard', [App\Http\Controllers\Bm2TeacherController::class, 'badgeLeaderboard']);
+            Route::get('/teacher/students', [App\Http\Controllers\Bm2TeacherController::class, 'studentList']);
         });
     });
 });

@@ -190,14 +190,14 @@ export default {
       try {
         // Load academic years (you may need to adjust this endpoint)
         const academicYearsResponse = await axios.get('/api/academic-years')
-        academicYears.value = academicYearsResponse.data
+        academicYears.value = academicYearsResponse.data.data || []
 
         // Load teacher's classroom subject assignments
         const cstResponse = await axios.get('/api/classroom-subject-teachers/my-assignments')
         classSubjectTeachers.value = cstResponse.data
 
         // Set default academic year to current
-        if (academicYears.value.length > 0) {
+        if (Array.isArray(academicYears.value) && academicYears.value.length > 0) {
           selectedAcademicYear.value = academicYears.value[0].id
         }
       } catch (error) {
@@ -267,6 +267,7 @@ export default {
 
     // Get current academic year
     const getCurrentAcademicYear = () => {
+      if (!Array.isArray(academicYears.value)) return null
       return academicYears.value.find(year => year.id === selectedAcademicYear.value)
     }
 

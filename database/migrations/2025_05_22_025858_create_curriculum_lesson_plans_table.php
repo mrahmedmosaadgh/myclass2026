@@ -14,10 +14,11 @@ return new class extends Migration
         Schema::create('curriculum_lesson_plans', function (Blueprint $table) {
             $table->id();
             $table->foreignId('school_id')->constrained('schools')->onDelete('cascade');
+            $table->foreignId('curriculum_id')->nullable()->constrained('curricula')->onDelete('cascade')->comment('De-normalized for fast filtering');
             $table->foreignId('curriculum_lesson_id')->nullable()->constrained('curriculum_lessons')->onDelete('cascade');
             $table->foreignId('subject_id')->constrained('subjects')->onDelete('cascade');
             $table->foreignId('grade_id')->constrained('grades')->onDelete('cascade');
-            $table->foreignId('classroom_id')->constrained('classrooms')->onDelete('cascade');
+            $table->foreignId('classroom_id')->constrained('classrooms')->nullable()->onDelete('cascade');
             $table->foreignId('teacher_id')->constrained('teachers')->onDelete('cascade');
             $table->json('co_teacher_ids')->nullable()->comment('Array of teacher IDs for co-teachers');
             $table->string('title');

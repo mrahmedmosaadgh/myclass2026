@@ -3,6 +3,10 @@ import { ref, computed, onMounted } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import axios from 'axios';
 
+// Configure axios with credentials for Sanctum
+axios.defaults.withCredentials = true;
+axios.defaults.headers.common['X-CSRF-TOKEN'] = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
 // State
 const loading = ref(true);
 const stats = ref(null);
@@ -10,6 +14,7 @@ const recentAssessments = ref([]);
 const badges = ref([]);
 const learningPath = ref(null);
 const skillProgress = ref({});
+const error = ref(null); // { type, title, message }
 
 // Computed
 const totalAssessments = computed(() => {
@@ -45,10 +50,23 @@ const fetchDashboardData = async () => {
     badges.value = response.data.data.badges || [];
     learningPath.value = response.data.data.learning_path;
     skillProgress.value = response.data.data.skill_progress || {};
+    error.value = null; // Clear any previous errors
   } catch (error) {
     console.error('Error fetching dashboard data:', error);
-    // Mock data for development if API fails
-    loadMockData();
+    
+    // Handle authentication errors specifically
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+      error.value = {
+        type: 'auth',
+        title: 'Authentication Required',
+        message: 'Please login to view your dashboard.',
+      };
+    }
+    
+    // Load mock data for development if API fails (but don't show auth errors in mock)
+    if (!error.value || error.value.type !== 'auth') {
+      loadMockData();
+    }
   } finally {
     loading.value = false;
   }
@@ -169,6 +187,35 @@ onMounted(() => {
         <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-primary"></div>
       </div>
 
+      <!-- Error Alert -->
+      <div v-if="error" :class="[
+        'rounded-lg p-4 mb-6 flex items-start',
+        error.type === 'auth' ? 'bg-red-50 border-l-4 border-red-400' : 'bg-yellow-50 border-l-4 border-yellow-400'
+      ]">
+        <div class="flex-shrink-0">
+          <span class="text-2xl">{{ error.type === 'auth' ? '🔒' : '⚠️' }}</span>
+        </div>
+        <div class="ml-3 flex-1">
+          <h3 class="text-sm font-medium" :class="error.type === 'auth' ? 'text-red-800' : 'text-yellow-800'">
+            {{ error.title }}
+          </h3>
+          <div class="mt-2 text-sm" :class="error.type === 'auth' ? 'text-red-700' : 'text-yellow-700'">
+            <p>{{ error.message }}</p>
+          </div>
+          <div v-if="error.type === 'auth'" class="mt-4">
+            <a 
+              href="/login" 
+              class="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-md transition-colors"
+            >
+              🔐 Go to Login
+            </a>
+          </div>
+        </div>
+        <button @click="error = null" class="ml-4 text-gray-400 hover:text-gray-600">
+          ✕
+        </button>
+      </div>
+
       <!-- Dashboard Content -->
       <div v-else class="space-y-6">
         <!-- Quick Stats Cards -->
@@ -182,14 +229,14 @@ onMounted(() => {
           
           <div class="bg-white rounded-xl shadow-lg p-6">
             <div class="text-3xl font-bold" :class="getScoreColor(averageScore)">
-              {{ averageScore.toFixed(1) }}%
+              {{ averageScore != null ? averageScore.toFixed(1) : '0.0' }}%
             </div>
             <div class="text-sm text-gray-500">Average Score</div>
           </div>
           
           <div class="bg-white rounded-xl shadow-lg p-6">
             <div class="text-3xl font-bold text-green-600">
-              {{ bestScore.toFixed(1) }}%
+              {{ bestScore != null ? bestScore.toFixed(1) : '0.0' }}%
             </div>
             <div class="text-sm text-gray-500">Best Score</div>
           </div>
@@ -245,7 +292,7 @@ onMounted(() => {
                   </div>
                   <div class="text-right">
                     <div class="text-2xl font-bold" :class="getScoreColor(assessment.overall_score)">
-                      {{ assessment.overall_score.toFixed(1) }}%
+                      {{ assessment.overall_score != null && assessment.overall_score !== undefined ? Number(assessment.overall_score).toFixed(1) : '0.0' }}%
                     </div>
                     <span class="inline-block px-2 py-1 rounded text-xs font-medium mt-1" 
                           :class="getPerformanceColor(assessment.performance_level)">

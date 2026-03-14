@@ -30,6 +30,9 @@ class Bm2Assessment extends Model
         'student_id',
         'title',
         'type',
+        'game_mode',
+        'game_settings',
+        'game_stats',
         'overall_score',
         'grade_level_equivalent',
         'performance_level',
@@ -48,6 +51,8 @@ class Bm2Assessment extends Model
     protected $casts = [
         'skill_breakdown' => 'array',
         'recommended_modules' => 'array',
+        'game_settings' => 'array',
+        'game_stats' => 'array',
         'overall_score' => 'decimal:2',
         'started_at' => 'datetime',
         'completed_at' => 'datetime',

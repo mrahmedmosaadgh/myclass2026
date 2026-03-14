@@ -10,6 +10,10 @@
       ".read": true,
       ".write": true
     },
+    "bm2_live_assessments": {
+      ".read": true,
+      ".write": true
+    },
     "private_chat_notifications": {
       "$userId": {
         ".read": true,

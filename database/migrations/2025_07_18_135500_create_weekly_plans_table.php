@@ -16,8 +16,13 @@ return new class extends Migration
             $table->foreignId('academic_year_id')->constrained('academic_years');
             $table->tinyInteger('semester_number')->comment('1 or 2');
             $table->tinyInteger('week_number')->comment('1-18 or 1-36');
-            // $table->tinyInteger('day_number')->comment('1-5');
-            // $table->tinyInteger('period_number')->comment('1-10');
+            $table->unsignedTinyInteger('day_number')->nullable();
+            $table->unsignedTinyInteger('period_order')->nullable();
+
+            $table->foreignId('classroom_id')->nullable()->constrained()->onDelete('cascade');
+            $table->foreignId('subject_id')->nullable()->constrained()->onDelete('cascade');
+            $table->foreignId('teacher_id')->nullable()->constrained()->onDelete('cascade');
+
             // Foreign keys with better constraints
             $table->foreignId('copy_id')
                 ->constrained('schedule_copies')

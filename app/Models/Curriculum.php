@@ -17,7 +17,12 @@ class Curriculum extends Model
         'description',
         'grade_id',
         'school_id',
-        'subject_id'
+        'subject_id',
+        'edit_lock_date'
+    ];
+
+    protected $casts = [
+        'edit_lock_date' => 'date'
     ];
 
     // Relationships

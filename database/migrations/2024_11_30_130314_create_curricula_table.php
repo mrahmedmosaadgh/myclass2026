@@ -21,6 +21,8 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes(); // Adds deleted_at column with index
 
+            $table->date('edit_lock_date')->nullable()->comment('After this date, lesson plans become read-only');
+
             // Indexes for better performance
             $table->index(['school_id', 'grade_id', 'subject_id']);
 

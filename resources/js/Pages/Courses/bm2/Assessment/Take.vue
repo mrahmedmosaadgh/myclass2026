@@ -1,14 +1,32 @@
 <template>
-  <div class="bm2-assessment-take">
-    <!-- Progress Bar -->
-    <div class="fixed top-0 left-0 w-full bg-gray-200 h-2">
-      <div 
-        class="h-full bg-gradient-to-r from-green-400 to-blue-500 transition-all duration-500"
-        :style="{ width: `${progressPercentage}%` }"
-      ></div>
-    </div>
+  <Bm2GameWrapper
+    v-if="allQuestions.length > 0"
+    :assessmentId="Number(id)"
+    :questions="allQuestions"
+    @answer="handleGameAnswer"
+    @game-complete="handleGameComplete"
+    ref="gameWrapperRef"
+    @click="handleGameClick"
+  >
+    <!-- Normal Mode Content -->
+    <div class="bm2-assessment-take">
+      <!-- Progress Bar -->
+      <div class="fixed top-0 left-0 w-full bg-gray-200 h-2">
+        <div 
+          class="h-full bg-gradient-to-r from-green-400 to-blue-500 transition-all duration-500"
+          :style="{ width: `${progressPercentage}%` }"
+        ></div>
+      </div>
 
-    <div class="max-w-4xl mx-auto px-4 py-8 mt-4">
+      <!-- Celebration Feedback Component -->
+      <FeedbackCelebration
+        v-bind="celebrationState"
+        @continue="onContinue"
+        @close="onClose"
+        @hidden="onHidden"
+      />
+
+      <div class="max-w-4xl mx-auto px-4 py-8 mt-4">
       <!-- Header Stats -->
       <div class="flex justify-between items-center mb-6 bg-white rounded-lg shadow p-4">
         <div class="flex items-center space-x-4">
@@ -166,8 +184,9 @@
           🎯 Keep going! You're doing great!
         </div>
       </div>
-    </div>
-  </div>
+      </div> <!-- Closes max-w-4xl -->
+    </div> <!-- Closes bm2-assessment-take -->
+  </Bm2GameWrapper>
 </template>
 
 <script setup>
@@ -175,6 +194,13 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { useBm2FirebaseSync } from '@/composables/useBm2FirebaseSync';
+import { useCelebrationFeedback } from '@/composables/useCelebrationFeedback';
+import FeedbackCelebration from '@/Components/Courses/bm2/FeedbackCelebration.vue';
+import Bm2GameWrapper from '@/Components/Courses/bm2/Bm2GameWrapper.vue';
+
+// Configure axios with credentials for Sanctum
+axios.defaults.withCredentials = true;
+axios.defaults.headers.common['X-CSRF-TOKEN'] = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
 const props = defineProps({
   id: {
@@ -185,6 +211,7 @@ const props = defineProps({
 
 // State
 const question = ref(null);
+const allQuestions = ref([]); // Store all questions loaded at once
 const selectedAnswer = ref(null);
 const isSubmitting = ref(false);
 const showHint = ref(false);
@@ -194,6 +221,27 @@ const elapsedTime = ref(0);
 const currentScore = ref(0);
 const currentQuestionNumber = ref(1);
 let timerInterval = null;
+const gameWrapperRef = ref(null);
+
+// Store all answers locally during assessment
+const studentAnswers = ref([]);
+
+// Initialize celebration feedback
+const { 
+  celebrationState, 
+  showSuccess, 
+  showEncouragement, 
+  showAchievement, 
+  showCombo, 
+  showPerfect,
+  onContinue,
+  onClose,
+  onHidden 
+} = useCelebrationFeedback();
+
+// Debug: Log props on mount
+console.log('Take.vue - Props received:', props);
+console.log('Take.vue - Assessment ID:', props.id);
 
 // Computed
 const progressPercentage = computed(() => {
@@ -209,6 +257,41 @@ const formattedTime = computed(() => {
 });
 
 // Methods
+const handleGameClick = (event) => {
+  if (gameWrapperRef.value && gameWrapperRef.value.handleClick) {
+    gameWrapperRef.value.handleClick(event);
+  }
+};
+
+const handleGameComplete = (gameStats) => {
+  console.log('Game mode completed:', gameStats);
+  // Navigate to results with game stats
+  router.visit(`/bm2/assessment/${id}/results`, {
+    data: { gameStats }
+  });
+};
+
+const handleGameAnswer = (answerData) => {
+  console.log('Game answer received:', answerData);
+  
+  // Store answer locally (will submit all at end)
+  const answerRecord = {
+    question_id: answerData.questionId,
+    student_answer: answerData.selectedAnswer,
+    time_taken_seconds: Math.floor(elapsedTime.value / 1000),
+    hints_used: 0,
+    question_number: currentQuestionNumber.value,
+  };
+  
+  studentAnswers.value.push(answerRecord);
+  console.log('Answer stored locally:', answerRecord);
+  console.log('Total answers stored:', studentAnswers.value.length);
+  
+  // Update score display
+  if (answerData.isCorrect && answerData.points) {
+    currentScore.value += answerData.points;
+  }
+};
 const difficultyClass = (difficulty) => {
   const classes = {
     easy: 'bg-green-100 text-green-800',
@@ -222,55 +305,102 @@ const selectAnswer = (answer) => {
   selectedAnswer.value = answer;
 };
 
+/**
+ * Check answer locally for immediate feedback (optimistic UI)
+ * Note: This is for UI purposes only, real scoring happens on backend
+ */
+const checkAnswerLocally = async (questionData, studentAnswer) => {
+  if (!questionData || !questionData.correct_answer) return false;
+  
+  // Case-insensitive string comparison
+  const correct = String(questionData.correct_answer).toLowerCase().trim();
+  const student = String(studentAnswer).toLowerCase().trim();
+  
+  return correct === student;
+};
+
+/**
+ * Load next question from local array (all questions loaded at once)
+ */
+const loadNextQuestion = () => {
+  if (currentQuestionNumber.value < allQuestions.value.length) {
+    question.value = allQuestions.value[currentQuestionNumber.value];
+    currentQuestionNumber.value++;
+    console.log('Take.vue - Next question from local array:', question.value?.id);
+  } else {
+    // No more questions - complete assessment
+    console.log('Take.vue - All questions answered - completing assessment');
+    completeAssessment();
+  }
+};
+
 const submitAnswer = async () => {
-  if (!selectedAnswer.value || isSubmitting.value) return;
+  if (!selectedAnswer.value || isSubmitting.value) {
+    console.warn('No answer selected or already submitting');
+    return;
+  }
 
   isSubmitting.value = true;
 
   try {
     const timeTaken = Math.floor((Date.now() - startTime.value) / 1000);
-
-    const response = await axios.post(`/api/v2/bm2/assessment/${props.id}/submit`, {
+    
+    // Convert answer to appropriate string format
+    let answerString;
+    if (typeof selectedAnswer.value === 'boolean') {
+      answerString = selectedAnswer.value ? 'True' : 'False';
+    } else if (typeof selectedAnswer.value === 'number') {
+      answerString = String(selectedAnswer.value);
+    } else if (typeof selectedAnswer.value === 'object') {
+      // If it's an object, stringify it
+      answerString = JSON.stringify(selectedAnswer.value);
+    } else {
+      // Already a string or convert to string
+      answerString = String(selectedAnswer.value ?? '');
+    }
+    
+    // Store answer locally (will submit all at end)
+    const answerRecord = {
       question_id: question.value.id,
-      student_answer: selectedAnswer.value,
+      student_answer: answerString,
       time_taken_seconds: timeTaken,
       hints_used: hintsUsed.value,
-    });
+      question_number: currentQuestionNumber.value,
+    };
+    
+    studentAnswers.value.push(answerRecord);
+    console.log('Answer stored locally:', answerRecord);
+    console.log('Total answers stored:', studentAnswers.value.length);
 
-    const { current_question, points_earned, is_correct, explanation, next_question } = response.data.data;
+    // Calculate temporary score for display (optimistic UI update)
+    // Real score will be calculated by backend
+    const isCorrectTemp = await checkAnswerLocally(question.value, answerString);
+    const pointsTemp = isCorrectTemp ? question.value.points_default : 0;
+    currentScore.value += pointsTemp;
 
-    // Update score
-    currentScore.value += points_earned;
-
-    // Sync to Firebase
-    const { syncAssessmentProgress } = useBm2FirebaseSync();
-    await syncAssessmentProgress(props.id, {
-      currentQuestion: currentQuestionNumber.value,
-      score: currentScore.value,
-      totalQuestions: 20,
-      lastAnswer: selectedAnswer.value,
-      timeElapsed: elapsedTime.value,
-    });
-
-    // Show feedback (could add a modal here)
-    if (is_correct) {
-      alert(`🎉 Correct! +${points_earned} points!`);
+    // Show celebration feedback based on performance
+    if (isCorrectTemp) {
+      // Check if it's a perfect answer (fast response)
+      const timeTaken = elapsedTime.value / 1000;
+      if (timeTaken < 5 && pointsTemp >= 20) {
+        showPerfect(pointsTemp);
+      } else {
+        showSuccess(pointsTemp);
+      }
     } else {
-      alert(`❌ Not quite. The correct answer was: ${explanation || current_question.correct_answer}`);
+      showEncouragement(question.value.correct_answer);
     }
 
-    // Load next question or complete
-    if (next_question) {
-      question.value = next_question;
-      currentQuestionNumber.value++;
-      resetQuestionState();
-    } else {
-      // No more questions - complete assessment
-      await completeAssessment();
-    }
+    // Move to next question
+    currentQuestionNumber.value++;
+    resetQuestionState();
+    
+    // Load next question from backend (adaptive)
+    await loadNextQuestion();
+    
   } catch (error) {
-    console.error('Error submitting answer:', error);
-    alert('Oops! Something went wrong. Please try again.');
+    console.error('Error processing answer:', error);
+    alert('Error processing answer. Please try again.');
   } finally {
     isSubmitting.value = false;
   }
@@ -285,12 +415,43 @@ const resetQuestionState = () => {
 
 const completeAssessment = async () => {
   try {
-    const response = await axios.post(`/api/v2/bm2/assessment/${props.id}/complete`);
+    console.log('Completing assessment with', studentAnswers.value.length, 'answers');
+    console.log('Submitting all answers at once:', studentAnswers.value);
+    
+    // Submit all answers at once to backend
+    const response = await axios.post(`/api/v2/bm2/assessment/${props.id}/submit-all`, {
+      answers: studentAnswers.value,
+      total_time_seconds: Math.floor(elapsedTime.value / 1000),
+    });
+    
+    const { final_score, performance_level, awarded_badges, total_points } = response.data.data;
+    
+    console.log('Assessment completed!', {
+      final_score,
+      performance_level,
+      awarded_badges,
+      total_points
+    });
+    
+    // Sync final results to Firebase
+    const { syncAssessmentProgress } = useBm2FirebaseSync();
+    syncAssessmentProgress(props.id, {
+      completed: true,
+      finalScore: final_score,
+      performanceLevel: performance_level,
+      badges: awarded_badges,
+      totalPoints: total_points,
+      totalAnswers: studentAnswers.value.length,
+      timeElapsed: elapsedTime.value,
+    }).catch(error => {
+      console.warn('Firebase sync failed (assessment completed):', error.message);
+    });
     
     // Navigate to results page using Inertia
     router.visit(`/bm2/assessment/${props.id}/results`);
   } catch (error) {
     console.error('Error completing assessment:', error);
+    alert('Error finalizing assessment. Please try again.');
   }
 };
 
@@ -302,14 +463,59 @@ const confirmExit = () => {
 
 // Lifecycle
 onMounted(() => {
-  // Load first question
-  axios.get(`/api/v2/bm2/assessment/${props.id}/next`)
+  // Validate that we have an assessment ID
+  if (!props.id) {
+    console.error('Take.vue - No assessment ID provided!');
+    alert('Invalid assessment. Please start a new assessment.');
+    router.visit('/bm2/dashboard');
+    return;
+  }
+  
+  console.log('Take.vue - Loading all questions for assessment ID:', props.id);
+  
+  // Load all questions at once using the new endpoint
+  axios.get(`/api/v2/bm2/assessment/${props.id}/questions`)
     .then(response => {
-      question.value = response.data.data.question;
+      const { questions } = response.data.data;
+      allQuestions.value = questions || [];
+      
+      if (allQuestions.value.length > 0) {
+        question.value = allQuestions.value[0];
+        console.log('Take.vue - All questions loaded successfully:', allQuestions.value.length, 'questions');
+        console.log('Take.vue - First question:', question.value?.id);
+      } else {
+        console.warn('Take.vue - No questions available');
+        alert('No questions available for this assessment.');
+        router.visit('/bm2/dashboard');
+      }
     })
     .catch(error => {
-      console.error('Error loading question:', error);
-      alert('Error loading question. Please refresh the page.');
+      console.error('Take.vue - Error loading questions:', error);
+      
+      // Provide more specific error message for other errors
+      let errorMessage = 'Error loading questions. ';
+      if (error.response) {
+        if (error.response.status === 401 || error.response.status === 403) {
+          errorMessage += 'Please login to continue.';
+        } else if (error.response.status === 404) {
+          errorMessage += 'Assessment not found.';
+        } else if (error.response.status === 500) {
+          errorMessage += 'Server error. Please try again.';
+        } else {
+          errorMessage += 'Please refresh the page.';
+        }
+      } else if (error.request) {
+        errorMessage += 'Network error. Please check your connection.';
+      } else {
+        errorMessage += error.message || 'An unexpected error occurred.';
+      }
+      
+      alert(errorMessage);
+      
+      // Redirect to dashboard if there's an error
+      setTimeout(() => {
+        router.visit('/bm2/dashboard');
+      }, 2000);
     });
 
   // Start timer

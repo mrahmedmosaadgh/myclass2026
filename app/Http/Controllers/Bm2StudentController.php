@@ -6,6 +6,7 @@ use App\Models\Bm2Assessment;
 use App\Models\Bm2LearningPath;
 use App\Models\Bm2StudentBadge;
 use App\Models\User;
+use App\Services\Bm2GamificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -23,13 +24,19 @@ class Bm2StudentController extends Controller
     public function dashboard(Request $request): JsonResponse
     {
         $student = $request->user();
+        $gamificationService = new Bm2GamificationService();
 
-        // Get recent assessments
+        // Get recent assessments with null-safe overall_score
         $recentAssessments = Bm2Assessment::where('student_id', $student->id)
             ->with('learningPath')
             ->latest('created_at')
             ->limit(5)
-            ->get();
+            ->get()
+            ->map(function ($assessment) {
+                $assessment->overall_score = $assessment->overall_score ?? 0.0;
+                $assessment->performance_level = $assessment->performance_level ?? 'Not Yet Completed';
+                return $assessment;
+            });
 
         // Get active learning path
         $activeLearningPath = Bm2LearningPath::where('student_id', $student->id)
@@ -45,6 +52,11 @@ class Bm2StudentController extends Controller
             ->completed()
             ->avg('overall_score') ?? 0;
 
+        // Get gamification stats
+        $totalPoints = $gamificationService->getTotalPoints($student);
+        $currentStreak = $gamificationService->getCurrentStreak($student);
+        $badgeSummary = $gamificationService->getBadgeSummary($student);
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -54,6 +66,9 @@ class Bm2StudentController extends Controller
                 'badges_count' => $badgesCount,
                 'average_score' => round($avgScore, 2),
                 'total_assessments' => Bm2Assessment::where('student_id', $student->id)->count(),
+                'total_points' => $totalPoints,
+                'current_streak' => $currentStreak,
+                'badge_summary' => $badgeSummary,
             ],
         ]);
     }

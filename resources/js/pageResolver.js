@@ -15,8 +15,20 @@ export function resolvePageComponent(pageName) {
         'my_class': () => import(`./Pages/my_class/${pageName.replace('my_class/', '')}.vue`),
         'my_class/hr': () => import(`./Pages/my_class/hr/${pageName.replace('my_class/hr/', '')}.vue`),
 
+        // Curriculum management sections
+        'myclass2026/roles/school-admin/curriculum': () => import(`./Pages/myclass2026/roles/school-admin/curriculum/${pageName.replace('myclass2026/roles/school-admin/curriculum/', '')}.vue`),
+        'myclass2026/roles/school-admin/weekly_system': () => import(`./Pages/myclass2026/roles/school-admin/weekly_system/${pageName.replace('myclass2026/roles/school-admin/weekly_system/', '')}.vue`),
+        'myclass2026/roles/teacher/weekly_system': () => import(`./Pages/myclass2026/roles/teacher/weekly_system/${pageName.replace('myclass2026/roles/teacher/weekly_system/', '')}.vue`),
+
         // Courses & Learning Modules
         'Courses': () => import(`./Pages/Courses/${pageName.replace('Courses/', '')}.vue`),
+
+        // Curriculum
+        'Curriculum': () => import(`./Pages/Curriculum/${pageName.replace('Curriculum/', '')}.vue`),
+        'curriculum': () => import(`./Pages/curriculum/${pageName.replace('curriculum/', '')}.vue`),
+        'myclass2026/roles/school-admin/curriculum': () => import(`./Pages/myclass2026/roles/school-admin/curriculum/${pageName.replace('myclass2026/roles/school-admin/curriculum/', '')}.vue`),
+        'myclass2026/roles/teacher/curriculum': () => import(`./Pages/myclass2026/roles/teacher/curriculum/${pageName.replace('myclass2026/roles/teacher/curriculum/', '')}.vue`),
+        'myclass2026/roles/student/curriculum': () => import(`./Pages/myclass2026/roles/student/curriculum/${pageName.replace('myclass2026/roles/student/curriculum/', '')}.vue`),
 
         // Modules
         'old_features/Admin/SkillManagement': () => import(`./Pages/old_features/Admin/SkillManagement/${pageName.replace('old_features/Admin/SkillManagement/', '')}.vue`),

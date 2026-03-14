@@ -1,8 +1,10 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\WeeklySystemController;
 use App\Http\Controllers\SchoolBrowserController;
+use App\Http\Controllers\WeeklySystem\CurriculumController;
+use App\Http\Controllers\WeeklySystem\CurriculumLessonController;
+use App\Http\Controllers\WeeklySystem\LessonPlanController;
 use Inertia\Inertia;
 
 /*
@@ -40,6 +42,11 @@ Route::middleware(['auth', 'verified'])->prefix('weekly-system')->name('weekly-s
     // ADMIN ROUTES
     // =====================================================================
     
+    // Dashboard (Home)
+    Route::get('/', function () {
+        return Inertia::render('myclass2026/roles/school-admin/weekly_system/Index');
+    })->name('index');
+
     // School Browser
     Route::get('/school-browser', [App\Http\Controllers\SchoolBrowserController::class, 'index'])
         ->name('school-browser');
@@ -63,6 +70,11 @@ Route::middleware(['auth', 'verified'])->prefix('weekly-system')->name('weekly-s
     Route::get('/weekly-plans-manager', function () {
         return Inertia::render('my_table_mnger/weekly_system/admin/WeeklyPlansManager');
     })->name('weekly-plans-manager');
+
+    // Curriculum & Locks (Admin)
+    Route::get('/curriculum-lessons', function () {
+        return Inertia::render('myclass2026/roles/school-admin/weekly_system/curriculum_lessons/Index');
+    })->name('curriculum-lessons.index');
     
     // =====================================================================
     // TEACHER ROUTES
@@ -77,6 +89,11 @@ Route::middleware(['auth', 'verified'])->prefix('weekly-system')->name('weekly-s
     Route::get('/my-weekly-plans', function () {
         return Inertia::render('my_table_mnger/weekly_system/teacher/MyWeeklyPlans');
     })->name('my-weekly-plans');
+
+    // Curriculum & My Lesson Plans (Teacher)
+    Route::get('/teacher-curriculum-lessons', function () {
+        return Inertia::render('myclass2026/roles/teacher/weekly_system/curriculum_lessons/Index');
+    })->name('teacher.curriculum-lessons.index');
     
     // =====================================================================
     // API ROUTES (for weekly system pages)
@@ -102,6 +119,29 @@ Route::middleware(['auth', 'verified'])->prefix('weekly-system')->name('weekly-s
         // Get teacher's weekly plans for a specific week
         Route::get('/teacher/my-weekly-plans', [WeeklySystemController::class, 'getMyWeeklyPlans'])
             ->name('api.my-weekly-plans');
+
+        // --- Weekly System API ---
+        Route::prefix('weekly-system')->name('api.')->group(function () {
+            // Curricula
+            Route::get('/curriculum',          [CurriculumController::class, 'index'])->name('curriculum.index');
+            Route::post('/curriculum',         [CurriculumController::class, 'store'])->name('curriculum.store');
+            Route::put('/curriculum/{id}',     [CurriculumController::class, 'update'])->name('curriculum.update');
+            Route::delete('/curriculum/{id}',  [CurriculumController::class, 'destroy'])->name('curriculum.destroy');
+            
+            // Lesson Plans
+            Route::get('/lesson-plans/progress', [LessonPlanController::class, 'progress'])->name('lesson-plans.progress');
+            Route::get('/lesson-plans',          [LessonPlanController::class, 'index'])->name('lesson-plans.index');
+            Route::post('/lesson-plans',         [LessonPlanController::class, 'store'])->name('lesson-plans.store');
+            Route::put('/lesson-plans/{id}',     [LessonPlanController::class, 'update'])->name('lesson-plans.update');
+            Route::delete('/lesson-plans/{id}',  [LessonPlanController::class, 'destroy'])->name('lesson-plans.destroy');
+
+            // Curriculum Lessons (ToC)
+            Route::get('/curriculum/{curriculumId}/lessons',    [CurriculumLessonController::class, 'index'])->name('curriculum-lessons.index');
+            Route::post('/curriculum/{curriculumId}/lessons',   [CurriculumLessonController::class, 'store'])->name('curriculum-lessons.store');
+            Route::post('/curriculum/{curriculumId}/lessons/bulk', [CurriculumLessonController::class, 'bulkStore'])->name('curriculum-lessons.bulk-store');
+            Route::put('/curriculum-lessons/{id}',              [CurriculumLessonController::class, 'update'])->name('curriculum-lessons.update-item');
+            Route::delete('/curriculum-lessons/{id}',           [CurriculumLessonController::class, 'destroy'])->name('curriculum-lessons.destroy-item');
+        });
 
             // Copy teacher weekly plans (old immediate copy)
             Route::post('/teacher/copy-plans-classrooms', [WeeklySystemController::class, 'copyPlansClassrooms'])

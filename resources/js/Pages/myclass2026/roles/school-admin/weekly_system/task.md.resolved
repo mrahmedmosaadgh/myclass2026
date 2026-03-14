@@ -1,0 +1,39 @@
+# Weekly System Feature - Task Checklist
+
+## Phase 1: Planning
+- [x] Analyze existing codebase (routes, controllers, models, pageResolver)
+- [x] Understand Quasar import pattern, data hierarchy (curricula → versions → lessons → lesson_plans)
+- [x] Write implementation plan and get user approval (incorporating corrections)
+
+## Phase 2: Backend
+- [ ] Create `Http/Controllers/WeeklySystem/` folder
+- [ ] Create [CurriculumController.php](file:///Users/ahmedmosaad/Herd/myclass2026-main/app/Http/Controllers/Curriculum/CurriculumController.php) (CRUD + lock date; admin-only write)
+- [ ] Create `LessonPlanController.php` (CRUD + `progress()` for admin tracking)
+- [ ] Add page + API routes to [routes/weekly_system.php](file:///Users/ahmedmosaad/Herd/myclass2026-main/routes/weekly_system.php) (admin + teacher pages)
+- [ ] Add `weekly_system` entries to [pageResolver.js](file:///Users/ahmedmosaad/Herd/myclass2026-main/resources/js/pageResolver.js) (admin + teacher paths)
+
+### Schema changes ✅ (done, you manage DB)
+- `curricula.edit_lock_date` — [migration](file:///Users/ahmedmosaad/Herd/myclass2026-main/database/migrations/2024_11_30_130314_create_curricula_table.php)
+- `curriculum_lesson_plans.curriculum_id` — [migration](file:///Users/ahmedmosaad/Herd/myclass2026-main/database/migrations/2025_05_22_025858_create_curriculum_lesson_plans_table.php)
+
+## Phase 3: Frontend - Main Page & Layout
+- [ ] Rewrite [weekly_system/Index.vue](file:///Users/ahmedmosaad/Herd/myclass2026-main/resources/js/Pages/myclass2026/roles/school-admin/weekly_system/Index.vue) as the main landing page WITH the top nav built-in
+- [ ] Top nav bar (q-tabs) visible on all sub-pages via a shared `WeeklySystemLayout.vue`
+
+## Phase 4: Frontend - Admin Page (`school-admin/.../curriculum_lessons/`)
+- [ ] Create `weekly_system/curriculum_lessons/Index.vue` for School Admin
+- [ ] Section A — Manage Curricula & Locks
+  - [ ] Form: name, description, grade, subject, edit_lock_date
+  - [ ] Duplicate name check (per school)
+  - [ ] List curricula in q-table with lock status chips
+- [ ] Section B — Tracking dashboard
+  - [ ] All teachers in school vs submitted plans (who did / who didn't)
+  - [ ] Filter toggle: done / not done
+
+## Phase 5: Frontend - Teacher Page (`teacher/.../curriculum_lessons/`)
+- [ ] Create `weekly_system/curriculum_lessons/Index.vue` for Teacher
+- [ ] Section A — Curricula matching teacher's assigned subjects + grades
+  - [ ] Show countdown chip (open / N days left / locked)
+- [ ] Section B — My Lesson Plans
+  - [ ] Create/edit plans (locked when status != draft OR past lock date)
+  - [ ] Lock enforced on both frontend (buttons disabled) and backend (403)

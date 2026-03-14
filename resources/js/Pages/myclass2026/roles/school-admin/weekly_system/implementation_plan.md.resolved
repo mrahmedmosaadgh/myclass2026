@@ -1,0 +1,272 @@
+# Weekly System – Implementation Plan (Updated)
+
+## Data Hierarchy (read-only reference)
+
+```
+curricula  (+ edit_lock_date)   ← school admin sets the lock deadline here
+  └── curriculum_versions
+        └── curriculum_topics
+              └── curriculum_lessons     ← lesson catalogue
+                    └── curriculum_lesson_plans  (+curriculum_id de-normalized)  ← per-teacher plans
+```
+
+### ✅ Resolved Design Decisions
+| Question | Decision |
+|---|---|
+| Admin tracking baseline | Every teacher in the school (compare all teachers vs submitted plans) |
+| `curriculum_id` on lesson plans | Yes — added directly to [curriculum_lesson_plans migration](file:///Users/ahmedmosaad/Herd/myclass2026-main/database/migrations/2025_05_22_025858_create_curriculum_lesson_plans_table.php) ✅ |
+| Teacher curriculum visibility | Only curricula matching teacher's assigned subjects + grades (via CST/schedule) |
+
+## What We Build (Phase 1 scope)
+
+| # | File | Purpose |
+|---|------|--------|
+| 1 | [pageResolver.js](file:///Users/ahmedmosaad/Herd/myclass2026-main/resources/js/pageResolver.js) | Add `weekly_system` path resolution for both admin and teacher |
+| 2 | ~~New migration~~ | `edit_lock_date` already added to [curricula migration](file:///Users/ahmedmosaad/Herd/myclass2026-main/database/migrations/2024_11_30_130314_create_curricula_table.php) ✅ |
+| 3 | [routes/weekly_system.php](file:///Users/ahmedmosaad/Herd/myclass2026-main/routes/weekly_system.php) | Add page + API routes for admin and teacher |
+| 4 | `Http/Controllers/WeeklySystem/CurriculumController.php` | CRUD for `curricula` + lock date |
+| 5 | `Http/Controllers/WeeklySystem/LessonPlanController.php` | CRUD for `curriculum_lesson_plans` + Progress checking |
+| 6 | [weekly_system/Index.vue](file:///Users/ahmedmosaad/Herd/myclass2026-main/resources/js/Pages/myclass2026/roles/school-admin/weekly_system/Index.vue) | **Admin Main Page** |
+| 7 | `weekly_system/WeeklySystemLayout.vue` | Shared top nav |
+| 8 | `roles/school-admin/.../curriculum_lessons/Index.vue` | **Admin Page:** Manage curricula, set locks, track teacher progress |
+| 9 | `roles/teacher/.../curriculum_lessons/Index.vue` | **Teacher Page:** Write & manage lesson plans |
+
+---
+
+## Proposed Changes
+
+### 1 – Page Resolver
+
+#### [MODIFY] [pageResolver.js](file:///Users/ahmedmosaad/Herd/myclass2026-main/resources/js/pageResolver.js)
+Add resolver entry **before** the generic fallback so all pages in the folder are found:
+```js
+'myclass2026/roles/school-admin/weekly_system': () =>
+  import(`./Pages/myclass2026/roles/school-admin/weekly_system/${
+    pageName.replace('myclass2026/roles/school-admin/weekly_system/', '')
+  }.vue`),
+
+'myclass2026/roles/teacher/weekly_system': () =>
+  import(`./Pages/myclass2026/roles/teacher/weekly_system/${
+    pageName.replace('myclass2026/roles/teacher/weekly_system/', '')
+  }.vue`),
+```
+
+---
+
+### 2 – `edit_lock_date` — Already in Schema ✅
+
+`edit_lock_date DATE NULL` is now in [2024_11_30_130314_create_curricula_table.php](file:///Users/ahmedmosaad/Herd/myclass2026-main/database/migrations/2024_11_30_130314_create_curricula_table.php) and [Curriculum](file:///Users/ahmedmosaad/Herd/myclass2026-main/app/Http/Controllers/Curriculum) model `$fillable`/`$casts`. Run `php artisan migrate:fresh` to apply.
+
+---
+
+#### [NEW] `app/Http/Controllers/WeeklySystem/CurriculumController.php`
+
+Namespace: `App\Http\Controllers\WeeklySystem`
+
+| Method | Route | Action |
+|--------|-------|--------|
+| [index()](file:///Users/ahmedmosaad/Herd/myclass2026-main/app/Http/Controllers/Curriculum/CurriculumController.php#17-24) | `GET /api/curriculum` | List curricula for the school (with grade, subject, **lock date**) |
+| [store()](file:///Users/ahmedmosaad/Herd/myclass2026-main/app/Http/Controllers/Curriculum/CurriculumController.php#118-164) | `POST /api/curriculum` | Create — duplicate name check + optional `edit_lock_date` |
+| [update()](file:///Users/ahmedmosaad/Herd/myclass2026-main/app/Http/Controllers/Curriculum/CurriculumController.php#165-205) | `PUT /api/curriculum/{id}` | Update — includes setting/clearing `edit_lock_date` |
+| [destroy()](file:///Users/ahmedmosaad/Herd/myclass2026-main/app/Http/Controllers/Curriculum/CurriculumController.php#251-271) | `DELETE /api/curriculum/{id}` | Soft-delete |
+
+Duplicate check logic:
+```php
+$exists = Curriculum::where('school_id', $schoolId)
+    ->where('name', $request->name)
+    ->whereNull('deleted_at')
+    ->exists();
+
+if ($exists) {
+    return response()->json([
+        'message' => 'Curriculum name already exists in your school.'
+    ], 422);
+}
+```
+
+#### [NEW] `app/Http/Controllers/WeeklySystem/LessonPlanController.php`
+
+| Method | Route | Action |
+|--------|-------|--------|
+| [index()](file:///Users/ahmedmosaad/Herd/myclass2026-main/app/Http/Controllers/Curriculum/CurriculumController.php#17-24) | `GET /api/lesson-plans` | List plans (filtered by curriculum, teacher) |
+| [store()](file:///Users/ahmedmosaad/Herd/myclass2026-main/app/Http/Controllers/Curriculum/CurriculumController.php#118-164) | `POST /api/lesson-plans` | Teacher creates lesson plan |
+| [update()](file:///Users/ahmedmosaad/Herd/myclass2026-main/app/Http/Controllers/Curriculum/CurriculumController.php#165-205) | `PUT /api/lesson-plans/{id}` | Teacher edits — **locked if admin set lock date or status not draft** |
+| [destroy()](file:///Users/ahmedmosaad/Herd/myclass2026-main/app/Http/Controllers/Curriculum/CurriculumController.php#251-271) | `DELETE /api/lesson-plans/{id}` | Teacher deletes — **locked if admin set lock date or status not draft** |
+| `progress()` | `GET /api/lesson-plans/progress` | **New:** Admin tracking to see which teachers submitted plans |
+
+> [!IMPORTANT]
+> **Lock Rules — two checks, both must pass to allow editing:**
+>
+> **1. Status lock:** plan must be `status = 0` (draft)
+>
+> **2. Date lock:** curriculum's `edit_lock_date` must be `null` OR in the future
+>
+> Simplified backend helper (uses direct `curriculum_id`):
+> ```php
+> private function isLocked(CurriculumLessonPlan $plan): bool {
+>     if ($plan->status !== 0) return true;
+>     $curriculum = Curriculum::find($plan->curriculum_id); // Fast — no deep chain
+>     return $curriculum?->edit_lock_date && now()->startOfDay()->gte($curriculum->edit_lock_date);
+> }
+> ```
+> Returns `403`: `"Editing is closed for this curriculum."`
+
+---
+
+### 4 – Routes ([routes/weekly_system.php](file:///Users/ahmedmosaad/Herd/myclass2026-main/routes/weekly_system.php))
+
+> [!NOTE]
+> The `/lesson-plans/progress` static route MUST be declared **before** `/lesson-plans/{id}` to avoid Laravel matching `"progress"` as an ID.
+
+Add inside the existing `prefix('weekly-system')` group:
+
+```php
+use App\Http\Controllers\WeeklySystem\CurriculumController;
+use App\Http\Controllers\WeeklySystem\LessonPlanController;
+
+// ─── ADMIN PAGES ───────────────────────────────────────────
+Route::get('/', fn() => Inertia::render(
+    'myclass2026/roles/school-admin/weekly_system/Index'
+))->name('index');
+
+Route::get('/curriculum-lessons', fn() => Inertia::render(
+    'myclass2026/roles/school-admin/weekly_system/curriculum_lessons/Index'
+))->name('curriculum-lessons.index');
+
+// ─── TEACHER PAGES ─────────────────────────────────────────
+Route::get('/teacher-curriculum-lessons', fn() => Inertia::render(
+    'myclass2026/roles/teacher/weekly_system/curriculum_lessons/Index'
+))->name('teacher.curriculum-lessons.index');
+
+// ─── API ──────────────────────────────────────────────────
+Route::prefix('api')->name('api.')->group(function () {
+    // Curricula
+    Route::get('/curriculum',          [CurriculumController::class, 'index'])->name('curriculum.index');
+    Route::post('/curriculum',         [CurriculumController::class, 'store'])->name('curriculum.store'); // Admin only
+    Route::put('/curriculum/{id}',     [CurriculumController::class, 'update'])->name('curriculum.update'); // Admin sets lock date
+    Route::delete('/curriculum/{curriculum}', [CurriculumController::class, 'destroy'])->name('curriculum.destroy'); // Admin only
+
+    // Lesson Plans — progress route FIRST (before {id} to avoid conflict)
+    Route::get('/lesson-plans/progress',[LessonPlanController::class, 'progress'])->name('lesson-plans.progress'); // Admin: compare all school teachers vs submissions
+    Route::get('/lesson-plans',        [LessonPlanController::class, 'index'])->name('lesson-plans.index');
+    Route::post('/lesson-plans',       [LessonPlanController::class, 'store'])->name('lesson-plans.store');
+    Route::put('/lesson-plans/{id}',   [LessonPlanController::class, 'update'])->name('lesson-plans.update');
+    Route::delete('/lesson-plans/{id}',[LessonPlanController::class, 'destroy'])->name('lesson-plans.destroy');
+});
+```
+
+---
+
+### 5 – Frontend: `WeeklySystemLayout.vue` (Shared, Role-Aware)
+
+A wrapper component every sub-page uses with **role-aware navigation**:
+- Reads `$page.props.auth.user.roles` to determine which tabs to show:
+
+**Admin sees:**
+| Tab | URL |
+|-----|-----|
+| 🏠 Home | `/weekly-system` |
+| 📚 Curriculum & Locks | `/weekly-system/curriculum-lessons` |
+| 📋 Weekly Plans | `/weekly-system/weekly-plans-manager` |
+
+**Teacher sees:**
+| Tab | URL |
+|-----|-----|
+| 📚 My Lesson Plans | `/weekly-system/teacher-curriculum-lessons` |
+| 📋 My Weekly Plans | `/weekly-system/my-weekly-plans` |
+
+---
+
+### 6 – Frontend: [Index.vue](file:///Users/ahmedmosaad/Herd/myclass2026-main/resources/js/Pages/old_features/CourseManagement/Import/old/Index.vue) — Main Page (✏️ rewrite existing file)
+
+#### [MODIFY] [Index.vue](file:///Users/ahmedmosaad/Herd/myclass2026-main/resources/js/Pages/myclass2026/roles/school-admin/weekly_system/Index.vue)
+
+- Wrapped in `<WeeklySystemLayout>`
+- A `<q-page>` with a grid of large `<q-card>` tiles — one per section
+- Each tile: icon + label + description + `<q-btn>` to navigate
+
+---
+
+### 7 – Frontend: Admin Page (`curriculum_lessons/Index.vue`)
+
+#### [NEW] `resources/js/Pages/myclass2026/roles/school-admin/weekly_system/curriculum_lessons/Index.vue`
+
+**Role:** School Admin. Manages book structure, controls editing locks, and tracks teacher submissions.
+
+**Two-section layout (tabs or stepper):**
+
+**Section A — Manage Curricula & Locks**
+- `q-form` with:
+  - `q-input` → Curriculum Name (required)
+  - `q-input type="textarea"` → Description (optional)
+  - `q-select` → Grade (loaded from existing API)
+  - `q-select` → Subject (loaded from existing API)
+  - `q-date` picker → **Edit Lock Date** (optional) — admin picks the deadline after which nobody can edit plans
+  - School auto-read from `$page.props.auth.user.school_id`
+- Existing curricula list (`q-table`) shows the lock date with a `q-chip`:
+  - 🟡 Upcoming lock: "Locks on [date]"
+  - 🔴 Locked: "Locked since [date]" (all plans under it are read-only)
+- Admin can **edit the lock date** at any time (inline edit to enable/disable editing)
+- Submit POST → `/weekly-system/api/curriculum`
+- 422 error → shows `q-banner color="negative"` inline (never a popup)
+
+**Section B — Tracking (Who did / didn't do)**
+- Admin selects a curriculum → backend calls `progress()` which:
+  - Gets **all teachers in the school** (from `teachers` table where `school_id` matches)
+  - Checks which of them have submitted plans (i.e. have a row in `curriculum_lesson_plans` for this curriculum)
+  - Returns two lists: ✅ teachers who submitted, ❌ teachers who haven't
+- UI shows a `q-table` split into two sections or with a filter toggle
+- Columns: Teacher Name, Subject, Grade, # Plans Submitted, Last Updated
+
+---
+
+### 8 – Frontend: Teacher Page (`curriculum_lessons/Index.vue`)
+
+#### [NEW] `resources/js/Pages/myclass2026/roles/teacher/weekly_system/curriculum_lessons/Index.vue`
+
+**Role:** Teacher. Selects a curriculum and creates lesson plans.
+
+**Two-section layout:**
+
+**Section A — Select Curriculum**
+- Loads curricula filtered by **teacher's assigned subjects + grades** (via CST / schedule assignments)
+- Calls `GET /api/curriculum?teacher_id=me` — backend joins through CST records
+- Read-only view showing curriculum name, description, lock date with countdown chip:
+  - 🟢 Open — no lock set
+  - ⏳ "3 days left to edit" — lock is approaching
+  - 🔴 "Locked since [date]" — no editing allowed
+
+**Section B — My Lesson Plans** (appears when a curriculum is selected)
+- `q-table` showing **only this teacher’s plans** for the selected curriculum.
+- Status badge per row: `q-chip` colored by status (draft=grey, active=green, completed=blue).
+- Edit/delete buttons per row: **disabled with a lock icon** when `status !== 0` OR today >= curriculum's `edit_lock_date`.
+- "Add Plan" button → opens `q-dialog` with a lean form (title, cw, hw, objectives, planned_date).
+  - Button hidden/disabled if curriculum is date-locked.
+- **Lock is enforced on the server too** — backend returns 403 for edit/delete on locked plans.
+
+**Quasar Import (project standard):**
+```js
+import { useQuasar } from 'quasar'
+const $q = useQuasar()
+// All q-* components auto-registered globally via app.js — no individual imports needed
+```
+
+---
+
+## Verification Plan
+
+### Commands
+```bash
+# List new routes
+php artisan route:list --name=weekly-system.curriculum
+php artisan route:list --name=weekly-system.api
+```
+
+### Manual Browser Tests
+1. Navigate to `/weekly-system` → see tile menu + top nav tab bar
+2. Click "Curriculum & Plans" tile → navigate to `/weekly-system/curriculum-lessons`
+3. Top nav tab bar still visible
+4. Create a curriculum → appears in the table
+5. Try same name again → red inline banner appears (no page reload)
+6. Click on curriculum row → Section B slides in showing lesson plans
+7. Add a lesson plan → appears in the table

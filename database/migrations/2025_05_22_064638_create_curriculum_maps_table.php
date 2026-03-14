@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('curriculum_maps', function (Blueprint $table) {
+        Schema::create('curriculum_maps', function (Blueprint $table) {// this table act as general guide for the teacher to follow it during the year: but its own 
             $table->id();
             $table->foreignId('school_id')->constrained('schools')->onDelete('cascade');
             $table->foreignId('academic_year_id')->constrained('academic_years')->onDelete('cascade');

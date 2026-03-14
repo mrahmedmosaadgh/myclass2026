@@ -50,7 +50,7 @@
         "@vueuse/integrations": "^14.1.0",
         "@zxing/library": "^0.21.3",
         "animate.css": "^4.1.1",
-        "canvas-confetti": "^1.9.3",
+        "canvas-confetti": "^1.9.4",
         "cropperjs": "^2.1.0",
         "date-fns": "^4.1.0",
         "dexie": "^4.0.11",

@@ -419,7 +419,7 @@ import {
   validateTemplateResponse,
   parseAIResponse,
   quickSuggestions
-} from '@/utils/promptTemplates';
+} from '@/Utils/promptTemplates';
 
 const $q = useQuasar();
 const emit = defineEmits(['template-accepted', 'close']);

@@ -411,7 +411,7 @@ import {
   validateLessonPlanResponse,
   parseAIResponse,
   lessonPlanQuickSuggestions
-} from '@/utils/lessonPlanPrompts';
+} from '@/Utils/lessonPlanPrompts';
 
 const $q = useQuasar();
 const emit = defineEmits(['plan-accepted', 'close']);

@@ -599,12 +599,12 @@ Route::middleware(['auth'])->prefix('bm2')->group(function () {
         return Inertia::render('Courses/bm2/Assessment/Start');
     })->name('bm2.assessment.start');
 
-    Route::get('/assessment/{id}', function () {
-        return Inertia::render('Courses/bm2/Assessment/Take');
+    Route::get('/assessment/{id}', function ($id) {
+        return Inertia::render('Courses/bm2/Assessment/Take', ['id' => $id]);
     })->name('bm2.assessment.take');
 
-    Route::get('/assessment/{id}/results', function () {
-        return Inertia::render('Courses/bm2/Assessment/Results');
+    Route::get('/assessment/{id}/results', function ($id) {
+        return Inertia::render('Courses/bm2/Assessment/Results', ['assessmentId' => $id]);
     })->name('bm2.assessment.results');
 
     // Student Dashboard
@@ -619,4 +619,13 @@ Route::middleware(['auth'])->prefix('bm2')->group(function () {
     Route::get('/badges', function () {
         return Inertia::render('Courses/bm2/Badges');
     })->name('bm2.badges');
+
+    // Teacher Dashboard
+    Route::get('/teacher/dashboard', function () {
+        return Inertia::render('Courses/bm2/Teacher/Dashboard');
+    })->name('bm2.teacher.dashboard');
+
+    Route::get('/teacher/student/{id}', function ($id) {
+        return Inertia::render('Courses/bm2/Teacher/StudentProgress', ['studentId' => $id]);
+    })->name('bm2.teacher.student');
 });
