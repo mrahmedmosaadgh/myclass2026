@@ -108,9 +108,9 @@ class ClassroomRecordsPageController extends Controller
         
         Log::info('CR Page: isAdmin=' . ($isAdmin ? 'true' : 'false') . ', initialContext=' . ($initialContext ? 'true' : 'false') . ', teacherId=' . ($teacherId ?? 'NULL') . ', classrooms count=' . count($classrooms) . ', subjects count=' . count($subjects));
         
-        if (!$initialContext && !$isAdmin) {
+        if (!$initialContext) {
             // Get teacher's assigned classrooms and subjects from classroom_subject_teachers
-            // MUST filter by teacher_id so only THIS teacher's data is returned
+            // ALWAYS filter by teacher_id if teacher record exists (even for admins)
             $query = DB::table('classroom_subject_teachers')
                 ->whereNull('classroom_subject_teachers.deleted_at')
                 ->join('classrooms', 'classroom_subject_teachers.classroom_id', '=', 'classrooms.id')
@@ -119,10 +119,14 @@ class ClassroomRecordsPageController extends Controller
                          'subjects.id as subject_id', 'subjects.name as subject_name');
 
             if ($teacherId) {
-                // Teacher is registered in the teachers table — filter by their teacher_id
+                // Teacher is registered — filter by their assignments ONLY
                 $query->where('classroom_subject_teachers.teacher_id', $teacherId);
+                Log::info('CR Page: Loading assignments for teacher_id=' . $teacherId);
+            } elseif ($isAdmin) {
+                // Admin without teacher record — show all classrooms/subjects
+                Log::info('CR Page: Admin without teacher record, showing all');
             } else {
-                // No teacher record yet — filter by school/year and log for debugging
+                // No teacher record and not admin — filter by school/year (shouldn't happen)
                 Log::warning('CR Page: No teacher record found for user ' . $user->id . ' in school ' . $schoolId);
                 $query->where('classroom_subject_teachers.school_id', $schoolId);
                 if ($yearId) {
@@ -141,7 +145,12 @@ class ClassroomRecordsPageController extends Controller
             $subjects = $assignments->unique('subject_id')->map(function($item) {
                 return ['id' => $item->subject_id, 'name' => $item->subject_name];
             })->values()->toArray();
-        } elseif ($isAdmin) {
+            
+            // If admin has teacher record, they should see teacher-specific data (not all)
+            if ($isAdmin && $teacherId) {
+                Log::info('CR Page: Admin user with teacher record - showing teacher-specific assignments');
+            }
+        } elseif ($isAdmin && !$teacherId) {
             // Admin sees all classrooms and subjects
             $classrooms = Classroom::where('school_id', $schoolId)
                 ->orderBy('name')
