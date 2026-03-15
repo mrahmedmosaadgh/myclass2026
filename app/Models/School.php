@@ -37,6 +37,15 @@ class School extends Model
         'resolved_at' => 'datetime',
     ];
 
+    /**
+     * Get the current academic year ID for the school.
+     * Alias of active_academic_year_id for consistency.
+     */
+    public function getCurrentAcademicYearIdAttribute(): ?int
+    {
+        return $this->active_academic_year_id;
+    }
+
     public function hr()
     {
         return $this->belongsTo(HR::class, 'h_r_id');
