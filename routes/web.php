@@ -631,10 +631,7 @@ Route::middleware(['auth'])->prefix('bm2')->group(function () {
     Route::get('/teacher/student/{id}', function ($id) {
         return Inertia::render('Courses/bm2/Teacher/StudentProgress', ['studentId' => $id]);
     })->name('bm2.teacher.student');
-
-    // ==========================================
-    // Classroom Records v1 (Phase 2 Frontend)
-    // ==========================================
-    Route::get('/classroom-records', [ClassroomRecordsPageController::class, '__invoke'])
-        ->name('classroom-records.index');
 });
+
+// Include Classroom Records v1 Routes
+include dirname(__DIR__).'/routes/myclass2026/cr/web.php';
