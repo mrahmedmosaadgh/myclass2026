@@ -52,16 +52,15 @@ class ClassroomRecordsPageController extends Controller
             
             // Verify teacher is assigned to this classroom+subject (unless admin)
             if (!$isAdmin && $teacherRecord) {
-                    $assignment = \DB::table('classroom_subject_teachers')
-                        ->where('classroom_id', $classroomId)
-                        ->where('subject_id', $subjectId)
-                        ->where('teacher_id', $teacherRecord->id)
-                        ->where('school_id', $schoolId)
-                        ->first();
-                    
-                    if (!$assignment) {
-                        abort(403, 'You are not assigned to teach this classroom-subject combination');
-                    }
+                $assignment = \DB::table('classroom_subject_teachers')
+                    ->where('classroom_id', $classroomId)
+                    ->where('subject_id', $subjectId)
+                    ->where('teacher_id', $teacherRecord->id)
+                    ->where('school_id', $schoolId)
+                    ->first();
+                
+                if (!$assignment) {
+                    abort(403, 'You are not assigned to teach this classroom-subject combination');
                 }
             }
             
