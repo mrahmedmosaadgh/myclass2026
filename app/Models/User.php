@@ -185,7 +185,7 @@ class User extends Authenticatable
         $schoolId = $this->schoolId();
         if ($schoolId) {
             $year = \App\Models\AcademicYear::where('school_id', $schoolId)
-                ->where('is_current', true)
+                ->where('active', true)
                 ->first();
             
             if ($year) {
@@ -199,7 +199,6 @@ class User extends Authenticatable
 
 
 }
-
 
 
 

@@ -26,6 +26,12 @@ return [
                 'icon' => 'calendar_today',
             ],
             [
+                'id' => 'weekly_system_v1',
+                'label' => ['en' => 'Weekly System V1', 'ar' => 'نظام الأسبوع الجديد'],
+                'route' => 'weekly-system-v1.dashboard',
+                'icon' => 'view_week',
+            ],
+            [
                 'id' => 'weekly_plans',
                 'label' => ['en' => 'Weekly Plans', 'ar' => 'الخطط الأسبوعية'],
                 'route' => 'teacher.planning.weekly-plans.index',

@@ -106,6 +106,9 @@ const error = computed(() => store.error);
 const sessionData = computed(() => store.sessionData);
 const contextReady = computed(() => store.contextReady);
 
+// Edit mode for enabling/disabling editing
+const editMode = ref(false);
+
 // Determine mode
 const isStandalone = computed(() => !props.initialContext);
 // Admin is readonly ONLY when viewing from schedule (not in standalone mode)
@@ -349,8 +352,18 @@ const retryLoad = () => {
             class="inline-block w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"
           ></span>
         </div>
-        <div v-if="lastSavedAt" class="text-sm text-gray-500 dark:text-gray-400">
-          Last saved: {{ lastSavedAt }}
+        <div class="flex items-center space-x-4">
+          <div v-if="lastSavedAt" class="text-sm text-gray-500 dark:text-gray-400">
+            Last saved: {{ lastSavedAt }}
+          </div>
+          <label class="flex items-center space-x-2">
+            <input
+              v-model="editMode"
+              type="checkbox"
+              class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            <span class="text-sm text-gray-700 dark:text-gray-300">Edit mode</span>
+          </label>
         </div>
       </div>
 
@@ -384,9 +397,13 @@ const retryLoad = () => {
           v-for="student in sessionData.students"
           :key="student.student_period_id"
           :student="student"
-          :session="sessionData.session"
+          :period="student.period"
+          :scores="student.scores"
           :read-only="isReadonly"
-          @update="markDirty"
+          :edit-mode="editMode"
+          @update:scores="handleScoreUpdate"
+          @update:attendance="handleAttendanceUpdate"
+          @mark-absent="handleMarkAbsent"
         />
       </div>
 

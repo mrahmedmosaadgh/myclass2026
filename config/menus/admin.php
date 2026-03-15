@@ -45,6 +45,12 @@ return [
                 'icon' => 'event_note',
             ],
             [
+                'id' => 'weekly_system_v1',
+                'label' => ['en' => 'Weekly System V1', 'ar' => 'نظام الأسبوع الجديد'],
+                'route' => 'weekly-system-v1.dashboard',
+                'icon' => 'view_week',
+            ],
+            [
                 'id' => 'my_schedule',
                 'label' => ['en' => 'My Schedule', 'ar' => 'جدولي'],
                 'route' => 'schedules.teacher.my-schedule',

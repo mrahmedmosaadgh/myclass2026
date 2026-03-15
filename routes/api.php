@@ -29,6 +29,7 @@ use App\Http\Controllers\ScheduleCopyController;
 use App\Http\Controllers\ClassroomSubjectTeacherController;
 use App\Http\Controllers\ClassroomController;
 use App\Http\Controllers\Api\NavigationController;
+use App\Http\Controllers\Api\Cr\CrSessionController;
 
 /*
 |--------------------------------------------------------------------------

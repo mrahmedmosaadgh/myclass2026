@@ -362,7 +362,7 @@ class CrSessionController extends Controller
                         }
                     }
 
-                    if (isset($updateItem['attendance_score'])) {
+                    if (isset($updateItem['attendance_score']) && $studentPeriod->attendance_status !== 'absent') {
                         $studentPeriod->attendance_score = $updateItem['attendance_score'];
                     }
 
