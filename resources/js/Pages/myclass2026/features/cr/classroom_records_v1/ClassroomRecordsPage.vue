@@ -10,9 +10,10 @@
  * - Admin read-only mode support
  */
 
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import axios from 'axios';
+import { useClassroomRecordsStore } from '@/stores/classroomRecords';
 import SessionContextBar from './components/SessionContextBar.vue';
 import StudentCard from './components/StudentCard.vue';
 import { useDirtyBatch } from './composables/useDirtyBatch';
@@ -53,13 +54,10 @@ const props = defineProps({
   },
 });
 
-// State
-const loading = ref(false);
-const error = ref(null);
-const sessionData = ref(null);
-const contextReady = ref(false);
+// Use Pinia store
+const store = useClassroomRecordsStore();
 
-// DEBUG: Log props on mount
+// Initialize store from props on mount
 onMounted(() => {
   console.log('🔍 CR Page Props:', {
     classrooms: props.classrooms,
@@ -68,18 +66,28 @@ onMounted(() => {
     teacherId: props.teacherId,
     initialContext: props.initialContext,
   });
+  
+  // Set available options in store
+  store.setOptions(props.classrooms, props.subjects);
+  
+  // Set initial teacher_id if available
+  if (props.teacherId) {
+    store.updateContextField('teacher_id', props.teacherId);
+  }
 });
 
-// Context form
-const contextForm = reactive({
-  classroom_id: props.initialContext?.classroom_id || null,
-  subject_id: props.initialContext?.subject_id || null,
-  teacher_id: props.teacherId || props.initialContext?.teacher_id || null, // Use resolved teacher_id
-  date: props.initialContext?.date || new Date().toISOString().split('T')[0],
-  day_number: props.initialContext?.day_number || 1,
-  period_number: props.initialContext?.period_number || 1,
-  period_code: props.initialContext?.period_code || '',
-});
+// Watch for context changes and trigger auto-save
+watch(() => store.sessionContext, () => {
+  if (contextReady.value && hasUnsavedChanges.value) {
+    forceSave();
+  }
+}, { deep: true });
+
+// Computed properties from store
+const loading = computed(() => store.loading);
+const error = computed(() => store.error);
+const sessionData = computed(() => store.sessionData);
+const contextReady = computed(() => store.contextReady);
 
 // Determine mode
 const isStandalone = computed(() => !props.initialContext);
@@ -104,45 +112,43 @@ const {
  * Initialize session from API
  */
 const initSession = async () => {
-  console.log('🔍 initSession called:', {
-    classroom_id: contextForm.classroom_id,
-    subject_id: contextForm.subject_id,
-    teacher_id: contextForm.teacher_id,
-    date: contextForm.date,
-    period_code: contextForm.period_code,
-    day_number: contextForm.day_number,
-    period_number: contextForm.period_number,
+  console.log('🔍 initSession called with store context:', {
+    classroom_id: store.sessionContext.classroom_id,
+    subject_id: store.sessionContext.subject_id,
+    teacher_id: store.sessionContext.teacher_id,
+    date: store.sessionContext.date,
+    period_code: store.sessionContext.period_code,
+    day_number: store.sessionContext.day_number,
+    period_number: store.sessionContext.period_number,
   });
   
-  if (!contextForm.classroom_id || !contextForm.subject_id) {
+  if (!store.sessionContext.classroom_id || !store.sessionContext.subject_id) {
     console.log('⚠️ initSession aborted: missing classroom or subject');
     return;
   }
 
-  loading.value = true;
-  error.value = null;
+  store.setLoading(true);
+  store.setError(null);
 
   try {
     console.log('📡 Calling /api/cr/init-session...');
     const response = await axios.post('/api/cr/init-session', {
-      classroom_id: contextForm.classroom_id,
-      subject_id: contextForm.subject_id,
-      teacher_id: contextForm.teacher_id,
-      date: contextForm.date,
-      period_code: contextForm.period_code,
-      day_number: contextForm.day_number,
-      period_number: contextForm.period_number,
+      classroom_id: store.sessionContext.classroom_id,
+      subject_id: store.sessionContext.subject_id,
+      teacher_id: store.sessionContext.teacher_id,
+      date: store.sessionContext.date,
+      period_code: store.sessionContext.period_code,
+      day_number: store.sessionContext.day_number,
+      period_number: store.sessionContext.period_number,
     });
 
     console.log('✅ Session loaded:', response.data);
-    sessionData.value = response.data;
-    contextReady.value = true;
-    loading.value = false;
+    store.setSessionData(response.data);
+    store.setLoading(false);
   } catch (err) {
     console.error('❌ initSession failed:', err);
-    error.value = err.response?.data?.error || err.message || 'Failed to load session';
-    loading.value = false;
-    contextReady.value = false;
+    store.setError(err.response?.data?.error || err.message || 'Failed to load session');
+    store.setLoading(false);
   }
 };
 
@@ -150,14 +156,8 @@ const initSession = async () => {
  * Handle context ready (all fields filled)
  */
 const handleContextReady = () => {
-  if (contextReady.value && hasUnsavedChanges.value) {
-    // If changing context with unsaved changes, force save first
-    forceSave().then(() => {
-      initSession();
-    });
-  } else {
-    initSession();
-  }
+  console.log('🚀 handleContextReady triggered');
+  initSession();
 };
 
 /**
@@ -284,13 +284,13 @@ const retryLoad = () => {
 
       <!-- Session Context Bar -->
       <SessionContextBar
-        v-model="contextForm"
+        v-model="store.sessionContext"
         :mode="isStandalone ? 'interactive' : 'readonly'"
         :source="isStandalone ? 'standalone' : 'teacher_schedule'"
         :read-only="isReadonly"
         :options="{
-          classrooms: classrooms,
-          subjects: subjects,
+          classrooms: store.options.classrooms,
+          subjects: store.options.subjects,
         }"
         :academic-context="academicContext"
         @context-ready="handleContextReady"
@@ -299,89 +299,69 @@ const retryLoad = () => {
       <!-- Save Status Indicator -->
       <div v-if="contextReady && !isReadonly" class="mb-4 flex items-center justify-between">
         <div class="flex items-center space-x-2">
-          <!-- Saving Indicator -->
-          <span v-if="isSaving" class="flex items-center text-sm text-yellow-600 dark:text-yellow-400">
-            <svg class="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            Saving...
+          <span class="text-sm text-gray-600 dark:text-gray-400">
+            {{ saveStatus }}
           </span>
-
-          <!-- Saved Successfully -->
-          <span v-else-if="lastSavedAt" class="text-sm text-green-600 dark:text-green-400">
-            ✓ Saved {{ new Date(lastSavedAt).toLocaleTimeString() }}
-          </span>
-
-          <!-- Has Unsaved Changes -->
-          <span v-else-if="hasUnsavedChanges" class="text-sm text-orange-600 dark:text-orange-400">
-            ⚠ Unsaved changes
-          </span>
+          <span
+            v-if="isSaving"
+            class="inline-block w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"
+          ></span>
         </div>
-
-        <!-- Manual Save Button -->
-        <button
-          v-if="hasUnsavedChanges"
-          @click="forceSave"
-          class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md transition-colors"
-        >
-          Save Now
-        </button>
+        <div v-if="lastSavedAt" class="text-sm text-gray-500 dark:text-gray-400">
+          Last saved: {{ lastSavedAt }}
+        </div>
       </div>
 
       <!-- Loading State -->
-      <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        <div v-for="n in 8" :key="n" class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 animate-pulse">
-          <div class="flex items-center space-x-3 mb-4">
-            <div class="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
-            <div class="h-4 bg-gray-300 dark:bg-gray-600 rounded w-32"></div>
-          </div>
-          <div class="grid grid-cols-3 gap-2 mb-4">
-            <div class="h-16 bg-gray-300 dark:bg-gray-600 rounded"></div>
-            <div class="h-16 bg-gray-300 dark:bg-gray-600 rounded"></div>
-            <div class="h-16 bg-gray-300 dark:bg-gray-600 rounded"></div>
-          </div>
-          <div class="h-8 bg-gray-300 dark:bg-gray-600 rounded"></div>
+      <div v-if="loading" class="flex justify-center items-center py-12">
+        <div class="text-center">
+          <div class="inline-block w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+          <p class="mt-4 text-gray-600 dark:text-gray-400">Loading session data...</p>
         </div>
       </div>
 
       <!-- Error State -->
-      <div v-else-if="error" class="bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 rounded-lg p-6 text-center">
-        <h3 class="text-lg font-semibold text-red-800 dark:text-red-200 mb-2">
-          Failed to Load Session
-        </h3>
-        <p class="text-red-600 dark:text-red-300 mb-4">{{ error }}</p>
-        <button
-          @click="retryLoad"
-          class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-md transition-colors"
-        >
-          Retry
-        </button>
+      <div v-else-if="error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+        <div class="flex items-start">
+          <div class="flex-shrink-0">
+            <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+            </svg>
+          </div>
+          <div class="ml-3">
+            <h3 class="text-sm font-medium text-red-800 dark:text-red-200">
+              {{ error }}
+            </h3>
+          </div>
+        </div>
       </div>
 
-      <!-- Student Grid -->
-      <div v-else-if="contextReady && sessionData" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <!-- Student Cards Grid -->
+      <div v-else-if="contextReady && sessionData?.students" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <StudentCard
           v-for="student in sessionData.students"
-          :key="student.id"
+          :key="student.student_period_id"
           :student="student"
-          :period="student.period"
-          :scores="student.scores"
-          :disabled="isReadonly"
-          @update:scores="handleScoreUpdate"
-          @update:attendance="handleAttendanceUpdate"
-          @mark-absent="handleMarkAbsent"
+          :session="sessionData.session"
+          :read-only="isReadonly"
+          @update="markDirty"
         />
       </div>
 
-      <!-- Empty State -->
-      <div v-else-if="!isStandalone" class="text-center py-12">
-        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+      <!-- No Students Message -->
+      <div v-else-if="contextReady" class="text-center py-12">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
         </svg>
-        <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No students found</h3>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          This session doesn't have any students enrolled.
+        <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
+          No students found for this session.
+        </p>
+      </div>
+
+      <!-- Welcome Message -->
+      <div v-else class="text-center py-12">
+        <p class="text-lg text-gray-600 dark:text-gray-400">
+          Select a classroom and subject to view student records.
         </p>
       </div>
     </div>
