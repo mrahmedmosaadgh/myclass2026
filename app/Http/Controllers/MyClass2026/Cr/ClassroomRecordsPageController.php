@@ -7,8 +7,8 @@ use App\Models\Classroom;
 use App\Models\Subject;
 use App\Models\Teacher;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
-use Auth;
 
 class ClassroomRecordsPageController extends Controller
 {
