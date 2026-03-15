@@ -25,7 +25,7 @@ class ClassroomRecordsPageController extends Controller
         $user = Auth::user();
         
         // Get school and year context
-        $schoolId = $user->school_id ?? $user->currentSchoolId();
+        $schoolId = $user->currentSchoolId();
         $yearId = $user->currentAcademicYearId();
         
         // Check if user is admin (read-only mode)
