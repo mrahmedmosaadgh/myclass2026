@@ -36,12 +36,14 @@ class ClassroomRecordsPageController extends Controller
         $teacherId = null;
         
         // Get teacher record if exists, otherwise use classroom_subject_teachers directly
-        $teacherRecord = Teacher::where('user_id', $user->id)
-            ->where('school_id', $schoolId)
-            ->first();
+        $teacherRecord = Teacher::where('user_id', $user->id)->first();
         
         if ($teacherRecord) {
             $teacherId = $teacherRecord->id;
+            // Override school_id with teacher's school_id if user doesn't have one
+            if (!$schoolId && $teacherRecord->school_id) {
+                $schoolId = $teacherRecord->school_id;
+            }
         }
         
         if ($request->has('classroom_id') && $request->has('subject_id')) {
@@ -103,16 +105,18 @@ class ClassroomRecordsPageController extends Controller
         
         if (!$initialContext && !$isAdmin) {
             // Get teacher's assigned classrooms and subjects from classroom_subject_teachers
+            // CRITICAL FIX: Added teacher_id filter to get only this teacher's assignments
             $assignments = \DB::table('classroom_subject_teachers')
                 ->where('classroom_subject_teachers.school_id', $schoolId)
                 ->where('classroom_subject_teachers.academic_year_id', $yearId)
+                ->where('classroom_subject_teachers.teacher_id', $teacherId)  // ← KEY FIX
                 ->join('classrooms', 'classroom_subject_teachers.classroom_id', '=', 'classrooms.id')
                 ->join('subjects', 'classroom_subject_teachers.subject_id', '=', 'subjects.id')
                 ->select('classrooms.id as classroom_id', 'classrooms.name as classroom_name',
                          'subjects.id as subject_id', 'subjects.name as subject_name')
                 ->get();
             
-            \Log::info('CR Page: Found ' . $assignments->count() . ' assignments for school ' . $schoolId . ' year ' . $yearId);
+            \Log::info('CR Page: Found ' . $assignments->count() . ' assignments for teacher ' . $teacherId . ' school ' . $schoolId . ' year ' . $yearId);
             
             $classrooms = $assignments->unique('classroom_id')->map(function($item) {
                 return ['id' => $item->classroom_id, 'name' => $item->classroom_name];
