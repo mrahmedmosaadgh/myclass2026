@@ -146,6 +146,8 @@ class ClassroomRecordsPageController extends Controller
                 return ['id' => $item->subject_id, 'name' => $item->subject_name];
             })->values()->toArray();
             
+            Log::info('CR Page: FINAL - classrooms=' . count($classrooms) . ', subjects=' . count($subjects));
+            
             // If admin has teacher record, they should see teacher-specific data (not all)
             if ($isAdmin && $teacherId) {
                 Log::info('CR Page: Admin user with teacher record - showing teacher-specific assignments');

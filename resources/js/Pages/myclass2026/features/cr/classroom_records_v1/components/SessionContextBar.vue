@@ -80,6 +80,17 @@ const updatePeriodCode = () => {
   const { date, day_number, period_number } = localValue.value;
   const { year_id, semester } = props.academicContext;
   
+  console.log('🔍 updatePeriodCode check:', {
+    has_year_id: !!year_id,
+    has_semester: !!semester,
+    has_date: !!date,
+    has_day_number: !!day_number,
+    has_period_number: !!period_number,
+    has_classroom_id: !!localValue.value.classroom_id,
+    has_subject_id: !!localValue.value.subject_id,
+    has_teacher_id: !!localValue.value.teacher_id,
+  });
+  
   if (year_id && semester && date && day_number && period_number) {
     try {
       localValue.value.period_code = generatePeriodCode(
@@ -90,6 +101,8 @@ const updatePeriodCode = () => {
         period_number
       );
       
+      console.log('✅ Period code generated:', localValue.value.period_code);
+      
       // Emit update
       emit('update:modelValue', localValue.value);
       
@@ -98,7 +111,15 @@ const updatePeriodCode = () => {
           localValue.value.subject_id && 
           localValue.value.teacher_id &&
           localValue.value.period_code) {
+        console.log('🚀 Context ready! Emitting context-ready event');
         emit('context-ready', localValue.value);
+      } else {
+        console.log('⚠️ Context NOT ready. Missing:', {
+          classroom_id: localValue.value.classroom_id,
+          subject_id: localValue.value.subject_id,
+          teacher_id: localValue.value.teacher_id,
+          period_code: localValue.value.period_code,
+        });
       }
     } catch (error) {
       console.error('Error generating period code:', error);
