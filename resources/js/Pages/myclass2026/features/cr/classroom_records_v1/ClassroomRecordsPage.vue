@@ -104,7 +104,18 @@ const {
  * Initialize session from API
  */
 const initSession = async () => {
+  console.log('🔍 initSession called:', {
+    classroom_id: contextForm.classroom_id,
+    subject_id: contextForm.subject_id,
+    teacher_id: contextForm.teacher_id,
+    date: contextForm.date,
+    period_code: contextForm.period_code,
+    day_number: contextForm.day_number,
+    period_number: contextForm.period_number,
+  });
+  
   if (!contextForm.classroom_id || !contextForm.subject_id) {
+    console.log('⚠️ initSession aborted: missing classroom or subject');
     return;
   }
 
@@ -112,6 +123,7 @@ const initSession = async () => {
   error.value = null;
 
   try {
+    console.log('📡 Calling /api/cr/init-session...');
     const response = await axios.post('/api/cr/init-session', {
       classroom_id: contextForm.classroom_id,
       subject_id: contextForm.subject_id,
@@ -122,10 +134,12 @@ const initSession = async () => {
       period_number: contextForm.period_number,
     });
 
+    console.log('✅ Session loaded:', response.data);
     sessionData.value = response.data;
     contextReady.value = true;
     loading.value = false;
   } catch (err) {
+    console.error('❌ initSession failed:', err);
     error.value = err.response?.data?.error || err.message || 'Failed to load session';
     loading.value = false;
     contextReady.value = false;
