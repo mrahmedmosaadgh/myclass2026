@@ -83,6 +83,23 @@ watch(() => store.sessionContext, () => {
   }
 }, { deep: true });
 
+/**
+ * Manually load session (button click)
+ */
+const loadSession = () => {
+  console.log(' Load Session button clicked');
+  if (!store.sessionContext.classroom_id || !store.sessionContext.subject_id) {
+    store.setError('Please select a classroom and subject first');
+    return;
+  }
+  
+  // Clear any previous session
+  store.clearSession();
+  
+  // Trigger context-ready manually
+  handleContextReady();
+};
+
 // Computed properties from store
 const loading = computed(() => store.loading);
 const error = computed(() => store.error);
@@ -306,6 +323,20 @@ const retryLoad = () => {
         :academic-context="academicContext"
         @context-ready="handleContextReady"
       />
+
+      <!-- Load Session Button -->
+      <div v-if="!contextReady && !loading" class="mb-4 flex justify-end">
+        <button
+          @click="loadSession"
+          :disabled="!store.sessionContext.classroom_id || !store.sessionContext.subject_id"
+          class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium rounded-md transition-colors shadow-sm flex items-center space-x-2"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span>Load Session</span>
+        </button>
+      </div>
 
       <!-- Save Status Indicator -->
       <div v-if="contextReady && !isReadonly" class="mb-4 flex items-center justify-between">
