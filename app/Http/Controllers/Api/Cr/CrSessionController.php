@@ -108,7 +108,7 @@ class CrSessionController extends Controller
                 // Fetch classroom roster (students assigned to this classroom)
                 $students = Student::where('classroom_id', $validated['classroom_id'])
                     ->whereNull('deleted_at')
-                    ->with(['studentParent'])
+                    ->with(['parent'])
                     ->get();
 
                 // Get active category mappings for this school
