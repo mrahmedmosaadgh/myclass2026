@@ -99,16 +99,20 @@ class ClassroomRecordsPageController extends Controller
         $classrooms = [];
         $subjects = [];
         
+        \Log::info('CR Page: isAdmin=' . ($isAdmin ? 'true' : 'false') . ', initialContext=' . ($initialContext ? 'true' : 'false'));
+        
         if (!$initialContext && !$isAdmin) {
             // Get teacher's assigned classrooms and subjects from classroom_subject_teachers
             $assignments = \DB::table('classroom_subject_teachers')
-                ->where('school_id', $schoolId)
-                ->where('academic_year_id', $yearId)
+                ->where('classroom_subject_teachers.school_id', $schoolId)
+                ->where('classroom_subject_teachers.academic_year_id', $yearId)
                 ->join('classrooms', 'classroom_subject_teachers.classroom_id', '=', 'classrooms.id')
                 ->join('subjects', 'classroom_subject_teachers.subject_id', '=', 'subjects.id')
                 ->select('classrooms.id as classroom_id', 'classrooms.name as classroom_name',
                          'subjects.id as subject_id', 'subjects.name as subject_name')
                 ->get();
+            
+            \Log::info('CR Page: Found ' . $assignments->count() . ' assignments for school ' . $schoolId . ' year ' . $yearId);
             
             $classrooms = $assignments->unique('classroom_id')->map(function($item) {
                 return ['id' => $item->classroom_id, 'name' => $item->classroom_name];
