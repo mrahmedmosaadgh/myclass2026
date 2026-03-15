@@ -85,7 +85,7 @@ class CrSessionController extends Controller
             $validated['teacher_id'] = $teacherRecord->id;
         }
 
-        try {
+        // try {
             $result = DB::transaction(function () use ($validated, $schoolId, $yearId, $isAdmin) {
                 // Upsert session
                 $session = CrSession::updateOrCreate(
@@ -107,13 +107,13 @@ class CrSessionController extends Controller
 
                 // Fetch classroom roster (students assigned to this classroom)
                 $students = Student::where('classroom_id', $validated['classroom_id'])
-                    ->where('active', true)
+                    ->whereNull('deleted_at')
                     ->with(['studentParent'])
                     ->get();
 
                 // Get active category mappings for this school
                 $activeMappings = CrCategoryMapping::where('school_id', $schoolId)
-                    ->where('active', true)
+                    ->whereNull('deleted_at')
                     ->orderBy('sort_order')
                     ->get();
 
@@ -247,10 +247,10 @@ class CrSessionController extends Controller
 
             return response()->json($result);
 
-        } catch (\Exception $e) {
-            report($e);
-            return response()->json(['error' => 'Failed to initialize session: ' . $e->getMessage()], 500);
-        }
+        // } catch (\Exception $e) {
+        //     report($e);
+        //     return response()->json(['error' => 'Failed to initialize session: ' . $e->getMessage()], 500);
+        // }
     }
 
     /**
@@ -351,7 +351,7 @@ class CrSessionController extends Controller
                             
                             // Reset all category scores to defaults
                             $activeMappings = CrCategoryMapping::where('school_id', $studentPeriod->school_id)
-                                ->where('active', true)
+                                ->whereNull('deleted_at')
                                 ->get();
                             
                             foreach ($activeMappings as $mapping) {
