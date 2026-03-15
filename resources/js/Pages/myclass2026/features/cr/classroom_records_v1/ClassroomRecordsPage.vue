@@ -83,7 +83,8 @@ const contextForm = reactive({
 
 // Determine mode
 const isStandalone = computed(() => !props.initialContext);
-const isReadonly = computed(() => props.isAdmin);
+// Admin is readonly ONLY when viewing from schedule (not in standalone mode)
+const isReadonly = computed(() => props.isAdmin && !isStandalone.value);
 
 // Use dirty batch composable
 const {
