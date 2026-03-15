@@ -140,6 +140,12 @@ const initSession = async () => {
       period_code: store.sessionContext.period_code,
       day_number: store.sessionContext.day_number,
       period_number: store.sessionContext.period_number,
+    }, {
+      timeout: 10000, // 10 second timeout
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
     });
 
     console.log('✅ Session loaded:', response.data);
@@ -147,6 +153,11 @@ const initSession = async () => {
     store.setLoading(false);
   } catch (err) {
     console.error('❌ initSession failed:', err);
+    console.error('Error details:', {
+      message: err.message,
+      response: err.response?.data,
+      status: err.response?.status,
+    });
     store.setError(err.response?.data?.error || err.message || 'Failed to load session');
     store.setLoading(false);
   }
