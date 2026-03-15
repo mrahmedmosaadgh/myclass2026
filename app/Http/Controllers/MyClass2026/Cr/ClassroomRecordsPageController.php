@@ -25,7 +25,7 @@ class ClassroomRecordsPageController extends Controller
         $user = Auth::user();
         
         // Get school and year context
-        $schoolId = $user->currentSchoolId();
+        $schoolId = $user->school_id ?? $user->currentSchoolId();
         $yearId = $user->currentAcademicYearId();
         
         // Check if user is admin (read-only mode)
@@ -35,7 +35,7 @@ class ClassroomRecordsPageController extends Controller
         $initialContext = null;
         $teacherId = null;
         
-        // Always resolve teacher_id from authenticated user (security fix)
+        // Get teacher record if exists, otherwise use classroom_subject_teachers directly
         $teacherRecord = Teacher::where('user_id', $user->id)
             ->where('school_id', $schoolId)
             ->first();
@@ -51,15 +51,29 @@ class ClassroomRecordsPageController extends Controller
             $date = $request->query('date', now()->toDateString());
             
             // Verify teacher is assigned to this classroom+subject (unless admin)
-            if (!$isAdmin && $teacherRecord) {
+            if (!$isAdmin) {
+                // Check in classroom_subject_teachers table
                 $assignment = \DB::table('classroom_subject_teachers')
                     ->where('classroom_id', $classroomId)
                     ->where('subject_id', $subjectId)
-                    ->where('teacher_id', $teacherRecord->id)
                     ->where('school_id', $schoolId)
                     ->first();
                 
-                if (!$assignment) {
+                // If no teacher record exists yet, create one from the assignment
+                if (!$teacherRecord && $assignment) {
+                    $teacherRecord = Teacher::firstOrCreate(
+                        ['user_id' => $user->id, 'school_id' => $schoolId],
+                        ['name' => $user->name, 'email' => $user->email]
+                    );
+                    $teacherId = $teacherRecord->id;
+                    
+                    // Update the assignment with the new teacher_id
+                    \DB::table('classroom_subject_teachers')
+                        ->where('id', $assignment->id)
+                        ->update(['teacher_id' => $teacherId]);
+                }
+                
+                if (!$assignment && !$teacherRecord) {
                     abort(403, 'You are not assigned to teach this classroom-subject combination');
                 }
             }
@@ -86,25 +100,23 @@ class ClassroomRecordsPageController extends Controller
         $subjects = [];
         
         if (!$initialContext && !$isAdmin) {
-            // Get teacher's assigned classrooms and subjects
-            if ($teacherRecord) {
-                $assignments = \DB::table('classroom_subject_teachers')
-                    ->where('teacher_id', $teacherRecord->id)
-                    ->where('school_id', $schoolId)
-                    ->join('classrooms', 'classroom_subject_teachers.classroom_id', '=', 'classrooms.id')
-                    ->join('subjects', 'classroom_subject_teachers.subject_id', '=', 'subjects.id')
-                    ->select('classrooms.id as classroom_id', 'classrooms.name as classroom_name',
-                             'subjects.id as subject_id', 'subjects.name as subject_name')
-                    ->get();
-                
-                $classrooms = $assignments->unique('classroom_id')->map(function($item) {
-                    return ['id' => $item->classroom_id, 'name' => $item->classroom_name];
-                })->values()->toArray();
-                
-                $subjects = $assignments->unique('subject_id')->map(function($item) {
-                    return ['id' => $item->subject_id, 'name' => $item->subject_name];
-                })->values()->toArray();
-            }
+            // Get teacher's assigned classrooms and subjects from classroom_subject_teachers
+            $assignments = \DB::table('classroom_subject_teachers')
+                ->where('school_id', $schoolId)
+                ->where('academic_year_id', $yearId)
+                ->join('classrooms', 'classroom_subject_teachers.classroom_id', '=', 'classrooms.id')
+                ->join('subjects', 'classroom_subject_teachers.subject_id', '=', 'subjects.id')
+                ->select('classrooms.id as classroom_id', 'classrooms.name as classroom_name',
+                         'subjects.id as subject_id', 'subjects.name as subject_name')
+                ->get();
+            
+            $classrooms = $assignments->unique('classroom_id')->map(function($item) {
+                return ['id' => $item->classroom_id, 'name' => $item->classroom_name];
+            })->values()->toArray();
+            
+            $subjects = $assignments->unique('subject_id')->map(function($item) {
+                return ['id' => $item->subject_id, 'name' => $item->subject_name];
+            })->values()->toArray();
         } elseif ($isAdmin) {
             // Admin sees all classrooms and subjects
             $classrooms = Classroom::where('school_id', $schoolId)
