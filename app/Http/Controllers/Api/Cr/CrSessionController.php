@@ -113,7 +113,7 @@ class CrSessionController extends Controller
 
                 // Get active category mappings for this school
                 $activeMappings = CrCategoryMapping::where('school_id', $schoolId)
-                    ->whereNull('deleted_at')
+                    ->where('active', true)
                     ->orderBy('sort_order')
                     ->get();
 
@@ -351,7 +351,7 @@ class CrSessionController extends Controller
                             
                             // Reset all category scores to defaults
                             $activeMappings = CrCategoryMapping::where('school_id', $studentPeriod->school_id)
-                                ->whereNull('deleted_at')
+                                ->where('active', true)
                                 ->get();
                             
                             foreach ($activeMappings as $mapping) {
