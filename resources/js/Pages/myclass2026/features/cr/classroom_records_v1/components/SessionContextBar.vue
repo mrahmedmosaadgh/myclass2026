@@ -130,7 +130,11 @@ const updatePeriodCode = () => {
 // Watch for changes in interactive mode
 watch(() => localValue.value, () => {
   if (isInteractive.value) {
-    updatePeriodCode();
+    // Only update period code if classroom AND subject are selected
+    const { classroom_id, subject_id } = localValue.value;
+    if (classroom_id && subject_id) {
+      updatePeriodCode();
+    }
   }
 }, { deep: true });
 
