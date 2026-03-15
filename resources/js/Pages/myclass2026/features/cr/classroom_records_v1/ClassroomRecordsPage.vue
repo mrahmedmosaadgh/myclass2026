@@ -59,6 +59,17 @@ const error = ref(null);
 const sessionData = ref(null);
 const contextReady = ref(false);
 
+// DEBUG: Log props on mount
+onMounted(() => {
+  console.log('🔍 CR Page Props:', {
+    classrooms: props.classrooms,
+    subjects: props.subjects,
+    isAdmin: props.isAdmin,
+    teacherId: props.teacherId,
+    initialContext: props.initialContext,
+  });
+});
+
 // Context form
 const contextForm = reactive({
   classroom_id: props.initialContext?.classroom_id || null,

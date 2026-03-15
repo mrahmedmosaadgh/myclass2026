@@ -8,6 +8,8 @@ use App\Models\Subject;
 use App\Models\Teacher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class ClassroomRecordsPageController extends Controller
@@ -35,8 +37,11 @@ class ClassroomRecordsPageController extends Controller
         $initialContext = null;
         $teacherId = null;
         
-        // Get teacher record if exists, otherwise use classroom_subject_teachers directly
-        $teacherRecord = Teacher::where('user_id', $user->id)->first();
+        // Get teacher record — look up by user_id only first (avoids school_id circular dependency)
+        // Then confirm it belongs to the resolved school
+        $teacherRecord = Teacher::where('user_id', $user->id)
+            ->when($schoolId, fn ($q) => $q->where('school_id', $schoolId))
+            ->first();
         
         if ($teacherRecord) {
             $teacherId = $teacherRecord->id;
@@ -55,7 +60,7 @@ class ClassroomRecordsPageController extends Controller
             // Verify teacher is assigned to this classroom+subject (unless admin)
             if (!$isAdmin) {
                 // Check in classroom_subject_teachers table
-                $assignment = \DB::table('classroom_subject_teachers')
+                $assignment = DB::table('classroom_subject_teachers')
                     ->where('classroom_id', $classroomId)
                     ->where('subject_id', $subjectId)
                     ->where('school_id', $schoolId)
@@ -70,7 +75,7 @@ class ClassroomRecordsPageController extends Controller
                     $teacherId = $teacherRecord->id;
                     
                     // Update the assignment with the new teacher_id
-                    \DB::table('classroom_subject_teachers')
+                    DB::table('classroom_subject_teachers')
                         ->where('id', $assignment->id)
                         ->update(['teacher_id' => $teacherId]);
                 }
@@ -84,7 +89,7 @@ class ClassroomRecordsPageController extends Controller
             $dayNumber = $request->query('day_number', 1);
             $periodNumber = $request->query('period_number', 1);
             
-            $initialContext = [
+             $initialContext = [
                 'classroom_id' => $classroomId,
                 'subject_id' => $subjectId,
                 'teacher_id' => $teacherId, // Use resolved teacher_id
@@ -101,22 +106,33 @@ class ClassroomRecordsPageController extends Controller
         $classrooms = [];
         $subjects = [];
         
-        \Log::info('CR Page: isAdmin=' . ($isAdmin ? 'true' : 'false') . ', initialContext=' . ($initialContext ? 'true' : 'false'));
+        Log::info('CR Page: isAdmin=' . ($isAdmin ? 'true' : 'false') . ', initialContext=' . ($initialContext ? 'true' : 'false') . ', teacherId=' . ($teacherId ?? 'NULL') . ', classrooms count=' . count($classrooms) . ', subjects count=' . count($subjects));
         
         if (!$initialContext && !$isAdmin) {
             // Get teacher's assigned classrooms and subjects from classroom_subject_teachers
-            // CRITICAL FIX: Added teacher_id filter to get only this teacher's assignments
-            $assignments = \DB::table('classroom_subject_teachers')
-                ->where('classroom_subject_teachers.school_id', $schoolId)
-                ->where('classroom_subject_teachers.academic_year_id', $yearId)
-                ->where('classroom_subject_teachers.teacher_id', $teacherId)  // ← KEY FIX
+            // MUST filter by teacher_id so only THIS teacher's data is returned
+            $query = DB::table('classroom_subject_teachers')
+                ->whereNull('classroom_subject_teachers.deleted_at')
                 ->join('classrooms', 'classroom_subject_teachers.classroom_id', '=', 'classrooms.id')
                 ->join('subjects', 'classroom_subject_teachers.subject_id', '=', 'subjects.id')
                 ->select('classrooms.id as classroom_id', 'classrooms.name as classroom_name',
-                         'subjects.id as subject_id', 'subjects.name as subject_name')
-                ->get();
+                         'subjects.id as subject_id', 'subjects.name as subject_name');
+
+            if ($teacherId) {
+                // Teacher is registered in the teachers table — filter by their teacher_id
+                $query->where('classroom_subject_teachers.teacher_id', $teacherId);
+            } else {
+                // No teacher record yet — filter by school/year and log for debugging
+                Log::warning('CR Page: No teacher record found for user ' . $user->id . ' in school ' . $schoolId);
+                $query->where('classroom_subject_teachers.school_id', $schoolId);
+                if ($yearId) {
+                    $query->where('classroom_subject_teachers.academic_year_id', $yearId);
+                }
+            }
+
+            $assignments = $query->get();
             
-            \Log::info('CR Page: Found ' . $assignments->count() . ' assignments for teacher ' . $teacherId . ' school ' . $schoolId . ' year ' . $yearId);
+            Log::info('CR Page: Found ' . $assignments->count() . ' assignments for teacher_id=' . $teacherId . ' school=' . $schoolId . ' year=' . $yearId);
             
             $classrooms = $assignments->unique('classroom_id')->map(function($item) {
                 return ['id' => $item->classroom_id, 'name' => $item->classroom_name];
@@ -137,7 +153,7 @@ class ClassroomRecordsPageController extends Controller
                 ->get(['id', 'name'])
                 ->toArray();
         }
-        
+        // return $classrooms;
         return Inertia::render('myclass2026/features/cr/classroom_records_v1/ClassroomRecordsPage', [
             'initialContext' => $initialContext,
             'isAdmin' => $isAdmin,

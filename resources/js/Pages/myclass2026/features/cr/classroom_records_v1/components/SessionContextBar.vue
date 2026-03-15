@@ -59,6 +59,17 @@ const emit = defineEmits(['update:modelValue', 'context-ready']);
 // Local state
 const localValue = ref({ ...props.modelValue });
 
+// DEBUG: Log options on mount
+import { onMounted } from 'vue';
+onMounted(() => {
+  console.log('🔍 SessionContextBar Options:', {
+    options: props.options,
+    mode: props.mode,
+    readOnly: props.readOnly,
+    isInteractive: props.mode === 'interactive' && !props.readOnly,
+  });
+});
+
 // Computed properties
 const isInteractive = computed(() => props.mode === 'interactive' && !props.readOnly);
 const isReadonly = computed(() => props.mode === 'readonly' || props.readOnly);
