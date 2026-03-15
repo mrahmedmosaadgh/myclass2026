@@ -12,6 +12,7 @@ use App\Http\Controllers\PageViewController;  // Add page view controller import
 use App\Http\Controllers\ScheduleAdminNewController;
 use App\Http\Controllers\ScheduleTimingController;
 use App\Http\Controllers\SchoolBrandingController;
+use App\Http\Controllers\MyClass2026\Cr\ClassroomRecordsPageController;
 use App\Models\User;
 use App\Notifications\WebPushNotification;
 use Illuminate\Foundation\Application;
@@ -261,6 +262,8 @@ Route::middleware(['auth'])->group(function () {
 
 include dirname(__DIR__).'/routes/weekly_system.php';
 include dirname(__DIR__).'/routes/admin.php';
+// Weekly System V1 (Feature-First Architecture) - NEW
+include dirname(__DIR__).'/routes/weekly_system_v1.php';
 include dirname(__DIR__).'/routes/r_hr.php';
 include dirname(__DIR__).'/routes/r_teacher.php';
 include dirname(__DIR__).'/routes/r_student.php';
@@ -628,4 +631,10 @@ Route::middleware(['auth'])->prefix('bm2')->group(function () {
     Route::get('/teacher/student/{id}', function ($id) {
         return Inertia::render('Courses/bm2/Teacher/StudentProgress', ['studentId' => $id]);
     })->name('bm2.teacher.student');
+
+    // ==========================================
+    // Classroom Records v1 (Phase 2 Frontend)
+    // ==========================================
+    Route::get('/classroom-records', [ClassroomRecordsPageController::class, '__invoke'])
+        ->name('classroom-records.index');
 });

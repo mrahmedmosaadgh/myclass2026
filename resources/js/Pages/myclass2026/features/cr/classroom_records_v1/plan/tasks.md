@@ -228,65 +228,79 @@ Phase 1 backend implementation is complete with all critical security issues res
 
 ---
 
-## Phase 2 — Frontend (Cards + Fast Input)
+## Phase 2 — Frontend (Cards + Fast Input) [/]
 
-### 2.1 — ClassroomRecordsPage Shell ✅
+**Components Created:** 2026-03-15  
+**Status:** 🔴 NOT READY (blocking integration issues)
 
-- [ ]  Create `ClassroomRecordsPage.vue` layout:
+> **Reality check (code):** Components exist, but current wiring will not behave correctly until the blockers below are fixed.
+
+### 2.0 — Blockers (Must Fix Before UAT) [!]
+
+- [!] API calls are using Inertia router for JSON endpoints (`/api/*`) — responses are JSON, not Inertia props
+- [!] Batch save uses `POST /api/cr/batch` but backend route is `PATCH /api/cr/batch`
+- [!] Standalone mode: `teacher_id` is not guaranteed but API requires it
+- [!] period_code generation is missing required inputs in the context form (`year_id`, `semester`, `day_number`)
+- [!] StudentCard does not apply optimistic UI updates (tap does not update visible score reliably)
+- [!] mapping_id source is inconsistent (category definitions don’t carry mapping ids; should use scoreRecord.mapping_id)
+- [!] Attendance “late” state is documented but not implemented in UI (toggle only)
+
+---
+
+### 2.1 — ClassroomRecordsPage Shell [/]
+
+- [/] Create `ClassroomRecordsPage.vue` layout:
   - Top bar: `SessionContextBar` (readonly or interactive depending on source)
-  - Body: `ClassroomRecordsGrid` (only rendered after `context-ready` is emitted)
+  - Body: Student grid (only rendered after `context-ready` is emitted)
   - Loading skeleton while waiting for init-session response
-- [ ]  Handle error state (failed init-session) with retry button
+- [/] Handle error state (failed init-session) with retry button
+- [/] Save status indicator (idle, saving, success)
+- [/] Manual save button for force-save
+- [/] Admin read-only mode support
+- [!] Replace Inertia router requests with JSON client (axios/fetch) for `/api/cr/*`
+- [!] Ensure init-session reads JSON response and sets `sessionData` correctly
 
 ---
 
-### 2.2 — StudentCard Component ✅
+### 2.2 — StudentCard Component [/]
 
-> **Good:** 4 tap targets + session total panel is a clear, minimal UI.
-> **Recommendation:** Make the card layout responsive to small screens (mobile-first — teachers likely use phones).
+> **Good:** Card layout direction is correct.
+> **Gap:** Needs optimistic updates and correct mapping id handling.
 
-- [ ]  Create `StudentCard.vue` with props:
-  - `student: { id, name, avatar? }`
-  - `period: { attendance_status, attendance_score, total_score, locked }`
-  - `scores: [{ mapping_id, label, numeric_value, max_value }]`
-- [ ]  Render student name + avatar (or initials fallback)
-- [ ]  Render 4 tap targets (Attendance, Book+Participation, Homework, Behavior)
-- [ ]  Each tap target shows: label + current value
-- [ ]  Session total panel at the bottom of the card: displays `total_score / 20`
-- [ ]  Apply visual "locked" state (greyed out) when `locked = true`
+- [/] Render student name + avatar (or initials fallback)
+- [/] Render 3 category tap targets (Book, Homework, Behavior) + Attendance toggle
+- [/] Color-coded feedback (green=5, yellow=3, red=0)
+- [/] Responsive grid layout (mobile-first)
+- [!] Implement optimistic UI update (tap immediately updates visible values)
+- [!] Emit updates using `scoreRecord.mapping_id` (avoid missing mapping ids)
 
 ---
 
-### 2.3 — Tap-Cycle Logic + Absent Lock 🔒
+### 2.3 — Tap-Cycle Logic + Absent Lock [/]
 
-> **Decision locked:** Absent → present = **reset all other categories to default (5)**. No pre-absent cache needed.
+> **Decision locked:** Absent → present = **reset all other scores to default (5)**.
 
-- [ ]  Implement tap-cycle: `5 → 3 → 0 → 5` for each category value
-- [ ]  Attendance tap maps to statuses:
-  - `5 = present`, `3 = late`, `0 = absent`
-- [ ]  When Attendance tapped to `absent (0)`:
-  - Immediately set all other category values to `0` in local state
-  - Visually disable (grey out) tap targets for all other categories
-- [ ]  When Attendance changes away from `absent` (to `late` or `present`):
-  - **Reset all other category values to `5`** (do NOT attempt to restore previous values)
+- [/] Implement tap-cycle: `5 → 3 → 0 → 5` for each category value
+- [!] Attendance UI must support `late` (not just present/absent), or the plan must be updated
+- [/] When Attendance becomes absent:
+  - Set other categories to 0 in UI (optimistic)
+  - Disable tap targets for other categories
+  - Server-side: zero out all scores, set locked=true
+- [/] When Attendance changes away from absent:
+  - Reset other categories to default (5) in UI (optimistic)
   - Re-enable tap targets
-- [ ]  Emit `score-changed` event upward with full updated student data
-- [ ]  Note: no need for a "previous values" cache — simplified logic
+  - Server-side: unlock and reset scores to defaults
 
 ---
 
-### 2.4 — Local Dirty Tracking + Debounce Batch Save ✅
+### 2.4 — Local Dirty Tracking + Debounce Batch Save [/]
 
-> **Good:** Client-side dirty tracking + debounce is the correct pattern for this type of rapid input UI.
-> **Recommendation:** Use a composable (`useDirtyBatch`) to isolate this logic from the grid component.
-
-- [ ]  Create `useDirtyBatch.js` composable:
-  - `markDirty(studentPeriodId, changes)` — accumulates changes in a Map
-  - `flush()` — sends `PATCH /api/cr/batch` with all accumulated dirty entries
-  - Auto-flush via `debounce(flush, 1500ms)` on every `markDirty` call
-  - Flush immediately on page unload/blur (use `beforeunload` listener)
-- [ ]  Track save status per student: `idle | saving | saved | error`
-- [ ]  Show a save indicator (spinner/checkmark) on each StudentCard
+- [/] Track dirty updates in-memory and debounce saves (1.5s)
+- [/] Page unload protection (warn when unsaved)
+- [/] Manual save button
+- [!] Use correct HTTP method + JSON client (`PATCH /api/cr/batch`)
+- [!] Parse JSON response and clear only successfully saved ids (`updated[]`)
+- [/] Partial success handling (`updated[]`, `errors[]`)
 
 ---
 
