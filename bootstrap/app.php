@@ -29,6 +29,9 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\LogPageVisit::class,
             \App\Http\Middleware\TrackLastActive::class,
         ]);
+
+        // Configure Sanctum for stateful API authentication
+        $middleware->statefulApi();
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
