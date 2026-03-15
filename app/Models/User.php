@@ -161,6 +161,42 @@ class User extends Authenticatable
         return null; // no school
     }
 
+    /**
+     * Get the current school ID for the authenticated user.
+     * Alias of schoolId() for consistency across the codebase.
+     */
+    public function currentSchoolId(): ?int
+    {
+        return $this->schoolId();
+    }
+
+    /**
+     * Get the current academic year ID for the authenticated user.
+     * Returns the current year from the school relationship or defaults to year 1.
+     */
+    public function currentAcademicYearId(): ?int
+    {
+        // Try to get from user's direct school relationship
+        if ($this->school && $this->school->currentAcademicYearId) {
+            return $this->school->currentAcademicYearId;
+        }
+
+        // Fallback: Get first active academic year for the school
+        $schoolId = $this->schoolId();
+        if ($schoolId) {
+            $year = \App\Models\AcademicYear::where('school_id', $schoolId)
+                ->where('is_current', true)
+                ->first();
+            
+            if ($year) {
+                return $year->id;
+            }
+        }
+
+        // Ultimate fallback: return first academic year or 1
+        return AcademicYear::first()?->id ?? 1;
+    }
+
 
 }
 
