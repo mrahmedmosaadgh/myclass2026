@@ -135,6 +135,11 @@ Route::get('/ct', function () {
         return Inertia::render('OfflineTest');
     })->name('offline.test');
 
+    // Presentation Offline Page
+    Route::get('/presentation-offline', function () {
+        return view('presentation-offline');
+    })->name('presentation.offline');
+
     // Route to assign random colors to ClassroomSubjectTeachers for a school
     Route::post('/admin/schedules/assign-random-colors', [ScheduleAdminNewController::class, 'create_rand_color'])->name('schedules.assign_colors');
     Route::patch('/admin/schedules/{schedule}/update-period-code', [ScheduleAdminNewController::class, 'updatePeriodCode'])

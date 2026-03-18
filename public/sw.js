@@ -4,13 +4,20 @@
  */
 
 const CACHE_NAME = 'education-app-v1';
-const OFFLINE_URL = '/offline-test';
+const OFFLINE_URL = '/presentation-offline.html';
 
 // Files to cache for offline use (will be populated dynamically)
 const CACHE_URLS = [
   '/',
-  '/offline-test',
-  '/api/health-check'
+  '/presentation-offline.html',
+  '/api/health-check',
+  // Presentation Builder V2 specific routes
+  '/classroom-records/presentation/builder-v2',
+  '/build/assets/',
+  '/css/',
+  '/js/',
+  '/images/',
+  '/audio/'
 ];
 
 // Install event - cache essential files
