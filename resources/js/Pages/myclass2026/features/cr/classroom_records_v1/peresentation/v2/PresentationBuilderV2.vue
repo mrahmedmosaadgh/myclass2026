@@ -72,16 +72,19 @@
         :style="{ minHeight: slideHeight + 'px' }"
       />
       
-      <AnimationEditorV2
+      <VisibilityEditorFinal
         v-else-if="mode === 'visibility'"
         :slide="currentSlide"
         @update:slide="updateSlide"
+        :slide-height="slideHeight"
+        :style="{ minHeight: slideHeight + 'px' }"
       />
       
-      <SlidePresenterV2
+      <SlidePresenterFinal
         v-else-if="mode === 'present'"
         :slides="slides"
         :initial-slide="currentSlideIndex"
+        :slide-height="slideHeight"
         @exit="mode = 'edit'"
       />
     </div>
@@ -91,7 +94,8 @@
       <p><strong>Tip:</strong> Click on the slide to paste images/text from clipboard (Ctrl+V)</p>
     </div>
     <div class="instructions" v-if="mode === 'visibility'">
-      <p><strong>V2 Mode:</strong> Select elements with arrows → Set initial visibility (10% or 100%) → Toggle clickable on/off</p>
+      <p><strong>V2 Mode:</strong> Click element → Click ⋮ menu → Set visibility options</p>
+      <p>✅ Start Hidden, Clickable | ✅ Start Visible, Clickable | ✅ Custom Opacity Slider</p>
     </div>
   </div>
 </template>
@@ -99,17 +103,18 @@
 <script>
 import { Head } from '@inertiajs/vue3';
 import SlideEditor from './SlideEditor.vue';
-import AnimationEditorV2 from './AnimationEditorV2.vue';
-import SlidePresenterV2 from './SlidePresenterV2.vue';
+import VisibilityEditorFinal from './VisibilityEditorFinal.vue';
+import SlidePresenterFinal from './SlidePresenterFinal.vue';
 import { soundManager } from '@/Services/SoundManager';
-
+// VisibilityEditorFinal
 export default {
   name: 'PresentationBuilderV2',
   components: {
     Head,
     SlideEditor,
-    AnimationEditorV2,
-    SlidePresenterV2
+    // AnimationEditorV2,
+    SlidePresenterFinal,
+    VisibilityEditorFinal,
   },
   data() {
     return {
