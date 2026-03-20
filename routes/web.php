@@ -36,15 +36,53 @@ Route::domain('qudratpro.test')->name('test.')->group(function () {
 
 
 // School-specific login routes (public)
-
-
-// School-specific login routes (public)
 Route::get('/login/{school_slug}', [SchoolLoginController::class, 'show'])
     ->name('school.login');
 Route::post('/login/{school_slug}', [SchoolLoginController::class, 'authenticate'])
     ->name('school.login.authenticate');
 Route::get('/api/school-branding/{school_slug}', [SchoolLoginController::class, 'getBranding'])
     ->name('school.branding');
+
+// Simple login route - user-friendly, no complex redirects
+Route::get('/login', function () {
+    return Inertia::render('Auth/Login');
+})->name('login');
+
+// Handle login POST - authenticate user
+Route::post('/login', function (\Illuminate\Http\Request $request) {
+    $credentials = $request->validate([
+        'email' => 'required|string|email',
+        'password' => 'required|string',
+    ]);
+
+    // Find user by email
+    $user = \App\Models\User::where('email', $credentials['email'])->first();
+
+    if (!$user || !\Illuminate\Support\Facades\Hash::check($credentials['password'], $user->password)) {
+        throw \Illuminate\Validation\ValidationException::withMessages([
+            'email' => ['The provided credentials are incorrect.'],
+        ]);
+    }
+
+    // Check if user is active (optional - commented out for flexibility)
+    // if (!$user->is_active) {
+    //     throw \Illuminate\Validation\ValidationException::withMessages([
+    //         'email' => ['Your account has been deactivated.'],
+    //     ]);
+    // }
+
+    // Log the user in
+    \Illuminate\Support\Facades\Auth::login($user, $request->boolean('remember'));
+
+    $request->session()->regenerate();
+
+    // Update last login
+    $user->last_login = now();
+    $user->save();
+
+    // Redirect to intended URL or dashboard
+    return redirect()->intended(route('dashboard'));
+});
 
 // Chatbot - User Routes
 Route::post('/api/chatbot/start', [App\Http\Controllers\ChatbotController::class, 'start'])->name('chatbot.start');
@@ -67,6 +105,11 @@ Route::middleware([
     Route::get('/dashboard', function () {
         return Inertia::render('Dashboard');
     })->name('dashboard');
+
+    // Focus Grid 
+    Route::get('/focus-grid', function () {
+        return Inertia::render('myclass2026/features/fg/FgDashboard');
+    })->name('focus-grid.index');
 
 
 

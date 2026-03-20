@@ -374,5 +374,8 @@ if (file_exists($modulesPath)) {
     }
 }
 
+// Focus Grid API Routes
+require __DIR__.'/fg_api.php';
+
 
 

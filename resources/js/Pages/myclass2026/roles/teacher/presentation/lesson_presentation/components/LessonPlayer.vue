@@ -1096,6 +1096,27 @@ watch(() => props.presentation.quiz_id, (newQuizId) => {
   border-radius: 16px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.08);
   min-height: 500px;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+
+/* Custom scrollbar for slide cards */
+.slide-card::-webkit-scrollbar {
+  width: 8px;
+}
+
+.slide-card::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.slide-card::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.slide-card::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 .locked-state {
@@ -1130,8 +1151,28 @@ watch(() => props.presentation.quiz_id, (newQuizId) => {
   background: white;
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   max-height: calc(100vh - 120px);
+}
+
+/* Custom scrollbar for slide content */
+.slide-content-area::-webkit-scrollbar {
+  width: 10px;
+}
+
+.slide-content-area::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
+}
+
+.slide-content-area::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 5px;
+}
+
+.slide-content-area::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.5);
 }
 
 

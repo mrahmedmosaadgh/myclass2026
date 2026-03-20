@@ -117,6 +117,11 @@ export default defineConfig(({ mode }) => {
                             id.includes('resources/js/Composables/Courses/bm')) {
                             return 'feature-bm';
                         }
+                        
+                        // Group Focus Grid
+                        if (id.includes('resources/js/Pages/myclass2026/features/fg')) {
+                            return 'feature-focus-grid';
+                        }
                     }
                 },
             },
