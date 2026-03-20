@@ -1,9 +1,10 @@
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, onUnmounted, inject } from 'vue'
 import { useFgSessionsStore } from '../stores/fg-sessions.store'
 
 export function useFgSession(taskId) {
   const sessionsStore = useFgSessionsStore()
-  
+  const sfx = inject('fgSoundEffects', null)
+
   const timerInterval = ref(null)
   const elapsedSeconds = ref(0)
   
@@ -35,6 +36,7 @@ export function useFgSession(taskId) {
     
     timerInterval.value = setInterval(() => {
       elapsedSeconds.value++
+      if (sfx) sfx.playTick()
     }, 1000)
   }
   

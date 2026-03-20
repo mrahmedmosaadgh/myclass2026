@@ -47,15 +47,20 @@ class FgSyncService
             // 1. Process Domains
             if (isset($payload['domains']) && is_array($payload['domains'])) {
                 foreach ($payload['domains'] as $item) {
-                     $dbItem = FgDomain::withTrashed()->where('id', $item['id'])->where('user_id', $userId)->first();
-                     if (!$dbItem && Str::startsWith($item['id'], 'local_')) {
-                          // It's a brand new created offline
+                     $id = $item['id'];
+                     $isLocal = Str::startsWith($id, 'local_');
+                     
+                     $dbItem = $isLocal ? null : FgDomain::withTrashed()->where('id', $id)->where('user_id', $userId)->first();
+                     
+                     if (!$dbItem && $isLocal) {
+                          unset($item['id']);
+                          $item['user_id'] = $userId;
                           $newItem = FgDomain::create($item);
-                          $syncedIds['domains'][] = $item['id']; // send back local ID to mark synced
+                          $syncedIds['domains'][$id] = $newItem->id; 
                      } else if ($dbItem) {
                           $dbItem->update($item);
                           if (isset($item['deleted_at'])) $dbItem->delete();
-                          $syncedIds['domains'][] = $item['id'];
+                          $syncedIds['domains'][$id] = $dbItem->id;
                      }
                 }
             }
@@ -63,14 +68,25 @@ class FgSyncService
             // 2. Process Tasks
             if (isset($payload['tasks']) && is_array($payload['tasks'])) {
                 foreach ($payload['tasks'] as $item) {
-                     $dbItem = FgTask::withTrashed()->where('id', $item['id'])->where('user_id', $userId)->first();
-                     if (!$dbItem && Str::startsWith($item['id'], 'local_')) {
+                     $id = $item['id'];
+                     $isLocal = Str::startsWith($id, 'local_');
+                     
+                     // If domain_id is local, we need to map it (but simple v1.2 assumes domains sync first or are already mapped)
+                     // Actually, we should check if domain_id exists in our syncedIds map if it's local
+                     if (isset($item['domain_id']) && isset($syncedIds['domains'][$item['domain_id']])) {
+                         $item['domain_id'] = $syncedIds['domains'][$item['domain_id']];
+                     }
+
+                     $dbItem = $isLocal ? null : FgTask::withTrashed()->where('id', $id)->where('user_id', $userId)->first();
+                     if (!$dbItem && $isLocal) {
+                          unset($item['id']);
+                          $item['user_id'] = $userId;
                           $newItem = FgTask::create($item);
-                          $syncedIds['tasks'][] = $item['id'];
+                          $syncedIds['tasks'][$id] = $newItem->id;
                      } else if ($dbItem) {
                           $dbItem->update($item);
                           if (isset($item['deleted_at'])) $dbItem->delete();
-                          $syncedIds['tasks'][] = $item['id'];
+                          $syncedIds['tasks'][$id] = $dbItem->id;
                      }
                 }
             }
@@ -78,14 +94,22 @@ class FgSyncService
             // 3. Process SubTasks
             if (isset($payload['sub_tasks']) && is_array($payload['sub_tasks'])) {
                 foreach ($payload['sub_tasks'] as $item) {
-                     $dbItem = FgSubTask::withTrashed()->where('id', $item['id'])->first(); // task_id check would be more secure
-                     if (!$dbItem && Str::startsWith($item['id'], 'local_')) {
+                     $id = $item['id'];
+                     $isLocal = Str::startsWith($id, 'local_');
+                     
+                     if (isset($item['task_id']) && isset($syncedIds['tasks'][$item['task_id']])) {
+                         $item['task_id'] = $syncedIds['tasks'][$item['task_id']];
+                     }
+
+                     $dbItem = $isLocal ? null : FgSubTask::withTrashed()->where('id', $id)->first(); 
+                     if (!$dbItem && $isLocal) {
+                          unset($item['id']);
                           $newItem = FgSubTask::create($item);
-                          $syncedIds['sub_tasks'][] = $item['id'];
+                          $syncedIds['sub_tasks'][$id] = $newItem->id;
                      } else if ($dbItem) {
                           $dbItem->update($item);
                           if (isset($item['deleted_at'])) $dbItem->delete();
-                          $syncedIds['sub_tasks'][] = $item['id'];
+                          $syncedIds['sub_tasks'][$id] = $dbItem->id;
                      }
                 }
             }
@@ -93,14 +117,23 @@ class FgSyncService
             // 4. Process Notes
             if (isset($payload['notes']) && is_array($payload['notes'])) {
                 foreach ($payload['notes'] as $item) {
-                     $dbItem = FgNote::withTrashed()->where('id', $item['id'])->where('user_id', $userId)->first();
-                     if (!$dbItem && Str::startsWith($item['id'], 'local_')) {
+                     $id = $item['id'];
+                     $isLocal = Str::startsWith($id, 'local_');
+
+                     if (isset($item['domain_id']) && isset($syncedIds['domains'][$item['domain_id']])) {
+                         $item['domain_id'] = $syncedIds['domains'][$item['domain_id']];
+                     }
+
+                     $dbItem = $isLocal ? null : FgNote::withTrashed()->where('id', $id)->where('user_id', $userId)->first();
+                     if (!$dbItem && $isLocal) {
+                          unset($item['id']);
+                          $item['user_id'] = $userId;
                           $newItem = FgNote::create($item);
-                          $syncedIds['notes'][] = $item['id'];
+                          $syncedIds['notes'][$id] = $newItem->id;
                      } else if ($dbItem) {
                           $dbItem->update($item);
                           if (isset($item['deleted_at'])) $dbItem->delete();
-                          $syncedIds['notes'][] = $item['id'];
+                          $syncedIds['notes'][$id] = $dbItem->id;
                      }
                 }
             }
@@ -108,14 +141,23 @@ class FgSyncService
             // 5. Process Sessions
             if (isset($payload['sessions']) && is_array($payload['sessions'])) {
                 foreach ($payload['sessions'] as $item) {
-                     $dbItem = FgSession::withTrashed()->where('id', $item['id'])->where('user_id', $userId)->first();
-                     if (!$dbItem && Str::startsWith($item['id'], 'local_')) {
+                     $id = $item['id'];
+                     $isLocal = Str::startsWith($id, 'local_');
+
+                     if (isset($item['task_id']) && isset($syncedIds['tasks'][$item['task_id']])) {
+                         $item['task_id'] = $syncedIds['tasks'][$item['task_id']];
+                     }
+
+                     $dbItem = $isLocal ? null : FgSession::withTrashed()->where('id', $id)->where('user_id', $userId)->first();
+                     if (!$dbItem && $isLocal) {
+                          unset($item['id']);
+                          $item['user_id'] = $userId;
                           $newItem = FgSession::create($item);
-                          $syncedIds['sessions'][] = $item['id'];
+                          $syncedIds['sessions'][$id] = $newItem->id;
                      } else if ($dbItem) {
                           $dbItem->update($item);
                           if (isset($item['deleted_at'])) $dbItem->delete();
-                          $syncedIds['sessions'][] = $item['id'];
+                          $syncedIds['sessions'][$id] = $dbItem->id;
                      }
                 }
             }

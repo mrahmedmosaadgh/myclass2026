@@ -23,7 +23,13 @@ export const useFgUiStore = defineStore('fg-ui', {
       domainId: null,
       status: 'active', // default
       search: ''
-    }
+    },
+
+    // Layout preference: 'v1' (default) | 'v2' | 'v3'
+    layout: localStorage.getItem('fg-layout') || 'v1',
+
+    // V2/V3 Active Tab (0=Now, 1=Plan, 2=Review)
+    activeTab: parseInt(localStorage.getItem('fg-active-tab') || '0', 10)
   }),
 
   actions: {
@@ -59,6 +65,16 @@ export const useFgUiStore = defineStore('fg-ui', {
     
     setFilter(key, value) {
       this.filters[key] = value
+    },
+
+    setLayout(layoutId) {
+      this.layout = layoutId
+      localStorage.setItem('fg-layout', layoutId)
+    },
+
+    setActiveTab(idx) {
+      this.activeTab = idx
+      localStorage.setItem('fg-active-tab', idx)
     }
   }
 })

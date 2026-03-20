@@ -23,9 +23,9 @@ export const useFgDomainsStore = defineStore('fg-domains', {
         this.domains = localData
         
         // 2. Trigger sync in background
-        const { isOnline, syncAll } = useFgSync()
-        if (isOnline.value) {
-            syncAll()
+        const sync = useFgSync()
+        if (sync.isOnline.value) {
+            sync.syncAll()
         }
         
         this.error = null

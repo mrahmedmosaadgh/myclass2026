@@ -20,8 +20,8 @@ export const useFgNotesStore = defineStore('fg-notes', {
         const localData = await fgIdb.getAllActive('notes')
         this.notes = localData
         
-        const { isOnline, syncAll } = useFgSync()
-        if (isOnline.value) syncAll()
+        const sync = useFgSync()
+        if (sync.isOnline.value) sync.syncAll()
         
         this.error = null
       } catch (err) {

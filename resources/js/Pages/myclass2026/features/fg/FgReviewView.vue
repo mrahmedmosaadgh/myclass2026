@@ -37,7 +37,7 @@
               <q-icon name="check_circle" :color="session.status === 'completed' ? 'positive' : 'warning'" />
             </q-item-section>
             <q-item-section>
-              <q-item-label class="text-weight-bold">{{ session.task?.title || 'Unknown Task' }}</q-item-label>
+              <q-item-label class="text-weight-bold">{{ getTaskTitle(session.task_id) }}</q-item-label>
               <q-item-label caption v-if="session.intention">Intention: {{ session.intention }}</q-item-label>
               <q-item-label caption v-if="session.check_in_answer">End status: {{ session.check_in_answer }}</q-item-label>
             </q-item-section>
@@ -60,31 +60,70 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useFgUiStore } from './stores/fg-ui.store'
 import { useFgSessionsStore } from './stores/fg-sessions.store'
+import { useFgTasksStore } from './stores/fg-tasks.store'
 
 const uiStore = useFgUiStore()
 const sessionsStore = useFgSessionsStore()
+const tasksStore = useFgTasksStore()
 
 onMounted(() => {
-  // Pass 'today' flag to endpoint optionally to filter server-side
   sessionsStore.fetchSessions({ today: true })
+  startTick()
 })
 
+onUnmounted(() => {
+  stopTick()
+})
+
+// Live tick for active session elapsed time
+const liveElapsed = ref(0)
+let tickInterval = null
+
+const startTick = () => {
+  tickInterval = setInterval(() => {
+    const active = sessionsStore.activeSession
+    if (active?.started_at) {
+      liveElapsed.value = Math.floor((Date.now() - new Date(active.started_at).getTime()) / 1000)
+    } else {
+      liveElapsed.value = 0
+    }
+  }, 1000)
+}
+
+const stopTick = () => {
+  if (tickInterval) {
+    clearInterval(tickInterval)
+    tickInterval = null
+  }
+}
+
+// Resolve task title from the tasks store using task_id
+const getTaskTitle = (taskId) => {
+  if (!taskId) return 'Unknown Task'
+  const task = tasksStore.getById(taskId)
+  return task?.title || `Task #${taskId.slice(-6)}`
+}
+
 const sessionsToday = computed(() => {
-  // Ideally this would be correctly filtered from API due to payload, but we can secure it locally
   return sessionsStore.sessions.filter(s => s.status !== 'active')
 })
 
+// Total = completed sessions + live elapsed of active session (if any)
 const totalSecondsToday = computed(() => {
-  return sessionsToday.value.reduce((acc, curr) => acc + (curr.duration_seconds || 0), 0)
+  const completedTotal = sessionsToday.value.reduce((acc, curr) => acc + (curr.duration_seconds || 0), 0)
+  const activeBonus = sessionsStore.activeSession ? liveElapsed.value : 0
+  return completedTotal + activeBonus
 })
 
 const formatTotalTime = (totalSecs) => {
   const h = Math.floor(totalSecs / 3600)
   const m = Math.floor((totalSecs % 3600) / 60)
+  const s = totalSecs % 60
   if (h > 0) return `${h}h ${m}m`
-  return `${m}m`
+  if (m > 0) return `${m}m ${s}s`
+  return `${s}s`
 }
 </script>

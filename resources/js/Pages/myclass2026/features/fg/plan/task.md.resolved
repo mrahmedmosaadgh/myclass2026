@@ -1,0 +1,86 @@
+# Focus Grid v1.2 — Implementation Task List
+
+## Phase 0: Project Understanding & Planning
+- [x] Read all focus_grid docs (claud_view.md, claud_view_updated.md, claud_view_updated_1.2.md, gpt.md)
+- [x] Read PROJECT_GUIDELINES_AND_BEST_PRACTICES.md
+- [x] Read architecture/menu_routing_system.md
+- [x] Analyze existing tech stack (Laravel 12, Vue 3, Quasar 2, Pinia, Inertia.js, Sanctum)
+- [x] Verify no existing FG code exists
+- [x] Write implementation plan
+- [ ] Get user approval on plan
+
+## Phase 1: Database — Migrations & Models
+- [/] Create `fg_domains` migration with indexes + soft deletes
+- [/] Create `fg_tasks` migration with indexes + soft deletes
+- [/] Create `fg_sub_tasks` migration with indexes + soft deletes
+- [/] Create `fg_notes` migration with indexes + soft deletes
+- [/] Create `fg_sessions` migration with indexes + soft deletes
+- [/] Create [FgDomain](file:///c:/my_project/myclass2026-main/app/Models/Fg/FgDomain.php#10-53) model with relationships
+- [/] Create [FgTask](file:///c:/my_project/myclass2026-main/app/Models/Fg/FgTask.php#10-58) model with relationships
+- [/] Create [FgSubTask](file:///c:/my_project/myclass2026-main/app/Models/Fg/FgSubTask.php#9-31) model with relationships
+- [/] Create [FgNote](file:///c:/my_project/myclass2026-main/app/Models/Fg/FgNote.php#10-38) model with relationships
+- [/] Create [FgSession](file:///c:/my_project/myclass2026-main/app/Models/Fg/FgSession.php#10-43) model with relationships
+
+## Phase 2: API Layer — Routes, Requests, Controllers
+- [x] Create [fg_api.php](file:///c:/my_project/myclass2026-main/routes/fg_api.php) route file
+- [x] Register FG routes in [web.php](file:///c:/my_project/myclass2026-main/routes/web.php) or route service provider
+- [x] Create [FgDomainRequest](file:///c:/my_project/myclass2026-main/app/Http/Requests/Fg/FgDomainRequest.php#7-25) form request
+- [x] Create [FgTaskRequest](file:///c:/my_project/myclass2026-main/app/Http/Requests/Fg/FgTaskRequest.php#7-36) form request
+- [x] Create [FgSubTaskRequest](file:///c:/my_project/myclass2026-main/app/Http/Requests/Fg/FgSubTaskRequest.php#7-31) form request
+- [x] Create [FgNoteRequest](file:///c:/my_project/myclass2026-main/app/Http/Requests/Fg/FgNoteRequest.php#7-30) form request
+- [x] Create [FgSessionRequest](file:///c:/my_project/myclass2026-main/app/Http/Requests/Fg/FgSessionRequest.php#7-31) form request
+- [x] Create [FgDomainController](file:///c:/my_project/myclass2026-main/app/Http/Controllers/Fg/FgDomainController.php#10-81) with CRUD
+- [x] Create [FgTaskController](file:///c:/my_project/myclass2026-main/app/Http/Controllers/Fg/FgTaskController.php#10-118) with CRUD + sync
+- [x] Create [FgSubTaskController](file:///c:/my_project/myclass2026-main/app/Http/Controllers/Fg/FgSubTaskController.php#11-68) with CRUD
+- [x] Create [FgNoteController](file:///c:/my_project/myclass2026-main/app/Http/Controllers/Fg/FgNoteController.php#10-63) with CRUD + sync
+- [x] Create [FgSessionController](file:///c:/my_project/myclass2026-main/app/Http/Controllers/Fg/FgSessionController.php#11-72) with CRUD
+- [x] Create [FgAiController](file:///c:/my_project/myclass2026-main/app/Http/Controllers/Fg/FgAiController.php#9-33) (vent endpoint)
+
+## Phase 3: Backend Services
+- [x] Create [FgSyncService](file:///c:/my_project/myclass2026-main/app/Services/Fg/FgSyncService.php#13-128) (version-based conflict resolution)
+- [x] Create [FgAiService](file:///c:/my_project/myclass2026-main/app/Services/Fg/FgAiService.php#8-104) (AI API integration)
+- [x] Create [FgVentParserService](file:///c:/my_project/myclass2026-main/app/Services/Fg/FgVentParserService.php#7-67) (parse AI output → tasks + notes)
+
+## Phase 4: Frontend — Stores (Pinia)
+- [x] Create [fg-domains.store.js](file:///c:/my_project/myclass2026-main/resources/js/Pages/myclass2026/features/fg/stores/fg-domains.store.js)
+- [x] Create [fg-tasks.store.js](file:///c:/my_project/myclass2026-main/resources/js/Pages/myclass2026/features/fg/stores/fg-tasks.store.js)
+- [x] Create [fg-sub-tasks.store.js](file:///c:/my_project/myclass2026-main/resources/js/Pages/myclass2026/features/fg/stores/fg-sub-tasks.store.js)
+- [x] Create [fg-notes.store.js](file:///c:/my_project/myclass2026-main/resources/js/Pages/myclass2026/features/fg/stores/fg-notes.store.js)
+- [x] Create [fg-sessions.store.js](file:///c:/my_project/myclass2026-main/resources/js/Pages/myclass2026/features/fg/stores/fg-sessions.store.js)
+- [x] Create [fg-ui.store.js](file:///c:/my_project/myclass2026-main/resources/js/Pages/myclass2026/features/fg/stores/fg-ui.store.js)
+
+## Phase 5: Frontend — Services & Composables
+- [x] Create [fg-api.service.js](file:///c:/my_project/myclass2026-main/resources/js/Pages/myclass2026/features/fg/services/fg-api.service.js) (Axios wrapper)
+- [x] Create [fg-idb.service.js](file:///c:/my_project/myclass2026-main/resources/js/Pages/myclass2026/features/fg/services/fg-idb.service.js) (Dexie scaffold)
+- [x] Create [fg-use-sync.js](file:///c:/my_project/myclass2026-main/resources/js/Pages/myclass2026/features/fg/composables/fg-use-sync.js) (sync logical scaffold)
+- [x] Create [fg-use-ai.js](file:///c:/my_project/myclass2026-main/resources/js/Pages/myclass2026/features/fg/composables/fg-use-ai.js) (call backend AI vent endpoint)
+- [x] Create [fg-use-session.js](file:///c:/my_project/myclass2026-main/resources/js/Pages/myclass2026/features/fg/composables/fg-use-session.js) (manage active session timer locally)
+- [x] Create [fg-use-priority.js](file:///c:/my_project/myclass2026-main/resources/js/Pages/myclass2026/features/fg/composables/fg-use-priority.js) (helper to sort by importance, due_date, domain_sort)
+
+## Phase 6: Frontend — Components (Quasar)
+- [x] Create [FgVentingArea.vue](file:///c:/my_project/myclass2026-main/resources/js/Pages/myclass2026/features/fg/components/FgVentingArea.vue) (Dump moment)
+- [x] Create [FgAiReviewModal.vue](file:///c:/my_project/myclass2026-main/resources/js/Pages/myclass2026/features/fg/components/FgAiReviewModal.vue) (Review parsed AI data)
+- [x] Create [FgNowView.vue](file:///c:/my_project/myclass2026-main/resources/js/Pages/myclass2026/features/fg/components/FgNowView.vue) (Single active task focus + SessionPanel)
+- [x] Create [FgQuickCapture.vue](file:///c:/my_project/myclass2026-main/resources/js/Pages/myclass2026/features/fg/components/FgQuickCapture.vue) (Floating minimal capture)
+- [x] Create [FgTableView.vue](file:///c:/my_project/myclass2026-main/resources/js/Pages/myclass2026/features/fg/components/FgTableView.vue) (Filterable task list)
+- [x] Create [FgSessionPanel.vue](file:///c:/my_project/myclass2026-main/resources/js/Pages/myclass2026/features/fg/components/FgSessionPanel.vue) (Timer and Check-in UI)
+
+## Phase 7: Frontend — Views & Routing
+- [x] Create [FgDashboard.vue](file:///c:/my_project/myclass2026-main/resources/js/Pages/myclass2026/features/fg/FgDashboard.vue) (entry point)
+- [x] Create [FgPlanningView.vue](file:///c:/my_project/myclass2026-main/resources/js/Pages/myclass2026/features/fg/FgPlanningView.vue) (morning setup)
+- [x] Create [FgReviewView.vue](file:///c:/my_project/myclass2026-main/resources/js/Pages/myclass2026/features/fg/FgReviewView.vue) (evening review)
+- [x] Add web routes in [routes/web.php](file:///c:/my_project/myclass2026-main/routes/web.php) for Inertia pages
+
+## Phase 8: Offline Sync (IndexedDB)
+- [x] Install `dexie` package
+- [x] Set up Dexie database schema for FG tables in [fg-idb.service.js](file:///c:/my_project/myclass2026-main/resources/js/Pages/myclass2026/features/fg/services/fg-idb.service.js)
+- [x] Implement write-to-IDB-first logic in stores
+- [x] Implement background sync loop in [fg-use-sync.js](file:///c:/my_project/myclass2026-main/resources/js/Pages/myclass2026/features/fg/composables/fg-use-sync.js)
+- [x] Implement API endpoints for batch sync (Backend [FgSyncService](file:///c:/my_project/myclass2026-main/app/Services/Fg/FgSyncService.php#13-128))
+- [x] Add online/offline event listeners to UI
+
+## Phase 9: AI Vent API Integration
+- [x] Created [FgAiController](file:///c:/my_project/myclass2026-main/app/Http/Controllers/Fg/FgAiController.php#9-33)
+- [x] Implemented [FgAiService](file:///c:/my_project/myclass2026-main/app/Services/Fg/FgAiService.php#8-104) (using `gpt-4o-mini` default pattern)
+- [x] Finished parser and frontend error logic → Act → Review
+- [ ] Test offline mode: create while offline → sync when online

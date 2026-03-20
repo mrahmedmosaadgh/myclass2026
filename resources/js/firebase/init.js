@@ -9,8 +9,15 @@ let auth = null;
 let database = null;
 
 // Check if Firebase is enabled
-if (!ToolsSwitcher.isFirebaseEnabled()) {
-  console.log('🚫 Firebase disabled by toolsSwitcher');
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const isLocalIp = window.location.hostname.startsWith('192.168.');
+
+if (!ToolsSwitcher.isFirebaseEnabled() || (isLocal || isLocalIp)) {
+  if (isLocal || isLocalIp) {
+      console.log('🚫 Firebase disabled for local environment');
+  } else {
+      console.log('🚫 Firebase disabled by toolsSwitcher');
+  }
   // Variables remain null
 } else {
   console.log('🔥 Firebase enabled by toolsSwitcher');

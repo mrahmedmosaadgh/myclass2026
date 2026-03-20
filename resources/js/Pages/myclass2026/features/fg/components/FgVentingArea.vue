@@ -1,7 +1,8 @@
 <template>
   <q-card flat bordered class="bg-grey-1 fg-venting-area">
     <q-card-section>
-      <div class="text-h6 q-mb-md">Clear Your Mind (The Dump 🧠)</div>
+      <div class="text-h6 q-mb-xs">Clear Your Mind (The Dump 🧠)</div>
+      <div class="text-caption text-grey-6 q-mb-md">Write whatever is on your mind — don't filter, just dump it all out. Our AI will extract actionable tasks from your thoughts.</div>
       <q-input
         v-model="ventText"
         type="textarea"
@@ -16,22 +17,26 @@
     <q-separator />
 
     <q-card-actions align="right">
-      <q-btn 
-        flat 
-        label="Clear" 
-        color="grey-7" 
-        @click="ventText = ''" 
-        :disable="!ventText || isVenting" 
-      />
-      <q-btn 
-        unelevated 
-        label="Clarify with AI" 
-        color="primary" 
+      <q-btn
+        flat
+        label="Clear"
+        color="grey-7"
+        @click="ventText = ''"
+        :disable="!ventText || isVenting"
+      >
+        <q-tooltip anchor="top middle" self="bottom middle" :delay="400">Clear the text area and start fresh.</q-tooltip>
+      </q-btn>
+      <q-btn
+        unelevated
+        label="Clarify with AI"
+        color="primary"
         icon="auto_awesome"
-        @click="submitVent" 
+        @click="submitVent"
         :loading="isVenting"
         :disable="!ventText.trim()"
-      />
+      >
+        <q-tooltip anchor="top middle" self="bottom middle" :delay="400">Send your thoughts to AI — it will extract tasks and notes automatically.</q-tooltip>
+      </q-btn>
     </q-card-actions>
   </q-card>
 </template>

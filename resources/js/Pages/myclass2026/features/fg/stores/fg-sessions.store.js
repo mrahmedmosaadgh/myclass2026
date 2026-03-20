@@ -22,8 +22,8 @@ export const useFgSessionsStore = defineStore('fg-sessions', {
         const localData = await fgIdb.getAllActive('sessions')
         this.sessions = localData
         
-        const { isOnline, syncAll } = useFgSync()
-        if (isOnline.value) syncAll()
+        const sync = useFgSync()
+        if (sync.isOnline.value) sync.syncAll()
         
         this.error = null
       } catch (err) {

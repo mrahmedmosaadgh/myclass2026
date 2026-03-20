@@ -1,0 +1,220 @@
+# Focus Grid v1.2 — Implementation Plan
+
+## What Is Focus Grid?
+
+Focus Grid is a **personal clarity tool** embedded within the myclass2026 project. The user arrives overwhelmed → dumps thoughts into a text box → AI sorts them into tasks vs. notes → user picks what matters today → opens a focused session → captures distractions without losing the thread → reviews at end of day.
+
+**Core flow:** `DUMP → CLARIFY → PLAN → ACT → REVIEW`
+
+## User Review Required
+
+> [!IMPORTANT]
+> The original plan used **raw Vue 3 components**. This plan uses **Quasar 2** components (QTable, QCard, QDialog, QBtn, QInput, etc.) to match the existing myclass2026 codebase. The frontend also uses **Inertia.js** for page rendering and **Pinia** for state.
+
+> [!IMPORTANT]
+> The plan includes an **AI venting feature** that calls an external AI API. Which AI provider should we use? The project already has `@google/generative-ai` and `openai` packages installed. We can use either — please confirm.
+
+> [!WARNING]
+> The offline-first sync (Phase 8) has been deferred to a later sprint. The database schema includes `version` and `sync_status` fields to prepare for it, but the frontend will operate online-first for v1.
+
+## Frontend Location
+All Quasar components and views will be stored under:
+`resources/js/Pages/myclass2026/features/fg/`
+Reusable components will go in `resources/js/Pages/myclass2026/features/fg/components/`.
+
+---
+
+## Proposed Changes
+
+### Database Layer (5 Migrations + 5 Models)
+
+All tables use the `fg_` prefix, UUID primary keys generated on the frontend, `version` field for sync conflict detection, `sync_status` enum, and soft deletes.
+
+#### [NEW] [create_fg_domains_table.php](file:///c:/my_project/myclass2026-main/database/migrations/xxxx_create_fg_domains_table.php)
+- Columns: `id` (UUID), `user_id`, `name`, `emoji`, `color_hex`, `is_active`, `sort_order`, `version`, `sync_status`, soft deletes, timestamps
+- Index: `user_id`
+
+#### [NEW] [create_fg_tasks_table.php](file:///c:/my_project/myclass2026-main/database/migrations/xxxx_create_fg_tasks_table.php)
+- Columns: `id` (UUID), `user_id`, `domain_id` (nullable FK), `title`, `notes`, `importance` (0-10), `status` (inbox/active/done/cancelled), `source` (manual/ai_vent/quick_capture), `is_today`, `sort_order`, `tags` (JSON), `due_date`, `completed_at`, `version`, `sync_status`, soft deletes, timestamps
+- Indexes: [(user_id, status)](file:///c:/my_project/myclass2026-main/app/Http/Controllers/Api/AiController.php#12-58), [(user_id, is_today)](file:///c:/my_project/myclass2026-main/app/Http/Controllers/Api/AiController.php#12-58), `domain_id`
+- Rule: Max 5 active tasks enforced in controller
+
+#### [NEW] [create_fg_sub_tasks_table.php](file:///c:/my_project/myclass2026-main/database/migrations/xxxx_create_fg_sub_tasks_table.php)
+- Columns: `id` (UUID), `task_id` (FK), `title`, `is_done`, `sort_order`, `version`, `sync_status`, soft deletes, timestamps
+- Index: `task_id`
+
+#### [NEW] [create_fg_notes_table.php](file:///c:/my_project/myclass2026-main/database/migrations/xxxx_create_fg_notes_table.php)
+- Columns: `id` (UUID), `user_id`, `domain_id` (nullable FK), `body`, `source`, `tags` (JSON), `version`, `sync_status`, soft deletes, timestamps
+- Indexes: `user_id`, `domain_id`
+
+#### [NEW] [create_fg_sessions_table.php](file:///c:/my_project/myclass2026-main/database/migrations/xxxx_create_fg_sessions_table.php)
+- Columns: `id` (UUID), `user_id`, `task_id` (FK), `intention`, `energy_level` (high/medium/low), `status` (active/completed/drifted), `check_in_answer` (nullable), `started_at`, `ended_at`, `duration_seconds`, `version`, `sync_status`, soft deletes, timestamps
+- Indexes: [(user_id, started_at)](file:///c:/my_project/myclass2026-main/app/Http/Controllers/Api/AiController.php#12-58), `task_id`
+
+---
+
+#### [NEW] [FgDomain.php](file:///c:/my_project/myclass2026-main/app/Models/Fg/FgDomain.php)
+- SoftDeletes, UUID trait
+- Relationships: `user()`, `tasks()`, `notes()`
+- On soft delete: nullify `domain_id` on related tasks/notes
+
+#### [NEW] [FgTask.php](file:///c:/my_project/myclass2026-main/app/Models/Fg/FgTask.php)
+- SoftDeletes, UUID trait
+- Relationships: `user()`, `domain()`, `subTasks()`, `sessions()`
+
+#### [NEW] [FgSubTask.php](file:///c:/my_project/myclass2026-main/app/Models/Fg/FgSubTask.php)
+- SoftDeletes, UUID trait
+- Relationship: `task()`
+
+#### [NEW] [FgNote.php](file:///c:/my_project/myclass2026-main/app/Models/Fg/FgNote.php)
+- SoftDeletes, UUID trait
+- Relationships: `user()`, `domain()`
+
+#### [NEW] [FgSession.php](file:///c:/my_project/myclass2026-main/app/Models/Fg/FgSession.php)
+- SoftDeletes, UUID trait
+- Relationships: `user()`, `task()`
+
+---
+
+### API Layer (Routes, Requests, Controllers)
+
+#### [NEW] [fg_api.php](file:///c:/my_project/myclass2026-main/routes/fg_api.php)
+All routes under `auth:sanctum` middleware, prefixed with `/api/fg/`:
+
+| Method | Endpoint | Controller | Purpose |
+|:---|:---|:---|:---|
+| GET/POST | `/fg/domains` | FgDomainController | List / Create |
+| PUT/DELETE | `/fg/domains/{id}` | FgDomainController | Update / Soft delete |
+| GET/POST | `/fg/tasks` | FgTaskController | List (filterable) / Create |
+| PUT/DELETE | `/fg/tasks/{id}` | FgTaskController | Update / Soft delete |
+| POST | `/fg/tasks/sync` | FgTaskController | Batch sync |
+| GET/POST | `/fg/subtasks` | FgSubTaskController | List by task / Create |
+| PUT/DELETE | `/fg/subtasks/{id}` | FgSubTaskController | Update / Soft delete |
+| GET/POST | `/fg/notes` | FgNoteController | List / Create |
+| PUT/DELETE | `/fg/notes/{id}` | FgNoteController | Update / Soft delete |
+| POST | `/fg/notes/sync` | FgNoteController | Batch sync |
+| GET/POST | `/fg/sessions` | FgSessionController | List / Open |
+| PUT | `/fg/sessions/{id}` | FgSessionController | Close / Check-in |
+| POST | `/fg/ai/vent` | FgAiController | Text → AI → tasks+notes JSON |
+
+#### [MODIFY] [api.php](file:///c:/my_project/myclass2026-main/routes/api.php)
+- Add `require __DIR__.'/fg_api.php';` to load FG routes
+
+#### [NEW] Controllers in `app/Http/Controllers/Fg/`
+- `FgDomainController.php` — standard CRUD
+- `FgTaskController.php` — CRUD + sync + active count validation (max 5)
+- `FgSubTaskController.php` — CRUD scoped to task
+- `FgNoteController.php` — CRUD + sync
+- `FgSessionController.php` — CRUD + duration computation on close
+- `FgAiController.php` — vent endpoint → delegates to FgAiService
+
+#### [NEW] Form Requests in `app/Http/Requests/Fg/`
+- `FgDomainRequest.php`, `FgTaskRequest.php`, `FgSubTaskRequest.php`, `FgNoteRequest.php`, `FgSessionRequest.php`, `FgSyncRequest.php`
+
+---
+
+### Backend Services
+
+#### [NEW] [FgSyncService.php](file:///c:/my_project/myclass2026-main/app/Services/Fg/FgSyncService.php)
+- Version-based conflict resolution: `incoming.version > stored.version` → accept; else → reject + mark `conflict`
+- Handles soft deletes in sync payload
+
+#### [NEW] [FgAiService.php](file:///c:/my_project/myclass2026-main/app/Services/Fg/FgAiService.php)
+- Calls AI API with structured prompt
+- Returns strict JSON: `{ tasks: [...], notes: [...] }` with confidence scores
+
+#### [NEW] [FgVentParserService.php](file:///c:/my_project/myclass2026-main/app/Services/Fg/FgVentParserService.php)
+- Validates AI JSON output against schema
+- Filters low-confidence items, returns structured array
+
+---
+
+### Frontend — Pinia Stores
+
+All stores in `resources/js/Stores/fg/`:
+
+#### [NEW] `fg-domains.store.js` — Domains CRUD + cache
+#### [NEW] `fg-tasks.store.js` — Tasks CRUD + filtering by status/domain/is_today + sync queue
+#### [NEW] `fg-subtasks.store.js` — Sub-tasks CRUD scoped to parent task
+#### [NEW] `fg-notes.store.js` — Notes CRUD + sync queue
+#### [NEW] `fg-sessions.store.js` — Active session state + open/close/check-in
+#### [NEW] `fg-sync.store.js` — Global sync status + IndexedDB bridge
+
+---
+
+### Frontend — Services & Composables
+
+In `resources/js/services/fg/`:
+#### [NEW] `fg-api.service.js` — Axios wrapper for all `/api/fg/*` endpoints (`.then()` style per project guidelines)
+#### [NEW] `fg-idb.service.js` — Dexie/IndexedDB CRUD for offline storage
+
+In `resources/js/composables/fg/`:
+#### [NEW] `fg-use-sync.js` — Online/offline detection + sync trigger
+#### [NEW] `fg-use-ai.js` — API call wrapper for venting feature
+#### [NEW] `fg-use-session.js` — Session open/close/check-in logic
+#### [NEW] `fg-use-priority.js` — Computed priority score (frontend-only, never stored in DB)
+
+---
+
+### Frontend — Quasar Components
+
+In `resources/js/Pages/myclass2026/features/fg/components/`:
+
+#### [NEW] `FgVentingArea.vue` — Dump moment: `QInput` (textarea mode), submit button
+#### [NEW] `FgAiReviewModal.vue` — Full-screen `QDialog`: review AI suggestions, edit/remove/assign domain before saving
+#### [NEW] `FgNowView.vue` — Act moment: single active task focus, current session panel
+#### [NEW] `FgQuickCapture.vue` — Floating `QBtn` + mini dialog for distraction capture → auto-saves to inbox
+#### [NEW] `FgTableView.vue` — `QTable` with filter chips (status, domain, is_today) + sort by priority
+#### [NEW] `FgSessionPanel.vue` — Session awareness: timer display, energy tag, gentle check-in prompt
+
+---
+
+### Frontend — Views & Routing
+
+In `resources/js/Pages/myclass2026/features/fg/`:
+
+#### [NEW] `FgDashboard.vue` — Entry point page, shows NowView or redirects to planning
+#### [NEW] `FgPlanningView.vue` — Morning planning: table view + mark tasks as today + promote inbox → active
+#### [NEW] `FgReviewView.vue` — End-of-day: sessions today, durations, tasks completed
+
+#### [MODIFY] [web.php](file:///c:/my_project/myclass2026-main/routes/web.php)
+- Add Inertia render routes for FG pages:
+  - `GET /focus-grid` → `FocusGrid/FgDashboard`
+  - `GET /focus-grid/planning` → `FocusGrid/FgPlanningView`
+  - `GET /focus-grid/review` → `FocusGrid/FgReviewView`
+
+---
+
+### Vite Config Update
+
+#### [MODIFY] [vite.config.js](file:///c:/my_project/myclass2026-main/vite.config.js)
+- Add manual chunk for Focus Grid: `if (id.includes('Pages/myclass2026/features/fg')) return 'feature-focus-grid';`
+
+---
+
+## Verification Plan
+
+### Automated Tests
+
+The project uses PHPUnit for backend and Vitest for frontend:
+- **Run backend tests:** `php artisan test`
+- **Run frontend tests:** `npx vitest run`
+
+We will add:
+1. **Migration test** — run `php artisan migrate:fresh` and verify all 5 FG tables exist
+2. **API feature tests** — PHPUnit tests for each FG controller endpoint (CRUD + auth + validation)
+3. **Pinia store unit tests** — Vitest tests for `fg-tasks.store.js` (the most complex store)
+
+### Manual Verification
+
+> [!NOTE]
+> Since the project requires a running MySQL database and Laravel backend, many flows need manual verification. Please confirm if you have a local development environment set up with `php artisan serve` + `npm run dev`.
+
+1. **Migration verification**: Run `php artisan migrate` — all 5 `fg_*` tables should appear in the database
+2. **API smoke test**: Use browser DevTools or Postman:
+   - `POST /api/fg/domains` with `{ name: "Work", emoji: "💼", color_hex: "#3B82F6" }` → should return 201
+   - `GET /api/fg/domains` → should list the created domain
+3. **Full user flow in browser**:
+   - Navigate to `/focus-grid`
+   - Create a domain, create a task, mark as today, open a session, complete session
+   - Navigate to `/focus-grid/review` — should show today's session

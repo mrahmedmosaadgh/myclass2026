@@ -21,8 +21,8 @@ export const useFgSubTasksStore = defineStore('fg-sub-tasks', {
         const localData = await fgIdb.getAllActive('sub_tasks')
         this.subTasks = localData.filter(st => st.task_id === taskId)
         
-        const { isOnline, syncAll } = useFgSync()
-        if (isOnline.value) syncAll()
+        const sync = useFgSync()
+        if (sync.isOnline.value) sync.syncAll()
         
         this.error = null
       } catch (err) {

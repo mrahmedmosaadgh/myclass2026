@@ -145,6 +145,16 @@
                         <q-item-label caption>Advanced Task Management</q-item-label>
                     </q-item-section>
                 </q-item>
+                
+                <q-item clickable v-close-popup @click="currentView = 'audioDemo'">
+                    <q-item-section avatar>
+                        <span class="text-xl">🔊</span>
+                    </q-item-section>
+                    <q-item-section>
+                        <q-item-label>Audio Player Demo</q-item-label>
+                        <q-item-label caption>Demo of various Audio Player configurations</q-item-label>
+                    </q-item-section>
+                </q-item>
             </q-list>
         </q-btn-dropdown>
     </div>
@@ -545,9 +555,12 @@
     <div v-show="currentView === 'taskspro'" class="animate-fade-in -mx-6 -mt-6 h-screen overflow-hidden">
         <TaskList v-model="tasksData" />
     </div>
-
-    <div class="mt-6 text-xs text-gray-500">This page and components are intentionally minimal so you can iterate and copy them elsewhere when ready.</div>
-  </div>
+    
+    <!-- Audio Player Demo View -->
+    <div v-show="currentView === 'audioDemo'" class="animate-fade-in">
+        <AudioPlayerDemo />
+    </div>
+    </div>
 </template>
 
 <script setup>
@@ -588,6 +601,9 @@ import MyTableSchedule from './mytable/MyTableSchedule/MyTableSchedule.vue';
 
 // Import Tasks Pro component
 import TaskList from './comptest/test1/taskspro/TaskList.vue';
+
+// Import AudioPlayerDemo component
+import AudioPlayerDemo from './comptest/test1/files_audio_player/AudioPlayerDemo.vue';
 
 // multip3 — quiz data and student progress
 const multip3Questions = ref(quizData);
@@ -643,6 +659,7 @@ const currentViewLabel = computed(() => {
         case 'presentation': return 'Presentation Editor';
         case 'mytable': return 'Schedule Timeline';
         case 'taskspro': return 'Tasks Pro';
+        case 'audioDemo': return 'Audio Player Demo';
         default: return 'Micro Dropdown';
     }
 });

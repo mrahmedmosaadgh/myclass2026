@@ -1,8 +1,8 @@
 <template>
   <!-- Floating Button -->
-  <q-page-sticky position="bottom-right" :offset="[18, 18]">
+  <div class="fixed-bottom-right q-pa-lg" style="z-index: 2000">
     <q-btn fab icon="add" color="accent" @click="uiStore.openQuickCapture" />
-  </q-page-sticky>
+  </div>
 
   <!-- Capture Dialog -->
   <q-dialog v-model="uiStore.quickCapture.isOpen" position="bottom">
@@ -15,7 +15,7 @@
           dense
           autofocus
           placeholder="New task or thought..."
-          @keyup.enter="saveCapture"
+          @keyup.enter="saveCapture('task')"
           class="q-mb-md"
         />
         

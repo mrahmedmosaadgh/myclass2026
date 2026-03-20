@@ -50,9 +50,15 @@
       <!-- Actions Column Slot -->
       <template v-slot:body-cell-actions="props">
         <q-td :props="props" class="text-right">
-          <q-btn flat round dense color="primary" icon="play_arrow" @click="makeActive(props.row)" v-if="props.row.status === 'inbox'" />
-          <q-btn flat round dense color="positive" icon="check" @click="markDone(props.row)" v-if="props.row.status !== 'done'" />
-          <q-btn flat round dense color="negative" icon="delete" @click="deleteTask(props.row)" />
+          <q-btn flat round dense color="primary" icon="play_arrow" @click="makeActive(props.row)" v-if="props.row.status === 'inbox'">
+            <q-tooltip anchor="top middle" self="bottom middle" :delay="400">Set as active focus — moves to Now view.</q-tooltip>
+          </q-btn>
+          <q-btn flat round dense color="positive" icon="check" @click="markDone(props.row)" v-if="props.row.status !== 'done'">
+            <q-tooltip anchor="top middle" self="bottom middle" :delay="400">Mark this task as Done.</q-tooltip>
+          </q-btn>
+          <q-btn flat round dense color="negative" icon="delete" @click="deleteTask(props.row)">
+            <q-tooltip anchor="top middle" self="bottom middle" :delay="400">Delete this task permanently.</q-tooltip>
+          </q-btn>
         </q-td>
       </template>
     </q-table>

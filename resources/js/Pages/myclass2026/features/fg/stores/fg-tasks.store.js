@@ -34,8 +34,8 @@ export const useFgTasksStore = defineStore('fg-tasks', {
         this.tasks = localData
         
         // Background sync
-        const { isOnline, syncAll } = useFgSync()
-        if (isOnline.value) syncAll()
+        const sync = useFgSync()
+        if (sync.isOnline.value) sync.syncAll()
         
         this.error = null
       } catch (err) {

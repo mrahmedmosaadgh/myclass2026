@@ -26,7 +26,7 @@ export const fgIdb = {
     
     // Ensure sync_status is set for new changes if not already set
     if (!data.sync_status || data.sync_status === 'synced') {
-       data.sync_status = 'pending_push'
+       data.sync_status = 'pending'
     }
     
     // Fallback ID if creating offline
@@ -40,23 +40,45 @@ export const fgIdb = {
   
   async getLocalChanges() {
     const changes = {
-      domains: await db.domains.where('sync_status').equals('pending_push').toArray(),
-      tasks: await db.tasks.where('sync_status').equals('pending_push').toArray(),
-      sub_tasks: await db.sub_tasks.where('sync_status').equals('pending_push').toArray(),
-      notes: await db.notes.where('sync_status').equals('pending_push').toArray(),
-      sessions: await db.sessions.where('sync_status').equals('pending_push').toArray(),
+      domains: await db.domains.where('sync_status').equals('pending').toArray(),
+      tasks: await db.tasks.where('sync_status').equals('pending').toArray(),
+      sub_tasks: await db.sub_tasks.where('sync_status').equals('pending').toArray(),
+      notes: await db.notes.where('sync_status').equals('pending').toArray(),
+      sessions: await db.sessions.where('sync_status').equals('pending').toArray(),
     }
     return changes
   },
   
-  // Mark as synced
+  // Mark as synced and handle ID mapping
   async markSynced(tableName, ids) {
-    if (!ids || ids.length === 0) return
+    if (!ids) return
     if (!db[tableName]) return
     
     await db.transaction('rw', db[tableName], async () => {
-       for (const id of ids) {
-         await db[tableName].update(id, { sync_status: 'synced' })
+       if (Array.isArray(ids)) {
+           for (const id of ids) {
+             const exists = await db[tableName].get(id)
+             if (exists) {
+                await db[tableName].update(id, { sync_status: 'synced' })
+             }
+           }
+       } else if (typeof ids === 'object') {
+           // Map of { local_id: server_id }
+           for (const [localId, serverId] of Object.entries(ids)) {
+               const item = await db[tableName].get(localId)
+               if (item) {
+                   await db[tableName].delete(localId)
+                   item.id = serverId
+                   item.sync_status = 'synced'
+                   await db[tableName].put(item)
+               } else {
+                   // If already has serverId, just mark synced
+                   const serverItem = await db[tableName].get(serverId)
+                   if (serverItem) {
+                       await db[tableName].update(serverId, { sync_status: 'synced' })
+                   }
+               }
+           }
        }
     })
   },

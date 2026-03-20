@@ -1,5 +1,5 @@
 <template>
-  <q-layout view="hHh lpR fFf" class="bg-grey-2">
+  <div class="bg-grey-2">
     <!-- Modern Header Toolbar -->
     <q-header elevated class="bg-gradient-primary text-white">
       <q-toolbar class="py-2">
@@ -109,8 +109,8 @@
       </q-toolbar>
     </q-header>
 
-    <q-page-container>
-      <q-page class="q-pa-md">
+    <div>
+      <div class="q-pa-md">
         <div class="row q-col-gutter-md" style="height: calc(100vh - 80px);">
           <!-- Left Sidebar - Slide Thumbnails -->
           <q-drawer
@@ -290,9 +290,9 @@
             </q-card>
           </div>
         </div>
-      </q-page>
-    </q-page-container>
-  </q-layout>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>

@@ -1,10 +1,9 @@
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref } from 'vue'
 import axios from 'axios'
 import { fgIdb } from '../services/fg-idb.service'
-import { useQuasar } from 'quasar'
+import { Notify } from 'quasar'
 
 export function useFgSync() {
-  const $q = useQuasar()
   const isSyncing = ref(false)
   const isOnline = ref(navigator.onLine)
   const lastSyncTime = ref(null)
@@ -14,10 +13,10 @@ export function useFgSync() {
     isOnline.value = navigator.onLine
     
     if (isOnline.value && wasOffline) {
-      $q.notify({ type: 'positive', message: 'You are back online. Syncing...', position: 'bottom' })
+      Notify.create({ type: 'positive', message: 'You are back online. Syncing...', position: 'bottom' })
       syncAll()
     } else if (!isOnline.value) {
-      $q.notify({ type: 'warning', message: 'You are offline. Changes saved locally.', position: 'bottom' })
+      Notify.create({ type: 'warning', message: 'You are offline. Changes saved locally.', position: 'bottom' })
     }
   }
 
@@ -33,25 +32,23 @@ export function useFgSync() {
       
       // 2. Push to server if needed
       if (hasChanges) {
-          // We assume a generic POST /api/fg/sync endpoint handles this payload
           const { data } = await axios.post('/api/fg/sync', pendingChanges)
           
-          // 3. Mark successful pushes as synced
+          // 3. Mark successful pushes as synced AND update IDs if mapping provided
           if (data.synced_ids) {
-              await fgIdb.markSynced('domains', data.synced_ids.domains)
-              await fgIdb.markSynced('tasks', data.synced_ids.tasks)
-              await fgIdb.markSynced('sub_tasks', data.synced_ids.sub_tasks)
-              await fgIdb.markSynced('notes', data.synced_ids.notes)
-              await fgIdb.markSynced('sessions', data.synced_ids.sessions)
+              for (const [entity, ids] of Object.entries(data.synced_ids)) {
+                 // FgSyncService might return a map of {local_id: server_id} or just [local_id]
+                 // We handle both: if value is string, it's the new ID.
+                 await fgIdb.markSynced(entity, ids)
+              }
           }
       }
       
       // 4. Pull latest state from server 
-      // This could be optimized to only pull since last sync time, but keeping simple for v1.2
       const { data: serverState } = await axios.get('/api/fg/sync')
       
       if (serverState) {
-          // 5. Save incoming to local DB (overwrites unless there's logic to merge, bulkPut does blind overwrite)
+          // 5. Save incoming to local DB
           await fgIdb.bulkPut('domains', serverState.domains || [])
           await fgIdb.bulkPut('tasks', serverState.tasks || [])
           await fgIdb.bulkPut('sub_tasks', serverState.sub_tasks || [])
@@ -67,7 +64,7 @@ export function useFgSync() {
     }
   }
 
-  onMounted(() => {
+  const initSyncListeners = () => {
     window.addEventListener('online', updateOnlineStatus)
     window.addEventListener('offline', updateOnlineStatus)
     
@@ -75,17 +72,18 @@ export function useFgSync() {
     if (isOnline.value) {
        syncAll()
     }
-  })
 
-  onUnmounted(() => {
-    window.removeEventListener('online', updateOnlineStatus)
-    window.removeEventListener('offline', updateOnlineStatus)
-  })
+    return () => {
+      window.removeEventListener('online', updateOnlineStatus)
+      window.removeEventListener('offline', updateOnlineStatus)
+    }
+  }
 
   return {
     isOnline,
     isSyncing,
     lastSyncTime,
-    syncAll
+    syncAll,
+    initSyncListeners
   }
 }
