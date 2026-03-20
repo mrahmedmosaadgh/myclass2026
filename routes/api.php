@@ -377,5 +377,11 @@ if (file_exists($modulesPath)) {
 // Focus Grid API Routes
 require __DIR__.'/fg_api.php';
 
+// Lightpanda Headless Browser API Routes
+Route::middleware(['auth:sanctum', 'web'])->prefix('lightpanda')->group(function () {
+    Route::post('/fetch', [App\Http\Controllers\Api\LightpandaController::class, 'fetch']);
+    Route::post('/extract-text', [App\Http\Controllers\Api\LightpandaController::class, 'extractText']);
+});
+
 
 

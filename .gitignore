@@ -24,3 +24,7 @@ yarn-error.log
 /.zed
 
 /storage/logs/*.log
+
+# Lightpanda Local Binary
+/bin/lightpanda
+/bin/lightpanda-*.tar.gz

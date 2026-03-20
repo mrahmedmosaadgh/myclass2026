@@ -31,7 +31,8 @@ const props = defineProps({
   },
   user: {
     type: Object,
-    required: true
+    required: false,
+    default: null
   },
   isDarkMode: {
     type: Boolean,

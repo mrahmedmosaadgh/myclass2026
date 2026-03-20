@@ -57,6 +57,11 @@ return [
         'base_url' => 'https://models.inference.ai.azure.com',
     ],
 
+    'lightpanda' => [
+        'binary'  => env('LIGHTPANDA_BINARY', 'lightpanda'),
+        'timeout' => env('LIGHTPANDA_TIMEOUT', 30),
+    ],
+
     'firebase' => [
         'api_key' => env('VITE_FIREBASE_API_KEY'),
         'auth_domain' => env('VITE_FIREBASE_AUTH_DOMAIN'),

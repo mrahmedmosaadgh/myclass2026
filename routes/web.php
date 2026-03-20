@@ -56,40 +56,29 @@ Route::get('/login', function () {
 
 // Handle login POST - authenticate user
 Route::post('/login', function (\Illuminate\Http\Request $request) {
-    $credentials = $request->validate([
+    $request->validate([
         'email' => 'required|string',
         'password' => 'required|string',
     ]);
 
-    // Find user by email or username
-    $user = \App\Models\User::where('email', $credentials['email'])
-        ->orWhere('name', $credentials['email'])
-        ->first();
+    // Attempt to authenticate the user using Laravel's built-in authentication
+    $credentials = $request->only('email', 'password');
+    
+    if (Auth::attempt($credentials, $request->boolean('remember'))) {
+        $request->session()->regenerate();
 
-    if (!$user || !\Illuminate\Support\Facades\Hash::check($credentials['password'], $user->password)) {
-        throw \Illuminate\Validation\ValidationException::withMessages([
-            'email' => ['The provided credentials are incorrect.'],
-        ]);
+        $user = Auth::user();
+        // Update last login
+        $user->last_login = now();
+        $user->save();
+
+        // Redirect to intended URL or dashboard
+        return redirect()->intended(route('dashboard'));
     }
 
-    // Check if user is active (optional - commented out for flexibility)
-    // if (!$user->is_active) {
-    //     throw \Illuminate\Validation\ValidationException::withMessages([
-    //         'email' => ['Your account has been deactivated.'],
-    //     ]);
-    // }
-
-    // Log the user in
-    \Illuminate\Support\Facades\Auth::login($user, $request->boolean('remember'));
-
-    $request->session()->regenerate();
-
-    // Update last login
-    $user->last_login = now();
-    $user->save();
-
-    // Redirect to intended URL or dashboard
-    return redirect()->intended(route('dashboard'));
+    throw \Illuminate\Validation\ValidationException::withMessages([
+        'email' => ['The provided credentials are incorrect.'],
+    ]);
 });
 
 // Chatbot - User Routes
@@ -291,10 +280,7 @@ Route::get('/sanctum-test-page', function () {
     return Inertia::render('SanctumTest');
 })->name('sanctum.test');
 
-// Sanctum CSRF cookie route
-Route::get('/sanctum/csrf-cookie', function () {
-    return response()->json(['message' => 'CSRF cookie set']);
-});
+
 
 // Auth status check route
 Route::get('/auth/status', [App\Http\Controllers\AuthStatusController::class, 'check']);

@@ -11,7 +11,7 @@ window.axios = axios;
 window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
 // Initialize comprehensive CSRF protection
-initializeCsrfProtection();
+// initializeCsrfProtection();
 
 // Initialize Laravel Echo if Pusher key is available
 window.Pusher = Pusher;
