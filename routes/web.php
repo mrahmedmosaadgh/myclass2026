@@ -35,6 +35,12 @@ Route::domain('qudratpro.test')->name('test.')->group(function () {
 });
 
 
+// Login v1.2 Safe Preview
+use App\Http\Controllers\Auth\LoginController;
+
+Route::get('/login-v12', [LoginController::class, 'showForm'])->name('login.v12');
+Route::post('/login-v12', [LoginController::class, 'authenticate'])->name('login.v12.post');
+
 // School-specific login routes (public)
 Route::get('/login/{school_slug}', [SchoolLoginController::class, 'show'])
     ->name('school.login');
@@ -51,12 +57,14 @@ Route::get('/login', function () {
 // Handle login POST - authenticate user
 Route::post('/login', function (\Illuminate\Http\Request $request) {
     $credentials = $request->validate([
-        'email' => 'required|string|email',
+        'email' => 'required|string',
         'password' => 'required|string',
     ]);
 
-    // Find user by email
-    $user = \App\Models\User::where('email', $credentials['email'])->first();
+    // Find user by email or username
+    $user = \App\Models\User::where('email', $credentials['email'])
+        ->orWhere('name', $credentials['email'])
+        ->first();
 
     if (!$user || !\Illuminate\Support\Facades\Hash::check($credentials['password'], $user->password)) {
         throw \Illuminate\Validation\ValidationException::withMessages([
