@@ -348,6 +348,8 @@ class ClassroomSubjectTeacherController extends Controller
             ->map(function ($assignment) {
                 return [
                     'id' => $assignment->id,
+                    'subject_id' => $assignment->subject_id,
+                    'grade_id' => $assignment->grade_id,
                     'classroom' => [
                         'id' => $assignment->classroom->id,
                         'name' => $assignment->classroom->name,

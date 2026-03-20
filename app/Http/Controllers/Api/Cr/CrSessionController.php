@@ -40,6 +40,7 @@ class CrSessionController extends Controller
 
         // Get authenticated user
         $user = Auth::user();
+
         if (!$user) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
@@ -47,9 +48,9 @@ class CrSessionController extends Controller
         $schoolId = $user->currentSchoolId();
         $yearId = $user->currentAcademicYearId();
 
-        // Determine if user is admin (read-only) or teacher
-        $isAdmin = $user->hasAnyRole(['admin', 'school_admin', 'super_admin']);
-        $isTeacher = $user->hasRole('teacher');
+        // Determine if user's active role is admin (read-only) or teacher
+        $isAdmin = in_array($user->role, ['admin', 'school_admin', 'super_admin']);
+        $isTeacher = ($user->role === 'teacher' || $user->hasRole('teacher'));
 
         // Authorization check
         if (!$isAdmin && !$isTeacher) {
@@ -105,17 +106,85 @@ class CrSessionController extends Controller
                     ]
                 );
 
+                // Fetch classroom to get grade_id
+                $classroom = Classroom::findOrFail($validated['classroom_id']);
+                $gradeId = $classroom->grade_id;
+                $subjectId = $validated['subject_id'];
+
                 // Fetch classroom roster (students assigned to this classroom)
                 $students = Student::where('classroom_id', $validated['classroom_id'])
                     ->whereNull('deleted_at')
                     ->with(['parent'])
                     ->get();
 
-                // Get active category mappings for this school
+                // Get active category mappings filtered by grade and subject scoping
                 $activeMappings = CrCategoryMapping::where('school_id', $schoolId)
                     ->where('active', true)
+                    ->where(function ($query) use ($gradeId, $subjectId) {
+                        $query->where(function ($q) {
+                            $q->whereNull('grade_id')->whereNull('subject_id'); // Global
+                        })->orWhere(function ($q) use ($gradeId) {
+                            $q->where('grade_id', $gradeId)->whereNull('subject_id'); // Grade-only
+                        })->orWhere(function ($q) use ($subjectId) {
+                            $q->whereNull('grade_id')->where('subject_id', $subjectId); // Subject-only
+                        })->orWhere(function ($q) use ($gradeId, $subjectId) {
+                            $q->where('grade_id', $gradeId)->where('subject_id', $subjectId); // Specific Grade + Subject
+                        });
+                    })
                     ->orderBy('sort_order')
                     ->get();
+
+                // If no mappings exist for this school (e.g. new school, seeder not run),
+                // seed the 3 default categories (Book, Homework, Behavior) on the fly.
+                if ($activeMappings->isEmpty()) {
+                    $defaultCategories = [
+                        [
+                            'key' => 'book_participation',
+                            'label' => 'Book & Participation',
+                            'type' => 'numeric',
+                            'max_value' => 5,
+                            'passing_value' => 3,
+                            'default_value' => 5,
+                            'sort_order' => 1,
+                            'active' => true,
+                        ],
+                        [
+                            'key' => 'homework',
+                            'label' => 'Homework',
+                            'type' => 'numeric',
+                            'max_value' => 5,
+                            'passing_value' => 3,
+                            'default_value' => 5,
+                            'sort_order' => 2,
+                            'active' => true,
+                        ],
+                        [
+                            'key' => 'behavior',
+                            'label' => 'Behavior',
+                            'type' => 'numeric',
+                            'max_value' => 5,
+                            'passing_value' => 3,
+                            'default_value' => 5,
+                            'sort_order' => 3,
+                            'active' => true,
+                        ],
+                    ];
+
+                    foreach ($defaultCategories as $category) {
+                        CrCategoryMapping::updateOrCreate(
+                            [
+                                'school_id' => $schoolId,
+                                'key' => $category['key'],
+                            ],
+                            array_merge($category, ['school_id' => $schoolId])
+                        );
+                    }
+
+                    $activeMappings = CrCategoryMapping::where('school_id', $schoolId)
+                        ->where('active', true)
+                        ->orderBy('sort_order')
+                        ->get();
+                }
 
                 // Prepare student data with periods and scores
                 $studentsData = [];
@@ -137,20 +206,36 @@ class CrSessionController extends Controller
                         
                         // Load existing scores
                         $scoresData = [];
+                        $createdAnyMissingScores = false;
                         foreach ($activeMappings as $mapping) {
                             $score = CrScore::where('student_period_id', $studentPeriod->id)
                                 ->where('mapping_id', $mapping->id)
                                 ->first();
 
-                            if ($score) {
-                                $scoresData[] = [
+                            // If a mapping exists but score row is missing (older/incomplete data),
+                            // create it so the UI can always edit Book/Homework/Behavior.
+                            if (!$score) {
+                                $score = CrScore::create([
+                                    'student_period_id' => $studentPeriod->id,
                                     'mapping_id' => $mapping->id,
-                                    'mapping_key' => $mapping->key,
-                                    'label' => $mapping->label,
-                                    'numeric_value' => (float) $score->numeric_value,
-                                    'max_value' => $mapping->max_value,
-                                ];
+                                    'numeric_value' => $mapping->default_value,
+                                ]);
+                                $createdAnyMissingScores = true;
                             }
+
+                            $scoresData[] = [
+                                'mapping_id' => $mapping->id,
+                                'mapping_key' => $mapping->key,
+                                'label' => $mapping->label,
+                                'numeric_value' => (float) $score->numeric_value,
+                                'max_value' => $mapping->max_value,
+                            ];
+                        }
+
+                        // If we created missing scores, ensure total_score is consistent.
+                        if ($createdAnyMissingScores) {
+                            $totalScore = $studentPeriod->attendance_score + collect($scoresData)->sum('numeric_value');
+                            $studentPeriod->update(['total_score' => $totalScore]);
                         }
 
                         $studentsData[] = [
@@ -178,32 +263,32 @@ class CrSessionController extends Controller
                         'session_id' => $session->id,
                         'date' => $validated['date'],
                         'period_code' => $validated['period_code'],
-                        'attendance_status' => 'present',
-                        'attendance_score' => 5,
+                        'attendance_status' => null, // NULL = not set yet
+                        'attendance_score' => 0, // Will be set when teacher selects
                         'total_score' => 0, // Will be calculated after scores are created
                         'locked' => false,
                     ]);
 
-                    // Create default scores for each active mapping
+                    // Create default scores for each active mapping (with null values)
                     $scoresData = [];
                     foreach ($activeMappings as $mapping) {
                         $score = CrScore::create([
                             'student_period_id' => $studentPeriod->id,
                             'mapping_id' => $mapping->id,
-                            'numeric_value' => $mapping->default_value,
+                            'numeric_value' => null, // No default - teacher must set
                         ]);
 
                         $scoresData[] = [
                             'mapping_id' => $mapping->id,
                             'mapping_key' => $mapping->key,
                             'label' => $mapping->label,
-                            'numeric_value' => (float) $score->numeric_value,
+                            'numeric_value' => null, // Send null to frontend
                             'max_value' => $mapping->max_value,
                         ];
                     }
 
-                    // Calculate total score: attendance_score + sum of all category scores
-                    $totalScore = $studentPeriod->attendance_score + collect($scoresData)->sum('numeric_value');
+                    // Calculate total score: attendance_score + sum of all category scores (null treated as 0)
+                    $totalScore = $studentPeriod->attendance_score + collect($scoresData)->sum(fn($s) => $s['numeric_value'] ?? 0);
                     $studentPeriod->update(['total_score' => $totalScore]);
 
                     $studentsData[] = [
@@ -267,8 +352,9 @@ class CrSessionController extends Controller
         $schoolId = $user->currentSchoolId();
         $yearId = $user->currentAcademicYearId();
 
-        // Admins are read-only - cannot use batch update
-        $isAdmin = $user->hasAnyRole(['admin', 'school_admin', 'super_admin']);
+        // Block only if the user's currently active role is an admin role
+        $activeRole = $user->role;
+        $isAdmin = in_array($activeRole, ['admin', 'school_admin', 'super_admin']);
         if ($isAdmin) {
             return response()->json(['error' => 'Admin access is read-only. Cannot update records.'], 403);
         }
@@ -278,7 +364,7 @@ class CrSessionController extends Controller
             'updates' => 'required|array',
             'updates.*.student_period_id' => 'required|exists:cr_student_periods,id',
             'updates.*.attendance_status' => 'nullable|in:present,absent,late,left_early',
-            'updates.*.attendance_score' => 'nullable|integer|min:0|max:5',
+            'updates.*.attendance_score' => 'nullable|integer|in:0,3,5',
             'updates.*.attendance_note' => 'nullable|string|max:255',
             'updates.*.total_score' => 'nullable|integer|min:0|max:20',
             'updates.*.scores' => 'nullable|array',
@@ -371,7 +457,13 @@ class CrSessionController extends Controller
                     }
 
                     // Update individual category scores if provided
+                    // Only allow if attendance is set AND student is present
                     if (isset($updateItem['scores']) && is_array($updateItem['scores'])) {
+                        // Block score updates if attendance not set or student is absent
+                        if (empty($studentPeriod->attendance_status) || $studentPeriod->attendance_status === '' || $studentPeriod->attendance_status === 'absent') {
+                            throw new \Exception('Cannot update category scores: Attendance must be set to Present first');
+                        }
+                        
                         foreach ($updateItem['scores'] as $scoreUpdate) {
                             $score = CrScore::where('student_period_id', $studentPeriod->id)
                                 ->where('mapping_id', $scoreUpdate['mapping_id'])

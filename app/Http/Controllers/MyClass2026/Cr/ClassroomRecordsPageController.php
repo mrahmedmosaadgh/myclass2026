@@ -164,12 +164,19 @@ class ClassroomRecordsPageController extends Controller
                 ->get(['id', 'name'])
                 ->toArray();
         }
+        // Get available grades for category scoping
+        $grades = \App\Models\Grade::where('school_id', $schoolId)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->toArray();
+
         // return $classrooms;
         return Inertia::render('myclass2026/features/cr/classroom_records_v1/ClassroomRecordsPage', [
             'initialContext' => $initialContext,
             'isAdmin' => $isAdmin,
             'classrooms' => $classrooms,
             'subjects' => $subjects,
+            'grades' => $grades,
             'teacherId' => $teacherId, // Pass resolved teacher_id
             'academicContext' => [
                 'year_id' => $yearId,

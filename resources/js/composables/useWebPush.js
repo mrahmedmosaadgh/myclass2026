@@ -1,160 +1,136 @@
 import { ref } from 'vue';
-import { router } from '@inertiajs/vue3';
+// Reactive variables
+const isSubscribed = ref(false);
 
-export function useWebPush() {
-    const isSubscribed = ref(false);
-    const subscription = ref(null);
+// Check if push notifications are supported
+const isPushSupported = () => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        console.warn('Push notifications are not supported in this browser.');
+        return false;
+    }
+    return true;
+};
 
-    // Convert VAPID key from base64 to Uint8Array
-    const urlBase64ToUint8Array = (base64String) => {
-        const padding = '='.repeat((4 - base64String.length % 4) % 4);
-        const base64 = (base64String + padding)
-            .replace(/\-/g, '+')
-            .replace(/_/g, '/');
+// Check current subscription status
+const checkSubscription = async () => {
+    if (!isPushSupported()) {
+        return false;
+    }
 
-        const rawData = window.atob(base64);
-        const outputArray = new Uint8Array(rawData.length);
+    try {
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        isSubscribed.value = !!subscription;
+        return !!subscription;
+    } catch (error) {
+        console.error('Error checking push subscription:', error);
+        isSubscribed.value = false;
+        return false;
+    }
+};
 
-        for (let i = 0; i < rawData.length; ++i) {
-            outputArray[i] = rawData.charCodeAt(i);
-        }
-        return outputArray;
-    };
+// URL safe base64 encode
+const urlBase64ToUint8Array = (base64String) => {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+        .replace(/\-/g, '+')
+        .replace(/_/g, '/');
 
-    // Register service worker
-    const registerServiceWorker = async () => {
-        try {
-            // First check if there's an active service worker
-            const existingRegistration = await navigator.serviceWorker.getRegistration();
-            if (existingRegistration) {
-                return existingRegistration;
-            }
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
 
-            // If no active service worker, register a new one
-            const registration = await navigator.serviceWorker.register('/sw.js', {
-                scope: '/'
-            });
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+};
 
-            // Wait for the service worker to be ready
-            await navigator.serviceWorker.ready;
-            return registration;
-        } catch (error) {
-            console.error('Service Worker registration failed:', error);
-            throw error;
-        }
-    };
+// Get VAPID public key from meta tag
+const getVapidPublicKey = () => {
+    const el = document.querySelector("meta[name='vapid-key']");
+    if (!el) {
+        throw new Error('VAPID key not found in meta tags');
+    }
+    return el.getAttribute('content');
+};
 
-    // Subscribe to push notifications
-    const subscribeUserToPush = async (registration) => {
-        try {
-            // Get VAPID public key
-            const response = await fetch('/vapid/public-key', {
-                headers: {
-                    'Accept': 'text/plain'
-                }
-            });
+// Setup push notifications
+const setupPushNotifications = async () => {
+    if (!isPushSupported()) {
+        throw new Error('Push notifications are not supported in this browser');
+    }
 
-            if (!response.ok) {
-                throw new Error('Failed to get VAPID public key');
-            }
+    try {
+        // Wait for service worker to be ready
+        const registration = await navigator.serviceWorker.ready;
 
-            const vapidPublicKey = await response.text();
-            if (!vapidPublicKey || vapidPublicKey.length === 0) {
-                throw new Error('Invalid VAPID public key');
-            }
-
-            console.log('Using VAPID public key:', vapidPublicKey);
-
-            const subscribeOptions = {
-                userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
-            };
-
-            const pushSubscription = await registration.pushManager.subscribe(subscribeOptions);
-            subscription.value = pushSubscription;
-
-            // Send subscription to backend
-            await saveSubscription(pushSubscription);
+        // Check current subscription
+        let subscription = await registration.pushManager.getSubscription();
+        
+        if (subscription) {
+            // Already subscribed
             isSubscribed.value = true;
-
-            return pushSubscription;
-        } catch (error) {
-            console.error('Failed to subscribe to push:', error);
-            if (error.name === 'NotAllowedError') {
-                throw new Error('Please allow notifications in your browser settings');
-            }
-            throw error;
+            return true;
         }
-    };
 
-    // Save subscription to backend
-    const saveSubscription = async (pushSubscription) => {
-        try {
-            console.log('Saving subscription to backend:', pushSubscription);
+        // Get the VAPID public key
+        const vapidPublicKey = getVapidPublicKey();
+        const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
 
-            // Get CSRF token from meta tag
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        // Subscribe to push notifications
+        subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: applicationServerKey
+        });
 
+        if (subscription) {
+            // Send subscription to backend
             const response = await fetch('/push/subscribe', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'),
                 },
-                body: JSON.stringify(pushSubscription),
-                credentials: 'same-origin'
+                body: JSON.stringify(subscription),
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                console.error('Server error:', errorData);
-                throw new Error(errorData.message || 'Failed to save subscription');
+                throw new Error(`Failed to register subscription: ${response.statusText}`);
             }
 
             const data = await response.json();
-            console.log('Subscription saved successfully:', data);
-            return data;
-        } catch (error) {
-            console.error('Failed to save subscription:', error);
-            throw error;
-        }
-    };
-
-    // Request notification permission and setup push
-    const setupPushNotifications = async () => {
-        try {
-            const permission = await Notification.requestPermission();
-            if (permission === 'granted') {
-                const registration = await registerServiceWorker();
-                await subscribeUserToPush(registration);
-                return true;
+            if (!data || !data.success) {
+                throw new Error('Server returned unexpected response format');
             }
-            return false;
-        } catch (error) {
-            console.error('Failed to setup push notifications:', error);
-            return false;
-        }
-    };
 
-    // Check if already subscribed
-    const checkSubscription = async () => {
+            isSubscribed.value = true;
+            return true;
+        } else {
+            throw new Error('Could not create subscription');
+        }
+    } catch (error) {
+        console.error('Error setting up push notifications:', error);
+        throw error;
+    }
+};
+
+// Initialize subscription status on module load
+if (isPushSupported()) {
+    // Use setTimeout to not block module loading
+    setTimeout(async () => {
         try {
-            const registration = await navigator.serviceWorker.ready;
-            const subscription = await registration.pushManager.getSubscription();
-            isSubscribed.value = !!subscription;
-            subscription.value = subscription;
-            return subscription;
+            await checkSubscription();
         } catch (error) {
-            console.error('Failed to check subscription:', error);
-            return null;
+            console.error('Error during initial subscription check:', error);
         }
-    };
+    }, 0);
+}
 
+export function useWebPush() {
     return {
         isSubscribed,
-        subscription,
         setupPushNotifications,
-        checkSubscription
+        checkSubscription,
+        isPushSupported
     };
 }

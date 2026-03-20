@@ -13,7 +13,7 @@ import axios from 'axios';
 
 export function useDirtyBatch(options = {}) {
   const {
-    debounceDelay = 1500, // 1.5 seconds
+    debounceDelay = 500, // 0.5 seconds for snappier saves
     autoSave = true,
     enableUnloadProtection = true,
   } = options;
@@ -38,8 +38,26 @@ export function useDirtyBatch(options = {}) {
    * Mark a student period as dirty (modified)
    */
   const markDirty = (studentPeriodId, updateData) => {
+    const existing = dirtyItems.value.get(studentPeriodId) || {};
     dirtyItems.value.set(studentPeriodId, {
+      ...existing,
       ...updateData,
+      // If both have scores arrays, merge them by mapping_id so multiple
+      // category edits before save are preserved.
+      ...(existing.scores || updateData.scores
+        ? {
+            scores: Object.values(
+              [
+                ...(existing.scores || []),
+                ...(updateData.scores || []),
+              ].reduce((acc, score) => {
+                if (!score || typeof score.mapping_id === 'undefined') return acc;
+                acc[score.mapping_id] = score;
+                return acc;
+              }, {})
+            ),
+          }
+        : {}),
       timestamp: Date.now(),
     });
 
@@ -54,8 +72,24 @@ export function useDirtyBatch(options = {}) {
    */
   const markMultipleDirty = (items) => {
     items.forEach(item => {
+      const existing = dirtyItems.value.get(item.student_period_id) || {};
       dirtyItems.value.set(item.student_period_id, {
+        ...existing,
         ...item,
+        ...(existing.scores || item.scores
+          ? {
+              scores: Object.values(
+                [
+                  ...(existing.scores || []),
+                  ...(item.scores || []),
+                ].reduce((acc, score) => {
+                  if (!score || typeof score.mapping_id === 'undefined') return acc;
+                  acc[score.mapping_id] = score;
+                  return acc;
+                }, {})
+              ),
+            }
+          : {}),
         timestamp: Date.now(),
       });
     });

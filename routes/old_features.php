@@ -206,7 +206,7 @@ Route::middleware([
 
     // Template Manager Page
     Route::get('/section-template-manager', function () {
-        return Inertia::render('my_table_mnger/lesson_presentation/SectionTemplateManager');
+        return Inertia::render('old_features/lesson_presentation/SectionTemplateManager');
     })->name('section-template-manager');
 
     // ========================================
@@ -215,12 +215,12 @@ Route::middleware([
     
     // Teacher Dashboard - List all lessons by grade
     Route::get('/dashboard', function () {
-        return Inertia::render('my_table_mnger/lesson_presentation/LessonList');
+        return Inertia::render('old_features/lesson_presentation/LessonList');
     })->name('index');
 
     // Manage Lesson Page
     Route::get('/manage/{id}', function ($id) {
-        return Inertia::render('my_table_mnger/lesson_presentation/LessonManager', [
+        return Inertia::render('old_features/lesson_presentation/LessonManager', [
             'lessonId' => $id
         ]);
     })->name('manage');
@@ -252,7 +252,7 @@ Route::middleware([
             $gradeName = $grade ? $grade->name : null;
         }
 
-        return Inertia::render('my_table_mnger/lesson_presentation/lesson_presentation', [
+        return Inertia::render('old_features/lesson_presentation/lesson_presentation', [
             'defaultContext' => [
                 'teacher_id' => $teacher ? $teacher->id : null,
                 'school_id' => $school ? $school->id : null,
@@ -282,7 +282,7 @@ Route::middleware([
         $student = \App\Models\Student::first(); // TODO: Replace with Auth::user()->student
         $presentation = \App\Models\free\LessonPresentation::findOrFail($id);
         
-        return Inertia::render('my_table_mnger/lesson_presentation/StudentLessonView', [
+        return Inertia::render('old_features/lesson_presentation/StudentLessonView', [
             'presentationId' => $id,
             'studentId' => $student ? $student->id : 1,
             'sections' => $presentation->getSections(),
@@ -291,7 +291,7 @@ Route::middleware([
 
     // Print View
     Route::get('/print/{id}', function ($id) {
-        return Inertia::render('my_table_mnger/lesson_presentation/LessonPrintView', [
+        return Inertia::render('old_features/lesson_presentation/LessonPrintView', [
             'presentationId' => $id
         ]);
     })->name('print');

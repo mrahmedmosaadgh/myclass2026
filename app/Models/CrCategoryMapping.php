@@ -12,8 +12,12 @@ class CrCategoryMapping extends Model
 
     protected $fillable = [
         'school_id',
+        'grade_id',
+        'subject_id',
         'key',
         'label',
+        'icon',
+        'color',
         'type',
         'max_value',
         'passing_value',
