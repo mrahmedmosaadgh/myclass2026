@@ -218,8 +218,8 @@ const addElement = (type) => {
     border: type === 'custom-rectangle' ? '2px solid #1E40AF' : '2px solid #000000',
     opacity: 1,
     startHidden: false,
-    clickable: type === 'custom-rectangle' ? true : false,
-    moveable: true,
+    clickable: (type === 'rectangle' || type === 'custom-rectangle') ? true : false,
+    moveable: (type === 'rectangle' || type === 'custom-rectangle') ? false : true,
     zIndex: 1
   }
 
