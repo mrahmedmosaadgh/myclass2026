@@ -43,6 +43,35 @@
       class="absolute inset-0 border-2 border-indigo-500 pointer-events-none"
     ></div>
 
+    <!-- Action Buttons (shown when selected) -->
+    <div
+      v-if="isSelected"
+      class="absolute -top-8 -right-2 flex gap-1 bg-white rounded-lg shadow-lg border border-gray-200 p-1"
+      @click.stop
+    >
+      <!-- Duplicate Button -->
+      <button
+        @click="duplicate"
+        class="w-6 h-6 flex items-center justify-center text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+        title="Duplicate"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+        </svg>
+      </button>
+      
+      <!-- Delete Button -->
+      <button
+        @click="deleteElement"
+        class="w-6 h-6 flex items-center justify-center text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+        title="Delete"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+        </svg>
+      </button>
+    </div>
+
     <!-- Resize Handles -->
     <template v-if="isSelected && (element.type === 'rectangle' || element.type === 'custom-rectangle')">
       <div
