@@ -190,7 +190,7 @@ export default {
     },
     slideHeight: {
       type: Number,
-      default: 600
+      default: 1123
     }
   },
   data() {

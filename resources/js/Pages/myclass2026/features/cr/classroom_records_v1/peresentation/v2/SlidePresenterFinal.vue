@@ -43,9 +43,10 @@
       <button 
         @click="previousSlide" 
         :disabled="currentIndex === 0"
-        class="nav-btn"
+        class="nav-btn prev-btn"
+        title="Previous slide"
       >
-        ◀ Previous
+        &#8592;
       </button>
       
       <div class="slide-counter">
@@ -55,19 +56,15 @@
       <button 
         @click="nextSlide" 
         :disabled="currentIndex === slides.length - 1"
-        class="nav-btn"
+        class="nav-btn next-btn"
+        title="Next slide"
       >
-        Next ▶
+        &#8594;
       </button>
       
-      <button @click="exitPresentation" class="exit-btn">
-        Exit
+      <button @click="exitPresentation" class="exit-btn" title="Exit presentation">
+        &#10005;
       </button>
-    </div>
-
-    <!-- Instructions -->
-    <div class="keyboard-hint">
-      Click elements to toggle visibility (0.1 ↔ 1.0) | Drag moveable elements | Use ← → arrow keys | ESC to exit
     </div>
   </div>
 </template>
@@ -88,7 +85,7 @@ export default {
     },
     slideHeight: {
       type: Number,
-      default: 500
+      default: 1123
     }
   },
   data() {
@@ -134,9 +131,9 @@ export default {
 
       // Handle visibility based on option
       if (element.visibilityOption === 'hidden-clickable') {
-        // Starts at 0.1, click to show at 1.0
+        // Starts at 0.05, click to show at 1.0
         const isVisible = state.visible !== undefined ? state.visible : false;
-        style.opacity = isVisible ? 1 : 0.1;
+        style.opacity = isVisible ? 1 : 0.05;
       } else if (element.visibilityOption === 'shown-clickable') {
         // Starts at 1.0, click to hide at 0.1
         const isVisible = state.visible !== undefined ? state.visible : true;
@@ -347,70 +344,76 @@ export default {
 }
 
 .present-controls {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
-  gap: 20px;
+  gap: 12px;
   align-items: center;
-  padding: 20px;
-  background: rgba(0, 0, 0, 0.8);
-  border-radius: 12px;
-  margin-bottom: 20px;
+  padding: 10px 16px;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  border-radius: 40px;
+  z-index: 2000;
+  border: 1px solid rgba(255,255,255,0.1);
 }
 
 .nav-btn {
-  padding: 12px 24px;
+  width: 40px;
+  height: 40px;
   background: #4a90e2;
   border: none;
   color: white;
-  border-radius: 6px;
+  border-radius: 50%;
   cursor: pointer;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.2s;
+  line-height: 1;
 }
 
 .nav-btn:hover:not(:disabled) {
   background: #5a9ff2;
-  transform: translateY(-2px);
+  transform: scale(1.1);
 }
 
 .nav-btn:disabled {
   background: #3a3a3a;
   cursor: not-allowed;
-  opacity: 0.5;
+  opacity: 0.4;
 }
 
 .slide-counter {
   color: white;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 600;
-  min-width: 120px;
+  min-width: 50px;
   text-align: center;
 }
 
 .exit-btn {
-  padding: 12px 24px;
+  width: 40px;
+  height: 40px;
   background: #e24a4a;
   border: none;
   color: white;
-  border-radius: 6px;
+  border-radius: 50%;
   cursor: pointer;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.2s;
+  margin-left: 8px;
 }
 
 .exit-btn:hover {
   background: #f25a5a;
-}
-
-.keyboard-hint {
-  position: absolute;
-  bottom: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 12px;
-  text-align: center;
-  max-width: 90%;
+  transform: scale(1.1);
 }
 </style>

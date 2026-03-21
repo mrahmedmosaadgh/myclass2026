@@ -10,6 +10,14 @@
         <button @click="deleteCurrentSlide" class="btn btn-danger" :disabled="slides.length <= 1">
           <span class="icon">🗑</span> Delete Slide
         </button>
+        <button @click="pasteFromClipboard" class="btn" title="Paste from clipboard (Ctrl+V)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="2" width="6" height="4" rx="1"/>
+            <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/>
+            <path d="M12 11v6M9 14h6"/>
+          </svg>
+          Paste
+        </button>
       </div>
 
       <div class="toolbar-section">
@@ -66,6 +74,7 @@
     <div class="slide-container" :class="{ 'expanded': isSlideExpanded }" :style="{ minHeight: slideHeight + 'px' }" v-if="currentSlide">
       <SlideEditor
         v-if="mode === 'edit'"
+        ref="slideEditor"
         :slide="currentSlide"
         @update:slide="updateSlide"
         @expand-height="handleExpandHeight"
@@ -127,7 +136,7 @@ export default {
       currentSlideIndex: 0,
       mode: 'edit', // 'edit', 'visibility', 'present'
       isSlideExpanded: false,
-      slideHeight: 500,
+      slideHeight: 1123,
       isOnline: navigator.onLine
     };
   },
@@ -154,6 +163,12 @@ export default {
           this.currentSlideIndex = this.slides.length - 1;
         }
       }
+    },
+    pasteFromClipboard() {
+      // Delegate to current slide's SlideEditor component
+      // The SlideEditor already has the pasteFromClipboard method
+      // We'll trigger a custom event that the SlideEditor can listen to
+      this.$refs.slideEditor?.pasteFromClipboard();
     },
     updateSlide(updatedSlide) {
       this.slides[this.currentSlideIndex] = updatedSlide;
@@ -379,7 +394,7 @@ export default {
   justify-content: center;
   padding: 20px;
   overflow: auto;
-  min-height: 500px; /* Default height */
+  min-height: 1123px; /* A4 page height */
   transition: min-height 0.3s ease;
 }
 

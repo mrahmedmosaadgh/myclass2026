@@ -50,8 +50,37 @@
       {{ element.content }}
     </div>
 
-    <!-- Controls (Visibility Mode Only) -->
-    <div v-if="mode === 'visibility' && isSelected" class="element-controls">
+    <!-- Rectangle Shape Element -->
+    <div 
+      v-else-if="element.type === 'rectangle'"
+      class="element-rectangle"
+      :style="rectangleStyle"
+      @mousedown.stop="startDrag"
+      @click.stop="selectElement($event)"
+    >
+      <!-- Resize Handles (Edit Mode Only) -->
+      <div v-if="mode === 'edit' && isSelected" class="resize-controls">
+        <!-- Top-Left -->
+        <div class="resize-handle resize-nw" @mousedown.stop="startResize($event, 'nw')"></div>
+        <!-- Top-Right -->
+        <div class="resize-handle resize-ne" @mousedown.stop="startResize($event, 'ne')"></div>
+        <!-- Bottom-Left -->
+        <div class="resize-handle resize-sw" @mousedown.stop="startResize($event, 'sw')"></div>
+        <!-- Bottom-Right -->
+        <div class="resize-handle resize-se" @mousedown.stop="startResize($event, 'se')"></div>
+        <!-- Top Center -->
+        <div class="resize-handle resize-n" @mousedown.stop="startResize($event, 'n')"></div>
+        <!-- Right Center -->
+        <div class="resize-handle resize-e" @mousedown.stop="startResize($event, 'e')"></div>
+        <!-- Bottom Center -->
+        <div class="resize-handle resize-s" @mousedown.stop="startResize($event, 's')"></div>
+        <!-- Left Center -->
+        <div class="resize-handle resize-w" @mousedown.stop="startResize($event, 'w')"></div>
+      </div>
+    </div>
+
+    <!-- Controls (Edit Mode & Visibility Mode) -->
+    <div v-if="(mode === 'edit' || mode === 'visibility') && isSelected" class="element-controls">
       <!-- Element Actions Dropdown Menu -->
       <q-btn
         dense
@@ -166,6 +195,72 @@
 
             <q-separator />
             
+            <!-- Layer Ordering Section -->
+            <q-item-label header class="text-caption text-grey-7">
+              LAYER ORDER
+            </q-item-label>
+            
+            <!-- Move to Top Layer -->
+            <q-item 
+              clickable 
+              v-ripple 
+              @click="() => { moveToTopLayer(); }"
+              v-close-popup
+            >
+              <q-item-section avatar>
+                <q-icon name="layers" color="primary" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label class="text-weight-medium">Move to Top Layer</q-item-label>
+                <q-item-label caption>Bring element to front (highest z-index)</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <q-icon name="arrow_upward" color="grey-7" />
+              </q-item-section>
+            </q-item>
+            
+            <!-- Move to Background Layer -->
+            <q-item 
+              clickable 
+              v-ripple 
+              @click="() => { moveToBackgroundLayer(); }"
+              v-close-popup
+            >
+              <q-item-section avatar>
+                <q-icon name="layers_clear" color="grey-7" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label class="text-weight-medium">Move to Background</q-item-label>
+                <q-item-label caption>Send element to back (lowest z-index)</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <q-icon name="arrow_downward" color="grey-7" />
+              </q-item-section>
+            </q-item>
+            
+            <q-separator />
+            
+            <!-- Duplicate Section -->
+            <q-item 
+              clickable 
+              v-ripple 
+              @click="() => { duplicateElement(); }"
+              v-close-popup
+            >
+              <q-item-section avatar>
+                <q-icon name="content_copy" color="secondary" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label class="text-weight-medium">Duplicate Element</q-item-label>
+                <q-item-label caption>Create a copy of this element</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <q-icon name="add_circle_outline" color="grey-7" />
+              </q-item-section>
+            </q-item>
+            
+            <q-separator />
+            
             <!-- Delete/Close Section -->
             <q-item-label header class="text-caption text-grey-7">
               ACTIONS
@@ -202,8 +297,8 @@
         </q-menu>
       </q-btn>
       
-      <!-- Resize Handle -->
-      <div class="resize-handle" @mousedown.stop="startResize"></div>
+      <!-- Resize Handle (Only in Visibility Mode) -->
+      <div v-if="mode === 'visibility'" class="resize-handle" @mousedown.stop="startResize"></div>
     </div>
 
     <!-- Animation Badge (Animation Mode) -->
@@ -249,6 +344,9 @@ export default {
       elementStartY: 0,
       resizeStartWidth: 0,
       resizeStartHeight: 0,
+      resizeStartXPos: 0,
+      resizeStartYPos: 0,
+      resizeCorner: null,
       isAnimating: false,
       isBouncing: false,
       showActionsMenu: false,
@@ -313,6 +411,12 @@ export default {
       } else if (this.element.type === 'text') {
         style.width = 'auto';
         style.maxWidth = `${this.element.width}px`;
+      } else if (this.element.type === 'rectangle') {
+        // Handle rectangle dimensions - ensure non-zero values
+        const width = this.element.width || 200;
+        const height = this.element.height || 150;
+        style.width = `${Math.max(width, 50)}px`; // Minimum 50px
+        style.height = `${Math.max(height, 50)}px`; // Minimum 50px
       }
 
       if (this.element.type === 'text') {
@@ -373,6 +477,14 @@ export default {
         }
       }
 
+      // Handle z-index for layer ordering
+      if (this.element.zIndex) {
+        style.zIndex = this.element.zIndex;
+      } else {
+        // Default z-index based on selection state
+        style.zIndex = this.isSelected ? 1000 : 1;
+      }
+
       return style;
     },
     shouldShowInPresent() {
@@ -380,6 +492,17 @@ export default {
       
       // Always render, but use CSS to control visibility
       return true;
+    },
+    rectangleStyle() {
+      // Specific style for rectangle elements
+      const baseStyle = {
+        ...this.elementStyle,
+        backgroundColor: this.element.color || '#4a90e2',
+        border: `${this.element.borderWidth || 2}px solid ${this.element.borderColor || '#2c5aa0'}`,
+        borderRadius: (this.element.borderRadius || 0) + 'px',
+        opacity: this.element.opacity || 1
+      };
+      return baseStyle;
     }
   },
   methods: {
@@ -556,6 +679,109 @@ export default {
       this.$emit('update', updated);
       this.customOpacityValue = 0.1;
       this.showActionsMenu = false;
+    },
+    
+    // Layer ordering methods
+    moveToTopLayer() {
+      // Set a high z-index to bring element to front
+      const updated = {
+        ...this.element,
+        zIndex: 9999
+      };
+      this.$emit('update', updated);
+    },
+    
+    moveToBackgroundLayer() {
+      // Set a low z-index to send element to back
+      const updated = {
+        ...this.element,
+        zIndex: 1
+      };
+      this.$emit('update', updated);
+    },
+    
+    duplicateElement() {
+      // Emit a duplicate event with the element data
+      // The parent component will handle adding the duplicate to the slide
+      this.$emit('duplicate', { ...this.element });
+    },
+    
+    // Resize functionality for rectangles
+    startResize(event, corner) {
+      if (this.mode !== 'edit') return;
+      
+      this.isResizing = true;
+      this.resizeCorner = corner;
+      this.resizeStartX = event.clientX;
+      this.resizeStartY = event.clientY;
+      this.resizeStartWidth = this.element.width;
+      this.resizeStartHeight = this.element.height;
+      this.resizeStartXPos = this.element.x;
+      this.resizeStartYPos = this.element.y;
+      
+      document.addEventListener('mousemove', this.handleResize);
+      document.addEventListener('mouseup', this.stopResize);
+      
+      event.preventDefault();
+      event.stopPropagation();
+    },
+    
+    handleResize(event) {
+      if (!this.isResizing) return;
+      
+      const deltaX = event.clientX - this.resizeStartX;
+      const deltaY = event.clientY - this.resizeStartY;
+      
+      let newWidth = this.resizeStartWidth;
+      let newHeight = this.resizeStartHeight;
+      let newX = this.resizeStartXPos;
+      let newY = this.resizeStartYPos;
+      
+      // Handle width and X position based on corner
+      if (this.resizeCorner.includes('e')) {
+        // Right side resizing
+        newWidth = Math.max(50, this.resizeStartWidth + deltaX);
+      } else if (this.resizeCorner.includes('w')) {
+        // Left side resizing
+        const proposedX = this.resizeStartXPos + deltaX;
+        const proposedWidth = this.resizeStartWidth - deltaX;
+        if (proposedWidth >= 50 && proposedX >= 0) {
+          newX = proposedX;
+          newWidth = proposedWidth;
+        }
+      }
+      
+      // Handle height and Y position based on corner
+      if (this.resizeCorner.includes('s')) {
+        // Bottom side resizing
+        newHeight = Math.max(50, this.resizeStartHeight + deltaY);
+      } else if (this.resizeCorner.includes('n')) {
+        // Top side resizing
+        const proposedY = this.resizeStartYPos + deltaY;
+        const proposedHeight = this.resizeStartHeight - deltaY;
+        if (proposedHeight >= 50 && proposedY >= 0) {
+          newY = proposedY;
+          newHeight = proposedHeight;
+        }
+      }
+      
+      // Update element with new dimensions
+      const updated = {
+        ...this.element,
+        width: Math.round(newWidth),
+        height: Math.round(newHeight),
+        x: Math.round(newX),
+        y: Math.round(newY)
+      };
+      
+      this.$emit('update', updated);
+    },
+    
+    stopResize() {
+      this.isResizing = false;
+      this.resizeCorner = null;
+      document.removeEventListener('mousemove', this.handleResize);
+      document.removeEventListener('mouseup', this.stopResize);
     }
   }
 };
@@ -749,6 +975,97 @@ export default {
   border-radius: 4px;
 }
 
+/* Rectangle Element Styles */
+.element-rectangle {
+  box-sizing: border-box;
+  transition: box-shadow 0.2s ease;
+  /* Width and height set via inline styles */
+}
+
+.slide-element.selected .element-rectangle {
+  box-shadow: 0 0 0 2px #4a90e2;
+}
+
+/* Resize Controls - All 8 handles */
+.resize-controls {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none; /* Allow clicks to pass through */
+}
+
+.resize-handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: white;
+  border: 2px solid #4a90e2;
+  border-radius: 50%;
+  pointer-events: auto; /* Enable clicking on handles */
+  z-index: 10;
+}
+
+.resize-handle:hover {
+  background: #4a90e2;
+  transform: scale(1.2);
+}
+
+/* Corner Handles */
+.resize-nw {
+  top: -6px;
+  left: -6px;
+  cursor: nwse-resize;
+}
+
+.resize-ne {
+  top: -6px;
+  right: -6px;
+  cursor: nesw-resize;
+}
+
+.resize-sw {
+  bottom: -6px;
+  left: -6px;
+  cursor: nesw-resize;
+}
+
+.resize-se {
+  bottom: -6px;
+  right: -6px;
+  cursor: nwse-resize;
+}
+
+/* Edge Center Handles */
+.resize-n {
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: ns-resize;
+}
+
+.resize-e {
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: ew-resize;
+}
+
+.resize-s {
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: ns-resize;
+}
+
+.resize-w {
+  left: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: ew-resize;
+}
+
 .element-controls {
   position: absolute;
   top: -12px;
@@ -800,22 +1117,6 @@ export default {
   border-color: #4caf50;
   color: #2e7d32;
   transform: scale(1.1);
-}
-
-.resize-handle {
-  position: absolute;
-  bottom: -12px;
-  right: -12px;
-  width: 16px;
-  height: 16px;
-  background: #4a90e2;
-  border: 2px solid white;
-  border-radius: 50%;
-  cursor: nwse-resize;
-}
-
-.resize-handle:hover {
-  background: #5a9ff2;
 }
 
 .animation-badge {
