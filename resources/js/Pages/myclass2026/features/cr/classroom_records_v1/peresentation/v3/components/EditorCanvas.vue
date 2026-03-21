@@ -74,10 +74,13 @@
     <!-- Canvas Container -->
     <div class="flex justify-center">
       <div
+        ref="canvasRef"
+        tabindex="0"
         @paste="handlePaste"
         @dragover.prevent
         @drop="handleDrop"
-        class="relative bg-white shadow-2xl"
+        @contextmenu.prevent="showContextMenu"
+        class="relative bg-white shadow-2xl outline-none"
         :style="{ width: '794px', height: slideHeight + 'px' }"
       >
         <!-- Elements -->
@@ -105,6 +108,41 @@
       </div>
     </div>
 
+    <!-- Canvas Context Menu -->
+    <div
+      v-if="showCanvasMenu"
+      ref="contextMenuRef"
+      class="fixed bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50"
+      :style="{ left: contextMenuX + 'px', top: contextMenuY + 'px' }"
+      @click.stop
+    >
+      <button
+        @click="pasteFromCanvasMenu"
+        class="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+        </svg>
+        Paste from Clipboard
+      </button>
+      <button
+        @click="addDateTimeText"
+        class="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        Add Date & Time
+      </button>
+      <div class="border-t border-gray-200 my-1"></div>
+      <button
+        @click="hideCanvasMenu"
+        class="w-full px-4 py-2 text-left text-gray-500 hover:bg-gray-100"
+      >
+        Cancel
+      </button>
+    </div>
+
     <!-- Hidden File Input -->
     <input
       ref="imageInput"
@@ -117,7 +155,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import ElementNode from './ElementNode.vue'
 
 const props = defineProps({
@@ -134,7 +172,12 @@ const props = defineProps({
 const emit = defineEmits(['slide-update'])
 
 const imageInput = ref(null)
+const canvasRef = ref(null)
+const contextMenuRef = ref(null)
 const showPasteZone = ref(false)
+const showCanvasMenu = ref(false)
+const contextMenuX = ref(0)
+const contextMenuY = ref(0)
 
 let pasteTimeout = null
 
@@ -247,23 +290,9 @@ const handleImageUpload = (event) => {
   }
 }
 
-const triggerPaste = () => {
-  // Focus the canvas and show a hint to use Ctrl+V
-  const canvas = document.querySelector('.bg-white.shadow-2xl') || document.body
-  canvas.focus()
-  
-  // Show a temporary tooltip or message
-  const message = document.createElement('div')
-  message.textContent = 'Press Ctrl+V to paste'
-  message.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-indigo-500 text-white px-4 py-2 rounded-lg shadow-lg z-50'
-  document.body.appendChild(message)
-  
-  setTimeout(() => {
-    document.body.removeChild(message)
-  }, 2000)
-  
-  // Also try the clipboard API as fallback
-  pasteFromClipboard()
+const triggerPaste = async () => {
+  canvasRef.value?.focus()
+  await pasteFromClipboard()
 }
 
 const pasteFromClipboard = async () => {
@@ -431,7 +460,72 @@ const showPasteMessage = (message) => {
 
 const handlePaste = (event) => {
   event.preventDefault()
-  pasteFromClipboard()
+  event.stopPropagation()
+
+  const items = event.clipboardData?.items
+  if (!items) return
+
+  let imageHandled = false
+  for (const item of Array.from(items)) {
+    if (item.type.startsWith('image/')) {
+      const blob = item.getAsFile()
+      if (blob) {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          const img = new Image()
+          img.onload = () => {
+            const imageElement = {
+              id: Date.now(),
+              type: 'image',
+              x: 100,
+              y: 100,
+              width: img.width,
+              height: img.height,
+              src: e.target.result,
+              opacity: 1,
+              startHidden: false,
+              clickable: false,
+              moveable: false,
+              zIndex: 1
+            }
+            emit('slide-update', { ...props.currentSlide, elements: [...props.currentSlide.elements, imageElement] })
+          }
+          img.src = e.target.result
+        }
+        reader.readAsDataURL(blob)
+        imageHandled = true
+        break
+      }
+    }
+  }
+
+  if (!imageHandled) {
+    for (const item of Array.from(items)) {
+      if (item.type === 'text/plain') {
+        item.getAsString((text) => {
+          if (!text?.trim()) return
+          const textElement = {
+            id: Date.now(),
+            type: 'text',
+            x: 100,
+            y: 100,
+            width: 400,
+            height: 30,
+            content: text.trim(),
+            fontSize: 24,
+            color: '#000000',
+            opacity: 1,
+            startHidden: false,
+            clickable: false,
+            moveable: false,
+            zIndex: 1
+          }
+          emit('slide-update', { ...props.currentSlide, elements: [...props.currentSlide.elements, textElement] })
+        })
+        break
+      }
+    }
+  }
 }
 
 const handleDrop = (event) => {
@@ -481,6 +575,66 @@ const handleDragOver = () => {
   pasteTimeout = setTimeout(() => {
     showPasteZone.value = false
   }, 3000)
+}
+
+// Context Menu Functions
+const showContextMenu = (event) => {
+  contextMenuX.value = event.clientX
+  contextMenuY.value = event.clientY
+  showCanvasMenu.value = true
+  
+  // Hide menu when clicking outside
+  nextTick(() => {
+    document.addEventListener('click', hideCanvasMenu)
+  })
+}
+
+const hideCanvasMenu = () => {
+  showCanvasMenu.value = false
+  document.removeEventListener('click', hideCanvasMenu)
+}
+
+const pasteFromCanvasMenu = async () => {
+  hideCanvasMenu()
+  await pasteFromClipboard()
+}
+
+const addDateTimeText = () => {
+  hideCanvasMenu()
+  
+  const now = new Date()
+  const dateTimeString = now.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  })
+  
+  const textElement = {
+    id: Date.now(),
+    type: 'text',
+    x: 100,
+    y: 100,
+    width: 400,
+    height: 30,
+    content: dateTimeString,
+    fontSize: 18,
+    color: '#000000',
+    opacity: 1,
+    startHidden: false,
+    clickable: false,
+    moveable: false,
+    zIndex: 1
+  }
+  
+  const updatedSlide = {
+    ...props.currentSlide,
+    elements: [...props.currentSlide.elements, textElement]
+  }
+  
+  emit('slide-update', updatedSlide)
 }
 
 onMounted(() => {
