@@ -210,7 +210,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update', 'delete'])
+const emit = defineEmits(['update', 'delete', 'duplicate'])
 
 const elementRef = ref(null)
 const contextMenuRef = ref(null)
@@ -461,7 +461,7 @@ const duplicate = () => {
     x: props.element.x + 20,
     y: props.element.y + 20
   }
-  emit('update', duplicated)
+  emit('duplicate', duplicated)
   showContextMenu.value = false
 }
 

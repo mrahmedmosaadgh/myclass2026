@@ -87,6 +87,7 @@
           :element="element"
           @update="updateElement"
           @delete="deleteElement"
+          @duplicate="duplicateElement"
         />
 
         <!-- Paste Zone Overlay -->
@@ -192,6 +193,15 @@ const deleteElement = (elementId) => {
   const updatedSlide = {
     ...props.currentSlide,
     elements: props.currentSlide.elements.filter(el => el.id !== elementId)
+  }
+  
+  emit('slide-update', updatedSlide)
+}
+
+const duplicateElement = (duplicatedElement) => {
+  const updatedSlide = {
+    ...props.currentSlide,
+    elements: [...props.currentSlide.elements, duplicatedElement]
   }
   
   emit('slide-update', updatedSlide)
