@@ -60,7 +60,7 @@
 
         <!-- Paste -->
         <button
-          @click="pasteFromClipboard"
+          @click="triggerPaste"
           class="p-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors"
           title="Paste from Clipboard"
         >
@@ -237,8 +237,36 @@ const handleImageUpload = (event) => {
   }
 }
 
+const triggerPaste = () => {
+  // Focus the canvas and show a hint to use Ctrl+V
+  const canvas = document.querySelector('.bg-white.shadow-2xl') || document.body
+  canvas.focus()
+  
+  // Show a temporary tooltip or message
+  const message = document.createElement('div')
+  message.textContent = 'Press Ctrl+V to paste'
+  message.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-indigo-500 text-white px-4 py-2 rounded-lg shadow-lg z-50'
+  document.body.appendChild(message)
+  
+  setTimeout(() => {
+    document.body.removeChild(message)
+  }, 2000)
+  
+  // Also try the clipboard API as fallback
+  pasteFromClipboard()
+}
+
 const pasteFromClipboard = async () => {
   try {
+    // Request clipboard permission if needed
+    if (navigator.permissions && navigator.permissions.query) {
+      const permission = await navigator.permissions.query({ name: 'clipboard-read' })
+      if (permission.state === 'denied') {
+        console.warn('Clipboard access denied')
+        return
+      }
+    }
+
     const clipboardItems = await navigator.clipboard.read()
     for (const clipboardItem of clipboardItems) {
       for (const type of clipboardItem.types) {
@@ -310,6 +338,37 @@ const pasteFromClipboard = async () => {
     }
   } catch (error) {
     console.error('Failed to read clipboard:', error)
+    // Fallback: Try to read text clipboard
+    try {
+      const text = await navigator.clipboard.readText()
+      if (text) {
+        const textElement = {
+          id: Date.now(),
+          type: 'text',
+          x: 100,
+          y: 100,
+          width: 200,
+          height: 30,
+          content: text,
+          fontSize: 24,
+          color: '#000000',
+          opacity: 1,
+          startHidden: false,
+          clickable: false,
+          moveable: false,
+          zIndex: 1
+        }
+
+        const updatedSlide = {
+          ...props.currentSlide,
+          elements: [...props.currentSlide.elements, textElement]
+        }
+        
+        emit('slide-update', updatedSlide)
+      }
+    } catch (textError) {
+      console.error('Failed to read text clipboard:', textError)
+    }
   }
 }
 
