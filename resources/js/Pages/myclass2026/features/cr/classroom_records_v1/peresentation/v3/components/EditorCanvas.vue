@@ -268,33 +268,58 @@ const triggerPaste = () => {
 
 const pasteFromClipboard = async () => {
   try {
-    // Request clipboard permission if needed
-    if (navigator.permissions && navigator.permissions.query) {
-      const permission = await navigator.permissions.query({ name: 'clipboard-read' })
-      if (permission.state === 'denied') {
-        console.warn('Clipboard access denied')
-        return
-      }
-    }
+    // First try the modern clipboard API for images and rich content
+    if (navigator.clipboard && navigator.clipboard.read) {
+      const clipboardItems = await navigator.clipboard.read()
+      for (const clipboardItem of clipboardItems) {
+        for (const type of clipboardItem.types) {
+          if (type.startsWith('image/')) {
+            const blob = await clipboardItem.getType(type)
+            const reader = new FileReader()
+            reader.onload = (e) => {
+              // Create an image to get original dimensions
+              const img = new Image()
+              img.onload = () => {
+                const imageElement = {
+                  id: Date.now(),
+                  type: 'image',
+                  x: 100,
+                  y: 100,
+                  width: img.width,
+                  height: img.height,
+                  src: e.target.result,
+                  opacity: 1,
+                  startHidden: false,
+                  clickable: false,
+                  moveable: false,
+                  zIndex: 1
+                }
 
-    const clipboardItems = await navigator.clipboard.read()
-    for (const clipboardItem of clipboardItems) {
-      for (const type of clipboardItem.types) {
-        if (type.startsWith('image/')) {
-          const blob = await clipboardItem.getType(type)
-          const reader = new FileReader()
-          reader.onload = (e) => {
-            // Create an image to get original dimensions
-            const img = new Image()
-            img.onload = () => {
-              const imageElement = {
+                const updatedSlide = {
+                  ...props.currentSlide,
+                  elements: [...props.currentSlide.elements, imageElement]
+                }
+                
+                emit('slide-update', updatedSlide)
+              }
+              img.src = e.target.result
+            }
+            reader.readAsDataURL(blob)
+            return
+          } else if (type === 'text/plain') {
+            const text = await clipboardItem.getType(type)
+            const reader = new FileReader()
+            reader.onload = (e) => {
+              const textElement = {
                 id: Date.now(),
-                type: 'image',
+                type: 'text',
                 x: 100,
                 y: 100,
-                width: img.width,
-                height: img.height,
-                src: e.target.result,
+                width: 200,
+                height: 30,
+                content: e.target.result,
+                fontSize: 24,
+                color: '#000000',
                 opacity: 1,
                 startHidden: false,
                 clickable: false,
@@ -304,54 +329,22 @@ const pasteFromClipboard = async () => {
 
               const updatedSlide = {
                 ...props.currentSlide,
-                elements: [...props.currentSlide.elements, imageElement]
+                elements: [...props.currentSlide.elements, textElement]
               }
               
               emit('slide-update', updatedSlide)
             }
-            img.src = e.target.result
+            reader.readAsText(text)
+            return
           }
-          reader.readAsDataURL(blob)
-          return
-        } else if (type === 'text/plain') {
-          const text = await clipboardItem.getType(type)
-          const reader = new FileReader()
-          reader.onload = (e) => {
-            const textElement = {
-              id: Date.now(),
-              type: 'text',
-              x: 100,
-              y: 100,
-              width: 200,
-              height: 30,
-              content: e.target.result,
-              fontSize: 24,
-              color: '#000000',
-              opacity: 1,
-              startHidden: false,
-              clickable: false,
-              moveable: false,
-              zIndex: 1
-            }
-
-            const updatedSlide = {
-              ...props.currentSlide,
-              elements: [...props.currentSlide.elements, textElement]
-            }
-            
-            emit('slide-update', updatedSlide)
-          }
-          reader.readAsText(text)
-          return
         }
       }
     }
-  } catch (error) {
-    console.error('Failed to read clipboard:', error)
-    // Fallback: Try to read text clipboard
-    try {
+
+    // Fallback: Try to read text clipboard (more reliable for text)
+    if (navigator.clipboard && navigator.clipboard.readText) {
       const text = await navigator.clipboard.readText()
-      if (text) {
+      if (text && text.trim()) {
         const textElement = {
           id: Date.now(),
           type: 'text',
@@ -375,11 +368,65 @@ const pasteFromClipboard = async () => {
         }
         
         emit('slide-update', updatedSlide)
+        return
+      }
+    }
+
+    // If nothing was found, show a message
+    showPasteMessage('No content found in clipboard')
+    
+  } catch (error) {
+    console.error('Failed to read clipboard:', error)
+    
+    // Try simple text fallback
+    try {
+      const text = await navigator.clipboard.readText()
+      if (text && text.trim()) {
+        const textElement = {
+          id: Date.now(),
+          type: 'text',
+          x: 100,
+          y: 100,
+          width: 200,
+          height: 30,
+          content: text,
+          fontSize: 24,
+          color: '#000000',
+          opacity: 1,
+          startHidden: false,
+          clickable: false,
+          moveable: false,
+          zIndex: 1
+        }
+
+        const updatedSlide = {
+          ...props.currentSlide,
+          elements: [...props.currentSlide.elements, textElement]
+        }
+        
+        emit('slide-update', updatedSlide)
+      } else {
+        showPasteMessage('No text content found in clipboard')
       }
     } catch (textError) {
       console.error('Failed to read text clipboard:', textError)
+      showPasteMessage('Clipboard access denied or no content available')
     }
   }
+}
+
+const showPasteMessage = (message) => {
+  // Show a temporary message
+  const messageEl = document.createElement('div')
+  messageEl.textContent = message
+  messageEl.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-orange-500 text-white px-4 py-2 rounded-lg shadow-lg z-50'
+  document.body.appendChild(messageEl)
+  
+  setTimeout(() => {
+    if (document.body.contains(messageEl)) {
+      document.body.removeChild(messageEl)
+    }
+  }, 3000)
 }
 
 const handlePaste = (event) => {
