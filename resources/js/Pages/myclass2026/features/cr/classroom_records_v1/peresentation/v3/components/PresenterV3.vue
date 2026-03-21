@@ -42,6 +42,14 @@
               class="w-full h-full"
               :style="getRectangleStyle(element)"
             ></div>
+
+            <!-- Custom Rectangle Elements -->
+            <div
+              v-else-if="element.type === 'custom-rectangle'"
+              class="w-full h-full cursor-pointer"
+              :style="getCustomRectangleStyle(element)"
+              @click="handleCustomRectangleClick(element)"
+            ></div>
           </div>
         </div>
       </div>
@@ -154,12 +162,29 @@ const getTextStyle = (element) => ({
 })
 
 const getRectangleStyle = (element) => ({
-  backgroundColor: element.backgroundColor,
-  borderColor: element.borderColor,
-  borderWidth: `${element.borderWidth}px`,
+  backgroundColor: element.background || 'transparent',
+  borderColor: getBorderColor(element),
+  borderWidth: '2px',
   borderStyle: 'solid',
-  borderRadius: `${element.borderRadius}px`
+  borderRadius: '0px'
 })
+
+const getCustomRectangleStyle = (element) => ({
+  backgroundColor: element.background || '#3B82F6',
+  borderColor: getBorderColor(element),
+  borderWidth: '2px',
+  borderStyle: 'solid',
+  borderRadius: '0px'
+})
+
+const getBorderColor = (element) => {
+  if (element.border) {
+    // Extract color from border string like "2px solid #000000"
+    const match = element.border.match(/#\w+/)
+    return match ? match[0] : '#000000'
+  }
+  return element.color || '#000000'
+}
 
 const getElementCursor = (element) => {
   if (element.moveable) return 'move'
@@ -173,6 +198,27 @@ const handleElementClick = (element) => {
     const stateKey = `${props.currentSlideIndex}-${element.id}`
     const currentState = elementStates.value.get(stateKey) !== false
     elementStates.value.set(stateKey, !currentState)
+    
+    // Play click sound if available
+    if (window.SoundManager) {
+      SoundManager.playClick(0.5)
+    }
+  }
+}
+
+const handleCustomRectangleClick = (element) => {
+  if (element.clickable) {
+    // Toggle visibility state
+    const stateKey = `${props.currentSlideIndex}-${element.id}`
+    const currentState = elementStates.value.get(stateKey) !== false
+    elementStates.value.set(stateKey, !currentState)
+    
+    // Visual feedback
+    const target = event.target
+    target.style.transform = 'scale(0.95)'
+    setTimeout(() => {
+      target.style.transform = 'scale(1)'
+    }, 100)
     
     // Play click sound if available
     if (window.SoundManager) {
