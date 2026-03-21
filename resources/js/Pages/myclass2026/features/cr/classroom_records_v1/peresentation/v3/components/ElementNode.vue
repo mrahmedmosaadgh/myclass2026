@@ -30,6 +30,13 @@
       :style="rectangleStyle"
     ></div>
 
+    <div
+      v-else-if="element.type === 'custom-rectangle'"
+      class="w-full h-full cursor-pointer"
+      :style="customRectangleStyle"
+      @click="handleClick"
+    ></div>
+
     <!-- Selection Border -->
     <div
       v-if="isSelected"
@@ -37,7 +44,7 @@
     ></div>
 
     <!-- Resize Handles -->
-    <template v-if="isSelected && element.type === 'rectangle'">
+    <template v-if="isSelected && (element.type === 'rectangle' || element.type === 'custom-rectangle')">
       <div
         v-for="handle in resizeHandles"
         :key="handle"
@@ -238,11 +245,19 @@ const textStyle = computed(() => ({
 }))
 
 const rectangleStyle = computed(() => ({
-  backgroundColor: props.element.backgroundColor,
-  borderColor: props.element.borderColor,
-  borderWidth: `${props.element.borderWidth}px`,
+  backgroundColor: props.element.background || 'transparent',
+  borderColor: props.element.color || '#000000',
+  borderWidth: '2px',
   borderStyle: 'solid',
-  borderRadius: `${props.element.borderRadius}px`
+  borderRadius: '0px'
+}))
+
+const customRectangleStyle = computed(() => ({
+  backgroundColor: props.element.background || '#3B82F6',
+  borderColor: props.element.border ? props.element.border.replace('2px solid ', '') : '#1E40AF',
+  borderWidth: '2px',
+  borderStyle: 'solid',
+  borderRadius: '0px'
 }))
 
 const stateIndicatorClass = computed(() => {
@@ -468,6 +483,20 @@ const duplicate = () => {
 const deleteElement = () => {
   emit('delete', props.element.id)
   showContextMenu.value = false
+}
+
+const handleClick = (event) => {
+  if (props.element.clickable) {
+    event.stopPropagation()
+    // You can add custom click behavior here
+    console.log('Custom rectangle clicked!', props.element.id)
+    // For now, just show a simple feedback
+    const element = event.target
+    element.style.transform = 'scale(0.95)'
+    setTimeout(() => {
+      element.style.transform = 'scale(1)'
+    }, 100)
+  }
 }
 
 const handleClickOutside = (event) => {

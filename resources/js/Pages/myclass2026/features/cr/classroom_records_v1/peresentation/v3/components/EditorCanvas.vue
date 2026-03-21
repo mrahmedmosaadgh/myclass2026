@@ -58,6 +58,17 @@
           </svg>
         </button>
 
+        <!-- Custom Rectangle (Clickable & Visible) -->
+        <button
+          @click="addElement('custom-rectangle')"
+          class="p-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors"
+          title="Add Custom Rectangle (Clickable & Visible)"
+        >
+          <svg class="w-5 h-5" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24">
+            <rect x="4" y="6" width="16" height="12" fill="currentColor" stroke="white" stroke-width="2"></rect>
+          </svg>
+        </button>
+
         <!-- Paste -->
         <button
           @click="triggerPaste"
@@ -187,7 +198,8 @@ const addElement = (type) => {
     heading: { width: 300, height: 60, content: 'Heading', fontSize: 48 },
     subheading: { width: 250, height: 40, content: 'Subheading', fontSize: 32 },
     image: { width: 200, height: 150, content: '', fontSize: 16 },
-    rectangle: { width: 150, height: 100, content: '', fontSize: 16 }
+    rectangle: { width: 150, height: 100, content: '', fontSize: 16 },
+    'custom-rectangle': { width: 150, height: 100, content: '', fontSize: 16 }
   }
 
   const dim = dimensions[type] || dimensions.text
@@ -202,14 +214,12 @@ const addElement = (type) => {
     content: dim.content,
     fontSize: dim.fontSize,
     color: '#000000',
-    backgroundColor: type === 'rectangle' ? '#3B82F6' : 'transparent',
-    borderColor: type === 'rectangle' ? '#1E40AF' : 'transparent',
-    borderWidth: type === 'rectangle' ? 2 : 0,
-    borderRadius: type === 'rectangle' ? 8 : 0,
+    background: type === 'custom-rectangle' ? '#3B82F6' : 'transparent',
+    border: type === 'custom-rectangle' ? '2px solid #1E40AF' : '2px solid #000000',
     opacity: 1,
     startHidden: false,
-    clickable: false,
-    moveable: false,
+    clickable: type === 'custom-rectangle' ? true : false,
+    moveable: true,
     zIndex: 1
   }
 
