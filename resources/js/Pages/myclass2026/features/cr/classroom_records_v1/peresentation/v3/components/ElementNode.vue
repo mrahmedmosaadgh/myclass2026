@@ -172,6 +172,47 @@
         </button>
       </div>
 
+      <!-- Color Section (for rectangles) -->
+      <div v-if="element.type === 'rectangle' || element.type === 'custom-rectangle'" class="p-2 border-b border-gray-200">
+        <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Color</h4>
+        
+        <div class="space-y-2">
+          <div class="flex items-center space-x-2">
+            <label class="text-sm text-gray-600 w-16">Fill:</label>
+            <input
+              type="color"
+              :value="element.background || '#000000'"
+              @input="updateColor('background', $event.target.value)"
+              class="w-8 h-8 border border-gray-300 rounded cursor-pointer"
+            />
+            <input
+              type="text"
+              :value="element.background || '#000000'"
+              @input="updateColor('background', $event.target.value)"
+              class="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
+              placeholder="#000000"
+            />
+          </div>
+          
+          <div class="flex items-center space-x-2">
+            <label class="text-sm text-gray-600 w-16">Border:</label>
+            <input
+              type="color"
+              :value="getBorderColor()"
+              @input="updateBorderColor($event.target.value)"
+              class="w-8 h-8 border border-gray-300 rounded cursor-pointer"
+            />
+            <input
+              type="text"
+              :value="getBorderColor()"
+              @input="updateBorderColor($event.target.value)"
+              class="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
+              placeholder="#000000"
+            />
+          </div>
+        </div>
+      </div>
+
       <!-- Element Section -->
       <div class="p-2">
         <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Element</h4>
@@ -246,7 +287,7 @@ const textStyle = computed(() => ({
 
 const rectangleStyle = computed(() => ({
   backgroundColor: props.element.background || 'transparent',
-  borderColor: props.element.color || '#000000',
+  borderColor: getBorderColor(),
   borderWidth: '2px',
   borderStyle: 'solid',
   borderRadius: '0px'
@@ -254,7 +295,7 @@ const rectangleStyle = computed(() => ({
 
 const customRectangleStyle = computed(() => ({
   backgroundColor: props.element.background || '#3B82F6',
-  borderColor: props.element.border ? props.element.border.replace('2px solid ', '') : '#1E40AF',
+  borderColor: getBorderColor(),
   borderWidth: '2px',
   borderStyle: 'solid',
   borderRadius: '0px'
@@ -497,6 +538,29 @@ const handleClick = (event) => {
       element.style.transform = 'scale(1)'
     }, 100)
   }
+}
+
+const updateColor = (property, color) => {
+  emit('update', {
+    ...props.element,
+    [property]: color
+  })
+}
+
+const getBorderColor = () => {
+  if (props.element.border) {
+    // Extract color from border string like "2px solid #000000"
+    const match = props.element.border.match(/#\w+/)
+    return match ? match[0] : '#000000'
+  }
+  return props.element.color || '#000000'
+}
+
+const updateBorderColor = (color) => {
+  emit('update', {
+    ...props.element,
+    border: `2px solid ${color}`
+  })
 }
 
 const handleClickOutside = (event) => {
