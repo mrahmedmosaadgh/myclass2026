@@ -162,7 +162,7 @@ const getTextStyle = (element) => ({
 })
 
 const getRectangleStyle = (element) => ({
-  backgroundColor: element.background || 'transparent',
+  backgroundColor: element.background || '#3B82F6',
   borderColor: getBorderColor(element),
   borderWidth: '2px',
   borderStyle: 'solid',

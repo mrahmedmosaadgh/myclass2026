@@ -214,8 +214,8 @@ const addElement = (type) => {
     content: dim.content,
     fontSize: dim.fontSize,
     color: '#000000',
-    background: type === 'custom-rectangle' ? '#3B82F6' : 'transparent',
-    border: type === 'custom-rectangle' ? '2px solid #1E40AF' : '2px solid #000000',
+    background: type === 'custom-rectangle' ? '#3B82F6' : '#3B82F6',
+    border: type === 'custom-rectangle' ? '2px solid #1E40AF' : '2px solid #1E40AF',
     opacity: 1,
     startHidden: false,
     clickable: (type === 'rectangle' || type === 'custom-rectangle') ? true : false,
@@ -301,32 +301,32 @@ const handleImageUpload = (event) => {
 }
 
 const triggerPaste = async () => {
-  console.log('🔥 Trigger paste button clicked')
+  // console.log('🔥 Trigger paste button clicked')
   canvasRef.value?.focus()
-  console.log('🔥 Canvas focused, attempting to paste from clipboard')
+  // console.log('🔥 Canvas focused, attempting to paste from clipboard')
   await pasteFromClipboard()
 }
 
 const pasteFromClipboard = async () => {
-  console.log('🔥 pasteFromClipboard called')
+  // // console.log('🔥 pasteFromClipboard called')
   try {
     // First try the modern clipboard API for images and rich content
     if (navigator.clipboard && navigator.clipboard.read) {
-      console.log('🔥 Using modern clipboard API')
+      // console.log('🔥 Using modern clipboard API')
       const clipboardItems = await navigator.clipboard.read()
-      console.log('🔥 Clipboard items found:', clipboardItems.length)
+      // console.log('🔥 Clipboard items found:', clipboardItems.length)
       for (const clipboardItem of clipboardItems) {
-        console.log('🔥 Clipboard item types:', clipboardItem.types)
+        // console.log('🔥 Clipboard item types:', clipboardItem.types)
         for (const type of clipboardItem.types) {
           if (type.startsWith('image/')) {
-            console.log('🔥 Found image type:', type)
+            // console.log('🔥 Found image type:', type)
             const blob = await clipboardItem.getType(type)
             const reader = new FileReader()
             reader.onload = (e) => {
               // Create an image to get original dimensions
               const img = new Image()
               img.onload = () => {
-                console.log('🔥 Image loaded, dimensions:', img.width, 'x', img.height)
+                // console.log('🔥 Image loaded, dimensions:', img.width, 'x', img.height)
                 const imageElement = {
                   id: Date.now(),
                   type: 'image',
@@ -347,7 +347,7 @@ const pasteFromClipboard = async () => {
                   elements: [...props.currentSlide.elements, imageElement]
                 }
                 
-                console.log('🔥 Emitting slide update with image element')
+                // console.log('🔥 Emitting slide update with image element')
                 emit('slide-update', updatedSlide)
               }
               img.src = e.target.result
@@ -355,11 +355,11 @@ const pasteFromClipboard = async () => {
             reader.readAsDataURL(blob)
             return
           } else if (type === 'text/plain') {
-            console.log('🔥 Found text type:', type)
+            // console.log('🔥 Found text type:', type)
             const text = await clipboardItem.getType(type)
             const reader = new FileReader()
             reader.onload = (e) => {
-              console.log('🔥 Text content loaded:', e.target.result)
+              // console.log('🔥 Text content loaded:', e.target.result)
               const textElement = {
                 id: Date.now(),
                 type: 'text',
@@ -382,7 +382,7 @@ const pasteFromClipboard = async () => {
                 elements: [...props.currentSlide.elements, textElement]
               }
               
-              console.log('🔥 Emitting slide update with text element')
+              // console.log('🔥 Emitting slide update with text element')
               emit('slide-update', updatedSlide)
             }
             reader.readAsText(text)
@@ -393,10 +393,10 @@ const pasteFromClipboard = async () => {
     }
 
     // Fallback: Try to read text clipboard (more reliable for text)
-    console.log('🔥 Trying fallback text clipboard')
+    // console.log('🔥 Trying fallback text clipboard')
     if (navigator.clipboard && navigator.clipboard.readText) {
       const text = await navigator.clipboard.readText()
-      console.log('🔥 Fallback text:', text)
+      // console.log('🔥 Fallback text:', text)
       if (text && text.trim()) {
         const textElement = {
           id: Date.now(),
@@ -420,14 +420,14 @@ const pasteFromClipboard = async () => {
           elements: [...props.currentSlide.elements, textElement]
         }
         
-        console.log('🔥 Emitting slide update with fallback text element')
+        // console.log('🔥 Emitting slide update with fallback text element')
         emit('slide-update', updatedSlide)
         return
       }
     }
 
     // If nothing was found, show a message
-    console.log('🔥 No content found in clipboard')
+    // console.log('🔥 No content found in clipboard')
     showPasteMessage('No content found in clipboard')
     
   } catch (error) {
@@ -435,9 +435,9 @@ const pasteFromClipboard = async () => {
     
     // Try simple text fallback
     try {
-      console.log('🔥 Trying simple text fallback')
+      // console.log('🔥 Trying simple text fallback')
       const text = await navigator.clipboard.readText()
-      console.log('🔥 Simple fallback text:', text)
+      // console.log('🔥 Simple fallback text:', text)
       if (text && text.trim()) {
         const textElement = {
           id: Date.now(),
@@ -461,10 +461,10 @@ const pasteFromClipboard = async () => {
           elements: [...props.currentSlide.elements, textElement]
         }
         
-        console.log('🔥 Emitting slide update with simple fallback text')
+        // console.log('🔥 Emitting slide update with simple fallback text')
         emit('slide-update', updatedSlide)
       } else {
-        console.log('🔥 No text content in simple fallback')
+        // console.log('🔥 No text content in simple fallback')
         showPasteMessage('No text content found in clipboard')
       }
     } catch (textError) {
@@ -625,7 +625,7 @@ const hideCanvasMenu = () => {
 }
 
 const pasteFromCanvasMenu = async () => {
-  console.log('🔥 Context menu paste clicked')
+  // console.log('🔥 Context menu paste clicked')
   hideCanvasMenu()
   await pasteFromClipboard()
 }
