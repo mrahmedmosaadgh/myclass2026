@@ -37,6 +37,13 @@
       @click="handleClick"
     ></div>
 
+    <div
+      v-else-if="element.type === 'rounded-rectangle'"
+      class="w-full h-full cursor-pointer"
+      :style="roundedRectangleStyle"
+      @click="handleClick"
+    ></div>
+
     <!-- Selection Border -->
     <div
       v-if="isSelected"
@@ -73,7 +80,7 @@
     </div>
 
     <!-- Resize Handles -->
-    <template v-if="isSelected && (element.type === 'rectangle' || element.type === 'custom-rectangle')">
+    <template v-if="isSelected && (element.type === 'rectangle' || element.type === 'custom-rectangle' || element.type === 'rounded-rectangle')">>
       <div
         v-for="handle in resizeHandles"
         :key="handle"
@@ -330,6 +337,14 @@ const customRectangleStyle = computed(() => ({
   borderRadius: '0px'
 }))
 
+const roundedRectangleStyle = computed(() => ({
+  backgroundColor: props.element.background || '#3B82F6',
+  borderColor: getBorderColor(),
+  borderWidth: '2px',
+  borderStyle: 'solid',
+  borderRadius: '12px'
+}))
+
 const stateIndicatorClass = computed(() => {
   if (props.element.moveable) return 'bg-blue-500'
   if (props.element.clickable && props.element.startHidden) return 'bg-amber-500'
@@ -559,7 +574,7 @@ const handleClick = (event) => {
   if (props.element.clickable) {
     event.stopPropagation()
     // You can add custom click behavior here
-    console.log('Custom rectangle clicked!', props.element.id)
+    // console.log('Custom rectangle clicked!', props.element.id)
     // For now, just show a simple feedback
     const element = event.target
     element.style.transform = 'scale(0.95)'

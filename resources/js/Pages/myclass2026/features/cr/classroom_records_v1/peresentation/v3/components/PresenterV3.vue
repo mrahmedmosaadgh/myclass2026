@@ -50,6 +50,14 @@
               :style="getCustomRectangleStyle(element)"
               @click="handleCustomRectangleClick(element)"
             ></div>
+
+            <!-- Rounded Rectangle Elements -->
+            <div
+              v-else-if="element.type === 'rounded-rectangle'"
+              class="w-full h-full cursor-pointer"
+              :style="getRoundedRectangleStyle(element)"
+              @click="handleCustomRectangleClick(element)"
+            ></div>
           </div>
         </div>
       </div>
@@ -175,6 +183,14 @@ const getCustomRectangleStyle = (element) => ({
   borderWidth: '2px',
   borderStyle: 'solid',
   borderRadius: '0px'
+})
+
+const getRoundedRectangleStyle = (element) => ({
+  backgroundColor: element.background || '#3B82F6',
+  borderColor: getBorderColor(element),
+  borderWidth: '2px',
+  borderStyle: 'solid',
+  borderRadius: '12px'
 })
 
 const getBorderColor = (element) => {
