@@ -137,11 +137,7 @@ const getElementStyle = (element) => {
   }
 
   // Apply visibility states
-  if (element.clickable && (element.type === 'rectangle' || element.type === 'custom-rectangle')) {
-    // Rectangles are always visible when clickable (they are buttons)
-    baseStyle.opacity = element.opacity || 1
-  } else if (element.clickable) {
-    // Other clickable elements can toggle visibility
+  if (element.clickable) {
     const stateKey = `${props.currentSlideIndex}-${element.id}`
     const isVisible = elementStates.value.get(stateKey) !== false
     
@@ -212,7 +208,12 @@ const handleElementClick = (element) => {
 
 const handleCustomRectangleClick = (element) => {
   if (element.clickable) {
-    // Rectangles are buttons - show visual feedback but don't toggle visibility
+    // Toggle visibility state
+    const stateKey = `${props.currentSlideIndex}-${element.id}`
+    const currentState = elementStates.value.get(stateKey) !== false
+    elementStates.value.set(stateKey, !currentState)
+    
+    // Visual feedback
     const target = event.target
     target.style.transform = 'scale(0.95)'
     setTimeout(() => {
@@ -224,8 +225,7 @@ const handleCustomRectangleClick = (element) => {
       SoundManager.playClick(0.5)
     }
     
-    // You can add custom button behavior here
-    console.log('Rectangle button clicked!', element.id)
+    console.log('Rectangle toggled visibility:', !currentState ? 'hidden' : 'visible')
   }
 }
 
