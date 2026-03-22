@@ -1,0 +1,1 @@
+import{_ as e,L as t,o as c}from"./feature-admin-core-BWNP0pMM.js";import"./vendor-xlsx-DkH2s96g.js";const o={},s={class:"shine"};function _(n,r){return c(),t("div",s,"UIVERSE")}const f=e(o,[["render",_],["__scopeId","data-v-4f564d86"]]);export{f as default};

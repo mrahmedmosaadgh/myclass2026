@@ -1,0 +1,1 @@
+import{_ as t,L as s,o,y as a}from"./feature-admin-core-BWNP0pMM.js";import"./vendor-xlsx-DkH2s96g.js";const r={},c={class:"card"};function d(n,e){return o(),s("div",c,e[0]||(e[0]=[a("h3",null,"Animated Card",-1),a("p",null,"This is a sample card with hover effect",-1)]))}const l=t(r,[["render",d],["__scopeId","data-v-4ef438a7"]]);export{l as default};

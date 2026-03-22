@@ -1,0 +1,1 @@
+import{_ as a,L as t,o,y as r}from"./feature-admin-core-BWNP0pMM.js";import"./vendor-xlsx-DkH2s96g.js";const s={},d={class:"card"};function n(c,e){return o(),t("div",d,e[0]||(e[0]=[r("h3",null,"Gradient Border Card",-1),r("p",null,"This is a sample card with gradient border",-1)]))}const l=a(s,[["render",n],["__scopeId","data-v-048f3e42"]]);export{l as default};

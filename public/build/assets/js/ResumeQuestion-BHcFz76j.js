@@ -1,0 +1,1 @@
+import{_ as o}from"./ResumeCommentsPanel-DxBwz3OM.js";import{L as t,o as s,m as n}from"./feature-admin-core-BWNP0pMM.js";import"./vendor-xlsx-DkH2s96g.js";const _={__name:"ResumeQuestion",setup(i){return(e,r)=>(s(),t("div",null,[n(o,{"question-id":e.question.id},null,8,["question-id"])]))}};export{_ as default};

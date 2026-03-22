@@ -1,0 +1,1 @@
+import{_ as s,L as t,o,y as a}from"./feature-admin-core-BWNP0pMM.js";import"./vendor-xlsx-DkH2s96g.js";const c={},r={class:"package"};function _(n,e){return o(),t("div",r,e[0]||(e[0]=[a("div",{class:"package2"},[a("p",{class:"text"},"Nitro Style")],-1)]))}const f=s(c,[["render",_],["__scopeId","data-v-7ae5aff9"]]);export{f as default};

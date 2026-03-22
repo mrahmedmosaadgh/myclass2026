@@ -1,0 +1,1 @@
+import{_ as a,k as e,o as t,w as s,y as o,m as r,P as _,aS as c}from"./feature-admin-core-BWNP0pMM.js";import"./vendor-xlsx-DkH2s96g.js";const d={class:"q-pa-md"},n={__name:"Index",setup(p){return(i,m)=>(t(),e(c,{title:"Project Manager"},{default:s(()=>[o("div",d,[r(_,{flat:"",bordered:""})])]),_:1}))}},x=a(n,[["__scopeId","data-v-d0a077d9"]]);export{x as default};

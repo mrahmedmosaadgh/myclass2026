@@ -1,0 +1,1 @@
+import{_ as o,L as t,o as a,y as s}from"./feature-admin-core-BWNP0pMM.js";import"./vendor-xlsx-DkH2s96g.js";const c={},r={class:"container"};function n(_,e){return a(),t("div",r,e[0]||(e[0]=[s("div",{class:"card_box"},[s("span")],-1)]))}const f=o(c,[["render",n],["__scopeId","data-v-29097f9c"]]);export{f as default};

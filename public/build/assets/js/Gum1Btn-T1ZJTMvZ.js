@@ -1,0 +1,1 @@
+import{_ as t,L as r,o as a,J as c,Y as s}from"./feature-admin-core-BWNP0pMM.js";const l=["aria-color"],n={__name:"Gum1Btn",props:{color:{type:String,required:!0}},setup(o){return(e,u)=>(a(),r("button",{class:"item-color",style:s({"--color":o.color}),"aria-color":o.color},[c(e.$slots,"default",{},void 0,!0)],12,l))}},_=t(n,[["__scopeId","data-v-aabd2c4e"]]);export{_ as G};

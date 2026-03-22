@@ -1,0 +1,1 @@
+import{_ as o}from"./ResumeCommentsPanel-DxBwz3OM.js";import{L as t,o as s,y as m,m as n}from"./feature-admin-core-BWNP0pMM.js";import"./vendor-xlsx-DkH2s96g.js";const i={__name:"Comments",setup(r){return(a,e)=>(s(),t("div",null,[e[0]||(e[0]=m("h2",null,"Resume Comments",-1)),n(o,{"question-id":null})]))}};export{i as default};
