@@ -1,0 +1,1174 @@
+<template>
+  <div class="h-full bg-gray-900 flex">
+    <!-- Single Screen Mode -->
+    <div 
+      v-if="!splitScreenMode"
+      class="flex-1 h-full flex items-center justify-center p-8"
+    >
+      <div
+        class="bg-white shadow-2xl relative"
+        :style="{ width: slideWidth + 'px', maxHeight: '80vh', overflowY: 'auto' }"
+      >
+        <!-- Current Slide -->
+        <div
+          class="relative"
+          :style="{ height: slideHeight + 'px' }"
+        >
+          <!-- Drawing Elements -->
+          <svg
+            v-if="drawingElements.length > 0"
+            class="absolute inset-0 pointer-events-none"
+            :style="{ width: slideWidth + 'px', height: slideHeight + 'px', zIndex: 999 }"
+          >
+            <defs>
+              <rect
+                id="drawing-clip"
+                :width="slideWidth"
+                :height="slideHeight"
+              />
+            </defs>
+            <g clip-path="url(#drawing-clip)">
+              <path
+                v-for="element in drawingElements"
+                :key="element.id"
+                :d="element.path"
+                :stroke="element.color"
+                :stroke-width="element.size"
+                fill="none"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </g>
+          </svg>
+          
+          <div
+            v-for="element in currentSlide.elements"
+            :key="element.id"
+            class="absolute"
+            :style="getElementStyle(element)"
+            @click.stop="handleElementClick(element)"
+            @mousedown="startDrag(element, $event)"
+          >
+            <!-- Text Elements -->
+            <div
+              v-if="element.type === 'text' || element.type === 'heading' || element.type === 'subheading'"
+              :style="getTextStyle(element)"
+            >
+              {{ element.content }}
+            </div>
+
+            <!-- Image Elements -->
+            <img
+              v-else-if="element.type === 'image'"
+              :src="element.src"
+              class="w-full h-full object-cover"
+              draggable="false"
+            />
+
+            <!-- Rectangle Elements -->
+            <div
+              v-else-if="element.type === 'rectangle'"
+              class="w-full h-full cursor-pointer"
+              :style="getRectangleStyle(element)"
+            ></div>
+          </div>
+        </div>
+        
+        <!-- Drawing Overlay for Presentation -->
+        <div
+          v-if="isDrawingMode"
+          class="absolute inset-0 cursor-crosshair"
+          :style="{ width: slideWidth + 'px', height: slideHeight + 'px', zIndex: 1000 }"
+          @mousedown="startDrawing"
+          @mousemove="draw"
+          @mouseup="stopDrawing"
+          @mouseleave="stopDrawing"
+        >
+          <!-- Live drawing preview -->
+          <svg
+            class="absolute inset-0 pointer-events-none"
+            :style="{ width: slideWidth + 'px', height: slideHeight + 'px' }"
+          >
+            <defs>
+              <rect
+                id="drawing-clip"
+                :width="slideWidth"
+                :height="slideHeight"
+              />
+            </defs>
+            <g clip-path="url(#drawing-clip)">
+              <!-- Current drawing path -->
+              <path
+                v-if="currentPath"
+                :d="currentPath.d"
+                :stroke="currentPath.color"
+                :stroke-width="currentPath.size"
+                fill="none"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </g>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Split Screen Mode -->
+    <div 
+      v-else
+      class="flex-1 h-full"
+      :class="splitDirection === 'horizontal' ? 'flex-row' : 'flex-col'"
+    >
+      <!-- First Screen -->
+      <div class="flex-1 flex items-center justify-center p-4 border-gray-700"
+           :class="splitDirection === 'horizontal' ? 'border-r' : 'border-b'">
+        <!-- Screen 1 Navigation -->
+        <div class="absolute top-4 left-4 z-[1100] bg-gray-900/90 backdrop-blur-md border border-gray-700 rounded-full px-3 py-2 flex items-center space-x-2">
+          <button
+            @click="screen1SlideIndex.value = Math.max(0, screen1SlideIndex.value - 1)"
+            class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+            title="Previous Slide"
+          >
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+          </button>
+          
+          <span class="text-white text-sm font-medium min-w-[3ch] text-center">{{ screen1SlideIndex + 1 }}</span>
+          
+          <button
+            @click="screen1SlideIndex.value = Math.min(props.slides.length - 1, screen1SlideIndex.value + 1)"
+            class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+            title="Next Slide"
+          >
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Screen 1 Drawing Toolbar -->
+        <div
+          v-if="screen1DrawingMode"
+          class="absolute top-16 left-4 z-[1100] bg-gray-900 rounded-xl shadow-2xl p-3 flex items-center space-x-3"
+        >
+          <!-- Color Picker -->
+          <input
+            type="color"
+            :value="screen1PenColor"
+            @input="screen1PenColor = $event.target.value"
+            class="w-8 h-8 border-2 border-gray-600 rounded cursor-pointer"
+            title="Pen Color"
+          />
+          
+          <!-- Quick Colors -->
+          <button
+            v-for="color in quickColors"
+            :key="color"
+            @click="screen1PenColor = color"
+            :class="[
+              'w-6 h-6 rounded border-2 transition-all',
+              screen1PenColor === color ? 'border-white scale-110' : 'border-gray-600 hover:border-gray-400'
+            ]"
+            :style="{ backgroundColor: color }"
+            :title="color"
+          ></button>
+          
+          <!-- Divider -->
+          <div class="w-px h-6 bg-gray-600 mx-2"></div>
+          
+          <!-- Pen Size -->
+          <div class="flex items-center space-x-2">
+            <label class="text-xs text-gray-300">Size</label>
+            <input
+              type="range"
+              min="1"
+              max="10"
+              v-model="screen1PenSize"
+              class="w-16 h-4"
+            />
+            <span class="text-xs text-gray-300 w-6 text-center">{{ screen1PenSize }}</span>
+          </div>
+          
+          <!-- Clear Drawing -->
+          <button
+            @click="screen1PresentationDrawings = []"
+            class="p-1 text-gray-400 hover:text-red-400 hover:bg-red-900/30 rounded transition-colors"
+            title="Clear Drawing"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+          </button>
+        </div>
+
+        <div
+          class="bg-white shadow-2xl relative"
+          :style="{ 
+            width: (splitDirection === 'horizontal' ? 50% : slideWidth * 0.7) + 'px', 
+            maxHeight: splitDirection === 'horizontal' ? '75vh' : '35vh',
+            overflowY: 'auto',
+            transform: `scale(${splitDirection === 'horizontal' ? 0.9 : 0.7})`
+          }"
+        >
+          <div
+            class="relative"
+            :style="{ height: slideHeight + 'px' }"
+          >
+            <!-- Drawing Elements -->
+            <svg
+              v-if="screen1DrawingElements.length > 0"
+              class="absolute inset-0 pointer-events-none"
+              :style="{ width: slideWidth + 'px', height: slideHeight + 'px', zIndex: 999 }"
+            >
+              <defs>
+                <rect
+                  id="drawing-clip"
+                  :width="slideWidth"
+                  :height="slideHeight"
+                />
+              </defs>
+              <g clip-path="url(#drawing-clip)">
+                <path
+                  v-for="element in screen1DrawingElements"
+                  :key="element.id"
+                  :d="element.path"
+                  :stroke="element.color"
+                  :stroke-width="element.size"
+                  fill="none"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </g>
+            </svg>
+            
+            <div
+              v-for="element in screen1Slide.elements"
+              :key="element.id"
+              class="absolute"
+              :style="getElementStyle(element)"
+              @click.stop="handleElementClick(element, 1)"
+            >
+              <!-- Text Elements -->
+              <div
+                v-if="element.type === 'text' || element.type === 'heading' || element.type === 'subheading'"
+                :style="getTextStyle(element)"
+              >
+                {{ element.content }}
+              </div>
+
+              <!-- Image Elements -->
+              <img
+                v-else-if="element.type === 'image'"
+                :src="element.src"
+                class="w-full h-full object-cover"
+                draggable="false"
+              />
+
+              <!-- Rectangle Elements -->
+              <div
+                v-else-if="element.type === 'rectangle'"
+                class="w-full h-full cursor-pointer"
+                :style="getRectangleStyle(element)"
+              ></div>
+            </div>
+          </div>
+          
+          <!-- Drawing Overlay for Screen 1 -->
+          <div
+            v-if="screen1DrawingMode"
+            class="absolute inset-0 cursor-crosshair"
+            :style="{ width: slideWidth + 'px', height: slideHeight + 'px', zIndex: 1000 }"
+            @mousedown="startDrawing(1, $event)"
+            @mousemove="draw(1, $event)"
+            @mouseup="stopDrawing(1)"
+            @mouseleave="stopDrawing(1)"
+          >
+            <!-- Live drawing preview -->
+            <svg
+              class="absolute inset-0 pointer-events-none"
+              :style="{ width: slideWidth + 'px', height: slideHeight + 'px' }"
+            >
+              <defs>
+                <rect
+                  id="drawing-clip"
+                  :width="slideWidth"
+                  :height="slideHeight"
+                />
+              </defs>
+              <g clip-path="url(#drawing-clip)">
+                <!-- Current drawing path -->
+                <path
+                  v-if="screen1CurrentPath"
+                  :d="screen1CurrentPath.d"
+                  :stroke="screen1CurrentPath.color"
+                  :stroke-width="screen1CurrentPath.size"
+                  fill="none"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </g>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Second Screen (Independent) -->
+      <div class="flex-1 flex items-center justify-center p-4">
+        <!-- Screen 2 Navigation -->
+        <div class="absolute top-4 right-4 z-[1100] bg-gray-900/90 backdrop-blur-md border border-gray-700 rounded-full px-3 py-2 flex items-center space-x-2">
+          <button
+            @click="screen2SlideIndex.value = Math.max(0, screen2SlideIndex.value - 1)"
+            class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+            title="Previous Slide"
+          >
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+          </button>
+          
+          <span class="text-white text-sm font-medium min-w-[3ch] text-center">{{ screen2SlideIndex + 1 }}</span>
+          
+          <button
+            @click="screen2SlideIndex.value = Math.min(props.slides.length - 1, screen2SlideIndex.value + 1)"
+            class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+            title="Next Slide"
+          >
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Screen 2 Drawing Toolbar -->
+        <div
+          v-if="screen2DrawingMode"
+          class="absolute top-16 right-4 z-[1100] bg-gray-900 rounded-xl shadow-2xl p-3 flex items-center space-x-3"
+        >
+          <!-- Color Picker -->
+          <input
+            type="color"
+            :value="screen2PenColor"
+            @input="screen2PenColor = $event.target.value"
+            class="w-8 h-8 border-2 border-gray-600 rounded cursor-pointer"
+            title="Pen Color"
+          />
+          
+          <!-- Quick Colors -->
+          <button
+            v-for="color in quickColors"
+            :key="color"
+            @click="screen2PenColor = color"
+            :class="[
+              'w-6 h-6 rounded border-2 transition-all',
+              screen2PenColor === color ? 'border-white scale-110' : 'border-gray-600 hover:border-gray-400'
+            ]"
+            :style="{ backgroundColor: color }"
+            :title="color"
+          ></button>
+          
+          <!-- Divider -->
+          <div class="w-px h-6 bg-gray-600 mx-2"></div>
+          
+          <!-- Pen Size -->
+          <div class="flex items-center space-x-2">
+            <label class="text-xs text-gray-300">Size</label>
+            <input
+              type="range"
+              min="1"
+              max="10"
+              v-model="screen2PenSize"
+              class="w-16 h-4"
+            />
+            <span class="text-xs text-gray-300 w-6 text-center">{{ screen2PenSize }}</span>
+          </div>
+          
+          <!-- Clear Drawing -->
+          <button
+            @click="screen2PresentationDrawings = []"
+            class="p-1 text-gray-400 hover:text-red-400 hover:bg-red-900/30 rounded transition-colors"
+            title="Clear Drawing"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+          </button>
+        </div>
+
+        <div
+          class="bg-white shadow-2xl relative"
+          :style="{ 
+            width: (splitDirection === 'horizontal' ? 50% : slideWidth * 0.7) + 'px', 
+            maxHeight: splitDirection === 'horizontal' ? '75vh' : '35vh',
+            overflowY: 'auto',
+            transform: `scale(${splitDirection === 'horizontal' ? 0.9 : 0.7})`
+          }"
+        >
+          <div
+            class="relative"
+            :style="{ height: slideHeight + 'px' }"
+          >
+            <!-- Drawing Elements -->
+            <svg
+              v-if="screen2DrawingElements.length > 0"
+              class="absolute inset-0 pointer-events-none"
+              :style="{ width: slideWidth + 'px', height: slideHeight + 'px', zIndex: 999 }"
+            >
+              <defs>
+                <rect
+                  id="drawing-clip"
+                  :width="slideWidth"
+                  :height="slideHeight"
+                />
+              </defs>
+              <g clip-path="url(#drawing-clip)">
+                <path
+                  v-for="element in screen2DrawingElements"
+                  :key="element.id"
+                  :d="element.path"
+                  :stroke="element.color"
+                  :stroke-width="element.size"
+                  fill="none"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </g>
+            </svg>
+            
+            <div
+              v-for="element in screen2Slide.elements"
+              :key="element.id"
+              class="absolute"
+              :style="getElementStyle(element)"
+              @click.stop="handleElementClick(element, 2)"
+            >
+              <!-- Text Elements -->
+              <div
+                v-if="element.type === 'text' || element.type === 'heading' || element.type === 'subheading'"
+                :style="getTextStyle(element)"
+              >
+                {{ element.content }}
+              </div>
+
+              <!-- Image Elements -->
+              <img
+                v-else-if="element.type === 'image'"
+                :src="element.src"
+                class="w-full h-full object-cover"
+                draggable="false"
+              />
+
+              <!-- Rectangle Elements -->
+              <div
+                v-else-if="element.type === 'rectangle'"
+                class="w-full h-full cursor-pointer"
+                :style="getRectangleStyle(element)"
+              ></div>
+            </div>
+          </div>
+          
+          <!-- Drawing Overlay for Screen 2 -->
+          <div
+            v-if="screen2DrawingMode"
+            class="absolute inset-0 cursor-crosshair"
+            :style="{ width: slideWidth + 'px', height: slideHeight + 'px', zIndex: 1000 }"
+            @mousedown="startDrawing(2, $event)"
+            @mousemove="draw(2, $event)"
+            @mouseup="stopDrawing(2)"
+            @mouseleave="stopDrawing(2)"
+          >
+            <!-- Live drawing preview -->
+            <svg
+              class="absolute inset-0 pointer-events-none"
+              :style="{ width: slideWidth + 'px', height: slideHeight + 'px' }"
+            >
+              <defs>
+                <rect
+                  id="drawing-clip"
+                  :width="slideWidth"
+                  :height="slideHeight"
+                />
+              </defs>
+              <g clip-path="url(#drawing-clip)">
+                <!-- Current drawing path -->
+                <path
+                  v-if="screen2CurrentPath"
+                  :d="screen2CurrentPath.d"
+                  :stroke="screen2CurrentPath.color"
+                  :stroke-width="screen2CurrentPath.size"
+                  fill="none"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </g>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Floating Navigation Pill -->
+    <div class="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-[1100]">
+      <!-- Drawing Toolbar (when drawing mode is active) -->
+      <div
+        v-if="isDrawingMode"
+        class="absolute bottom-full mb-3 left-1/2 transform -translate-x-1/2 bg-gray-900 rounded-xl shadow-2xl p-3 flex items-center space-x-3 whitespace-nowrap"
+      >
+        <!-- Color Picker -->
+        <input
+          type="color"
+          :value="penColor"
+          @input="handleColorChange"
+          class="w-8 h-8 border-2 border-gray-600 rounded cursor-pointer"
+          title="Pen Color"
+        />
+        
+        <!-- Quick Colors -->
+        <button
+          v-for="color in quickColors"
+          :key="color"
+          @click="penColor = color"
+          :class="[
+            'w-6 h-6 rounded border-2 transition-all',
+            penColor === color ? 'border-white scale-110' : 'border-gray-600 hover:border-gray-400'
+          ]"
+          :style="{ backgroundColor: color }"
+          :title="color"
+        ></button>
+        
+        <!-- Divider -->
+        <div class="w-px h-6 bg-gray-600 mx-2"></div>
+        
+        <!-- Pen Size -->
+        <div class="flex items-center space-x-2">
+          <label class="text-xs text-gray-300">Size</label>
+          <input
+            type="range"
+            min="1"
+            max="10"
+            v-model="penSize"
+            class="w-16 h-4"
+          />
+          <span class="text-xs text-gray-300 w-6 text-center">{{ penSize }}</span>
+        </div>
+        
+        <!-- Clear Drawing -->
+        <button
+          @click="clearDrawing"
+          class="p-1 text-gray-400 hover:text-red-400 hover:bg-red-900/30 rounded transition-colors"
+          title="Clear Drawing"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="bg-gray-900/90 backdrop-blur-md border border-gray-700 rounded-full px-6 py-3 flex items-center space-x-4 shadow-2xl">
+        <!-- Split Screen Controls -->
+        <button
+          @click="toggleSplitScreen"
+          :class="[
+            'w-10 h-10 rounded-full flex items-center justify-center transition-colors',
+            splitScreenMode
+              ? 'bg-green-600 hover:bg-green-700 text-white'
+              : 'bg-white/20 hover:bg-white/30 text-white'
+          ]"
+          title="Toggle Split Screen"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+          </svg>
+        </button>
+
+        <!-- Split Screen Direction (only show when split screen is active) -->
+        <button
+          v-if="splitScreenMode"
+          @click="toggleSplitDirection"
+          class="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+          :title="splitDirection === 'horizontal' ? 'Switch to Vertical' : 'Switch to Horizontal'"
+        >
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path 
+              v-if="splitDirection === 'horizontal'"
+              stroke-linecap="round" 
+              stroke-linejoin="round" 
+              stroke-width="2" 
+              d="M8 7h8m-4-4v8m0 0l3-3m-3 3L5 8m12 8l-3-3m3 3l-3 3m-5-3h8"
+            ></path>
+            <path 
+              v-else
+              stroke-linecap="round" 
+              stroke-linejoin="round" 
+              stroke-width="2" 
+              d="M7 8v8m-4-4h8m0 0l-3-3m3 3l-3 3m12-3l-3-3m3 3l-3 3m-3-5v8"
+            ></path>
+          </svg>
+        </button>
+
+        <!-- Drawing Tool -->
+        <button
+          @click="toggleScreen1DrawingMode"
+          :class="[
+            'w-10 h-10 rounded-full flex items-center justify-center transition-colors',
+            screen1DrawingMode
+              ? 'bg-blue-600 hover:bg-blue-700 text-white'
+              : 'bg-white/20 hover:bg-white/30 text-white'
+          ]"
+          title="Toggle Drawing"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 0L21 12l-4.586 4.586a2.5 2.5 0 11-3.536 0L6.5 6.5a2.5 2.5 0 00-3.536 0L3 12l4.586 4.586a2.5 2.5 0 003.536 0z"></path>
+          </svg>
+        </button>
+
+        <!-- Screen 2 Drawing Tool -->
+        <button
+          @click="toggleScreen2DrawingMode"
+          :class="[
+            'w-10 h-10 rounded-full flex items-center justify-center transition-colors',
+            screen2DrawingMode
+              ? 'bg-blue-600 hover:bg-blue-700 text-white'
+              : 'bg-white/20 hover:bg-white/30 text-white'
+          ]"
+          title="Toggle Drawing"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 0L21 12l-4.586 4.586a2.5 2.5 0 11-3.536 0L6.5 6.5a2.5 2.5 0 00-3.536 0L3 12l4.586 4.586a2.5 2.5 0 003.536 0z"></path>
+          </svg>
+        </button>
+        <!-- Slide Settings -->
+        <div class="relative">
+          <button
+            @click="toggleSettings"
+            class="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+          >
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+          </button>
+          
+          <!-- Settings Dropdown -->
+          <div
+            v-if="showSettings"
+            class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-white rounded-lg shadow-lg p-4 w-64"
+          >
+            <h3 class="text-sm font-semibold text-gray-900 mb-3">Slide Size</h3>
+            
+            <div class="space-y-2">
+              <label class="flex items-center p-2 rounded hover:bg-gray-100 cursor-pointer">
+                <input
+                  type="radio"
+                  :model-value="selectedSize"
+                  value="widescreen"
+                  class="mr-3"
+                  @change="handleSizeChange('widescreen')"
+                />
+                <div>
+                  <div class="font-medium text-sm">Widescreen 16:9</div>
+                  <div class="text-xs text-gray-500">1920 × 1080 px (10 × 5.625 in)</div>
+                </div>
+              </label>
+              
+              <label class="flex items-center p-2 rounded hover:bg-gray-100 cursor-pointer">
+                <input
+                  type="radio"
+                  :model-value="selectedSize"
+                  value="standard"
+                  class="mr-3"
+                  @change="handleSizeChange('standard')"
+                />
+                <div>
+                  <div class="font-medium text-sm">Standard 4:3</div>
+                  <div class="text-xs text-gray-500">1024 × 768 px (10 × 7.5 in)</div>
+                </div>
+              </label>
+              
+              <label class="flex items-center p-2 rounded hover:bg-gray-100 cursor-pointer">
+                <input
+                  type="radio"
+                  :model-value="selectedSize"
+                  value="custom"
+                  class="mr-3"
+                  @change="handleSizeChange('custom')"
+                />
+                <div>
+                  <div class="font-medium text-sm">Custom</div>
+                  <div class="text-xs text-gray-500">Set custom dimensions</div>
+                </div>
+              </label>
+            </div>
+            
+            <!-- Custom Dimensions -->
+            <div v-if="selectedSize === 'custom'" class="mt-3 pt-3 border-t border-gray-200">
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="text-xs text-gray-600">Width (px)</label>
+                  <input
+                    :value="customWidth"
+                    type="number"
+                    class="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                    placeholder="1920"
+                    @input="handleCustomSizeChange('width', $event.target.value)"
+                  />
+                </div>
+                <div>
+                  <label class="text-xs text-gray-600">Height (px)</label>
+                  <input
+                    :value="customHeight"
+                    type="number"
+                    class="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                    placeholder="1080"
+                    @input="handleCustomSizeChange('height', $event.target.value)"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Previous Button -->
+        <button
+          @click="previousSlide"
+          :disabled="currentSlideIndex === 0"
+          class="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
+        >
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+          </svg>
+        </button>
+
+        <!-- Slide Counter -->
+        <div class="text-white font-medium">
+          {{ currentSlideIndex + 1 }} / {{ slides.length }}
+        </div>
+
+        <!-- Next Button -->
+        <button
+          @click="nextSlide"
+          :disabled="currentSlideIndex === slides.length - 1"
+          class="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
+        >
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+          </svg>
+        </button>
+
+        <!-- Exit Button -->
+        <button
+          @click="$emit('exit')"
+          class="w-10 h-10 rounded-full bg-red-500/80 hover:bg-red-600 flex items-center justify-center transition-colors"
+        >
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import ElementNode from './ElementNode.vue'
+
+const props = defineProps({
+  slides: {
+    type: Array,
+    required: true
+  },
+  currentSlideIndex: {
+    type: Number,
+    required: true
+  },
+  slideWidth: {
+    type: Number,
+    required: true
+  },
+  slideHeight: {
+    type: Number,
+    required: true
+  },
+  selectedSize: {
+    type: String,
+    required: true
+  },
+  customWidth: {
+    type: Number,
+    required: true
+  },
+  customHeight: {
+    type: Number,
+    required: true
+  }
+})
+
+const emit = defineEmits(['slide-change', 'exit', 'slide-size-change'])
+
+// Track element states during presentation
+const elementStates = ref(new Map())
+
+// Settings visibility
+const showSettings = ref(false)
+
+// Split screen state
+const splitScreenMode = ref(false)
+const splitDirection = ref('horizontal') // 'horizontal' or 'vertical'
+
+// Independent state for each screen
+const screen1SlideIndex = ref(0)
+const screen2SlideIndex = ref(0)
+const screen1DrawingMode = ref(false)
+const screen2DrawingMode = ref(false)
+const screen1PenColor = ref('#FF0000')
+const screen2PenColor = ref('#FF0000')
+const screen1PenSize = ref(3)
+const screen2PenSize = ref(3)
+const screen1CurrentPath = ref(null)
+const screen2CurrentPath = ref(null)
+const screen1IsDrawingLocal = ref(false)
+const screen2IsDrawingLocal = ref(false)
+const screen1PresentationDrawings = ref([])
+const screen2PresentationDrawings = ref([])
+
+// Drawing state for presentation mode
+const isDrawingMode = ref(false)
+const penSize = ref(3)
+const penColor = ref('#FF0000') // Default red for presentation
+const currentPath = ref(null)
+const isDrawingLocal = ref(false)
+const presentationDrawings = ref([]) // Store drawings separately for presentation
+
+// Quick color palette for presentation drawing
+const quickColors = [
+  '#FF0000', // Red
+  '#000000', // Black
+  '#0000FF', // Blue
+  '#00FF00', // Green
+  '#FFFF00'  // Yellow
+]
+
+const currentSlide = computed(() => props.slides[props.currentSlideIndex] || { elements: [] })
+
+// Computed properties for independent screens
+const screen1Slide = computed(() => props.slides[screen1SlideIndex.value] || { elements: [] })
+const screen2Slide = computed(() => props.slides[screen2SlideIndex.value] || { elements: [] })
+
+const screen1DrawingElements = computed(() => {
+  const slideDrawings = screen1Slide.value.elements.filter(el => el.type === 'drawing')
+  return [...slideDrawings, ...screen1PresentationDrawings.value]
+})
+
+const screen2DrawingElements = computed(() => {
+  const slideDrawings = screen2Slide.value.elements.filter(el => el.type === 'drawing')
+  return [...slideDrawings, ...screen2PresentationDrawings.value]
+})
+
+// Computed properties to separate drawing elements (for single screen mode)
+const drawingElements = computed(() => {
+  const slideDrawings = currentSlide.value.elements.filter(el => el.type === 'drawing')
+  // Combine slide drawings with presentation drawings
+  return [...slideDrawings, ...presentationDrawings.value]
+})
+
+const getElementStyle = (element) => {
+  const baseStyle = {
+    position: 'absolute',
+    left: `${element.x}px`,
+    top: `${element.y}px`,
+    width: `${element.width}px`,
+    height: `${element.height}px`,
+    zIndex: element.zIndex || 1,
+    cursor: getElementCursor(element)
+  }
+
+  // Apply visibility states
+  if (element.clickable) {
+    const stateKey = `${props.currentSlideIndex}-${element.id}`
+    const isVisible = elementStates.value.get(stateKey) !== false
+    
+    if (element.startHidden) {
+      baseStyle.opacity = isVisible ? 1 : (element.hiddenOpacity || 0.05)
+    } else {
+      baseStyle.opacity = isVisible ? 1 : 0.1
+    }
+  } else {
+    baseStyle.opacity = element.opacity || 1
+  }
+
+  return baseStyle
+}
+
+const getTextStyle = (element) => ({
+  fontSize: `${element.fontSize}px`,
+  color: element.color,
+  fontFamily: 'system-ui, -apple-system, sans-serif',
+  lineHeight: '1.2',
+  userSelect: 'none'
+})
+
+const getRectangleStyle = (element) => ({
+  backgroundColor: element.background || '#3B82F6',
+  borderColor: getBorderColor(element),
+  borderWidth: '2px',
+  borderStyle: 'solid',
+  borderRadius: '0px'
+})
+
+const getBorderColor = (element) => {
+  if (element.border) {
+    // Extract color from border string like "2px solid #000000"
+    const match = element.border.match(/#\w+/)
+    return match ? match[0] : '#000000'
+  }
+  return element.color || '#000000'
+}
+
+const getElementCursor = (element) => {
+  if (element.moveable) return 'move'
+  if (element.clickable) return 'pointer'
+  return 'default'
+}
+
+const handleElementClick = (element) => {
+  if (element.clickable) {
+    // Toggle visibility state
+    const stateKey = `${props.currentSlideIndex}-${element.id}`
+    const currentState = elementStates.value.get(stateKey) !== false
+    elementStates.value.set(stateKey, !currentState)
+    
+    // Play click sound if available
+    if (window.SoundManager) {
+      SoundManager.playClick(0.5)
+    }
+  }
+}
+
+// Drag functionality for moveable elements
+const draggedElement = ref(null)
+const dragStart = ref({ x: 0, y: 0 })
+const elementStart = ref({ x: 0, y: 0 })
+
+const startDrag = (element, event) => {
+  if (!element.moveable) return
+  
+  draggedElement.value = element
+  dragStart.value = { x: event.clientX, y: event.clientY }
+  elementStart.value = { x: element.x, y: element.y }
+  
+  document.addEventListener('mousemove', handleDrag)
+  document.addEventListener('mouseup', stopDrag)
+  event.preventDefault()
+}
+
+const handleDrag = (event) => {
+  if (!draggedElement.value) return
+  
+  const deltaX = event.clientX - dragStart.value.x
+  const deltaY = event.clientY - dragStart.value.y
+  
+  // Update element position temporarily (won't persist to original data)
+  draggedElement.value.x = elementStart.value.x + deltaX
+  draggedElement.value.y = elementStart.value.y + deltaY
+}
+
+const stopDrag = () => {
+  draggedElement.value = null
+  document.removeEventListener('mousemove', handleDrag)
+  document.removeEventListener('mouseup', stopDrag)
+}
+
+const previousSlide = () => {
+  if (props.currentSlideIndex > 0) {
+    emit('slide-change', props.currentSlideIndex - 1)
+  }
+}
+
+const nextSlide = () => {
+  if (props.currentSlideIndex < props.slides.length - 1) {
+    emit('slide-change', props.currentSlideIndex + 1)
+  }
+}
+
+const toggleSettings = () => {
+  showSettings.value = !showSettings.value
+}
+
+const handleSizeChange = (size) => {
+  emit('slide-size-change', { selectedSize: size })
+}
+
+const handleCustomSizeChange = (dimension, value) => {
+  const numValue = parseInt(value) || 0
+  if (dimension === 'width') {
+    emit('slide-size-change', { customWidth: numValue })
+  } else if (dimension === 'height') {
+    emit('slide-size-change', { customHeight: numValue })
+  }
+}
+
+// Drawing methods for presentation mode
+const toggleDrawingMode = () => {
+  isDrawingMode.value = !isDrawingMode.value
+}
+
+const handleColorChange = (event) => {
+  penColor.value = event.target.value
+  console.log('Color changed to:', penColor.value)
+}
+
+// Split screen methods
+const toggleSplitScreen = () => {
+  splitScreenMode.value = !splitScreenMode.value
+  console.log('Split screen mode:', splitScreenMode.value)
+}
+
+const toggleSplitDirection = () => {
+  splitDirection.value = splitDirection.value === 'horizontal' ? 'vertical' : 'horizontal'
+  console.log('Split direction:', splitDirection.value)
+}
+
+// Screen-specific drawing methods
+const toggleScreen1DrawingMode = () => {
+  screen1DrawingMode.value = !screen1DrawingMode.value
+}
+
+const toggleScreen2DrawingMode = () => {
+  screen2DrawingMode.value = !screen2DrawingMode.value
+}
+
+// Screen-specific drawing handlers
+const startDrawing = (screenNumber, event) => {
+  const drawingMode = screenNumber === 1 ? screen1DrawingMode.value : screen2DrawingMode.value
+  if (!drawingMode) return
+  
+  const isDrawingLocal = screenNumber === 1 ? screen1IsDrawingLocal : screen2IsDrawingLocal
+  const currentPath = screenNumber === 1 ? screen1CurrentPath : screen2CurrentPath
+  const penColor = screenNumber === 1 ? screen1PenColor : screen2PenColor
+  const penSize = screenNumber === 1 ? screen1PenSize : screen2PenSize
+  
+  isDrawingLocal.value = true
+  const rect = event.currentTarget.getBoundingClientRect()
+  const x = event.clientX - rect.left
+  const y = event.clientY - rect.top
+  
+  currentPath.value = {
+    d: `M${x},${y}`,
+    color: penColor.value,
+    size: penSize.value,
+    points: [{x, y}]
+  }
+}
+
+const draw = (screenNumber, event) => {
+  const drawingMode = screenNumber === 1 ? screen1DrawingMode.value : screen2DrawingMode.value
+  const isDrawingLocal = screenNumber === 1 ? screen1IsDrawingLocal : screen2IsDrawingLocal
+  const currentPath = screenNumber === 1 ? screen1CurrentPath : screen2CurrentPath
+  
+  if (!isDrawingLocal.value || !currentPath.value) return
+  
+  const rect = event.currentTarget.getBoundingClientRect()
+  const x = event.clientX - rect.left
+  const y = event.clientY - rect.top
+  
+  // Add smooth curves using quadratic curves
+  const points = currentPath.value.points
+  if (points.length >= 2) {
+    const lastPoint = points[points.length - 1]
+    const controlPoint = {
+      x: (lastPoint.x + x) / 2,
+      y: (lastPoint.y + y) / 2
+    }
+    currentPath.value.d += ` Q${controlPoint.x},${controlPoint.y} ${x},${y}`
+  } else {
+    currentPath.value.d += ` L${x},${y}`
+  }
+  
+  currentPath.value.points.push({x, y})
+}
+
+const stopDrawing = (screenNumber) => {
+  const isDrawingLocal = screenNumber === 1 ? screen1IsDrawingLocal : screen2IsDrawingLocal
+  const currentPath = screenNumber === 1 ? screen1CurrentPath : screen2CurrentPath
+  const drawingMode = screenNumber === 1 ? screen1DrawingMode.value : screen2DrawingMode.value
+  
+  if (!isDrawingLocal.value) return
+  
+  isDrawingLocal.value = false
+  
+  if (currentPath.value && currentPath.value.points.length > 1 && drawingMode) {
+    // Save drawing to appropriate screen's presentation drawings
+    const drawingElement = {
+      id: Date.now(),
+      type: 'drawing',
+      path: currentPath.value.d,
+      color: currentPath.value.color,
+      size: currentPath.value.size,
+      x: 0,
+      y: 0,
+      width: props.slideWidth,
+      height: props.slideHeight,
+      opacity: 1,
+      zIndex: 1000
+    }
+    
+    if (screenNumber === 1) {
+      screen1PresentationDrawings.value.push(drawingElement)
+      screen1CurrentPath.value = null
+    } else {
+      screen2PresentationDrawings.value.push(drawingElement)
+      screen2CurrentPath.value = null
+    }
+  }
+}
+
+const handleKeydown = (event) => {
+  switch (event.key) {
+    case 'ArrowLeft':
+      previousSlide()
+      break
+    case 'ArrowRight':
+      nextSlide()
+      break
+    case 'Escape':
+      if (showSettings.value) {
+        showSettings.value = false
+      } else {
+        emit('exit')
+      }
+      break
+  }
+}
+
+// Reset element states when slide changes
+const resetElementStates = () => {
+  // Clear states for the current slide only
+  const keysToDelete = []
+  for (const key of elementStates.value.keys()) {
+    if (key.startsWith(`${props.currentSlideIndex}-`)) {
+      keysToDelete.push(key)
+    }
+  }
+  keysToDelete.forEach(key => elementStates.value.delete(key))
+  
+  // Clear presentation drawings when changing slides
+  presentationDrawings.value = []
+}
+
+onMounted(() => {
+  document.addEventListener('keydown', handleKeydown)
+  resetElementStates()
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeydown)
+  document.removeEventListener('mousemove', handleDrag)
+  document.removeEventListener('mouseup', stopDrag)
+})
+
+// Watch for slide changes
+watch(() => props.currentSlideIndex, () => {
+  resetElementStates()
+})
+</script>

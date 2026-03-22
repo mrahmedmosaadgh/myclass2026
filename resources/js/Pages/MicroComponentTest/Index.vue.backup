@@ -1,0 +1,270 @@
+<template>
+  <Head title="Micro Component Test" />
+
+  <div class=" p-6">
+    <div class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl font-bold">Micro Component Test</h1>
+        
+        <!-- Component Switcher -->
+        <q-btn-dropdown
+            color="primary"
+            :label="currentViewLabel"
+            icon="layers"
+            outline
+            rounded
+            class="text-blue-900"
+        >
+            <q-list>
+                <q-item 
+                    v-for="(component, key) in Components" 
+                    :key="key"
+                    clickable 
+                    v-close-popup 
+                    @click="currentView = key"
+                >
+                    <q-item-section avatar>
+                        <span class="text-xl">{{ getComponentIcon(key) }}</span>
+                    </q-item-section>
+                    <q-item-section>
+                        <q-item-label>{{ component.title }}</q-item-label>
+                        <q-item-label caption>{{ component.description }}</q-item-label>
+                    </q-item-section>
+                </q-item>
+            </q-list>
+        </q-btn-dropdown>
+    </div>
+
+    <!-- Dynamic Component View -->
+    <div v-show="currentView && getCurrentComponent()" class="animate-fade-in">
+        <h2 class="text-xl font-bold mb-4">{{ getCurrentComponent().title }}</h2>
+        <div class="bg-white rounded-lg shadow p-6">
+            <component 
+                :is="getCurrentComponent().component"
+                v-bind="{ ...getCurrentComponent().defaultProps, ...getComponentSpecificProps() }"
+                v-if="!hasSpecialHandling()"
+            />
+            
+            <!-- Special handling for multiplication3 with quiz data -->
+            <Components.MultipleChoiceQuiz
+                v-if="currentView === 'multiplication3'"
+                :questions="multip3Questions"
+                @quiz-complete="handleQuizComplete"
+            />
+            
+            <!-- Special handling for taskspro with v-model -->
+            <Components.TaskList
+                v-if="currentView === 'taskspro'"
+                v-model="tasksData"
+            />
+        </div>
+    </div>
+    </div>
+</template>
+
+<script setup>
+import { ref, reactive, computed, onMounted } from 'vue';
+import { Head, usePage } from '@inertiajs/vue3';
+import AppLayoutDefault from '@/Layouts/AppLayoutDefault.vue';
+import { useRealtimeChannel } from '@/composables/useRealtimeChannel';
+import axios from 'axios';
+import * as Components from './components.js';
+
+// Define props to handle Inertia.js data
+const props = defineProps({
+    auth: Object,
+    errors: Object,
+    jetstream: Object,
+    errorBags: Object,
+    csrf_token: String,
+    user_context: Object,
+    context_meta: Object
+});
+// multip3 — quiz data and student progress
+const multip3Questions = ref(Components.quizData.component);
+const studentProgress = ref({
+    correctCount: 0,
+    total:        0,
+    percentage:   0,
+    completedAt:  null,
+});
+
+const handleQuizComplete = ({ correctCount, total, percentage }) => {
+    studentProgress.value = {
+        correctCount,
+        total,
+        percentage,
+        completedAt: new Date().toISOString(),
+    };
+    console.log('[Index] Quiz complete — studentProgress saved:', studentProgress.value);
+};
+
+// multip4 — Tables Diploma
+const multip4Progress = ref({
+    time: 0,
+    formattedTime: '',
+    completedAt: null,
+});
+
+const handleMultip4Complete = ({ time, formattedTime }) => {
+    multip4Progress.value = {
+        time,
+        formattedTime,
+        completedAt: new Date().toISOString(),
+    };
+    console.log('[Index] multip4 Quiz complete:', multip4Progress.value);
+};
+
+defineOptions({
+  layout: AppLayoutDefault
+});
+
+const currentView = ref('audio');
+
+// Icon mapping for components
+const getComponentIcon = (key) => {
+    const iconMap = {
+        'VideoPlayerTabs': '📑',
+        'MicroDropdown': '🔽',
+        'AudioPlayer': '🎵',
+        'SecureNumpad': '🔢',
+        'QuestionDisplay': '❓',
+        'QuestionInput': '✏️',
+        'VideoPlayer': '🎬',
+        'EChartComponent': '📊',
+        'EChartComponent_v2': '📈',
+        'TestChartV2': '📉',
+        'DynamicTreeEditor': '🌳',
+        'DragDrop': '🎯',
+        'mulitp': '✖️',
+        'multip2': '🎯',
+        'MultipleChoiceQuiz': '🧮',
+        'quizData': '📋',
+        'InputQuiz': '📋',
+        'IXLLinePlotExample': '📈',
+        'PresentationEditor': '📺',
+        'MyTableSchedule': '📅',
+        'TaskList': '📝',
+        'AudioPlayerDemo': '🎧'
+    };
+    return iconMap[key] || '🔧';
+};
+
+// Get current component configuration
+const getCurrentComponent = () => {
+    return Components[currentView.value];
+};
+
+// Get component-specific props for special cases
+const getComponentSpecificProps = () => {
+    switch(currentView.value) {
+        case 'numpad':
+            return { modelValue: numpadValue.value };
+        case 'mytable':
+            return { scheduleData: fullScheduleData };
+        default:
+            return {};
+    }
+};
+
+// Check if component needs special handling
+const hasSpecialHandling = () => {
+    return ['multiplication3', 'taskspro'].includes(currentView.value);
+};
+
+// Tasks Pro State
+const tasksData = ref([]);
+
+// Numpad Demo State
+const numpadValue = ref('');
+
+// Schedule Timeline Demo State
+import fullScheduleData from './mytable/full_schedule.json';
+
+// Real-time Questions Demo State
+const realtimeAnswers = ref([]);
+const questionId = 'rating-test-room-1'; // Fixed room ID for testing
+const currentUserId = computed(() => usePage().props.auth?.user?.id || Math.floor(Math.random() * 1000));
+
+// Firebase connection status
+import { database } from '@/firebase/init';
+const firebaseConnectionStatus = ref({
+    connected: !!database,
+    message: database ? 'Firebase Connected' : 'Firebase Not Configured'
+});
+
+// Set up real-time listener at TOP LEVEL (critical for lifecycle hooks to work!)
+useRealtimeChannel(`question.${questionId}`, (signal) => {
+    console.log('🔔 SIGNAL RECEIVED:', signal);
+    
+    if (signal.event === 'NEW_RESPONSE') {
+        console.log('📥 Processing NEW_RESPONSE event:', signal.context);
+        
+        const newAnswer = {
+            id: Date.now().toString(),
+            value: parseInt(signal.context.answer), // Ensure value is number for stats
+            userName: signal.context.userName,
+            timestamp: signal.timestamp
+        };
+        
+        console.log('✅ Adding answer to display:', newAnswer);
+        
+        // Add to reactive array
+        realtimeAnswers.value.push(newAnswer);
+        
+        // Keep only last 50
+        if (realtimeAnswers.value.length > 50) {
+            realtimeAnswers.value.shift();
+        }
+        
+        console.log('📊 Total answers now:', realtimeAnswers.value.length);
+    } else {
+        console.log('⚠️ Received event is not NEW_RESPONSE:', signal.event);
+    }
+});
+
+const handleQuestionSubmit = async (answerData) => {
+    console.log('📤 Submitting answer:', answerData);
+    console.log('📍 To room:', questionId);
+    console.log('👤 User ID:', currentUserId.value);
+  
+    try {
+      const payload = {
+          questionId: questionId,
+          answer: answerData.value.toString(),
+          userId: currentUserId.value
+      };
+      
+      console.log('📦 API Payload:', payload);
+      
+      const response = await axios.post('/api/realtime/test/question', payload);
+      
+      console.log('✅ API Response:', response.data);
+      console.log('Answer submitted to backend - waiting for Firebase broadcast...');
+      
+      // No local push needed, we wait for broadcast
+    } catch (error) {
+      console.error('❌ Failed to submit answer:', error);
+      console.error('Error details:', error.response?.data);
+      alert('Failed to submit answer. Check console.');
+    }
+};
+
+onMounted(() => {
+    console.log('🔍 Firebase initialization check:');
+    console.log('  Database object:', database);
+    console.log('  Question ID:', questionId);
+    console.log('  Channel:', `question.${questionId}`);
+    console.log('  Status:', firebaseConnectionStatus.value.message);
+    console.log('✅ Listener registered for channel: question.' + questionId);
+});
+</script>
+
+<style scoped>
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+</style>

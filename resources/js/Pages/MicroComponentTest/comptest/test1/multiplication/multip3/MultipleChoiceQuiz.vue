@@ -50,12 +50,13 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import QuizScoreboard from './QuizScoreboard.vue';
 import QuizQuestionCard from './QuizQuestionCard.vue';
+import QuizScoreboard from './QuizScoreboard.vue';
+import quizData from './quizData.js';
 
 // ─── Props & Emits ────────────────────────────────────────────────────────────
 const props = defineProps({
-  questions: { type: Array, required: true },
+  questions: { type: Array, default: () => quizData },
 });
 
 const emit = defineEmits(['quiz-complete']);
