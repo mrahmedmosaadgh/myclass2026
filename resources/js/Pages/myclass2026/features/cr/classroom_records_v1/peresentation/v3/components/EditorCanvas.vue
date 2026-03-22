@@ -1,76 +1,5 @@
 <template>
   <div class="flex-1 bg-gray-900 p-6 overflow-auto">
-    <!-- Element Toolbar -->
-    <div class="mb-4 flex justify-center">
-      <div class="bg-gray-800 rounded-lg p-2 flex items-center space-x-2">
-        <!-- Text -->
-        <button
-          @click="addElement('text')"
-          class="p-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors"
-          title="Add Text"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
-        </button>
-
-        <!-- Heading -->
-        <button
-          @click="addElement('heading')"
-          class="p-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors"
-          title="Add Heading"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-          </svg>
-        </button>
-
-        <!-- Subheading -->
-        <button
-          @click="addElement('subheading')"
-          class="p-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors"
-          title="Add Subheading"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-3-3v6m-7 1h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2z"></path>
-          </svg>
-        </button>
-
-        <!-- Image -->
-        <button
-          @click="triggerImageUpload"
-          class="p-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors"
-          title="Add Image"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-          </svg>
-        </button>
-
-        <!-- Rectangle -->
-        <button
-          @click="addElement('rectangle')"
-          class="p-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors"
-          title="Add Rectangle"
-        >
-          <svg class="w-5 h-5" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24">
-            <rect x="4" y="6" width="16" height="12" fill="currentColor" stroke="white" stroke-width="2"></rect>
-          </svg>
-        </button>
-
-        <!-- Paste -->
-        <button
-          @click="triggerPaste"
-          class="p-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors"
-          title="Paste from Clipboard"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-          </svg>
-        </button>
-      </div>
-    </div>
-
     <!-- Canvas Container -->
     <div class="flex justify-center">
       <div
@@ -81,17 +10,103 @@
         @drop="handleDrop"
         @contextmenu.prevent="showContextMenu"
         class="relative bg-white shadow-2xl outline-none"
-        :style="{ width: '794px', height: slideHeight + 'px' }"
+        :style="{ width: slideWidth + 'px', height: slideHeight + 'px' }"
       >
         <!-- Elements -->
         <ElementNode
-          v-for="element in currentSlide.elements"
+          v-for="element in nonDrawingElements"
           :key="element.id"
           :element="element"
           @update="updateElement"
           @delete="deleteElement"
           @duplicate="duplicateElement"
         />
+
+        <!-- Drawing Layer (always visible in edit mode, on top of all elements) -->
+        <svg
+          class="absolute inset-0 pointer-events-none"
+          :style="{ width: slideWidth + 'px', height: slideHeight + 'px', zIndex: 999 }"
+        >
+          <defs>
+            <rect
+              id="drawing-clip"
+              :width="slideWidth"
+              :height="slideHeight"
+            />
+          </defs>
+          <g clip-path="url(#drawing-clip)">
+            <!-- Render saved drawings from slide elements -->
+            <path
+              v-for="element in drawingElements"
+              :key="element.id"
+              :d="element.path"
+              :stroke="element.color"
+              :stroke-width="element.size"
+              fill="none"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <!-- Current drawing path (only when drawing mode is active) -->
+            <path
+              v-if="isDrawingMode && currentPath"
+              :d="currentPath.d"
+              :stroke="currentPath.color"
+              :stroke-width="currentPath.size"
+              fill="none"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </g>
+        </svg>
+
+        <!-- Drawing Canvas Overlay (for capturing mouse events) -->
+        <div
+          v-if="isDrawingMode || isEraserMode"
+          class="absolute inset-0"
+          :class="isEraserMode ? 'cursor-none' : 'cursor-crosshair'"
+          :style="{ width: slideWidth + 'px', height: slideHeight + 'px', zIndex: 1000 }"
+          @mousedown="startDrawing"
+          @mousemove="handleMouseMove"
+          @mouseup="stopDrawing"
+          @mouseleave="handleMouseLeave"
+        >
+          <!-- Visual Eraser Cursor -->
+          <div
+            v-if="isEraserMode && eraserPosition"
+            class="fixed pointer-events-none border-2 border-red-500 rounded-full bg-red-500/20"
+            :style="{
+              left: (eraserPosition.x - 10) + 'px',
+              top: (eraserPosition.y - 10) + 'px',
+              width: '20px',
+              height: '20px',
+              zIndex: 9999
+            }"
+          ></div>
+          <!-- Live drawing preview -->
+          <svg
+            class="absolute inset-0 pointer-events-none"
+            :style="{ width: slideWidth + 'px', height: slideHeight + 'px' }"
+          >
+            <defs>
+              <rect
+                id="drawing-clip"
+                :width="slideWidth"
+                :height="slideHeight"
+              />
+            </defs>
+            <g clip-path="url(#drawing-clip)">
+              <path
+                v-if="currentPath"
+                :d="currentPath.d"
+                :stroke="currentPath.color"
+                :stroke-width="currentPath.size"
+                fill="none"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </g>
+          </svg>
+        </div>
 
         <!-- Paste Zone Overlay -->
         <div
@@ -155,7 +170,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import ElementNode from './ElementNode.vue'
 
 const props = defineProps({
@@ -166,10 +181,46 @@ const props = defineProps({
   slideHeight: {
     type: Number,
     required: true
+  },
+  slideWidth: {
+    type: Number,
+    required: true
+  },
+  selectedSize: {
+    type: String,
+    required: true
+  },
+  customWidth: {
+    type: Number,
+    required: true
+  },
+  customHeight: {
+    type: Number,
+    required: true
+  },
+  isEraserMode: {
+    type: Boolean,
+    required: true
+  },
+  isDrawingMode: {
+    type: Boolean,
+    required: true
+  },
+  penSize: {
+    type: Number,
+    required: true
+  },
+  penColor: {
+    type: String,
+    required: true
+  },
+  drawingPaths: {
+    type: Array,
+    required: true
   }
 })
 
-const emit = defineEmits(['slide-update'])
+const emit = defineEmits(['slide-update', 'slide-size-change', 'drawing-start', 'drawing-move', 'drawing-end', 'drawing-clear', 'drawing-undo'])
 
 const imageInput = ref(null)
 const canvasRef = ref(null)
@@ -178,6 +229,197 @@ const showPasteZone = ref(false)
 const showCanvasMenu = ref(false)
 const contextMenuX = ref(0)
 const contextMenuY = ref(0)
+
+// Settings visibility
+const showSettings = ref(false)
+
+// Drawing state
+const isDrawingLocal = ref(false)
+const currentPath = ref(null)
+const eraserPosition = ref(null)
+
+// Computed properties
+const nonDrawingElements = computed(() => {
+  return props.currentSlide.elements.filter(el => el.type !== 'drawing')
+})
+
+const drawingElements = computed(() => {
+  return props.currentSlide.elements.filter(el => el.type === 'drawing')
+})
+
+// Drawing methods
+const startDrawing = (event) => {
+  if (!props.isDrawingMode && !props.isEraserMode) return
+  
+  console.log('🎨 Starting drawing/erasing at:', { 
+    clientX: event.clientX, 
+    clientY: event.clientY, 
+    mode: props.isDrawingMode, 
+    eraser: props.isEraserMode 
+  })
+  
+  isDrawingLocal.value = true
+  const rect = event.currentTarget.getBoundingClientRect()
+  const x = event.clientX - rect.left
+  const y = event.clientY - rect.top
+  
+  console.log('📐 Calculated coordinates:', { 
+    rectLeft: rect.left, 
+    rectTop: rect.top, 
+    canvasX: x, 
+    canvasY: y,
+    canvasWidth: rect.width,
+    canvasHeight: rect.height
+  })
+  
+  if (props.isEraserMode) {
+    // In eraser mode, check if we're clicking on a drawing element
+    const clickedDrawing = findDrawingAtPosition(x, y)
+    if (clickedDrawing) {
+      // Remove the clicked drawing
+      console.log('🗑️ Erasing drawing:', clickedDrawing.id)
+      deleteElement(clickedDrawing.id)
+    } else {
+      console.log('❌ No drawing found to erase at this position')
+    }
+  } else {
+    // Normal drawing mode
+    currentPath.value = {
+      d: `M${x},${y}`,
+      color: props.penColor,
+      size: props.penSize,
+      points: [{x, y}]
+    }
+    
+    emit('drawing-start', { x, y, color: props.penColor, size: props.penSize })
+  }
+}
+
+const handleMouseMove = (event) => {
+  // Track eraser position for visual cursor
+  if (props.isEraserMode) {
+    eraserPosition.value = { x: event.clientX, y: event.clientY }
+  }
+  
+  // Handle drawing if in drawing mode
+  if (isDrawingLocal.value && currentPath.value && !props.isEraserMode) {
+    draw(event)
+  }
+}
+
+const handleMouseLeave = () => {
+  // Clear eraser position when mouse leaves canvas
+  eraserPosition.value = null
+  stopDrawing()
+}
+
+const draw = (event) => {
+  // Track eraser position for visual cursor
+  if (props.isEraserMode) {
+    eraserPosition.value = { x: event.clientX, y: event.clientY }
+  }
+  
+  if (!isDrawingLocal.value || !currentPath.value || props.isEraserMode) return
+  
+  const rect = event.currentTarget.getBoundingClientRect()
+  const x = event.clientX - rect.left
+  const y = event.clientY - rect.top
+  
+  // Add smooth curves using quadratic curves
+  const points = currentPath.value.points
+  if (points.length >= 2) {
+    const lastPoint = points[points.length - 1]
+    const controlPoint = {
+      x: (lastPoint.x + x) / 2,
+      y: (lastPoint.y + y) / 2
+    }
+    currentPath.value.d += ` Q${controlPoint.x},${controlPoint.y} ${x},${y}`
+  } else {
+    currentPath.value.d += ` L${x},${y}`
+  }
+  
+  currentPath.value.points.push({x, y})
+  emit('drawing-move', { x, y })
+}
+
+const stopDrawing = () => {
+  if (!isDrawingLocal.value) return
+  
+  // Clear eraser position when not drawing
+  eraserPosition.value = null
+  
+  //console.log('🎨 Stopping drawing, path length:', currentPath.value?.points?.length)
+  
+  isDrawingLocal.value = false
+  
+  if (currentPath.value && currentPath.value.points.length > 1 && !props.isEraserMode) {
+    emit('drawing-end', currentPath.value)
+    currentPath.value = null
+  }
+}
+
+// Helper function to find drawing elements at a specific position
+const findDrawingAtPosition = (x, y) => {
+  const drawingElements = props.currentSlide.elements.filter(el => el.type === 'drawing')
+  const eraserSize = 20 // Eraser detection radius in pixels
+  
+  console.log('🔍 Checking eraser at position:', { x, y, drawingCount: drawingElements.length })
+  
+  for (const drawing of drawingElements) {
+    // Check if click is within drawing bounds first (quick check)
+    if (x >= drawing.x && x <= drawing.x + drawing.width &&
+        y >= drawing.y && y <= drawing.y + drawing.height) {
+      
+      console.log('🎯 Within drawing bounds, checking path proximity...')
+      
+      // More precise check: see if click is near the actual path
+      if (isPointNearPath(x, y, drawing.path, drawing.size, eraserSize)) {
+        console.log('✅ Found drawing to erase:', drawing.id)
+        return drawing
+      }
+    }
+  }
+  
+  console.log('❌ No drawing found at position')
+  return null
+}
+
+// Helper function to check if a point is near an SVG path
+const isPointNearPath = (px, py, pathData, strokeWidth, tolerance = 10) => {
+  try {
+    // Create a temporary SVG path element to measure distance
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+    path.setAttribute('d', pathData)
+    
+    // Get the path length and check points along the path
+    const pathLength = path.getTotalLength()
+    const samplePoints = Math.min(100, Math.floor(pathLength / 5)) // Sample every 5 pixels or max 100 points
+    
+    console.log('📏 Analyzing path:', { pathLength, samplePoints, strokeWidth, tolerance })
+    
+    for (let i = 0; i <= samplePoints; i++) {
+      const distance = i / samplePoints
+      const point = path.getPointAtLength(pathLength * distance)
+      
+      // Calculate distance from click to path point
+      const dx = px - point.x
+      const dy = py - point.y
+      const distanceToPath = Math.sqrt(dx * dx + dy * dy)
+      
+      // If point is within tolerance (considering stroke width), it's a hit
+      if (distanceToPath <= (strokeWidth / 2) + tolerance) {
+        console.log('🎯 Hit detected at distance:', distanceToPath)
+        return true
+      }
+    }
+    
+    return false
+  } catch (error) {
+    // If path parsing fails, fall back to bounding box check
+    console.warn('Path analysis failed, using bounding box:', error)
+    return true
+  }
+}
 
 let pasteTimeout = null
 
@@ -285,6 +527,23 @@ const handleImageUpload = (event) => {
       img.src = e.target.result
     }
     reader.readAsDataURL(file)
+  }
+}
+
+const toggleSettings = () => {
+  showSettings.value = !showSettings.value
+}
+
+const handleSizeChange = (size) => {
+  emit('slide-size-change', { selectedSize: size })
+}
+
+const handleCustomSizeChange = (dimension, value) => {
+  const numValue = parseInt(value) || 0
+  if (dimension === 'width') {
+    emit('slide-size-change', { customWidth: numValue })
+  } else if (dimension === 'height') {
+    emit('slide-size-change', { customHeight: numValue })
   }
 }
 

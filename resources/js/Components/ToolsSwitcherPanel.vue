@@ -59,7 +59,7 @@
 
                 <!-- Actions -->
                 <div class="column q-gutter-y-sm">
-                   <q-btn outline color="negative" icon="delete_sweep" label="Clear Offline Data" no-caps @click="handleClearOfflineData" :loading="clearingData" />
+                   <q-btn  outline color="negative" icon="delete_sweep" label="Clear Offline Data" no-caps @click="handleClearOfflineData" :loading="clearingData" />
                    <q-btn outline color="warning text-dark" icon="refresh" label="Reset Network State" no-caps @click="handleResetNetworkState" />
                    <q-btn outline color="orange text-dark" icon="build" label="Reset Service Worker" no-caps @click="handleResetServiceWorker" />
                 </div>
@@ -116,6 +116,12 @@ const config = ref({
 const networkStore = useNetworkStore();
 const { isOnline, syncStatus, lastOnlineTime, connectionType } = storeToRefs(networkStore);
 const clearingData = ref(false);
+
+// Check if running in local environment
+const isLocalEnvironment = computed(() => {
+  const hostname = window.location.hostname;
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('.local');
+});
 
 // Computed
 const statusTextComputed = computed(() => networkStore.statusText);

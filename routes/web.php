@@ -142,7 +142,9 @@ Route::middleware([
     })->name('ocr-test');
 
     Route::get('/ocr-comparison', function () {
-        return Inertia::render('OcrComparison');
+        return Inertia::render('OcrComparison', [
+            'title' => 'OCR Comparison - MyClass2026'
+        ]);
     })->name('ocr-comparison');
 
     Route::get('/barcode-scanner', function () {

@@ -45,7 +45,10 @@ Route::middleware([
         // V3 Presentation Builder
         Route::get('/builder-v3', function () {
             return Inertia::render(
-                'myclass2026/features/cr/classroom_records_v1/peresentation/v3/PresentationBuilderV3'
+                'myclass2026/features/cr/classroom_records_v1/peresentation/v3/PresentationBuilderV3',
+                [
+                    'title' => 'Presentation Builder V3 - MyClass2026'
+                ]
             );
         })->name('builder-v3');
         

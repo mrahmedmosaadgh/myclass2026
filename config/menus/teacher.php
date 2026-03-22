@@ -43,6 +43,38 @@ return [
                 'route' => 'teacher.planning.daily-tasks.index',
                 'icon' => 'task',
             ],
+            // --- Teaching Tools (moved inside Academics) ---
+            [
+                'id' => 'tools_group',
+                'label' => ['en' => 'Teaching Tools', 'ar' => 'أدوات التدريس'],
+                'icon' => 'build',
+                'children' => [
+                    [
+                        'id' => 'lesson_presentation',
+                        'label' => ['en' => 'Lesson Presentation', 'ar' => 'عرض الدرس'],
+                        'route' => 'teacher.lesson_presentation', // or teacher.presentation
+                        'icon' => 'slideshow',
+                    ],
+                     [
+                        'id' => 'exams',
+                        'label' => ['en' => 'Exams', 'ar' => 'الامتحانات'],
+                        'route' => 'qu.exams.index',
+                        'icon' => 'description',
+                    ],
+                    [
+                        'id' => 'questions',
+                        'label' => ['en' => 'Question Bank', 'ar' => 'بنك الأسئلة'],
+                        'route' => 'qu.questions.index',
+                        'icon' => 'storage',
+                    ],
+                    [
+                        'id' => 'vocabulary',
+                        'label' => ['en' => 'Vocabulary Flashcards', 'ar' => 'البطاقات التعليمية للمفردات'],
+                        'route' => 'teacher.tools.vocabulary.index',
+                        'icon' => 'style',
+                    ],
+                ]
+            ],
         ]
     ],
     
@@ -64,42 +96,15 @@ return [
                 'route' => 'teacher.grades',
                 'icon' => 'grade',
             ],
-        ]
+        ],
     ],
-    
-    // --- Teaching Tools ---
+    // --- Tools Switcher ---
     [
-        'id' => 'tools_group',
-        'label' => ['en' => 'Teaching Tools', 'ar' => 'أدوات التدريس'],
-        'icon' => 'build',
-        'children' => [
-            [
-                'id' => 'lesson_presentation',
-                'label' => ['en' => 'Lesson Presentation', 'ar' => 'عرض الدرس'],
-                'route' => 'teacher.lesson_presentation', // or teacher.presentation
-                'icon' => 'slideshow',
-            ],
-             [
-                'id' => 'exams',
-                'label' => ['en' => 'Exams', 'ar' => 'الامتحانات'],
-                'route' => 'qu.exams.index',
-                'icon' => 'description',
-            ],
-            [
-                'id' => 'questions',
-                'label' => ['en' => 'Question Bank', 'ar' => 'بنك الأسئلة'],
-                'route' => 'qu.questions.index',
-                'icon' => 'storage',
-            ],
-            [
-                'id' => 'vocabulary',
-                'label' => ['en' => 'Vocabulary Flashcards', 'ar' => 'البطاقات التعليمية للمفردات'],
-                'route' => 'teacher.tools.vocabulary.index',
-                'icon' => 'style',
-            ],
-        ]
+        'id' => 'tools_switcher',
+        'label' => ['en' => 'Tools Switcher', 'ar' => 'مبدل الأدوات'],
+        'route' => 'teacher.tools_switcher',
+        'icon' => 'build_circle',
     ],
-
     // --- Communication ---
     [
         'id' => 'communication_group',

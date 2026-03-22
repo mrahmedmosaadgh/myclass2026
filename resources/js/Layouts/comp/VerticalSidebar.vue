@@ -731,6 +731,51 @@ const handleToggleDarkMode = () => {
       </q-list>
     </q-scroll-area>
 
+    <!-- App Menu Bottom / Footer -->
+    <div class="sidebar-footer" v-if="user">
+      <q-separator class="footer-divider q-mb-none" />
+      <q-list padding class="navigation-menu q-pt-sm">
+        
+        <!-- Profile -->
+        <InertiaLinkWrapper :href="safeRoute('profile.show')" @click="closeSidebar">
+          <q-item clickable v-ripple tag="div" active-class="text-primary bg-blue-100">
+            <q-item-section avatar>
+              <q-icon name="person" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label class="menu-label">{{ t('common.profile') || 'Profile' }}</q-item-label>
+            </q-item-section>
+          </q-item>
+        </InertiaLinkWrapper>
+
+        <!-- Tools Switcher -->
+        <q-item class="q-pa-none">
+          <ToolsSwitcherPanel class="full-width" />
+        </q-item>
+
+        <!-- Language Switcher -->
+        <q-item class="q-py-sm">
+           <q-item-section avatar>
+              <q-icon name="language" color="grey-7" />
+            </q-item-section>
+            <q-item-section>
+               <LanguageSwitcher class="full-width" />
+            </q-item-section>
+        </q-item>
+
+        <!-- Logout -->
+        <q-item clickable v-ripple @click="logout">
+          <q-item-section avatar>
+            <q-icon name="logout" color="negative" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label class="menu-label text-negative">{{ t('common.logout') || 'Logout' }}</q-item-label>
+          </q-item-section>
+        </q-item>
+
+      </q-list>
+    </div>
+
     <!-- Hidden Global Search Dialog -->
     <q-dialog ref="globalSearchDialog">
       <GlobalSearch />

@@ -47,19 +47,6 @@
         </button>
       </div>
     </div>
-
-    <!-- Add Slide Button -->
-    <div class="p-3 border-t border-gray-700">
-      <button
-        @click="$emit('add-slide')"
-        class="w-full py-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2 group"
-      >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-        </svg>
-        <span class="text-sm font-medium">Add Slide</span>
-      </button>
-    </div>
   </div>
 </template>
 
@@ -79,7 +66,6 @@ const props = defineProps({
 
 const emit = defineEmits([
   'slide-select',
-  'add-slide',
   'slide-delete'
 ])
 </script>

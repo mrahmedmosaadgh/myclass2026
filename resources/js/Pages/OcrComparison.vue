@@ -1,5 +1,5 @@
 <template>
-  <Head title="OCR Comparison" />
+  <Head title="OCR Comparison - MyClass2026" />
     <div>
       <h2 class="font-semibold text-xl text-gray-800 leading-tight">
         OCR Methods Comparison

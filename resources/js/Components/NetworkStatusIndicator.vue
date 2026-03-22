@@ -93,6 +93,7 @@
 
               <!-- Clear Offline Data Button -->
               <q-btn
+                v-if="isLocalEnvironment"
                 size="sm"
                 color="negative"
                 icon="delete_sweep"
@@ -156,6 +157,12 @@ const {
 
 // Get computed properties from store
 const { statusText } = networkStore;
+
+// Check if running in local environment
+const isLocalEnvironment = computed(() => {
+  const hostname = window.location.hostname;
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('.local');
+});
 
 // Sync status computed properties
 const syncStatusText = computed(() => {

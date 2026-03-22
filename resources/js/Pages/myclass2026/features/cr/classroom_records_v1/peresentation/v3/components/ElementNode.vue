@@ -278,10 +278,14 @@ const props = defineProps({
   element: {
     type: Object,
     required: true
+  },
+  isPresentation: {
+    type: Boolean,
+    default: false
   }
 })
 
-const emit = defineEmits(['update', 'delete', 'duplicate'])
+const emit = defineEmits(['update', 'delete', 'duplicate', 'click'])
 
 const elementRef = ref(null)
 const contextMenuRef = ref(null)
@@ -544,14 +548,14 @@ const deleteElement = () => {
 const handleClick = (event) => {
   if (props.element.clickable) {
     event.stopPropagation()
-    // You can add custom click behavior here
-    // console.log('Custom rectangle clicked!', props.element.id)
-    // For now, just show a simple feedback
-    const element = event.target
-    element.style.transform = 'scale(0.95)'
-    setTimeout(() => {
-      element.style.transform = 'scale(1)'
-    }, 100)
+    
+    if (props.isPresentation) {
+      // In presentation mode, emit click event to parent
+      emit('click', props.element)
+    } else {
+      // In edit mode, you can add custom click behavior here
+      console.log('Rectangle clicked in edit mode')
+    }
   }
 }
 

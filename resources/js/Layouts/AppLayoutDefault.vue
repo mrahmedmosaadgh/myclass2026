@@ -13,6 +13,7 @@ import { ref, computed } from 'vue';
 import { Head, Link, usePage, router } from '@inertiajs/vue3';
 import InertiaLinkWrapper from '@/Components/InertiaLinkWrapper.vue';
 import { useI18n } from 'vue-i18n';
+import { useQuasar } from 'quasar';
 
 // Components
 import ApplicationMark from '@/Components/ApplicationMark.vue';
@@ -25,10 +26,17 @@ import ChatbotWidget from '@/Components/Chatbot/ChatbotWidget.vue';
 import VerticalSidebar from '@/Layouts/comp/VerticalSidebar.vue';
 import LanguageSwitcher from '@/Components/LanguageSwitcher.vue';
 import ToolsSwitcherPanel from '@/Components/ToolsSwitcherPanel.vue';
+import ConfirmDropdownBtn from '@/Components/ConfirmDropdownBtn.vue';
 
 // Store
 import { useAppStore } from '@/Stores/AppStore';
 const appStore = useAppStore();
+
+// Check if running in local environment
+const isLocalEnvironment = computed(() => {
+  const hostname = window.location.hostname;
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('.local');
+});
 
 // Props
 const props = defineProps({
@@ -42,6 +50,7 @@ const props = defineProps({
 // Composables
 const { t, locale } = useI18n();
 const page = usePage();
+const q = useQuasar();
 
 // Import dark mode composable
 import { useDarkMode } from '@/composables/useDarkMode';
@@ -95,6 +104,98 @@ const getRoute = (name, params = {}) => {
 const logout = () => {
   if (hasRoute('logout')) {
     router.post(window.route('logout'));
+  }
+};
+
+// Clear offline data function
+const clearingData = ref(false);
+const handleClearOfflineData = async () => {
+  clearingData.value = true;
+  console.log('🗑️ Starting offline data cleanup...');
+
+  try {
+    // Clear IndexedDB (Dexie database)
+    try {
+      const { db } = await import('@/offline/dexie.js');
+      await db.delete();
+      console.log('✅ IndexedDB cleared');
+    } catch (error) {
+      console.warn('⚠️ Could not clear IndexedDB:', error);
+    }
+
+    // Clear localStorage items related to offline functionality
+    const offlineKeys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (
+        key.startsWith('offline_') ||
+        key.startsWith('sync_') ||
+        key.startsWith('network_') ||
+        key.includes('queue') ||
+        key.includes('cache') ||
+        key.includes('lesson') ||
+        key.includes('student') ||
+        key.includes('grade')
+      )) {
+        offlineKeys.push(key);
+      }
+    }
+
+    offlineKeys.forEach(key => {
+      localStorage.removeItem(key);
+      console.log(`🗑️ Removed localStorage: ${key}`);
+    });
+
+    // Clear sessionStorage
+    sessionStorage.clear();
+    console.log('✅ SessionStorage cleared');
+
+    // Clear any cached service worker data
+    if ('caches' in window) {
+      const cacheNames = await caches.keys();
+      await Promise.all(
+        cacheNames.map(cacheName => {
+          console.log(`🗑️ Clearing cache: ${cacheName}`);
+          return caches.delete(cacheName);
+        })
+      );
+      console.log('✅ Service Worker caches cleared');
+    }
+
+    // Reset sync queue
+    try {
+      const { clearQueue } = await import('@/offline/syncQueue.js');
+      await clearQueue();
+      console.log('✅ Sync queue cleared');
+    } catch (error) {
+      console.warn('⚠️ Could not clear sync queue:', error);
+    }
+
+    // Show success message
+    q.notify({
+      type: 'positive',
+      message: '✅ All offline data has been cleared successfully!',
+      caption: 'The page will reload to reset the application state.',
+      timeout: 3000,
+      position: 'top'
+    });
+
+    // Reload the page to reset everything
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
+
+  } catch (error) {
+    console.error('❌ Error clearing offline data:', error);
+    q.notify({
+      type: 'negative',
+      message: '❌ Error clearing offline data',
+      caption: 'Please check the console for details.',
+      timeout: 5000,
+      position: 'top'
+    });
+  } finally {
+    clearingData.value = false;
   }
 };
 </script>
@@ -159,6 +260,24 @@ const logout = () => {
           </q-item>
         </q-list>
       </q-menu>
+    </div>
+
+    <!-- Clear Offline Data Button (Local Only) -->
+    <div v-if="isLocalEnvironment" class="fixed-clear-data-btn">
+      <ConfirmDropdownBtn
+        label="Clear Offline"
+        icon="delete_sweep"
+        color="negative"
+        title="Clear Offline Data"
+        message="⚠️ This will clear ALL offline data including cached lessons, students, grades, pending sync queue, local storage data, and IndexedDB data. This action cannot be undone."
+        confirm-label="Clear Data"
+        confirm-icon="delete_sweep"
+        confirm-color="negative"
+        :loading="clearingData"
+        dense
+        no-caps
+        @confirm="handleClearOfflineData"
+      />
     </div>
 
     <!-- Main container -->
@@ -297,6 +416,41 @@ const logout = () => {
 
 :global(.dark) .status-name {
   color: #f3f4f6;
+}
+
+/* Fixed Clear Offline Data Button */
+.fixed-clear-data-btn {
+  position: fixed;
+  top: 80px;
+  left: 4px;
+  z-index: 1999;
+}
+
+.fixed-clear-data-btn .q-btn {
+  background: rgba(239, 68, 68, 0.9);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 8px;
+  min-height: 28px;
+  transition: all 0.2s ease;
+}
+
+.fixed-clear-data-btn .q-btn:hover {
+  background: rgba(220, 38, 38, 0.95);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+:global(.dark) .fixed-clear-data-btn .q-btn {
+  background: rgba(220, 38, 38, 0.9);
+  border-color: rgba(220, 38, 38, 0.4);
+}
+
+:global(.dark) .fixed-clear-data-btn .q-btn:hover {
+  background: rgba(200, 30, 30, 0.95);
 }
 
 .layout-container {
