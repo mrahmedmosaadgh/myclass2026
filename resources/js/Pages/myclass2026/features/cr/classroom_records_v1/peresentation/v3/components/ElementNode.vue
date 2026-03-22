@@ -26,21 +26,8 @@
 
     <div
       v-else-if="element.type === 'rectangle'"
-      class="w-full h-full"
+      class="w-full h-full cursor-pointer"
       :style="rectangleStyle"
-    ></div>
-
-    <div
-      v-else-if="element.type === 'custom-rectangle'"
-      class="w-full h-full cursor-pointer"
-      :style="customRectangleStyle"
-      @click="handleClick"
-    ></div>
-
-    <div
-      v-else-if="element.type === 'rounded-rectangle'"
-      class="w-full h-full cursor-pointer"
-      :style="roundedRectangleStyle"
       @click="handleClick"
     ></div>
 
@@ -80,7 +67,7 @@
     </div>
 
     <!-- Resize Handles -->
-    <template v-if="isSelected && (element.type === 'rectangle' || element.type === 'custom-rectangle' || element.type === 'rounded-rectangle')">>
+    <template v-if="isSelected && element.type === 'rectangle'">>
       <div
         v-for="handle in resizeHandles"
         :key="handle"
@@ -322,27 +309,11 @@ const textStyle = computed(() => ({
 }))
 
 const rectangleStyle = computed(() => ({
-  backgroundColor: props.element.background || 'transparent',
+  backgroundColor: props.element.background || 'red',
   borderColor: getBorderColor(),
   borderWidth: '2px',
   borderStyle: 'solid',
   borderRadius: '0px'
-}))
-
-const customRectangleStyle = computed(() => ({
-  backgroundColor: props.element.background || '#3B82F6',
-  borderColor: getBorderColor(),
-  borderWidth: '2px',
-  borderStyle: 'solid',
-  borderRadius: '0px'
-}))
-
-const roundedRectangleStyle = computed(() => ({
-  backgroundColor: props.element.background || '#3B82F6',
-  borderColor: getBorderColor(),
-  borderWidth: '2px',
-  borderStyle: 'solid',
-  borderRadius: '12px'
 }))
 
 const stateIndicatorClass = computed(() => {
