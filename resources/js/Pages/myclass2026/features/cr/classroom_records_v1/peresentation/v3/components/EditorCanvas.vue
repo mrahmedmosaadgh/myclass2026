@@ -229,7 +229,7 @@ const addElement = (type) => {
     background: (type === 'custom-rectangle' || type === 'rounded-rectangle') ? '#3B82F6' : '#3B82F6',
     border: (type === 'custom-rectangle' || type === 'rounded-rectangle') ? '2px solid #1E40AF' : '2px solid #1E40AF',
     opacity: 1,
-    startHidden: false,
+    startHidden: type === 'rounded-rectangle' ? true : false,
     clickable: (type === 'rectangle' || type === 'custom-rectangle' || type === 'rounded-rectangle') ? true : false,
     moveable: (type === 'rectangle' || type === 'custom-rectangle' || type === 'rounded-rectangle') ? false : true,
     zIndex: 1
