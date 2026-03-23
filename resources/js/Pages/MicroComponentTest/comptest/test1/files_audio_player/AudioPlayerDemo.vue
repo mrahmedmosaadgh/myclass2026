@@ -1,6 +1,11 @@
-<template>
-  <div class="demo">
-    <h2>AudioPlayer Demo</h2>
+<template>dddddddddddddddd
+  <div class="demo" v-if="showDemo">
+    <div class="header">
+      <h2>AudioPlayer Demo</h2>
+      <button @click="showDemo = false" class="close-btn" title="Close">
+        ✕
+      </button>
+    </div>
 
     <!-- ════ EXAMPLE 1: Inline player, full controls ════ -->
     <section>
@@ -98,6 +103,7 @@ const controlA    = ref(0)
 const controlB    = ref(0)
 const controlC    = ref(0)
 const showFloating = ref(true)
+const showDemo = ref(false)
 
 function onTrackChange(index) {
   console.log('Track changed to index:', index)
@@ -109,6 +115,23 @@ function onEnded(index) {
 
 <style scoped>
 .demo { max-width: 540px; margin: 40px auto; display: flex; flex-direction: column; gap: 40px; font-family: sans-serif; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.header h2 { margin: 0; }
+.close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #f4f4f5;
+  border: 1px solid #e4e4e7;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: #71717a;
+  padding: 0;
+}
+.close-btn:hover { background: #e4e4e7; color: #18181b; }
 section { display: flex; flex-direction: column; gap: 12px; }
 h3 { margin: 0; font-size: .85rem; text-transform: uppercase; letter-spacing: .06em; color: #888; }
 button {

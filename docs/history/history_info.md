@@ -51,7 +51,7 @@ Follow these rules strictly to maintain project consistency and history.
 
 ## 🚀 1. Starting a New Task
 Before you start coding a new feature or fixing a bug:
-1.  **Sync with Main**: `git checkout main2` and `git pull`.
+1.  **Sync with Main**: `git checkout <branch_name>` and `git pull`.
 2.  **Creation**: Create a descriptive branch: `git checkout -b <branch_name>`.
 
 ---
