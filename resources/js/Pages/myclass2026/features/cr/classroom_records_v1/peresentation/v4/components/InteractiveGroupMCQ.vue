@@ -375,7 +375,14 @@ function getOptionClass(optId) {
                    <span v-else class="graded-mark wrong-mark">✕</span>
                 </div>
               </template>
-           </div>
+
+               <div v-else-if="!isGraded && isInteractive" class="status-icon-wrapper">
+                  <img v-if="activeGroupId === g.id" src="/icon/solve/download (3).png" class="status-img pulse" title="Group is solving..." width="20" height="20" />
+                  <img v-else-if="!qHistory.groupAnswers[g.id]" src="/icon/solve/download.png" class="status-img grayscale" title="Not solving yet" width="20" height="20" />
+                  <img v-else src="/icon/solve/download (1).png" class="status-img" title="Answered!" width="20" height="20" />
+               </div>
+            </div>
+          </div>
          </div>
       </div>
     </div>
@@ -651,6 +658,28 @@ function getOptionClass(optId) {
 .graded-mark { font-weight: bold; font-size: 1rem; }
 .correct-mark { color: #10b981; }
 .wrong-mark { color: #ef4444; }
+
+/* Status Icons */
+.status-icon-wrapper {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+.status-img {
+  object-fit: contain;
+}
+.pulse {
+  animation: pulse-animation 2s infinite;
+}
+.grayscale {
+  filter: grayscale(100%);
+  opacity: 0.3;
+}
+@keyframes pulse-animation {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
 
 /* Button Modes */
 .assignable-btn { cursor: copy; border-color: #93c5fd; }
