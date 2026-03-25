@@ -383,9 +383,8 @@ function getOptionClass(optId) {
                </div>
             </div>
           </div>
-         </div>
+        </div>
       </div>
-    </div>
 
     <!-- Instructor Control Bar -->
     <div v-if="!isEditMode" class="quiz-controls">
