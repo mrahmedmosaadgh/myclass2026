@@ -22,6 +22,9 @@ use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Spatie\Permission\Models\Role;
 
+// Include Classroom Records v1 Routes
+include dirname(__DIR__).'/routes/myclass2026/cr/web.php';
+
 // Domain-based Routing for QudratPro
 Route::domain('qudratpro.com')->group(function () {
     require base_path('routes/qudrat/web.php');
@@ -676,9 +679,6 @@ Route::middleware(['auth'])->prefix('bm2')->group(function () {
         return Inertia::render('Courses/bm2/Teacher/StudentProgress', ['studentId' => $id]);
     })->name('bm2.teacher.student');
 });
-
-// Include Classroom Records v1 Routes
-include dirname(__DIR__).'/routes/myclass2026/cr/web.php';
 
 // Include Laravel Cache Management Routes
 include dirname(__DIR__).'/routes/fix_laravel_cache.php';
