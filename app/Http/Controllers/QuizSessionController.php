@@ -178,7 +178,7 @@ class QuizSessionController extends Controller
         // Create a real question for validation/history
         $qType = \App\Models\QuestionType::where('slug', 'multiple_choice')->first();
         $newQuestion = \App\Models\Question::create([
-            'text' => $validated['question'],
+            'question_text' => $validated['question'],
             'question_type_id' => $qType->id,
             'author_id' => Auth::id(),
             'status' => 'active'
