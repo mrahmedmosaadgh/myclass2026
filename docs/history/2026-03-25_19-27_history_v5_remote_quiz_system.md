@@ -33,12 +33,13 @@ Implemented a high-performance, real-time classroom assessment system integrated
 
 ### 🚀 To Be Done (Optional)
 - [ ] Add "Session History" view to see previous quiz results.
-### 🛠️ Composer & Deployment Fix (Emergency)
-- **Problem**: Identified a deployment failure on Hostinger due to PHP version mismatch. Local machine (PHP 8.4) had locked dependencies (Symfony, ZipStream) to versions requiring PHP 8.4+.
+### 🛠️ Composer & Deployment Fix (Super-Compatible Mode)
+- **Problem**: Identified a persistent deployment failure on Hostinger due to strict package versioning and environment mismatch.
 - **Solution**: 
     - Forced a downgrade of 13 packages to versions compatible with **PHP 8.2**.
-    - Added `config.platform.php: 8.2.0` to `composer.json` to ensure future stability across shared hosting environments.
-    - Pinned `phpspreadsheet` to `^5.5`.
+    - Implemented **"Super-Compatible" `composer.json`** with relaxed version ranges for Laravel (11-12), Doctrine (3.8+), and Inertia (1-2).
+    - Added `config.platform.php: 8.2.0` to ensure server-side resolution stability.
+    - Pinned `phpspreadsheet` to `^3.0 || ^4.0 || ^5.0`.
 
 ---
 **Status**: COMPLETE ✅
