@@ -10,6 +10,14 @@ function close() {
 }
 
 const colorPresets = ['#fcd34d', '#f9a8d4', '#93c5fd', '#a7f3d0', '#c4b5fd', '#fca5a5', '#5eead4', '#e5e7eb', '#9ca3af', '#f87171', '#fbbf24', '#34d399', '#60a5fa', '#818cf8', '#f472b6'];
+
+const phaseSuggestions = {
+  0: ['Introduction', 'Warm-up', 'مقدمة', 'تهيئة', 'التهيئة'],
+  1: ['Core Lesson', 'Presentation', 'الشرح', 'العرض'],
+  2: ['Practice', 'Activity', 'تدريب', 'نشاط'],
+  3: ['Assessment', 'Evaluation', 'تقييم', 'تقويم'],
+  4: ['Conclusion', 'Closure', 'خاتمة', 'غلق']
+};
 </script>
 
 <template>
@@ -23,8 +31,21 @@ const colorPresets = ['#fcd34d', '#f9a8d4', '#93c5fd', '#a7f3d0', '#c4b5fd', '#f
         <p class="desc">Customize the lesson phases. These changes are saved directly to your browser.</p>
         
         <div class="section-list">
-          <div v-for="(sec, index) in sectionStore.sections" :key="sec.id" class="section-item">
-            <input type="color" v-model="sec.color" class="color-picker" :list="'presetColors' + index">
+          <div v-for="(sec, index) in sectionStore.sections" :key="sec.id" class="section-wrapper">
+            <div v-if="phaseSuggestions[index]" class="suggestion-tags">
+              <span class="suggestion-label">Suggestions:</span>
+              <span 
+                v-for="sug in phaseSuggestions[index]" 
+                :key="sug" 
+                @click="sec.name = sug" 
+                class="tag-btn"
+              >
+                {{ sug }}
+              </span>
+            </div>
+            
+            <div class="section-item">
+              <input type="color" v-model="sec.color" class="color-picker" :list="'presetColors' + index">
             <datalist :id="'presetColors' + index">
               <option v-for="c in colorPresets" :key="c" :value="c"></option>
             </datalist>
@@ -34,6 +55,7 @@ const colorPresets = ['#fcd34d', '#f9a8d4', '#93c5fd', '#a7f3d0', '#c4b5fd', '#f
             <button class="icon-btn text-red" @click="sectionStore.deleteSection(index)" title="Remove Phase">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
             </button>
+            </div>
           </div>
         </div>
 
@@ -109,6 +131,49 @@ const colorPresets = ['#fcd34d', '#f9a8d4', '#93c5fd', '#a7f3d0', '#c4b5fd', '#f
   flex-direction: column;
   gap: 10px;
   margin-bottom: 20px;
+}
+
+.section-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed #e5e7eb;
+}
+
+.section-wrapper:last-child {
+  border-bottom: none;
+}
+
+.suggestion-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.suggestion-label {
+  font-size: 10px;
+  color: #9ca3af;
+  margin-right: 4px;
+}
+
+.tag-btn {
+  font-size: 11px;
+  background: #f3f4f6;
+  color: #4b5563;
+  padding: 2px 8px;
+  border-radius: 12px;
+  cursor: pointer;
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s;
+}
+
+.tag-btn:hover {
+  background: #e0e7ff;
+  color: #4f46e5;
+  border-color: #c7d2fe;
 }
 
 .section-item {

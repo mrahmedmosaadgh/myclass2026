@@ -90,6 +90,16 @@ export function usePaste() {
     });
   }
 
+  function createMathElement() {
+    finishPaste({
+      ...getBaseProps(),
+      type: 'math',
+      content: '1. $$ \\frac{2}{3} + \\frac{1}{3} $$',
+      width: 300,
+      height: 100
+    });
+  }
+
   function createImageElement(src) {
     const img = new Image();
     img.onload = () => {
@@ -140,6 +150,7 @@ export function usePaste() {
   return {
     handlePaste,
     createTextElement,
+    createMathElement,
     createImageElement,
     createHTMLElement,
     createRectangleElement

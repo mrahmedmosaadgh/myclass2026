@@ -3,6 +3,8 @@ import { ref, computed } from 'vue';
 
 export const usePresentationStore = defineStore('presentation', () => {
   const title = ref('Untitled Presentation');
+  const usePhases = ref(false);
+  const hasInitializedPhases = ref(false);
   const slides = ref([
     {
       id: 'slide-1',
@@ -51,6 +53,39 @@ export const usePresentationStore = defineStore('presentation', () => {
     };
     slides.value.push(newSlide);
     currentSlideIndex.value = slides.value.length - 1;
+  }
+
+  function addSlideToPhase(sectionId) {
+    const newSlide = {
+      id: 'slide-' + Date.now() + Math.random().toString(36).substring(2, 9),
+      sectionId: sectionId,
+      elements: []
+    };
+    let insertIndex = slides.value.length;
+    for (let i = slides.value.length - 1; i >= 0; i--) {
+      if (slides.value[i].sectionId === sectionId) {
+        insertIndex = i + 1;
+        break;
+      }
+    }
+    slides.value.splice(insertIndex, 0, newSlide);
+    currentSlideIndex.value = insertIndex;
+  }
+
+  function selectSlideById(id) {
+    const idx = slides.value.findIndex(s => s.id === id);
+    if (idx !== -1) currentSlideIndex.value = idx;
+  }
+
+  function deleteSlideById(id) {
+    if (slides.value.length <= 1) return;
+    const idx = slides.value.findIndex(s => s.id === id);
+    if (idx !== -1) {
+      slides.value.splice(idx, 1);
+      if (currentSlideIndex.value >= slides.value.length) {
+        currentSlideIndex.value = slides.value.length - 1;
+      }
+    }
   }
 
   function selectSlide(index) {
@@ -104,16 +139,22 @@ export const usePresentationStore = defineStore('presentation', () => {
     if (Array.isArray(data)) {
       slides.value = data;
       title.value = 'Imported Presentation';
+      usePhases.value = false;
+      hasInitializedPhases.value = true;
       currentSlideIndex.value = 0;
     } else if (data && data.slides && Array.isArray(data.slides)) {
       slides.value = data.slides;
       title.value = data.title || 'Imported Presentation';
+      usePhases.value = !!data.usePhases;
+      hasInitializedPhases.value = true;
       currentSlideIndex.value = 0;
     }
   }
 
   return {
     title,
+    usePhases,
+    hasInitializedPhases,
     slides,
     currentSlideIndex,
     currentSlide,
@@ -122,8 +163,11 @@ export const usePresentationStore = defineStore('presentation', () => {
     deleteElement,
     duplicateElement,
     addSlide,
+    addSlideToPhase,
     selectSlide,
+    selectSlideById,
     deleteSlide,
+    deleteSlideById,
     loadPresentation
   };
 });

@@ -17,14 +17,46 @@ function getSectionName(sectionId) {
   const sec = sectionStore.sections.find(s => s.id === sectionId);
   return sec ? sec.name : '';
 }
+
+function getSlidesForPhase(sectionId) {
+  return presentation.slides.filter(s => s.sectionId === sectionId);
+}
+
+function getOverallSlideIndex(slideId) {
+  return presentation.slides.findIndex(s => s.id === slideId);
+}
+
+function enablePhases() {
+  presentation.usePhases = true;
+  presentation.hasInitializedPhases = true;
+}
+
+function ignorePhases() {
+  presentation.usePhases = false;
+  presentation.hasInitializedPhases = true;
+}
 </script>
 
 <template>
   <div class="slide-nav-container">
+    
+    <!-- Initialization Modal (only shows for fresh presentations in Edit Mode) -->
+    <div v-if="ui.isEditMode && !presentation.hasInitializedPhases" class="init-phases-overlay">
+      <div class="init-phases-card">
+        <h3>Classroom Phases</h3>
+        <p>Would you like to formally organize your slides into structured Lesson Phases (e.g., Introduction, Core Concept, Assessment)?</p>
+        <div class="init-actions">
+          <button @click="enablePhases" class="btn-phases yes">Yes, Group by Phases</button>
+          <button @click="ignorePhases" class="btn-phases no">No, Use Basic List</button>
+        </div>
+      </div>
+    </div>
+
     <div class="slide-nav" :class="{ 'present-mode': !ui.isEditMode }">
       
-      <!-- Section Assigner UI -->
-      <div class="section-assigner" v-if="ui.isEditMode && presentation.currentSlide">
+      <!-- Standard Mode (No Phases) -->
+      <template v-if="!presentation.usePhases">
+        <div class="section-assigner" v-if="ui.isEditMode && presentation.currentSlide">
         <div class="row">
           <label>Slide Phase:</label>
           <button class="settings-btn" @click="ui.isSectionManagerOpen = true" title="Manage Default Phases">
@@ -73,10 +105,55 @@ function getSectionName(sectionId) {
         </div>
       </div>
       
-      <button v-if="ui.isEditMode" class="add-slide-btn" @click="presentation.addSlide()">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-        New Slide
-      </button>
+        <button v-if="ui.isEditMode" class="add-slide-btn" @click="presentation.addSlide()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          New Slide
+        </button>
+        
+        <div class="phase-settings-link" v-if="ui.isEditMode" style="margin-top: 15px; border-top: 1px solid #e5e7eb; padding-top: 10px; text-align: center;">
+          <button @click="enablePhases">Enable Accordion Mode</button>
+        </div>
+      </template>
+
+      <!-- Advanced Mode (Grouped Phases) -->
+      <template v-else>
+        <div class="grouped-phases-container">
+          <div class="phase-group" v-for="section in sectionStore.sections" :key="section.id">
+             <!-- Phase Header -->
+             <div class="phase-header" :style="{ borderLeftColor: section.color || '#4f46e5' }">
+                <span class="phase-name" :style="{ color: section.color || '#4f46e5' }">{{ section.name }}</span>
+                <button v-if="ui.isEditMode" class="add-phase-slide-btn" @click="presentation.addSlideToPhase(section.id)" title="Add Slide to this Phase">+</button>
+             </div>
+             
+             <!-- Phase Slides -->
+             <div class="phase-slides-list">
+               <div 
+                  v-for="slide in getSlidesForPhase(section.id)" 
+                  :key="slide.id"
+                  class="slide-thumb phase-thumb"
+                  :class="{ active: presentation.currentSlide?.id === slide.id }"
+                  @click="presentation.selectSlideById(slide.id)"
+                >
+                  <span class="slide-number">{{ getOverallSlideIndex(slide.id) + 1 }}</span>
+                  <div class="slide-preview phase-preview" :style="{ borderColor: section.color, opacity: presentation.currentSlide?.id === slide.id ? 1 : 0.7 }">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#3b82f6" stroke="#2563eb" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="3" width="18" height="14" rx="2" ry="2" fill="#bfdbfe"></rect><circle cx="8" cy="8" r="2.5" fill="#fcd34d" stroke="none"></circle><path d="M21 13l-5-5L5 21" fill="#60a5fa" stroke="none"></path>
+                    </svg>
+                  </div>
+                  <button v-if="ui.isEditMode && presentation.slides.length > 1" class="delete-btn" @click.stop="presentation.deleteSlideById(slide.id)">&times;</button>
+               </div>
+               <div v-if="getSlidesForPhase(section.id).length === 0" class="empty-phase">No slides</div>
+             </div>
+          </div>
+
+          <div class="phase-settings-link" v-if="ui.isEditMode">
+            <button @click="ui.isSectionManagerOpen = true">Manage Phase Types</button>
+            <br><br>
+            <button @click="ignorePhases" style="color: #6b7280;">Disable Accordion Mode</button>
+          </div>
+        </div>
+      </template>
+
     </div>
 
     <!-- Manager modal -->
@@ -89,7 +166,133 @@ function getSectionName(sectionId) {
 <style scoped>
 .slide-nav-container {
   display: flex;
+  position: relative;
 }
+
+.init-phases-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(4px);
+}
+.init-phases-card {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+.init-phases-card h3 {
+  margin-top: 0;
+  font-size: 20px;
+  color: #1f2937;
+}
+.init-phases-card p {
+  color: #4b5563;
+  margin: 15px 0;
+  line-height: 1.5;
+}
+.init-actions {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin-top: 20px;
+}
+.btn-phases {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.btn-phases:hover { transform: translateY(-2px); }
+.btn-phases.yes { background: #4f46e5; color: white; }
+.btn-phases.no { background: #f3f4f6; color: #4b5563; border: 1px solid #d1d5db; }
+
+/* Grouped Phase Styles */
+.grouped-phases-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 100%;
+}
+.phase-group {
+  display: flex;
+  flex-direction: column;
+}
+.phase-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-left: 4px solid #d1d5db;
+  padding-left: 8px;
+  margin-bottom: 8px;
+}
+.phase-name {
+  font-size: 13px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.add-phase-slide-btn {
+  background: transparent;
+  color: #6b7280;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.add-phase-slide-btn:hover {
+  background: #e2e8f0;
+  color: #111827;
+}
+.phase-slides-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.empty-phase {
+  font-size: 11px;
+  color: #9ca3af;
+  font-style: italic;
+  padding-left: 12px;
+}
+.phase-thumb {
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  padding: 4px 8px;
+}
+.phase-preview {
+  width: 50px;
+  height: 35px;
+  border-width: 2px;
+}
+.phase-settings-link {
+  margin-top: 10px;
+  text-align: center;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 10px;
+}
+.phase-settings-link button {
+  background: transparent;
+  border: none;
+  color: #4f46e5;
+  font-size: 11px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.phase-settings-link button:hover { text-decoration: underline; }
 
 .slide-nav {
   display: flex;

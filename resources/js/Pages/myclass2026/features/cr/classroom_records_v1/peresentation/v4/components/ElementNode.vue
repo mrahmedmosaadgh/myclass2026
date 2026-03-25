@@ -7,6 +7,7 @@ import { useResize } from '../composables/useResize';
 import { getToolActions } from '../composables/tools/index';
 import ElementContextMenu from './ElementContextMenu.vue';
 import EditableText from './EditableText.vue';
+import EditableMath from './EditableMath.vue';
 
 const props = defineProps({
   element: Object
@@ -98,6 +99,21 @@ function handleClick() {
       :style="{ color: element.color || '#000' }"
     >
       <EditableText 
+        :content="element.content" 
+        :isEditMode="ui.isEditMode" 
+        @update="(content) => update({ content })" 
+        @select="ui.selectElement(element.id)"
+      />
+    </div>
+
+    <!-- MATH -->
+    <div 
+      v-else-if="element.type === 'math'" 
+      class="text-container"
+      :class="{ 'text-selected': isSelected }"
+      :style="{ color: element.color || '#000' }"
+    >
+      <EditableMath 
         :content="element.content" 
         :isEditMode="ui.isEditMode" 
         @update="(content) => update({ content })" 

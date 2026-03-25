@@ -4,7 +4,7 @@ import { usePaste } from '../composables/usePaste';
 import { usePresentationStore } from '../stores/presentationStore';
 import { useUIStore } from '../stores/uiStore';
 
-const { createTextElement, createImageElement, createHTMLElement, createRectangleElement } = usePaste();
+const { createTextElement, createMathElement, createImageElement, createHTMLElement, createRectangleElement } = usePaste();
 const presentation = usePresentationStore();
 const ui = useUIStore();
 
@@ -12,6 +12,10 @@ const fileInput = ref(null);
 
 function addText() {
   createTextElement('New Text');
+}
+
+function addMath() {
+  createMathElement();
 }
 
 function addRectangle() {
@@ -82,6 +86,7 @@ async function handlePasteBtn() {
 function exportJson() {
   const payload = {
     title: presentation.title || "Untitled Presentation",
+    usePhases: presentation.usePhases,
     slides: presentation.slides
   };
   const jsonString = JSON.stringify(payload, null, 2);
@@ -156,6 +161,11 @@ function importJson() {
       Text
     </button>
     
+    <button @click="addMath" title="Add Math Formula">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5h-7l-3 14H4"></path><path d="M14 10h5"></path><path d="M14 14h5"></path></svg>
+      Math
+    </button>
+
     <button @click="triggerImageUpload" title="Upload Image from Device">
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
       Image
