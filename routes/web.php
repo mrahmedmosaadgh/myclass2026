@@ -28,6 +28,27 @@ include dirname(__DIR__).'/routes/myclass2026/cr/web.php';
 // Domain-based Routing for QudratPro
 Route::domain('qudratpro.com')->group(function () {
     require base_path('routes/qudrat/web.php');
+
+    // Diagnostic route (Inside domain)
+    Route::get('/debug-controller', function() {
+        try {
+            $class = 'App\Http\Controllers\QuizSessionController';
+            $exists = class_exists($class);
+            $path = $exists ? (new \ReflectionClass($class))->getFileName() : 'not found';
+            return response()->json([
+                'class' => $class,
+                'exists' => $exists,
+                'path' => $path,
+                'composer_autoload' => file_exists(base_path('vendor/autoload.php')),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()]);
+        }
+    });
+
+    // Public Page View Routes (Inside domain)
+    Route::post('/page-views', [\App\Http\Controllers\PageViewController::class, 'increment'])->name('page-views.increment');
+    Route::get('/page-views/count', [\App\Http\Controllers\PageViewController::class, 'getCount'])->name('page-views.count');
 });
 
 Route::get('/sitemap.xml', [App\Http\Controllers\SitemapController::class, 'index']);
@@ -53,22 +74,6 @@ Route::get('/api/school-branding/{school_slug}', [SchoolLoginController::class, 
     ->name('school.branding');
 
 // Simple login route - user-friendly, no complex redirects
-Route::get('/debug-controller', function() {
-    try {
-        $class = 'App\Http\Controllers\QuizSessionController';
-        $exists = class_exists($class);
-        $path = $exists ? (new \ReflectionClass($class))->getFileName() : 'not found';
-        return response()->json([
-            'class' => $class,
-            'exists' => $exists,
-            'path' => $path,
-            'composer_autoload' => file_exists(base_path('vendor/autoload.php')),
-        ]);
-    } catch (\Exception $e) {
-        return response()->json(['error' => $e->getMessage()]);
-    }
-});
-
 Route::get('/login', function () {
     return Inertia::render('Auth/Login');
 })->name('login');
@@ -104,10 +109,6 @@ Route::post('/login', function (\Illuminate\Http\Request $request) {
 Route::post('/api/chatbot/start', [App\Http\Controllers\ChatbotController::class, 'start'])->name('chatbot.start');
 Route::post('/api/chatbot/send', [App\Http\Controllers\ChatbotController::class, 'send'])->name('chatbot.send');
 Route::get('/api/chatbot/history', [App\Http\Controllers\ChatbotController::class, 'history'])->name('chatbot.history');
-
-// Public Page View Routes
-Route::post('/page-views', [\App\Http\Controllers\PageViewController::class, 'increment'])->name('page-views.increment');
-Route::get('/page-views/count', [\App\Http\Controllers\PageViewController::class, 'getCount'])->name('page-views.count');
 
 // Detect user's school for redirect (public)
 Route::post('/api/detect-school', [App\Http\Controllers\Auth\LoginRedirectController::class, 'detectSchool'])
