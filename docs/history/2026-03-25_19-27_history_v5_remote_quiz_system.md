@@ -33,8 +33,12 @@ Implemented a high-performance, real-time classroom assessment system integrated
 
 ### 🚀 To Be Done (Optional)
 - [ ] Add "Session History" view to see previous quiz results.
-- [ ] Implement team-based competition mode in V5 remote (ported from V4).
-- [ ] Enhance Firebase security rules for `private_chat_notifications`.
+### 🛠️ Composer & Deployment Fix (Emergency)
+- **Problem**: Identified a deployment failure on Hostinger due to PHP version mismatch. Local machine (PHP 8.4) had locked dependencies (Symfony, ZipStream) to versions requiring PHP 8.4+.
+- **Solution**: 
+    - Forced a downgrade of 13 packages to versions compatible with **PHP 8.2**.
+    - Added `config.platform.php: 8.2.0` to `composer.json` to ensure future stability across shared hosting environments.
+    - Pinned `phpspreadsheet` to `^5.5`.
 
 ---
 **Status**: COMPLETE ✅
