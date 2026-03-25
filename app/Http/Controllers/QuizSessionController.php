@@ -76,6 +76,7 @@ class QuizSessionController extends Controller
         }
 
         return response()->json([
+            'success' => true,
             'session' => $session->load(['currentQuestion.questionType', 'currentQuestion.options', 'participants.student']),
             'participant' => $participant->load('student'),
             'message' => 'Joined session successfully',
@@ -241,6 +242,7 @@ class QuizSessionController extends Controller
         }
 
         return response()->json([
+            'success' => true,
             'is_correct' => $isCorrect,
             'participant' => $participant->fresh(),
             'message' => 'Answer submitted successfully',
