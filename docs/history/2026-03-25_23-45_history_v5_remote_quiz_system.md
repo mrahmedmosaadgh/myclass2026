@@ -16,7 +16,7 @@
 - **Vite Chunking**: Improved `vite.config.js` to group `myclass2026` features into unified chunks.
 
 ### 3. API & Controller Fixed
-- **Launch Quiz 500 Error**: Fixed a database error in `launchQuiz` where the code was attempting to insert into a `text` column instead of the actual `question_text` column.
+- **Launch Quiz 500 Error**: Fixed a database error in `launchQuiz` where the code was attempting to insert into a `text` column instead of `question_text`, and also added `option_key` (A, B, C, D) to resolve the `1364 Field 'option_key' doesn't have a default value` error.
 - **Join Form Resilience**: Updated `JoinForm.vue` to be resilient to older server responses by checking for `session.id` presence even if the `success: true` flag is omitted.
 - **Success Flags**: Added missing `success: true` flags to all `QuizSessionController` JSON responses to satisfy frontend expectations.
 
