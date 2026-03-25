@@ -184,10 +184,13 @@ class QuizSessionController extends Controller
             'status' => 'active'
         ]);
 
+        $optionKeys = ['A', 'B', 'C', 'D', 'E', 'F'];
         foreach ($validated['options'] as $idx => $optText) {
             $newQuestion->options()->create([
-                'text' => $optText,
-                'is_correct' => $idx === $validated['correctAnswer']
+                'option_key' => $optionKeys[$idx] ?? (string)$idx,
+                'option_text' => $optText,
+                'is_correct' => $idx === $validated['correctAnswer'],
+                'order_index' => $idx
             ]);
         }
 
