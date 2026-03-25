@@ -30,6 +30,26 @@
                         <q-item-label caption>{{ component.description }}</q-item-label>
                     </q-item-section>
                 </q-item>
+
+                <q-item clickable v-close-popup @click="currentView = 'flipbook'">
+                    <q-item-section avatar>
+                        <span class="text-xl">📚</span>
+                    </q-item-section>
+                    <q-item-section>
+                        <q-item-label>Flipbook Test</q-item-label>
+                        <q-item-label caption>Interactive Page-Flip Component</q-item-label>
+                    </q-item-section>
+                </q-item>
+
+                <q-item clickable v-close-popup @click="currentView = 'audiochannel'">
+                    <q-item-section avatar>
+                        <span class="text-xl">🎧</span>
+                    </q-item-section>
+                    <q-item-section>
+                        <q-item-label>Stereo Audio Channel</q-item-label>
+                        <q-item-label caption>Left/Right Speaker Control</q-item-label>
+                    </q-item-section>
+                </q-item>
             </q-list>
         </q-btn-dropdown>
     </div>
@@ -166,4 +186,6 @@ onMounted(() => {
   from { opacity: 0; transform: translateY(5px); }
   to { opacity: 1; transform: translateY(0); }
 }
+</style>
+
 </style>
