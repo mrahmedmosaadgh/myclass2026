@@ -29,11 +29,13 @@ const submitJoin = async () => {
       name: name.value
     });
     
-    if (response.data.success) {
+    // Accept success:true OR any 200 with a valid session object
+    const data = response.data;
+    if (data.session?.id || data.success) {
       gameStore.setSession(
-        response.data.session.id,
-        response.data.session.access_code,
-        response.data.session.status
+        data.session.id,
+        data.session.access_code,
+        data.session.status
       );
       emit('joined', { name: name.value });
     } else {
