@@ -1,4 +1,4 @@
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, watch, unref } from 'vue';
 import { database } from '@/firebase/init';
 import { ref as dbRef, onValue, off } from 'firebase/database';
 import { ToolsSwitcher } from '@/Utils/toolsSwitcher';
@@ -7,25 +7,7 @@ import axios from 'axios';
 /**
  * Unified Realtime Channel Listener
  * 
- * This composable handles ALL realtime listening needs.
- * NO NEED to create separate listeners for each feature.
- * 
- * Usage Examples:
- * 
- * 1. Listen to your own notifications:
- *    const { data, isListening } = useRealtimeChannel(`user.${userId}`);
- * 
- * 2. Listen to class updates:
- *    const { data } = useRealtimeChannel('class.7A', (signal) => {
- *      if (signal.event === 'ANNOUNCEMENT') {
- *        fetchAnnouncements();
- *      }
- *    });
- * 
- * 3. Listen to system broadcasts:
- *    useRealtimeChannel('system.all', (signal) => {
- *      showAlert(signal.context.message);
- *    });
+ * Handles both plain strings and reactive refs/computed names.
  */
 export function useRealtimeChannel(channel, onSignal = null) {
     const data = ref(null);
@@ -39,19 +21,24 @@ export function useRealtimeChannel(channel, onSignal = null) {
      * Start listening to the channel
      */
     const listen = () => {
+        // Stop any existing listener first
+        stopListening();
+
+        const channelName = unref(channel);
+
         if (!ToolsSwitcher.isFirebaseEnabled() || !database) {
             console.warn('🚫 Firebase disabled or database unavailable');
             return;
         }
 
-        if (!channel) {
-            console.error('❌ Channel name is required');
+        if (!channelName) {
+            // It's okay to not have a channel yet (e.g. waiting for session code)
             return;
         }
 
         try {
             // Convert 'user.123' -> 'channels/user_123'
-            const path = `channels/${channel.replace('.', '_')}`;
+            const path = `channels/${String(channelName).replace(/\./g, '_')}`;
             firebaseRef = dbRef(database, path);
 
             unsubscribe = onValue(
@@ -64,7 +51,7 @@ export function useRealtimeChannel(channel, onSignal = null) {
                         return;
                     }
 
-                    console.log(`🔔 Signal received on ${channel}:`, signal);
+                    console.log(`🔔 Signal received on ${channelName}:`, signal);
 
                     // Update reactive data
                     data.value = signal;
@@ -75,13 +62,13 @@ export function useRealtimeChannel(channel, onSignal = null) {
                     }
                 },
                 (err) => {
-                    console.error(`❌ Error listening to ${channel}:`, err);
+                    console.error(`❌ Error listening to ${channelName}:`, err);
                     error.value = err.message;
                 }
             );
 
             isListening.value = true;
-            console.log(`✅ Listening to channel: ${channel}`);
+            console.log(`✅ Listening to channel: ${channelName}`);
 
         } catch (err) {
             console.error('Failed to start listener:', err);
@@ -95,18 +82,15 @@ export function useRealtimeChannel(channel, onSignal = null) {
     const stopListening = () => {
         if (unsubscribe && firebaseRef) {
             off(firebaseRef, unsubscribe);
+            unsubscribe = null;
+            firebaseRef = null;
             isListening.value = false;
-            console.log(`🛑 Stopped listening to ${channel}`);
+            // console.log('🛑 Stopped listening to previous channel');
         }
     };
 
     /**
      * Fetch data from Laravel API based on the signal
-     * 
-     * Example:
-     *   if (signal.event === 'NEW_MESSAGE') {
-     *     const messages = await fetchFromSignal('/api/conversations/${signal.context.conversation_id}/messages');
-     *   }
      */
     const fetchFromSignal = async (endpoint) => {
         try {
@@ -117,6 +101,15 @@ export function useRealtimeChannel(channel, onSignal = null) {
             throw err;
         }
     };
+
+    // Watch for channel changes (if it's a ref/computed)
+    watch(() => unref(channel), (newVal) => {
+        if (newVal) {
+            listen();
+        } else {
+            stopListening();
+        }
+    });
 
     // Auto-start listening on mount
     onMounted(() => {

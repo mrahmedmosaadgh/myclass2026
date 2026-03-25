@@ -61,6 +61,13 @@ const chartOption = computed(() => {
         No groups active
       </div>
       <v-chart v-else class="mini-chart" :option="chartOption" autoresize />
+      
+      <div class="widget-footer">
+        <a href="/classroom-records/presentation/remote/teacher" class="remote-btn">
+          <span>Go Remote</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+        </a>
+      </div>
     </div>
   </div>
 </template>
@@ -140,5 +147,31 @@ const chartOption = computed(() => {
   font-size: 0.8rem;
   color: #94a3b8;
   font-style: italic;
+}
+
+.widget-footer {
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.remote-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px;
+  background: #6366f1;
+  color: white;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 0.8rem;
+  font-weight: 700;
+  transition: background 0.2s;
+}
+
+.remote-btn:hover {
+  background: #4f46e5;
 }
 </style>

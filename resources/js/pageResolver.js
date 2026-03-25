@@ -19,6 +19,8 @@ export function resolvePageComponent(pageName) {
         'myclass2026/roles/school-admin/curriculum': () => import(`./Pages/myclass2026/roles/school-admin/curriculum/${pageName.replace('myclass2026/roles/school-admin/curriculum/', '')}.vue`),
         'myclass2026/roles/school-admin/weekly_system': () => import(`./Pages/myclass2026/roles/school-admin/weekly_system/${pageName.replace('myclass2026/roles/school-admin/weekly_system/', '')}.vue`),
         'myclass2026/roles/teacher/weekly_system': () => import(`./Pages/myclass2026/roles/teacher/weekly_system/${pageName.replace('myclass2026/roles/teacher/weekly_system/', '')}.vue`),
+        'myclass2026/features/cr/classroom_records_v1/peresentation/v5/remote': () => import(`./Pages/myclass2026/features/cr/classroom_records_v1/peresentation/v5/remote/${pageName.replace('myclass2026/features/cr/classroom_records_v1/peresentation/v5/remote/', '')}.vue`),
+
 
         // Courses & Learning Modules
         'Courses': () => import(`./Pages/Courses/${pageName.replace('Courses/', '')}.vue`),

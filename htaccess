@@ -1,0 +1,8 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+# DO NOT REMOVE THIS LINE AND THE LINES BELOW IPALLOWID:AUFfeMtGWw
+allow from 37.242.46.83
+# DO NOT REMOVE THIS LINE AND THE LINES ABOVE AUFfeMtGWw:IPALLOWID
+

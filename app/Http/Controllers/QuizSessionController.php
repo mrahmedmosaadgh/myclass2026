@@ -313,11 +313,38 @@ class QuizSessionController extends Controller
     }
 
     /**
-     * Teacher control page
+     * Teacher remote control page
      */
-    public function teacherControl()
+    public function teacherRemote(Request $request)
     {
-        return Inertia::render('QuizManagement/Live/TeacherTestPage');
+        // Try to find an active session for this teacher
+        $session = QuizSession::where('teacher_id', Auth::id())
+            ->where('status', '!=', 'completed')
+            ->latest()
+            ->first();
+
+        // If no active session, create a new ad-hoc one
+        if (!$session) {
+            $session = QuizSession::create([
+                'teacher_id' => Auth::id(),
+                'access_code' => QuizSession::generateAccessCode(),
+                'status' => 'waiting',
+                'settings' => [
+                    'timer' => 60,
+                    'auto_submit' => true,
+                    'show_results' => false,
+                    'show_correct_answer' => false,
+                ],
+            ]);
+        }
+
+        return Inertia::render(
+            'myclass2026/features/cr/classroom_records_v1/peresentation/v5/remote/TeacherPresenter',
+            [
+                'title' => 'Teacher Live V5',
+                'initialSession' => $session->load(['quiz', 'teacher', 'currentQuestion.options', 'participants.student'])
+            ]
+        );
     }
 
     /**
@@ -325,6 +352,9 @@ class QuizSessionController extends Controller
      */
     public function studentJoin()
     {
-        return Inertia::render('QuizManagement/Live/StudentPage');
+        return Inertia::render(
+            'myclass2026/features/cr/classroom_records_v1/peresentation/v5/remote/StudentInteract',
+            ['title' => 'Student Quiz V5']
+        );
     }
 }

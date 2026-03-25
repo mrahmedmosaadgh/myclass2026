@@ -89,19 +89,8 @@ Route::middleware([
 
         // Remote V5 routes
         Route::prefix('remote')->name('remote.')->group(function () {
-            Route::get('/teacher', function () {
-                return Inertia::render(
-                    'myclass2026/features/cr/classroom_records_v1/peresentation/v5/remote/TeacherPresenter',
-                    ['title' => 'Teacher Live V5']
-                );
-            })->name('teacher');
-
-            Route::get('/student', function () {
-                return Inertia::render(
-                    'myclass2026/features/cr/classroom_records_v1/peresentation/v5/remote/StudentInteract',
-                    ['title' => 'Student Quiz V5']
-                );
-            })->name('student');
+            Route::get('/teacher', [QuizSessionController::class, 'teacherRemote'])->name('teacher');
+            Route::get('/student', [QuizSessionController::class, 'studentJoin'])->name('student');
         });
     });
 
