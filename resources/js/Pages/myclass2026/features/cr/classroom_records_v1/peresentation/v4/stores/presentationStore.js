@@ -99,6 +99,13 @@ export const usePresentationStore = defineStore('presentation', () => {
     Object.assign(el, changes);
   }
 
+  function loadPresentation(newSlides) {
+    if (Array.isArray(newSlides)) {
+      slides.value = newSlides;
+      currentSlideIndex.value = 0;
+    }
+  }
+
   return {
     slides,
     currentSlideIndex,
@@ -109,6 +116,7 @@ export const usePresentationStore = defineStore('presentation', () => {
     duplicateElement,
     addSlide,
     selectSlide,
-    deleteSlide
+    deleteSlide,
+    loadPresentation
   };
 });

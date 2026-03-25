@@ -161,4 +161,14 @@ onUnmounted(() => {
   align-items: flex-start;
   justify-content: center;
 }
+
+@media (max-width: 1024px) {
+  .v4-container {
+    padding: 1rem;
+  }
+  .editor-layout {
+    flex-direction: column-reverse;
+    align-items: center;
+  }
+}
 </style>

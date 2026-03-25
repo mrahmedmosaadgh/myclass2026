@@ -2,9 +2,11 @@
 import { ref } from 'vue';
 import { usePaste } from '../composables/usePaste';
 import { usePresentationStore } from '../stores/presentationStore';
+import { useUIStore } from '../stores/uiStore';
 
 const { createTextElement, createImageElement, createHTMLElement, createRectangleElement } = usePaste();
 const presentation = usePresentationStore();
+const ui = useUIStore();
 
 const fileInput = ref(null);
 
@@ -76,6 +78,57 @@ async function handlePasteBtn() {
     }
   }
 }
+
+function exportJson() {
+  const jsonString = JSON.stringify(presentation.slides, null, 2);
+  const blob = new Blob([jsonString], { type: "application/json" });
+  const url = window.URL.createObjectURL(blob);
+  
+  const downloadAnchorNode = document.createElement('a');
+  downloadAnchorNode.setAttribute("href", url);
+  downloadAnchorNode.setAttribute("download", "presentation_v4_export.json");
+  document.body.appendChild(downloadAnchorNode);
+  downloadAnchorNode.click();
+  downloadAnchorNode.remove();
+  
+  // Clean up memory
+  window.URL.revokeObjectURL(url);
+}
+
+function importJson() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'application/json';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = fileEvent => {
+      let parsedData;
+      try {
+        parsedData = JSON.parse(fileEvent.target.result);
+      } catch(err) {
+        console.error('Parse Error:', err);
+        alert('Error reading file. The file is corrupted or severely broken.\\n(If this is an old exported file prior to the fix, it is permanently corrupted. Please generate a new export file.)');
+        return;
+      }
+
+      try {
+        if (Array.isArray(parsedData)) {
+          presentation.loadPresentation(parsedData);
+          ui.clearSelection();
+        } else {
+          alert('Invalid file format. Not a recognized presentation array.');
+        }
+      } catch(err) {
+        console.error('Memory Load Error:', err);
+        alert('Error parsing JSON backup file. Details embedded in console: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
 </script>
 
 <template>
@@ -117,6 +170,18 @@ async function handlePasteBtn() {
     <button @click="handlePasteBtn" title="Paste Guide">
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
       Paste
+    </button>
+    
+    <div class="divider"></div>
+
+    <button @click="exportJson" title="Export Presentation as JSON">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+      Export
+    </button>
+    
+    <button @click="importJson" title="Import Presentation from JSON Backup">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+      Import
     </button>
   </div>
 </template>
@@ -163,5 +228,17 @@ async function handlePasteBtn() {
 
 .toolbar button svg {
   color: #6366f1;
+}
+
+@media (max-width: 768px) {
+  .toolbar {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px;
+  }
+  .toolbar button {
+    padding: 6px;
+    min-width: 50px;
+  }
 }
 </style>

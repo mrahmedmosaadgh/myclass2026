@@ -259,4 +259,40 @@ function getSectionName(sectionId) {
 .add-slide-btn:hover {
   background: #059669;
 }
+
+@media (max-width: 1024px) {
+  .slide-nav-container {
+    width: 100%;
+    margin-top: 15px;
+  }
+  .slide-nav {
+    width: 100%;
+    flex-direction: row;
+    overflow-x: auto;
+    align-items: center;
+    padding: 10px;
+  }
+  .slide-list {
+    flex-direction: row;
+    max-height: none;
+    margin-bottom: 0;
+    margin-right: 15px;
+  }
+  .slide-thumb {
+    flex-shrink: 0;
+  }
+  .section-assigner {
+    min-width: 140px;
+    margin-bottom: 0;
+    margin-right: 15px;
+    flex-shrink: 0;
+  }
+  .add-slide-btn {
+    width: auto;
+    padding: 8px 14px;
+    white-space: nowrap;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+}
 </style>
