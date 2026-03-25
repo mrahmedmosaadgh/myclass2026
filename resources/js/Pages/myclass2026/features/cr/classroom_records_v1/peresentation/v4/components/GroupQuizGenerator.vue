@@ -11,7 +11,7 @@ const $q = useQuasar();
 const presentation = usePresentationStore();
 const { generateQuestionElements } = useAIPaste();
 
-const topic = ref('');
+const topic = ref(presentation.title || '');
 const qCount = ref(3);
 const difficulty = ref('Medium');
 const extraInfo = ref('');
@@ -75,9 +75,9 @@ function parsePreview() {
             if (['"', '\\', 'n', 't', 'r'].includes(next)) {
                fixedRaw += '\\' + next;
                i++;
-            } else {
+             } else {
                fixedRaw += '\\\\';
-            }
+             }
           } else {
             fixedRaw += '\\\\';
           }
@@ -96,13 +96,47 @@ function parsePreview() {
   }
 }
 
-function submitToPresentation() {
-  if (parsedQuestions.value.length === 0) return;
+function generateEmptyQuestions() {
+  const empty = [];
+  for (let i = 0; i < qCount.value; i++) {
+    empty.push({
+      question: `New Question ${i+1}`,
+      options: [
+        { id: 'opt-a-' + i, text: 'Option A' },
+        { id: 'opt-b-' + i, text: 'Option B' },
+        { id: 'opt-c-' + i, text: 'Option C' },
+        { id: 'opt-d-' + i, text: 'Option D' }
+      ],
+      correctId: 'opt-a-' + i
+    });
+  }
   
   // Format v3 signals the generator to build GroupMCQ.vue blocks
-  generateQuestionElements(parsedQuestions.value, 'new', 'v3');
+  // Since useAIPaste expects a specific format, we adjust
+  const legacyFormat = empty.map(q => ({
+    question: q.question,
+    options: q.options.map(o => o.text),
+    answer: q.options[0].text // Default first as correct
+  }));
   
-  // Automatically append a Final Leaderboard Slide
+  generateQuestionElements(legacyFormat, 'new', 'v3');
+  appendLeaderboard();
+  close();
+}
+
+async function pasteFromClipboard() {
+  try {
+    const text = await navigator.clipboard.readText();
+    if (text) {
+      jsonInput.value = text;
+      parsePreview();
+    }
+  } catch (err) {
+    $q.notify({ type: 'negative', message: 'Could not access clipboard' });
+  }
+}
+
+function appendLeaderboard() {
   presentation.addSlide();
   const lbBlock = {
     id: 'el-' + Date.now() + Math.random().toString(36).substr(2, 5),
@@ -116,7 +150,15 @@ function submitToPresentation() {
     isVisible: true,
   };
   presentation.addElement(lbBlock);
+}
 
+function submitToPresentation() {
+  if (parsedQuestions.value.length === 0) return;
+  
+  // Format v3 signals the generator to build GroupMCQ.vue blocks
+  generateQuestionElements(parsedQuestions.value, 'new', 'v3');
+  
+  appendLeaderboard();
   close();
 }
 </script>
@@ -171,6 +213,14 @@ function submitToPresentation() {
               Generate & Copy Prompt
             </button>
             <p class="helper-text">Copy the prompt above and paste it into ChatGPT, Claude, etc.</p>
+
+            <div style="margin-top: 20px; border-top: 1px dashed #cbd5e1; padding-top: 20px;">
+              <button class="btn-secondary-full" @click="generateEmptyQuestions">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Generate Empty Questions
+              </button>
+              <p class="helper-text">Create placeholders for manual editing.</p>
+            </div>
           </div>
 
           <!-- RIGHT: JSON Input & Preview -->
@@ -185,6 +235,11 @@ function submitToPresentation() {
             <button class="btn-preview" @click="parsePreview" :disabled="!jsonInput">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
               Preview Questions
+            </button>
+            
+            <button class="btn-paste" @click="pasteFromClipboard">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+              Paste AI Output
             </button>
             <div v-if="errorMessage" class="error-msg">{{ errorMessage }}</div>
 
@@ -472,4 +527,39 @@ function submitToPresentation() {
   box-shadow: 0 4px 6px -1px rgba(16,185,129,0.3);
 }
 .btn-submit:hover { background: #059669; transform: translateY(-1px); }
+
+.btn-secondary-full {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  background: white;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-secondary-full:hover { background: #f9fafb; border-color: #9ca3af; }
+
+.btn-paste {
+  margin-top: 10px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  background: #f3f4f6;
+  color: #111827;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-paste:hover { background: #e5e7eb; }
 </style>
