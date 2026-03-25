@@ -90,8 +90,8 @@ Route::middleware([
 
         // Remote V5 routes
         Route::prefix('remote')->name('remote.')->group(function () {
-            Route::get('/teacher', [QuizSessionController::class, 'teacherRemote'])->name('teacher');
-            Route::get('/student', [QuizSessionController::class, 'studentJoin'])->name('student');
+            Route::get('/teacher', [\App\Http\Controllers\QuizSessionController::class, 'teacherRemote'])->name('teacher');
+            Route::get('/student', [\App\Http\Controllers\QuizSessionController::class, 'studentJoin'])->name('student');
         });
     });
 
@@ -106,10 +106,10 @@ Route::middleware([
             ->name('batch');
 
         // V5 Remote Session Routes
-        Route::post('/sessions/join', [QuizSessionController::class, 'join'])->name('sessions.join');
-        Route::post('/sessions/{session}/sync-slide', [QuizSessionController::class, 'syncSlide'])->name('sessions.sync-slide');
-        Route::post('/sessions/{session}/launch-quiz', [QuizSessionController::class, 'launchQuiz'])->name('sessions.launch-quiz');
-        Route::post('/sessions/{session}/submit-answer', [QuizSessionController::class, 'submitAnswer'])->name('sessions.submit-answer');
-        Route::get('/sessions/{session}/stats', [QuizSessionController::class, 'getStats'])->name('sessions.stats');
+        Route::post('/sessions/join', [\App\Http\Controllers\QuizSessionController::class, 'join'])->name('sessions.join');
+        Route::post('/sessions/{session}/sync-slide', [\App\Http\Controllers\QuizSessionController::class, 'syncSlide'])->name('sessions.sync-slide');
+        Route::post('/sessions/{session}/launch-quiz', [\App\Http\Controllers\QuizSessionController::class, 'launchQuiz'])->name('sessions.launch-quiz');
+        Route::post('/sessions/{session}/submit-answer', [\App\Http\Controllers\QuizSessionController::class, 'submitAnswer'])->name('sessions.submit-answer');
+        Route::get('/sessions/{session}/stats', [\App\Http\Controllers\QuizSessionController::class, 'getStats'])->name('sessions.stats');
     });
 });

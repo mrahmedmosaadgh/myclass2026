@@ -89,6 +89,10 @@ Route::post('/api/chatbot/start', [App\Http\Controllers\ChatbotController::class
 Route::post('/api/chatbot/send', [App\Http\Controllers\ChatbotController::class, 'send'])->name('chatbot.send');
 Route::get('/api/chatbot/history', [App\Http\Controllers\ChatbotController::class, 'history'])->name('chatbot.history');
 
+// Public Page View Routes
+Route::post('/page-views', [\App\Http\Controllers\PageViewController::class, 'increment'])->name('page-views.increment');
+Route::get('/page-views/count', [\App\Http\Controllers\PageViewController::class, 'getCount'])->name('page-views.count');
+
 // Detect user's school for redirect (public)
 Route::post('/api/detect-school', [App\Http\Controllers\Auth\LoginRedirectController::class, 'detectSchool'])
     ->name('detect.school');
@@ -417,11 +421,6 @@ Route::middleware([
         return Inertia::render('modules/resumes/Index');
     })->name('resume-system');
     
-    // Page view counter routes
-    Route::post('/page-views', [PageViewController::class, 'increment'])->name('page-views.increment');
-    Route::get('/page-views/count', [PageViewController::class, 'getCount'])->name('page-views.count');
-    // Optionally, keep the old route or remove:
-    // Route::get('/resume-themes', ...);
     Route::get('/project-tasks', function () {
         return Inertia::render('project_manager/ProjectTracker');
     })->name('project-tasks');
