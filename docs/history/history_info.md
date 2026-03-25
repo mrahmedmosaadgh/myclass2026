@@ -135,6 +135,25 @@ add all files, commit them, and push to this myclass2026_build repository
 
 
 
+git fetch origin && git reset --hard origin/main3-clean && php artisan optimize
+
+
+
+cd public/build && git pull origin main && cd ../..
+
+
+git fetch origin && git reset --hard origin/main3-clean && php artisan optimize
+
+
+
+
+
+
+
+
+
+
+
   try to remember this while creating any page the title of the page very easy   <Head title="My Page" /> and no need to imprt it its is imported in app.js
 
 
