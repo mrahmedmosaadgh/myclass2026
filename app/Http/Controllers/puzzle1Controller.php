@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 
-class puzzle1Controller extends Controller
+class Puzzle1Controller extends Controller
 {
     public function index()
     {

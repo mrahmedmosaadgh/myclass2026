@@ -7,7 +7,7 @@ use App\Http\Controllers\ClassroomSubjectTeacherController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PeriodActivityController;
-use App\Http\Controllers\puzzle1Controller;
+use App\Http\Controllers\Puzzle1Controller;
 use App\Http\Controllers\PageViewController;  // Add page view controller import
 use App\Http\Controllers\ScheduleAdminNewController;
 use App\Http\Controllers\ScheduleTimingController;
@@ -373,7 +373,7 @@ Route::group(['prefix' => 'admin/schedules', 'as' => 'admin.schedules.'], functi
         ->name('timings.store');
 });
 
-Route::get('puzzle1', [puzzle1Controller::class, 'index'])
+Route::get('puzzle1', [Puzzle1Controller::class, 'index'])
     ->name('puzzle1');
 
 Route::get('/notifications/settings', function () {
