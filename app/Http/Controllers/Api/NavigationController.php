@@ -33,11 +33,11 @@ class NavigationController extends Controller
             // Also include inactive menus so admins can manage them
             $menus = $this->menuService->getMenuStructure($role, $isV2, true);
         } else {
-            // Normal behavior: filter by the current user's permissions
-            $menus = $this->menuService->getMenus($role, $isV2, false);
+            // Use the new config-based menu system
+            $menus = $this->menuService->getConfigMenu($role);
         }
         
-        $version = md5($menus->toJson());
+        $version = md5(json_encode($menus));
         $etag = '"' . $version . '"';
         
         // Check for 304 Not Modified
@@ -45,9 +45,6 @@ class NavigationController extends Controller
             return response(null, 304)->header('ETag', $etag);
         }
 
-        return response()->json([
-            'data' => $menus,
-            'version' => $version,
-        ])->header('ETag', $etag);
+        return response()->json($menus)->header('ETag', $etag);
     }
 }

@@ -3,7 +3,7 @@
     <textarea
       v-model="code"
       class="w-full h-60 border p-2 mb-4 font-mono text-sm"
-      placeholder="Type your Vue 3 component with <template> and <script setup>..."
+      placeholder="Type your Vue 3 component with  template and  script setup ..."
     ></textarea>
 
     <div class="flex justify-between mb-2">

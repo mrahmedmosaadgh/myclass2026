@@ -1,9 +1,13 @@
 <template>
   <div
     ref="elementRef"
-    class="absolute cursor-move"
+    class="absolute cursor-move touch-manipulation"
     :style="elementStyle"
     @mousedown="startDrag"
+    @touchstart="startTouchDrag"
+    @touchmove="handleTouchMove"
+    @touchend="handleTouchEnd"
+    @touchcancel="handleTouchEnd"
   >
     <!-- Element Content -->
     <div
@@ -66,23 +70,25 @@
       </button>
     </div>
 
-    <!-- Resize Handles -->
-    <template v-if="isSelected && element.type === 'rectangle'">>
-      <div
-        v-for="handle in resizeHandles"
-        :key="handle"
-        class="absolute w-3 h-3 bg-white border-2 border-indigo-500"
-        :class="handleClasses[handle]"
-        @mousedown.stop="startResize($event, handle)"
-      ></div>
-    </template>
-
-    <!-- Image Resize Handle -->
-    <div
-      v-if="isSelected && element.type === 'image'"
-      class="absolute bottom-0 right-0 w-3 h-3 bg-white border-2 border-indigo-500 cursor-se-resize"
-      @mousedown.stop="startResize($event, 'se')"
-    ></div>
+    <!-- Resize Handles (Edit Mode Only) -->
+    <div v-if="isSelected && (element.type === 'rectangle' || element.type === 'image')" class="resize-controls">
+      <!-- Top-Left -->
+      <div class="resize-handle resize-nw" @mousedown.stop="startResize($event, 'nw')"></div>
+      <!-- Top-Right -->
+      <div class="resize-handle resize-ne" @mousedown.stop="startResize($event, 'ne')"></div>
+      <!-- Bottom-Left -->
+      <div class="resize-handle resize-sw" @mousedown.stop="startResize($event, 'sw')"></div>
+      <!-- Bottom-Right -->
+      <div class="resize-handle resize-se" @mousedown.stop="startResize($event, 'se')"></div>
+      <!-- Top Center -->
+      <div class="resize-handle resize-n" @mousedown.stop="startResize($event, 'n')"></div>
+      <!-- Right Center -->
+      <div class="resize-handle resize-e" @mousedown.stop="startResize($event, 'e')"></div>
+      <!-- Bottom Center -->
+      <div class="resize-handle resize-s" @mousedown.stop="startResize($event, 's')"></div>
+      <!-- Left Center -->
+      <div class="resize-handle resize-w" @mousedown.stop="startResize($event, 'w')"></div>
+    </div>
 
     <!-- Context Menu Button -->
     <button
@@ -327,19 +333,6 @@ const stateIndicatorClass = computed(() => {
   return 'bg-gray-500'
 })
 
-const resizeHandles = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w']
-
-const handleClasses = {
-  nw: 'top-0 left-0 cursor-nw-resize -translate-x-1/2 -translate-y-1/2',
-  n: 'top-0 left-1/2 cursor-n-resize -translate-x-1/2 -translate-y-1/2',
-  ne: 'top-0 right-0 cursor-ne-resize translate-x-1/2 -translate-y-1/2',
-  e: 'top-1/2 right-0 cursor-e-resize translate-x-1/2 -translate-y-1/2',
-  se: 'bottom-0 right-0 cursor-se-resize translate-x-1/2 translate-y-1/2',
-  s: 'bottom-0 left-1/2 cursor-s-resize -translate-x-1/2 translate-y-1/2',
-  sw: 'bottom-0 left-0 cursor-sw-resize -translate-x-1/2 translate-y-1/2',
-  w: 'top-1/2 left-0 cursor-w-resize -translate-x-1/2 -translate-y-1/2'
-}
-
 const startDrag = (event) => {
   if (event.target.closest('button, input')) return
   
@@ -382,6 +375,56 @@ const stopDrag = () => {
   document.removeEventListener('mouseup', stopDrag)
 }
 
+// Touch event handlers for mobile
+const startTouchDrag = (event) => {
+  if (event.target.closest('button, input')) return
+  
+  const touch = event.touches[0]
+  if (!touch) return
+  
+  isDragging.value = true
+  isSelected.value = true
+  
+  dragStart.value = {
+    x: touch.clientX,
+    y: touch.clientY
+  }
+  
+  elementStart.value = {
+    x: props.element.x,
+    y: props.element.y
+  }
+  
+  document.addEventListener('touchmove', handleTouchDrag, { passive: false })
+  document.addEventListener('touchend', stopTouchDrag)
+  event.preventDefault()
+}
+
+const handleTouchDrag = (event) => {
+  if (!isDragging.value) return
+  
+  const touch = event.touches[0]
+  if (!touch) return
+  
+  const deltaX = touch.clientX - dragStart.value.x
+  const deltaY = touch.clientY - dragStart.value.y
+  
+  const updatedElement = {
+    ...props.element,
+    x: elementStart.value.x + deltaX,
+    y: elementStart.value.y + deltaY
+  }
+  
+  emit('update', updatedElement)
+  event.preventDefault()
+}
+
+const stopTouchDrag = () => {
+  isDragging.value = false
+  document.removeEventListener('touchmove', handleTouchDrag)
+  document.removeEventListener('touchend', stopTouchDrag)
+}
+
 const startResize = (event, handle) => {
   isResizing.value = true
   resizeHandle.value = handle
@@ -411,40 +454,101 @@ const handleResize = (event) => {
   
   let updatedElement = { ...props.element }
   
+  // Maintain aspect ratio for images if needed (optional enhancement)
+  const maintainAspectRatio = props.element.type === 'image'
+  const originalRatio = elementStart.value.width / elementStart.value.height
+  
   switch (resizeHandle.value) {
     case 'se':
       updatedElement.width = Math.max(50, elementStart.value.width + deltaX)
       updatedElement.height = Math.max(30, elementStart.value.height + deltaY)
+      if (maintainAspectRatio) {
+        if (Math.abs(deltaX) > Math.abs(deltaY)) {
+          updatedElement.height = updatedElement.width / originalRatio
+        } else {
+          updatedElement.width = updatedElement.height * originalRatio
+        }
+      }
       break
     case 'e':
       updatedElement.width = Math.max(50, elementStart.value.width + deltaX)
+      if (maintainAspectRatio) updatedElement.height = updatedElement.width / originalRatio
       break
     case 's':
       updatedElement.height = Math.max(30, elementStart.value.height + deltaY)
+      if (maintainAspectRatio) updatedElement.width = updatedElement.height * originalRatio
       break
     case 'nw':
-      updatedElement.x = elementStart.value.x + deltaX
-      updatedElement.y = elementStart.value.y + deltaY
-      updatedElement.width = Math.max(50, elementStart.value.width - deltaX)
-      updatedElement.height = Math.max(30, elementStart.value.height - deltaY)
+      const nwWidth = Math.max(50, elementStart.value.width - deltaX)
+      const nwHeight = Math.max(30, elementStart.value.height - deltaY)
+      if (maintainAspectRatio) {
+        if (Math.abs(deltaX) > Math.abs(deltaY)) {
+          updatedElement.width = nwWidth
+          updatedElement.height = nwWidth / originalRatio
+        } else {
+          updatedElement.height = nwHeight
+          updatedElement.width = nwHeight * originalRatio
+        }
+        updatedElement.x = elementStart.value.x + (elementStart.value.width - updatedElement.width)
+        updatedElement.y = elementStart.value.y + (elementStart.value.height - updatedElement.height)
+      } else {
+        updatedElement.x = elementStart.value.x + deltaX
+        updatedElement.y = elementStart.value.y + deltaY
+        updatedElement.width = nwWidth
+        updatedElement.height = nwHeight
+      }
       break
     case 'n':
-      updatedElement.y = elementStart.value.y + deltaY
       updatedElement.height = Math.max(30, elementStart.value.height - deltaY)
+      if (maintainAspectRatio) {
+        updatedElement.width = updatedElement.height * originalRatio
+        updatedElement.x = elementStart.value.x + (elementStart.value.width - updatedElement.width) / 2
+      }
+      updatedElement.y = elementStart.value.y + (elementStart.value.height - updatedElement.height)
       break
     case 'ne':
-      updatedElement.y = elementStart.value.y + deltaY
-      updatedElement.width = Math.max(50, elementStart.value.width + deltaX)
-      updatedElement.height = Math.max(30, elementStart.value.height - deltaY)
+      const neWidth = Math.max(50, elementStart.value.width + deltaX)
+      const neHeight = Math.max(30, elementStart.value.height - deltaY)
+      if (maintainAspectRatio) {
+        if (Math.abs(deltaX) > Math.abs(deltaY)) {
+          updatedElement.width = neWidth
+          updatedElement.height = neWidth / originalRatio
+        } else {
+          updatedElement.height = neHeight
+          updatedElement.width = neHeight * originalRatio
+        }
+        updatedElement.y = elementStart.value.y + (elementStart.value.height - updatedElement.height)
+      } else {
+        updatedElement.y = elementStart.value.y + deltaY
+        updatedElement.width = neWidth
+        updatedElement.height = neHeight
+      }
       break
     case 'sw':
-      updatedElement.x = elementStart.value.x + deltaX
-      updatedElement.width = Math.max(50, elementStart.value.width - deltaX)
-      updatedElement.height = Math.max(30, elementStart.value.height + deltaY)
+      const swWidth = Math.max(50, elementStart.value.width - deltaX)
+      const swHeight = Math.max(30, elementStart.value.height + deltaY)
+      if (maintainAspectRatio) {
+        if (Math.abs(deltaX) > Math.abs(deltaY)) {
+          updatedElement.width = swWidth
+          updatedElement.height = swWidth / originalRatio
+        } else {
+          updatedElement.height = swHeight
+          updatedElement.width = swHeight * originalRatio
+        }
+        updatedElement.x = elementStart.value.x + (elementStart.value.width - updatedElement.width)
+      } else {
+        updatedElement.x = elementStart.value.x + deltaX
+        updatedElement.width = swWidth
+        updatedElement.height = swHeight
+      }
       break
     case 'w':
-      updatedElement.x = elementStart.value.x + deltaX
       updatedElement.width = Math.max(50, elementStart.value.width - deltaX)
+      if (maintainAspectRatio) {
+        updatedElement.height = updatedElement.width / originalRatio
+        updatedElement.y = elementStart.value.y + (elementStart.value.height - updatedElement.height) / 2
+      }
+      updatedElement.x = elementStart.value.x + (elementStart.value.width - updatedElement.width)
       break
   }
   
@@ -554,7 +658,6 @@ const handleClick = (event) => {
       emit('click', props.element)
     } else {
       // In edit mode, you can add custom click behavior here
-      console.log('Rectangle clicked in edit mode')
     }
   }
 }
@@ -592,7 +695,9 @@ const handleClickOutside = (event) => {
 }
 
 onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
+  if (elementRef.value) {
+    document.addEventListener('click', handleClickOutside)
+  }
 })
 
 onUnmounted(() => {
@@ -601,5 +706,114 @@ onUnmounted(() => {
   document.removeEventListener('mouseup', stopDrag)
   document.removeEventListener('mousemove', handleResize)
   document.removeEventListener('mouseup', stopResize)
+  document.removeEventListener('touchmove', handleTouchDrag)
+  document.removeEventListener('touchend', stopTouchDrag)
 })
 </script>
+
+<style scoped>
+.touch-manipulation {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.touch-manipulation * {
+  pointer-events: none;
+}
+
+/* Ensure elements are properly sized for touch */
+.touch-manipulation {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* Make text elements editable on touch */
+.touch-manipulation div[contenteditable="true"] {
+  pointer-events: auto;
+}
+
+/* Resize Controls - All 8 handles (from v2) */
+.resize-controls {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none; /* Allow clicks to pass through */
+}
+
+.resize-handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: white;
+  border: 2px solid #4a90e2;
+  border-radius: 50%;
+  pointer-events: auto; /* Enable clicking on handles */
+  z-index: 10;
+  transition: all 0.2s ease;
+}
+
+.resize-handle:hover {
+  background: #4a90e2;
+  transform: scale(1.3);
+  box-shadow: 0 2px 8px rgba(74, 144, 226, 0.5);
+}
+
+/* Corner Handles */
+.resize-nw {
+  top: -6px;
+  left: -6px;
+  cursor: nwse-resize;
+}
+
+.resize-ne {
+  top: -6px;
+  right: -6px;
+  cursor: nesw-resize;
+}
+
+.resize-sw {
+  bottom: -6px;
+  left: -6px;
+  cursor: nesw-resize;
+}
+
+.resize-se {
+  bottom: -6px;
+  right: -6px;
+  cursor: nwse-resize;
+}
+
+/* Edge Center Handles */
+.resize-n {
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: ns-resize;
+}
+
+.resize-e {
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: ew-resize;
+}
+
+.resize-s {
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: ns-resize;
+}
+
+.resize-w {
+  left: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: ew-resize;
+}
+</style>

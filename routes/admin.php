@@ -101,7 +101,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/admin/schedule-data', [ScheduleController::class, 'getScheduleData'])->name('admin.schedule-data');
     
     Route::get('/admin/schedules/{school_id}/{schedule_copy_id}', [ScheduleController::class, 'getScheduleData']);
-// Route::post('/admin/schedule-copies/create-entries', [ScheduleCopyController::class, 'createScheduleEntries']);
+    // Route::post('/admin/schedule-copies/create-entries', [ScheduleCopyController::class, 'createScheduleEntries']);
     // Add new school routes
     Route::get('/admin/schools', [LoadSchoolsController::class, 'adminSchools']);
     Route::get('/teacher/{teacher}/schools', [LoadSchoolsController::class, 'teacherSchools']);

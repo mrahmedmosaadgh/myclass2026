@@ -1,1 +1,0 @@
-import{_ as s,L as t,o as r,y as o}from"./feature-admin-core-BWNP0pMM.js";import"./vendor-xlsx-DkH2s96g.js";const a={},c={class:"book"};function n(l,e){return r(),t("div",c,e[0]||(e[0]=[o("p",null,"Hello",-1),o("div",{class:"cover"},[o("p",null,"Hover Me")],-1)]))}const p=s(a,[["render",n],["__scopeId","data-v-3bb5a107"]]);export{p as default};

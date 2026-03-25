@@ -1037,7 +1037,6 @@ const toggleDrawingMode = () => {
 
 const handleColorChange = (event) => {
   penColor.value = event.target.value
-  console.log('Color changed to:', penColor.value)
 }
 
 // Split screen methods

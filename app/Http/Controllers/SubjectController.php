@@ -33,107 +33,107 @@ class SubjectController extends Controller
             'curricula' => $curricula
         ]);
     }
- 
-public function getCurricula($subjectId)
-{
-    $subject = Subject::find($subjectId);
-    if (!$subject) {
-        return response()->json(['error' => 'Subject not found'], 404);
+
+    public function getCurricula($subjectId)
+    {
+        $subject = Subject::find($subjectId);
+        if (!$subject) {
+            return response()->json(['error' => 'Subject not found'], 404);
+        }
+
+        $curricula = $subject->curricula; // Assuming a relationship exists
+        return response()->json($curricula);
     }
 
-    $curricula = $subject->curricula; // Assuming a relationship exists
-    return response()->json($curricula);
-}
+    /**
+     * Get all subjects for API (used in question bank filters).
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function apiIndex(Request $request)
+    {
+        try {
+            $query = Subject::query();
 
-/**
- * Get all subjects for API (used in question bank filters).
- * 
- * @param Request $request
- * @return \Illuminate\Http\JsonResponse
- */
-public function apiIndex(Request $request)
-{
-    try {
-        $query = Subject::query();
-        
-        // Filter by grade if provided
-        if ($request->has('grade_id')) {
-            $query->whereHas('grades', function($q) use ($request) {
-                $q->where('grades.id', $request->grade_id);
-            });
+            // Filter by grade if provided
+            if ($request->has('grade_id')) {
+                $query->whereHas('grades', function ($q) use ($request) {
+                    $q->where('grades.id', $request->grade_id);
+                });
+            }
+
+            // Get authenticated user's school
+            $user = $request->user();
+            if ($user && isset($user->school_id)) {
+                $query->where('school_id', $user->school_id);
+            }
+
+            $subjects = $query->select('id', 'name', 'school_id', 'description')
+                ->orderBy('name')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $subjects,
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'SUBJECTS_ERROR',
+                    'message' => 'Failed to retrieve subjects',
+                    'details' => config('app.debug') ? $e->getMessage() : null,
+                    'timestamp' => now()->toIso8601String(),
+                ],
+            ], 500);
         }
-        
-        // Get authenticated user's school
-        $user = $request->user();
-        if ($user && isset($user->school_id)) {
-            $query->where('school_id', $user->school_id);
-        }
-        
-        $subjects = $query->select('id', 'name', 'school_id', 'description')
-            ->orderBy('name')
+    }
+
+    /**
+     * Get topics for filtering questions
+     */
+    public function getTopics(Request $request)
+    {
+        try {
+            $query = \App\Models\my_class\Curriculums\CurriculumTopic::query(); // Using the correct Topic model
+            
+            // Join with curricula and subjects to filter by subject
+            $query->join('curricula', 'curriculum_topics.curriculum_id', '=', 'curricula.id')
+                  ->join('subjects', 'curricula.subject_id', '=', 'subjects.id');
+            
+            // Filter by subject if provided
+            if ($request->has('subject_id')) {
+                $query->where('curricula.subject_id', $request->subject_id);
+            }
+            
+            $topics = $query->select(
+                'curriculum_topics.id', 
+                'curriculum_topics.title as name', 
+                'curricula.subject_id', 
+                'curriculum_topics.description'
+            )
+            ->orderBy('curriculum_topics.title')
             ->get();
+            
+            return response()->json([
+                'success' => true,
+                'data' => $topics,
+            ]);
 
-        return response()->json([
-            'success' => true,
-            'data' => $subjects,
-        ]);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'error' => [
-                'code' => 'SUBJECTS_ERROR',
-                'message' => 'Failed to retrieve subjects',
-                'details' => config('app.debug') ? $e->getMessage() : null,
-                'timestamp' => now()->toIso8601String(),
-            ],
-        ], 500);
-    }
-}
-
-/**
- * Get topics for filtering questions
- */
-public function getTopics(Request $request)
-{
-    try {
-        $query = \App\Models\my_class\Curriculums\CurriculumTopic::query(); // Using the correct Topic model
-        
-        // Join with curricula and subjects to filter by subject
-        $query->join('curricula', 'curriculum_topics.curriculum_id', '=', 'curricula.id')
-              ->join('subjects', 'curricula.subject_id', '=', 'subjects.id');
-        
-        // Filter by subject if provided
-        if ($request->has('subject_id')) {
-            $query->where('curricula.subject_id', $request->subject_id);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'TOPICS_ERROR',
+                    'message' => 'Failed to retrieve topics: ' . $e->getMessage(),
+                    'details' => config('app.debug') ? $e->getMessage() : null,
+                    'timestamp' => now()->toIso8601String(),
+                ],
+            ], 500);
         }
-        
-        $topics = $query->select(
-            'curriculum_topics.id', 
-            'curriculum_topics.title as name', 
-            'curricula.subject_id', 
-            'curriculum_topics.description'
-        )
-        ->orderBy('curriculum_topics.title')
-        ->get();
-        
-        return response()->json([
-            'success' => true,
-            'data' => $topics,
-        ]);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'error' => [
-                'code' => 'TOPICS_ERROR',
-                'message' => 'Failed to retrieve topics: ' . $e->getMessage(),
-                'details' => config('app.debug') ? $e->getMessage() : null,
-                'timestamp' => now()->toIso8601String(),
-            ],
-        ], 500);
     }
-}
     // public function getCurricula($subjectId)
     // {
     //     return Curriculum::where('subject_id', $subjectId)
@@ -189,91 +189,59 @@ public function getTopics(Request $request)
 
     /**
      * Update lesson plan templates for a subject
+     * 
+     * @deprecated This method is deprecated. Templates are now managed via the API.
+     * @see LessonPlanTemplateController
      */
     public function updateLessonPlanTemplates(Request $request, Subject $subject)
     {
-        $validated = $request->validate([
-            'lesson_plan_templates' => 'required|string',
-        ]);
-
-        // Validate that the string is valid JSON
-        $decoded = json_decode($validated['lesson_plan_templates'], true);
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            return response()->json([
-                'message' => 'Invalid JSON format: ' . json_last_error_msg()
-            ], 422);
-        }
-
-        $subject->update([
-            'lesson_plan_templates' => $validated['lesson_plan_templates']
-        ]);
-
-        // Reload the subject with the updated templates
-        $subject->refresh();
-
-        // Parse the templates for the response
-        $templates = [];
-        if ($subject->lesson_plan_templates) {
-            if (is_string($subject->lesson_plan_templates)) {
-                $templates = json_decode($subject->lesson_plan_templates, true) ?? [];
-            } else {
-                $templates = $subject->lesson_plan_templates;
-            }
-        }
-
         return response()->json([
-            'message' => 'Lesson plan templates updated successfully',
-            'subject' => $subject,
-            'templates' => $templates
-        ]);
+            'message' => 'This endpoint is deprecated. Please use /api/lesson-plan-templates instead.',
+            'deprecated' => true,
+            'new_endpoint' => '/api/lesson-plan-templates'
+        ], 410); // 410 Gone
     }
 
     /**
      * Show the lesson plan templates management page
+     * 
+     * @deprecated This method is deprecated. Templates are now managed via the API.
+     * @see LessonPlanTemplateController
      */
     public function manageLessonPlanTemplates(Subject $subject)
     {
-        // Load the school relationship
-        $subject->load('school');
-
-        // Parse the JSON templates if they exist
-        $templates = [];
-        if ($subject->lesson_plan_templates) {
-            // If it's already a string, parse it; if it's already an array, use it directly
-            if (is_string($subject->lesson_plan_templates)) {
-                $templates = json_decode($subject->lesson_plan_templates, true) ?? [];
-            } else {
-                $templates = $subject->lesson_plan_templates;
-            }
-        }
-
-        return Inertia::render('my_class/admin/Subjects/LessonPlanTemplates', [
-            'subject' => $subject,
-            'templates' => $templates
-        ]);
+        // Redirect to subject page with info message
+        return redirect()->route('subjects.index')
+            ->with('info', 'Template management has been updated. Please use the new template system.');
     }
 
     /**
      * Get lesson plan templates for a subject (AJAX)
+     * 
+     * This method now ONLY returns database-backed templates.
+     * Legacy JSON templates have been migrated to the database.
      */
     public function getLessonPlanTemplates(Subject $subject)
     {
-        // Parse the JSON templates if they exist
-        $templates = [];
-        if ($subject->lesson_plan_templates) {
-            // If it's already a string, parse it; if it's already an array, use it directly
-            if (is_string($subject->lesson_plan_templates)) {
-                $templates = json_decode($subject->lesson_plan_templates, true) ?? [];
-            } else {
-                $templates = $subject->lesson_plan_templates;
-            }
-        }
+        // Only return DB-backed templates (no more JSON merging)
+        $dbTemplates = \App\Models\CourseManagement\LessonPlanTemplate::query()
+            ->where(function ($q) use ($subject) {
+                $q->whereNull('subject_id')
+                    ->orWhere('subject_id', $subject->id);
+            })
+            ->active()
+            ->ordered()
+            ->get()
+            ->map(fn($t) => $t->toArray())
+            ->toArray();
 
         return response()->json([
             'subject' => $subject->load('school'),
-            'templates' => $templates
+            'templates' => $dbTemplates,
+            'migrated' => !is_null($subject->templates_migrated_at)
         ]);
     }
+
 
 
 
@@ -339,7 +307,7 @@ public function getTopics(Request $request)
                 // Check for duplicate subject in same school
                 if (in_array('name', $requiredColumns)) {
                     $existingSubject = Subject::where('name', $row['name'])
-                        ->whereHas('school', function($query) use ($row) {
+                        ->whereHas('school', function ($query) use ($row) {
                             $query->where('name', $row['school']);
                         })
                         ->first();
@@ -457,7 +425,8 @@ public function getTopics(Request $request)
 
             foreach ($affectedSubjects as $subjectData) {
                 $subject = Subject::find($subjectData['id']);
-                if (!$subject) continue;
+                if (!$subject)
+                    continue;
 
                 if ($subjectData['original_data'] === null) {
                     // This was a new record - delete it

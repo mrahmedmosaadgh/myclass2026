@@ -4,10 +4,11 @@ namespace App\Models\CourseManagement;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class LessonPlanTemplate extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     /**
      * The table associated with the model.
@@ -26,6 +27,7 @@ class LessonPlanTemplate extends Model
         'structure',
         'is_active',
         'created_by',
+        'subject_id',
     ];
 
     /**
@@ -44,6 +46,14 @@ class LessonPlanTemplate extends Model
     public function creator()
     {
         return $this->belongsTo(\App\Models\User::class, 'created_by');
+    }
+
+    /**
+     * Get the subject this template is scoped to (nullable for global templates).
+     */
+    public function subject()
+    {
+        return $this->belongsTo(\App\Models\Subject::class, 'subject_id');
     }
 
     /**

@@ -14,10 +14,19 @@ class LessonPlanTemplateController extends Controller
      */
     public function index()
     {
-        $templates = LessonPlanTemplate::with('creator')
+        $query = LessonPlanTemplate::with('creator')
             ->active()
-            ->ordered()
-            ->paginate(15);
+            ->ordered();
+
+        if (request()->has('subject_id')) {
+            $subjectId = request()->input('subject_id');
+            $query->where(function ($q) use ($subjectId) {
+                $q->whereNull('subject_id')
+                  ->orWhere('subject_id', $subjectId);
+            });
+        }
+
+        $templates = $query->paginate(15);
 
         return response()->json([
             'success' => true,
@@ -35,7 +44,8 @@ class LessonPlanTemplateController extends Controller
                 'name' => $request->name,
                 'structure' => $request->structure,
                 'created_by' => Auth::id(),
-                'is_active' => true
+                'is_active' => true,
+                'subject_id' => $request->subject_id ?? null,
             ]);
 
             return response()->json([
@@ -70,7 +80,12 @@ class LessonPlanTemplateController extends Controller
     public function update(LessonPlanTemplateRequest $request, LessonPlanTemplate $lessonPlanTemplate)
     {
         try {
-            $lessonPlanTemplate->update($request->validated());
+            $data = $request->validated();
+            // Allow updating subject_id explicitly
+            if ($request->has('subject_id')) {
+                $data['subject_id'] = $request->subject_id;
+            }
+            $lessonPlanTemplate->update($data);
 
             return response()->json([
                 'success' => true,

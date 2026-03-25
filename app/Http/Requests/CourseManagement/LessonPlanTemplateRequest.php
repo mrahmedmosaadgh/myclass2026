@@ -26,6 +26,7 @@ class LessonPlanTemplateRequest extends FormRequest
             'structure' => 'required|array|min:1',
             'structure.*.label' => 'required|string|max:255',
             'structure.*.type' => 'required|string|in:text,textarea,select',
+            'subject_id' => 'nullable|exists:subjects,id',
         ];
 
         // For update requests, make some fields optional

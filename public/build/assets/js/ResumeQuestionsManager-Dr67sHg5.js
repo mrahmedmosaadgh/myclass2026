@@ -1,1 +1,0 @@
-import{_ as s,L as n,o,y as t}from"./feature-admin-core-BWNP0pMM.js";import"./vendor-xlsx-DkH2s96g.js";const a={name:"ResumeQuestionsManager"};function r(u,e,c,i,m,p){return o(),n("div",null,e[0]||(e[0]=[t("h1",null,"Resume Questions Manager",-1)]))}const d=s(a,[["render",r]]);export{d as default};

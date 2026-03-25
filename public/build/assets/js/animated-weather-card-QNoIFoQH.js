@@ -1,1 +1,0 @@
-import{_ as t,L as a,o as r,y as s}from"./feature-admin-core-BWNP0pMM.js";import"./vendor-xlsx-DkH2s96g.js";const o={},c={class:"weather-card"};function n(d,e){return r(),a("div",c,e[0]||(e[0]=[s("div",{class:"temp"},"22°C",-1),s("div",{class:"description"},"Sunny",-1)]))}const p=t(o,[["render",n],["__scopeId","data-v-4e960139"]]);export{p as default};

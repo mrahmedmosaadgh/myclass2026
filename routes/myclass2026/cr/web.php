@@ -52,6 +52,16 @@ Route::middleware([
             );
         })->name('builder-v3');
         
+        // V4 Presentation Builder
+        Route::get('/builder-v4', function () {
+            return Inertia::render(
+                'myclass2026/features/cr/classroom_records_v1/peresentation/v4/Index',
+                [
+                    'title' => 'Presentation Builder V4 - MyClass2026'
+                ]
+            );
+        })->name('builder-v4');
+        
         // Slide editor
         Route::get('/slide-editor', function () {
             return Inertia::render('myclass2026/features/cr/classroom_records_v1/peresentation/SlideEditor');

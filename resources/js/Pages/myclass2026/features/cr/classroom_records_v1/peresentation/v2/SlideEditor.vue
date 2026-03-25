@@ -110,25 +110,55 @@ export default {
   },
   methods: {
     async pasteFromClipboard() {
+      // First, focus the slide area to ensure we have focus context
+      this.$refs.slideArea?.focus();
+      
       try {
-        const clipboardItems = await navigator.clipboard.read();
-        for (const item of clipboardItems) {
-          for (const type of item.types) {
-            if (type.startsWith('image/')) {
-              const blob = await item.getType(type);
-              const reader = new FileReader();
-              reader.onload = (e) => this.addImageElement(e.target.result, true);
-              reader.readAsDataURL(blob);
-              return;
+        // Try Clipboard API for images first
+        if (navigator.clipboard?.read) {
+          const clipboardItems = await navigator.clipboard.read();
+          for (const item of clipboardItems) {
+            // Check for images
+            for (const type of item.types) {
+              if (type.startsWith('image/')) {
+                const blob = await item.getType(type);
+                const reader = new FileReader();
+                reader.onload = (e) => this.addImageElement(e.target.result, true);
+                reader.readAsDataURL(blob);
+                return;
+              }
+            }
+            // Check for HTML content
+            if (item.types.includes('text/html')) {
+              const blob = await item.getType('text/html');
+              const text = await blob.text();
+              if (text) {
+                this.addHtmlElement(text);
+                return;
+              }
             }
           }
         }
+        
         // Fallback to text
-        const text = await navigator.clipboard.readText();
-        if (text) this.addTextElement(text);
-      } catch {
-        // Fallback: focus slide and let user Ctrl+V manually
-        this.$refs.slideArea.focus();
+        if (navigator.clipboard?.readText) {
+          const text = await navigator.clipboard.readText();
+          if (text) {
+            this.addTextElement(text);
+            return;
+          }
+        }
+        
+        // If we get here, clipboard might be empty or no supported content
+        console.log('No supported content in clipboard');
+      } catch (error) {
+        console.warn('Clipboard API failed:', error);
+        // Try execCommand as last resort for older browsers
+        try {
+          document.execCommand('paste');
+        } catch (e) {
+          console.warn('execCommand paste also failed:', e);
+        }
       }
     },
     focusSlide() {
@@ -138,6 +168,7 @@ export default {
       event.preventDefault();
       const items = event.clipboardData.items;
 
+      // First pass: check for images
       for (let item of items) {
         if (item.type.indexOf('image') !== -1) {
           const blob = item.getAsFile();
@@ -147,10 +178,27 @@ export default {
             this.addImageElement(e.target.result, true); // true = from clipboard
           };
           reader.readAsDataURL(blob);
-        } else if (item.type === 'text/plain') {
+          return;
+        }
+      }
+      
+      // Second pass: check for HTML content
+      for (let item of items) {
+        if (item.type === 'text/html') {
+          item.getAsString((html) => {
+            this.addHtmlElement(html);
+          });
+          return;
+        }
+      }
+      
+      // Third pass: plain text
+      for (let item of items) {
+        if (item.type === 'text/plain') {
           item.getAsString((text) => {
             this.addTextElement(text);
           });
+          return;
         }
       }
     },
@@ -281,11 +329,32 @@ export default {
       };
       this.$emit('update:slide', updatedSlide);
     },
-    deleteElement(elementId) {
+    addHtmlElement(html) {
+      // Validate that slide.elements exists and is an array
+      if (!this.slide || !Array.isArray(this.slide.elements)) {
+        console.error('Invalid slide structure:', this.slide);
+        return;
+      }
+
+      const newElement = {
+        id: this.generateId(),
+        type: 'html',
+        content: html,
+        x: 150,
+        y: 150,
+        width: 400,
+        height: 'auto',
+        initialState: 'visible',
+        animation: null
+      };
+      
       const updatedSlide = {
         ...this.slide,
-        elements: this.slide.elements.filter(el => el.id !== elementId)
+        elements: [...this.slide.elements, newElement]
       };
+      
+      console.log('Adding HTML element:', newElement);
+      console.log('Updated slide:', updatedSlide);
       this.$emit('update:slide', updatedSlide);
     },
     handleDuplicate(originalElement) {

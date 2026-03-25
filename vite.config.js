@@ -22,6 +22,13 @@ export default defineConfig(({ mode }) => {
                     includeAbsolute: false,
                 },
             },
+            compilerOptions: {
+                isCustomElement: (tag) => {
+                    // Exclude native HTML elements from component resolution
+                    const nativeElements = ['img', 'div', 'span', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'a', 'button', 'input', 'textarea', 'select', 'option', 'canvas', 'svg', 'video', 'audio', 'source', 'track']
+                    return nativeElements.includes(tag)
+                }
+            }
         }),
         quasar({
             sassVariables: false

@@ -39,6 +39,7 @@ class LessonPlanTemplateFactory extends Factory
             ],
             'is_active' => true,
             'created_by' => User::factory(),
+            'subject_id' => null,
         ];
     }
 }

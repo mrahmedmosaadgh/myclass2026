@@ -584,7 +584,7 @@ Route::middleware([
             Route::get('/join', [App\Http\Controllers\QuizSessionController::class, 'studentJoin'])
                 ->name('join');
         });
-    });
+});
 
 // School HR Admin Registration
 Route::get('/register-school-admin', [App\Http\Controllers\SchoolHrAdminRegistrationController::class, 'create'])->name('register.school_admin');
@@ -679,3 +679,11 @@ Route::middleware(['auth'])->prefix('bm2')->group(function () {
 
 // Include Classroom Records v1 Routes
 include dirname(__DIR__).'/routes/myclass2026/cr/web.php';
+
+// Include Laravel Cache Management Routes
+include dirname(__DIR__).'/routes/fix_laravel_cache.php';
+
+// Add route for LessonTemplateManager
+Route::get('/lesson-template-manager', function () {
+     return Inertia::render('LessonTemplateManager/index');
+})->name('lesson-template-manager');

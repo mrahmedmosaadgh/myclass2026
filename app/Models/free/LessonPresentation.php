@@ -29,12 +29,17 @@ class LessonPresentation extends Model
         'quiz_id',
         'is_active',
         'sections',
+        'lesson_plan_template_id',
+        'template_snapshot',
+        'is_template_applied',
     ];
 
     protected $casts = [
         'quiz_id' => 'integer',
         'sections' => 'array',
         'is_active' => 'boolean',
+        'template_snapshot' => 'array',
+        'is_template_applied' => 'boolean',
     ];
 
     public function slides()
@@ -77,6 +82,11 @@ class LessonPresentation extends Model
     public function grade()
     {
         return $this->belongsTo(Grade::class);
+    }
+
+    public function lessonPlanTemplate()
+    {
+        return $this->belongsTo(\App\Models\CourseManagement\LessonPlanTemplate::class, 'lesson_plan_template_id');
     }
 
     public function studentProgress()

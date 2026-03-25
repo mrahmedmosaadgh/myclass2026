@@ -117,7 +117,10 @@ CVC: 123
 If you forgot to pull before starting work, don't just `git pull` as it might create conflicts or overwrite your work. Instead, use:
 `git pull --rebase --autostash` (This automatically saves your local uncommitted work, fetches the remote updates, applies them, and then re-applies your work on top!).
 
-Then, create the required history file in docs/history (with what you did and what still need to be done if you have) with the correct timestamped name and title `YYYY-MM-DD_HH-MM_history_feature_name.md`, stage the files, commit with the specified message format, and push to your current branch.
+Then, 
+
+npm run build
+create the required history file in docs/history (with what you did and what still need to be done if you have) with the correct timestamped name and title `YYYY-MM-DD_HH-MM_history_feature_name.md`, stage the files, commit with the specified message format, and push to your current branch.
 
 npm run build
 public/build is a separate git repository.

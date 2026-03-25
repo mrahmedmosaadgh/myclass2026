@@ -42,7 +42,8 @@ import { ZiggyVue } from 'ziggy-js';
 import { createI18n } from 'vue-i18n';
 import Vue3Toastify from 'vue3-toastify';
 // Import Quasar components normally (not lazy loaded)
-import { Quasar, Notify, Loading, Dialog, Dark, QBtn, QBtnDropdown, QDialog, QMenu, QList, QItem, QItemSection, QSeparator, QCard, QCardSection, QCardActions, QTabs, QTab, QTabPanels, QTabPanel, QOptionGroup, QRadio, QToggle } from 'quasar';
+import { Quasar, Notify, Loading, Dialog, Dark, QBtn, QBtnDropdown, QDialog, QMenu, QList, QItem, QItemSection, QSeparator, QCard, QCardSection, QCardActions, QTabs, QTab, QTabPanels, QTabPanel, QOptionGroup, QRadio, QToggle, QToolbar, QToolbarTitle, QSpace, QAvatar, QInput, QSelect, QTooltip } from 'quasar';
+import { QIcon } from 'quasar';
 import AppLayoutDefault from '@/Layouts/AppLayoutDefault.vue';
 import languageSwitcher from './plugins/languageSwitcher.js';
 // Lazy load heavy CSS
@@ -176,6 +177,14 @@ createInertiaApp({
                     QOptionGroup,
                     QRadio,
                     QToggle,
+                    QToolbar,
+                    QToolbarTitle,
+                    QSpace,
+                    QAvatar,
+                    QInput,
+                    QSelect,
+                    QTooltip,
+                    QIcon,
                 },
                 config: {
                     notify: {

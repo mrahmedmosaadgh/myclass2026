@@ -42,9 +42,12 @@ use App\Http\Controllers\Api\Cr\CrSessionController;
 |
 */
 
-Route::middleware(['auth:sanctum','web'])->get('/user', function (Request $request) {
+Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+// Menu API
+Route::middleware(['auth:sanctum', 'web'])->get('/menu', [NavigationController::class, 'index']);
 
 Route::middleware(['auth:sanctum','web'])->get('/schools', [App\Http\Controllers\SchoolController::class, 'apiIndex']);
 Route::middleware(['auth:sanctum','web'])->get('/schools/{school}/subjects', [App\Http\Controllers\SchoolController::class, 'getSubjects']);
@@ -68,26 +71,8 @@ Route::middleware(['auth:sanctum','web'])->get('/auth-test', function (Request $
 // Academic Years API
 Route::middleware(['auth:sanctum','web'])->get('/academic-years', [App\Http\Controllers\AcademicYearController::class, 'apiIndex']);
 
-// Schools API
-Route::middleware(['auth:sanctum','web'])->get('/schools', [App\Http\Controllers\SchoolController::class, 'apiIndex']);
-Route::middleware(['auth:sanctum','web'])->get('/schools/{id}', [App\Http\Controllers\SchoolController::class, 'apiShow']);
-Route::middleware(['auth:sanctum','web'])->put('/schools/{id}', [App\Http\Controllers\SchoolController::class, 'apiUpdate']);
-Route::middleware(['auth:sanctum','web'])->get('/school/current-term', [App\Http\Controllers\SchoolController::class, 'currentTerm']);
-
-// Semesters API
-Route::middleware(['auth:sanctum','web'])->get('/semesters', [App\Http\Controllers\SemesterController::class, 'apiIndex']);
-
-// Schedule Copies API - Removed
-
 // Classroom Subject Teachers API
 Route::middleware(['auth:sanctum','web'])->get('/classroom-subject-teachers/my-assignments', [App\Http\Controllers\ClassroomSubjectTeacherController::class, 'myAssignments']);
-Route::middleware(['auth:sanctum','web'])->get('/classroom-subject-teachers', [App\Http\Controllers\ClassroomSubjectTeacherController::class, 'apiIndex']);
-
-// Classrooms API
-Route::middleware(['auth:sanctum','web'])->get('/classrooms', [App\Http\Controllers\ClassroomController::class, 'apiIndex']);
-
-// Teachers API (adding GET support)
-Route::middleware(['auth:sanctum','web'])->get('/teachers', [App\Http\Controllers\TeacherController::class, 'apiIndex']);
 
 // Teacher Dashboard API
 Route::middleware(['auth:sanctum','web'])
@@ -99,14 +84,14 @@ Route::middleware(['auth:sanctum','web'])
 Route::prefix('course-management')->middleware(['auth:sanctum'])->group(function () {
     
     // Lesson Plan Templates
-    Route::apiResource('lesson-plan-templates', App\Http\Controllers\CourseManagement\LessonPlanTemplateController::class);
+    Route::apiResource('lesson-plan-templates', LessonPlanTemplateController::class);
     
 });
 
-// MyProject Tasks API Routes
+// Project Tasks (No Middleware specified in route)
 Route::prefix('myproject_tasks')->group(function () {
     Route::apiResource('/', App\Http\Controllers\Api\MyProjectTaskController::class)->parameters(['' => 'task']);
-    
+
     // Hierarchical operations
     Route::post('{parent}/subtasks', [App\Http\Controllers\Api\MyProjectTaskController::class, 'createSubtask']);
     Route::get('{task}/subtasks', [App\Http\Controllers\Api\MyProjectTaskController::class, 'getSubtasks']);
@@ -117,7 +102,7 @@ Route::middleware(['auth:sanctum','web'])->get('/project-tasks', [App\Http\Contr
 Route::middleware(['auth:sanctum','web'])->get('/project-task/{projectTask}', [App\Http\Controllers\ProjectTaskController::class, 'show']);
 // Public routes (if needed)
 Route::prefix('course-management')->group(function () {
-    Route::get('lesson-plan-templates/public', [App\Http\Controllers\CourseManagement\LessonPlanTemplateController::class, 'index']);
+    Route::get('lesson-plan-templates/public', [LessonPlanTemplateController::class, 'index']);
 });
  
 Route::middleware(['auth:sanctum','web'])->get('/schools/{school}/subjects', [App\Http\Controllers\SchoolController::class, 'getSubjects']);
@@ -126,262 +111,124 @@ Route::middleware(['auth:sanctum','web'])->get('/subjects/{subject}/curricula', 
 // Route::middleware(['auth:sanctum','web'])->post('/worksheets', [App\Http\Controllers\WorksheetController::class, 'store']);
 
 
-// Bulk behavior creation (must come before apiResource)
-Route::post('behaviors/bulk', [BehaviorController::class, 'bulkStore']);
 
 Route::apiResource('behaviors', BehaviorController::class);
-// Route::apiResource('student-behaviors', StudentBehaviorController::class);
+Route::apiResource('student-behaviors', StudentBehaviorController::class);
 
+Route::prefix('behavior')->group(function () {
+    Route::post('/cancel-action/{action}', [StudentBehaviorController::class, 'cancelPointAction']);
+});
 
+// Main Authenticated Web API Group
 Route::middleware(['auth:sanctum', 'web'])->group(function () {
 
-    // 🧠 Behavior master list (Positive & Negative)
-    Route::get('/behaviors', [BehaviorController::class, 'index']);
+    // Auth Test
+    Route::get('/auth-test', function (Request $request) {
+        return response()->json([
+            'authenticated' => true,
+            'user_id' => auth()->id(),
+            'user_school_id' => auth()->user()->school_id ?? null,
+            'user_name' => auth()->user()->name ?? null,
+        ]);
+    });
 
-    // 🎯 Record student behavior (standard full record)
-    Route::post('/student-behaviors', [StudentBehaviorController::class, 'store']);
+    // Academic & School
+    Route::get('/academic-years', [App\Http\Controllers\AcademicYearController::class, 'apiIndex']);
+    Route::get('/schools/{school}/subjects', [App\Http\Controllers\SchoolController::class, 'getSubjects']);
+    Route::get('/subjects/{subject}/curricula', [App\Http\Controllers\SubjectController::class, 'getCurricula']);
 
-    // 🎯 Quick create student behavior (simplified frontend payload)
-    Route::post('/student-behaviors/quick-create', [StudentBehaviorController::class, 'quickCreate']);
+    // Teacher & Classroom
+    Route::get('/classroom-subject-teachers/my-assignments', [App\Http\Controllers\ClassroomSubjectTeacherController::class, 'myAssignments']);
+    Route::get('/teacher/dashboard/classrooms', [\App\Http\Controllers\Teacher\TeacherDashboardController::class, 'classrooms']);
 
-    // 📊 Show student behavior summary (by student id)
-    Route::get('/student-behaviors/{student}', [StudentBehaviorController::class, 'studentSummary']);
+    // Projects
+    Route::get('/project-tasks', [App\Http\Controllers\ProjectTaskController::class, 'index']);
+    Route::get('/project-task/{projectTask}', [App\Http\Controllers\ProjectTaskController::class, 'show']);
 
-    // Initialize classroom session and ensure student behaviors exist
+    // Behavior System
+    Route::get('/behaviors', [BehaviorController::class, 'index']); // 🧠 Behavior master list
+    Route::post('/student-behaviors', [StudentBehaviorController::class, 'store']); // 🎯 Record student behavior
+    Route::post('/student-behaviors/quick-create', [StudentBehaviorController::class, 'quickCreate']); // 🎯 Quick create
+    Route::get('/student-behaviors/{student}', [StudentBehaviorController::class, 'studentSummary']); // 📊 Show student behavior summary
     Route::post('/student-behaviors/init-classroom', [App\Http\Controllers\StudentBehaviorsMainController::class, 'initForClassroom']);
 
-    // Attendance API (single and batch)
+    // Attendance
     Route::post('/student-attendance', [StudentBehaviorController::class, 'updateAttendance']);
     Route::post('/student-attendance/batch', [StudentBehaviorController::class, 'batchUpdateAttendance']);
 
-    // Recent actions and undo
+    // Recent Actions
     Route::get('/student-behaviors/recent-actions', [StudentBehaviorController::class, 'recentActions']);
     Route::post('/student-behaviors/actions/{actionId}/cancel', [StudentBehaviorController::class, 'cancelAction']);
 
-    // Student avatar upload
+    // Avatars
     Route::post('/students/{student}/avatar', [App\Http\Controllers\StudentController::class, 'uploadAvatar']);
     Route::delete('/students/{student}/avatar', [App\Http\Controllers\StudentController::class, 'deleteAvatar']);
 
-    // Classroom layouts (student grouping)
+    // Classroom Layouts
     Route::post('/classroom-layouts/save', [App\Http\Controllers\Api\ClassroomLayoutController::class, 'saveLayouts']);
     Route::get('/classroom-layouts/load', [App\Http\Controllers\Api\ClassroomLayoutController::class, 'loadLayouts']);
 
     // 🛠️ Tracker Updates (Classroom Helper)
     Route::post('/student-behaviors/update-tracker', [StudentBehaviorController::class, 'updateTracker']);
 
-    // 🏆 Leaderboard
+    // Leaderboard
     Route::get('/leaderboard', [StudentBehaviorController::class, 'leaderboard']);
 
-    // 📋 Behavior Incidents
+    // Behavior Incidents
     Route::apiResource('behavior-incidents', BehaviorIncidentController::class);
     Route::get('/behavior-incidents/student/{studentId}/report', [BehaviorIncidentController::class, 'studentReport']);
-});
 
-Route::middleware(['auth:sanctum', 'web'])->prefix('classroom-records')->group(function () {
-    Route::get('/', [ClassroomRecordController::class, 'index']);
-    Route::get('/metadata', [ClassroomRecordController::class, 'metadata']);
-    Route::patch('/{classroomRecord}', [ClassroomRecordController::class, 'update']);
-});
+    // Classroom Records
+    Route::prefix('classroom-records')->group(function () {
+        Route::get('/', [ClassroomRecordController::class, 'index']);
+        Route::get('/metadata', [ClassroomRecordController::class, 'metadata']);
+        Route::patch('/{classroomRecord}', [ClassroomRecordController::class, 'update']);
+    });
 
-// Route::middleware(['auth:sanctum', 'web', 'role:teacher'])->group(function () {
-//     // routes here
-// });
-Route::prefix('behavior')->group(function () {
-    Route::post('/cancel-action/{action}', [StudentBehaviorController::class, 'cancelPointAction']);
-});
+    // AI Assistant API
+    Route::post('/ai/complete', [App\Http\Controllers\AIController::class, 'complete']);
 
-Route::apiResource('student-behaviors', StudentBehaviorController::class);
+    // Quiz System
+    Route::prefix('quiz')->group(function () {
+        Route::get('/fetch', [App\Http\Controllers\QuizController::class, 'show']);
+        Route::post('/attempts', [App\Http\Controllers\QuizAttemptController::class, 'store']);
+        Route::post('/attempts/{attemptId}/answers', [App\Http\Controllers\QuizAttemptController::class, 'submitAnswer']);
+        Route::put('/attempts/{attemptId}/complete', [App\Http\Controllers\QuizAttemptController::class, 'complete']);
+        Route::get('/attempts/{attemptId}/results', [App\Http\Controllers\QuizAttemptController::class, 'results']);
+        Route::post('/questions/import', [App\Http\Controllers\QuestionController::class, 'import']);
+        Route::apiResource('questions', App\Http\Controllers\QuestionController::class);
+    });
 
-// Smart Scanner API
-Route::middleware(['auth:sanctum', 'web'])->post('/scan/submit', [\App\Http\Controllers\Api\ScanController::class, 'submit']);
+    // Quiz Management
+    Route::prefix('quizzes')->group(function () {
+        Route::get('/filter-options', [App\Http\Controllers\QuizController::class, 'filterOptions']);
+        Route::get('/', [App\Http\Controllers\QuizController::class, 'index']);
+        Route::post('/', [App\Http\Controllers\QuizController::class, 'store']);
+        Route::get('/{id}', [App\Http\Controllers\QuizController::class, 'show']);
+        Route::put('/{id}', [App\Http\Controllers\QuizController::class, 'update']);
+        Route::delete('/{id}', [App\Http\Controllers\QuizController::class, 'destroy']);
+        Route::post('/{id}/duplicate', [App\Http\Controllers\QuizController::class, 'duplicate']);
+        Route::get('/{id}/export', [App\Http\Controllers\QuizController::class, 'export']);
+        Route::get('/{id}/analytics', [App\Http\Controllers\QuizController::class, 'analytics']);
+    });
 
-// AI Assistant API
-Route::middleware(['auth:sanctum', 'web'])->post('/ai/complete', [App\Http\Controllers\AIController::class, 'complete']);
+    // Question Management
+    Route::prefix('questions')->group(function () {
+        Route::post('/import', [App\Http\Controllers\QuestionController::class, 'import']);
+        Route::get('/export', [App\Http\Controllers\QuestionController::class, 'export']);
+        Route::get('/', [App\Http\Controllers\QuestionController::class, 'index']);
+        Route::post('/', [App\Http\Controllers\QuestionController::class, 'store']);
+        Route::get('/{id}', [App\Http\Controllers\QuestionController::class, 'show']);
+        Route::put('/{id}', [App\Http\Controllers\QuestionController::class, 'update']);
+        Route::delete('/{id}', [App\Http\Controllers\QuestionController::class, 'destroy']);
+        Route::post('/{id}/duplicate', [App\Http\Controllers\QuestionController::class, 'duplicate']);
+        Route::patch('/{id}/status', [App\Http\Controllers\QuestionController::class, 'updateStatus']);
+    });
 
-// Quiz System API Routes
-Route::middleware(['auth:sanctum', 'web'])->prefix('quiz')->group(function () {
-    // Quiz endpoints - fetch quiz with questions
-    Route::get('/fetch', [App\Http\Controllers\QuizController::class, 'show']);
-    
-    // Quiz attempt endpoints
-    Route::post('/attempts', [App\Http\Controllers\QuizAttemptController::class, 'store']);
-    Route::post('/attempts/{attemptId}/answers', [App\Http\Controllers\QuizAttemptController::class, 'submitAnswer']);
-    Route::put('/attempts/{attemptId}/complete', [App\Http\Controllers\QuizAttemptController::class, 'complete']);
-    Route::get('/attempts/{attemptId}/results', [App\Http\Controllers\QuizAttemptController::class, 'results']);
-    
-    // Question import endpoint (must come before resource routes)
-    Route::post('/questions/import', [App\Http\Controllers\QuestionController::class, 'import']);
-    
-    // Question management endpoints (CRUD)
-    Route::apiResource('questions', App\Http\Controllers\QuestionController::class);
-});
-
-// Quiz Management API Routes
-Route::middleware(['auth:sanctum', 'web'])->prefix('quizzes')->group(function () {
-    Route::get('/filter-options', [App\Http\Controllers\QuizController::class, 'filterOptions']);
-    Route::get('/', [App\Http\Controllers\QuizController::class, 'index']);
-    Route::post('/', [App\Http\Controllers\QuizController::class, 'store']);
-    Route::get('/{id}', [App\Http\Controllers\QuizController::class, 'show']);
-    Route::put('/{id}', [App\Http\Controllers\QuizController::class, 'update']);
-    Route::delete('/{id}', [App\Http\Controllers\QuizController::class, 'destroy']);
-    
-    // Additional quiz operations
-    Route::post('/{id}/duplicate', [App\Http\Controllers\QuizController::class, 'duplicate']);
-    Route::get('/{id}/export', [App\Http\Controllers\QuizController::class, 'export']);
-    Route::get('/{id}/analytics', [App\Http\Controllers\QuizController::class, 'analytics']);
-});
-
-// Question Management API Routes (outside quiz prefix for direct access)
-Route::middleware(['auth:sanctum', 'web'])->prefix('questions')->group(function () {
-    // Import and export must come before resource routes
-    Route::post('/import', [App\Http\Controllers\QuestionController::class, 'import']);
-    Route::get('/export', [App\Http\Controllers\QuestionController::class, 'export']);
-    
-    // CRUD operations
-    Route::get('/', [App\Http\Controllers\QuestionController::class, 'index']);
-    Route::post('/', [App\Http\Controllers\QuestionController::class, 'store']);
-    Route::get('/{id}', [App\Http\Controllers\QuestionController::class, 'show']);
-    Route::put('/{id}', [App\Http\Controllers\QuestionController::class, 'update']);
-    Route::delete('/{id}', [App\Http\Controllers\QuestionController::class, 'destroy']);
-    
-    // Additional operations
-    Route::post('/{id}/duplicate', [App\Http\Controllers\QuestionController::class, 'duplicate']);
-    Route::patch('/{id}/status', [App\Http\Controllers\QuestionController::class, 'updateStatus']);
-});
-
-// Metadata endpoints for question bank
-Route::middleware(['auth:sanctum', 'web'])->group(function () {
+    // Metadata
     Route::get('/question-types', [App\Http\Controllers\QuestionTypeController::class, 'index']);
     Route::get('/grades', [App\Http\Controllers\GradeController::class, 'apiIndex']);
     Route::get('/subjects', [App\Http\Controllers\SubjectController::class, 'apiIndex']);
     Route::get('/topics', [App\Http\Controllers\SubjectController::class, 'getTopics']);
-    
-    // QuQuestion API endpoint for quiz builder
-    Route::get('/qu-questions', [App\Http\Controllers\QuQuestionController::class, 'apiIndex']);
+
 });
-
-// Qu Exam Management API Routes
-Route::middleware(['auth:sanctum', 'web'])->prefix('qu-exams')->group(function () {
-    Route::get('/filter-options', [App\Http\Controllers\QuExamController::class, 'filterOptions']);
-    Route::get('/', [App\Http\Controllers\QuExamController::class, 'index']);
-    Route::post('/', [App\Http\Controllers\QuExamController::class, 'store']);
-    Route::get('/{quExam}', [App\Http\Controllers\QuExamController::class, 'getExamData']);
-    Route::put('/{quExam}', [App\Http\Controllers\QuExamController::class, 'update']);
-    Route::delete('/{quExam}', [App\Http\Controllers\QuExamController::class, 'destroy']);
-    
-    // Additional exam operations
-    Route::post('/{quExam}/duplicate', [App\Http\Controllers\QuExamController::class, 'duplicate']);
-    Route::get('/{quExam}/export', [App\Http\Controllers\QuExamController::class, 'export']);
-    Route::get('/{quExam}/analytics', [App\Http\Controllers\QuExamController::class, 'analytics']);
-    
-    // Grading endpoints
-    Route::get('/{quExam}/grading-attempts', [App\Http\Controllers\QuExamController::class, 'getGradingAttempts']);
-    Route::get('/grading/{attempt}', [App\Http\Controllers\QuExamController::class, 'getAttemptGradingData']);
-    Route::post('/grading/{attempt}/save-grades', [App\Http\Controllers\QuExamController::class, 'saveGrades']);
-});
-
-// Curriculum Management API Routes
-Route::middleware(['auth:sanctum', 'web'])->prefix('curriculum')->group(function () {
-    // Get user's schools
-    Route::get('/user-schools', [App\Http\Controllers\Curriculum\CurriculumController::class, 'getUserSchools']);
-    
-    // Get school-specific data
-    Route::get('/school/{school}/subjects', [App\Http\Controllers\Curriculum\CurriculumController::class, 'getSchoolSubjects']);
-    Route::get('/school/{school}/grades', [App\Http\Controllers\Curriculum\CurriculumController::class, 'getSchoolGrades']);
-    
-    // Curriculum CRUD operations
-    Route::get('/curricula', [App\Http\Controllers\Curriculum\CurriculumController::class, 'getCurricula']);
-    Route::post('/curricula', [App\Http\Controllers\Curriculum\CurriculumController::class, 'store']);
-    Route::put('/curricula/{curriculum}', [App\Http\Controllers\Curriculum\CurriculumController::class, 'update']);
-    Route::delete('/curricula/{curriculum}', [App\Http\Controllers\Curriculum\CurriculumController::class, 'destroy']);
-    
-    // Curriculum activation/deactivation
-    Route::post('/curricula/{curriculum}/activate', [App\Http\Controllers\Curriculum\CurriculumController::class, 'activate']);
-    Route::post('/curricula/{curriculum}/deactivate', [App\Http\Controllers\Curriculum\CurriculumController::class, 'deactivate']);
-    
-    // Curriculum Topics CRUD operations
-    Route::get('/{curriculum}/topics', [App\Http\Controllers\Curriculum\CurriculumTopicController::class, 'index']);
-    Route::post('/topics', [App\Http\Controllers\Curriculum\CurriculumTopicController::class, 'store']);
-    Route::put('/topics/{topic}', [App\Http\Controllers\Curriculum\CurriculumTopicController::class, 'update']);
-    Route::delete('/topics/{topic}', [App\Http\Controllers\Curriculum\CurriculumTopicController::class, 'destroy']);
-    Route::post('/{curriculum}/topics/reorder', [App\Http\Controllers\Curriculum\CurriculumTopicController::class, 'reorder']);
-    Route::post('/{curriculum}/bulk-import-topics-lessons', [App\Http\Controllers\Curriculum\CurriculumTopicController::class, 'bulkImportTopicsLessons']);
-    
-    // Curriculum Lessons CRUD operations
-    Route::get('/{curriculum}/lessons', [App\Http\Controllers\Curriculum\CurriculumLessonController::class, 'index']);
-    Route::post('/lessons', [App\Http\Controllers\Curriculum\CurriculumLessonController::class, 'store']);
-    Route::put('/lessons/{lesson}', [App\Http\Controllers\Curriculum\CurriculumLessonController::class, 'update']);
-    Route::delete('/lessons/{lesson}', [App\Http\Controllers\Curriculum\CurriculumLessonController::class, 'destroy']);
-    Route::post('/topics/{topic}/lessons/reorder', [App\Http\Controllers\Curriculum\CurriculumLessonController::class, 'reorder']);
-});
-
-// Live Quiz Session API Routes
-Route::middleware(['auth:sanctum', 'web'])->prefix('quiz-sessions')->group(function () {
-    // Session management
-    Route::post('/', [App\Http\Controllers\QuizSessionController::class, 'store']);
-    Route::post('/join', [App\Http\Controllers\QuizSessionController::class, 'join']);
-    Route::get('/{session}', [App\Http\Controllers\QuizSessionController::class, 'show']);
-    
-    // Session control (teacher)
-    Route::post('/{session}/state', [App\Http\Controllers\QuizSessionController::class, 'updateState']);
-    Route::patch('/{session}/settings', [App\Http\Controllers\QuizSessionController::class, 'updateSettings']);
-    
-
-    // Answer submission (student)
-    Route::post('/{session}/answers', [App\Http\Controllers\QuizSessionController::class, 'submitAnswer']);
-});
-
-// Media Upload API Routes
-Route::middleware(['auth:sanctum', 'web'])->group(function () {
-    Route::post('/upload-media', [App\Http\Controllers\MediaUploadController::class, 'upload']);
-    Route::delete('/delete-media', [App\Http\Controllers\MediaUploadController::class, 'delete']);
-});
-
-
-// Config-Based Menu API (New Simple Approach)
-// Config-Based Menu API (New Simple Approach)
-Route::middleware(['web'])->get('/menu', function (\Illuminate\Http\Request $request) {
-    $menuService = app(\App\Services\MenuService::class);
-    // Allow role override via ?role=student if admin
-    return response()->json($menuService->getConfigMenu($request->input('role')));
-});
-
-// Realtime System Test API Routes
-Route::middleware(['auth:sanctum', 'web'])->prefix('realtime/test')->group(function () {
-    Route::post('/broadcast', [App\Http\Controllers\Api\RealtimeTestController::class, 'broadcast']);
-    Route::post('/private', [App\Http\Controllers\Api\RealtimeTestController::class, 'privateNotification']);
-    Route::post('/chat', [App\Http\Controllers\Api\RealtimeTestController::class, 'chatMessage']);
-    Route::post('/question', [App\Http\Controllers\Api\RealtimeTestController::class, 'questionResponse']);
-    Route::get('/status', [App\Http\Controllers\Api\RealtimeTestController::class, 'status']);
-    Route::post('/error', [App\Http\Controllers\Api\RealtimeTestController::class, 'testError']);
-    Route::delete('/clear', [App\Http\Controllers\Api\RealtimeTestController::class, 'clearChannel']);
-});
-
-
-
-// Load Feature API Routes (Modules)
-$modulesPath = base_path('routes/modules');
-
-if (file_exists($modulesPath)) {
-    $modules = scandir($modulesPath);
-    foreach ($modules as $module) {
-        if ($module === '.' || $module === '..') continue;
-        
-        $moduleApiRoute = $modulesPath . '/' . $module . '/api.php';
-        if (file_exists($moduleApiRoute)) {
-            require $moduleApiRoute;
-        }
-    }
-}
-
-// Focus Grid API Routes
-require __DIR__.'/fg_api.php';
-
-// Lightpanda Headless Browser API Routes
-Route::middleware(['auth:sanctum', 'web'])->prefix('lightpanda')->group(function () {
-    Route::post('/fetch', [App\Http\Controllers\Api\LightpandaController::class, 'fetch']);
-    Route::post('/extract-text', [App\Http\Controllers\Api\LightpandaController::class, 'extractText']);
-});
-
-
-

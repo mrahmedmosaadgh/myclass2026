@@ -1,1 +1,0 @@
-import{_ as o,L as r,o as c,y as s}from"./feature-admin-core-BWNP0pMM.js";const t={},n={class:"hidden sm:block"};function a(d,e){return c(),r("div",n,e[0]||(e[0]=[s("div",{class:"py-8"},[s("div",{class:"border-t border-gray-200"})],-1)]))}const _=o(t,[["render",a]]);export{_ as S};

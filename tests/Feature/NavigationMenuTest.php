@@ -31,33 +31,37 @@ class NavigationMenuTest extends TestCase
         $user->assignRole('teacher');
 
         $response = $this->actingAs($user)
-            ->getJson('/api/navigation?role=teacher&v2=true');
+            ->getJson('/api/menu?role=teacher');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'data' => [
-                    '*' => [
-                        'id',
-                        'label',
-                        'route',
-                        'icon',
-                        'children'
+                '*' => [
+                    'id',
+                    'label',
+                    'route',
+                    'icon',
+                    'children' => [
+                        '*' => [
+                            'id',
+                            'label',
+                            'route',
+                            'icon'
+                        ]
                     ]
-                ],
-                'version'
+                ]
             ]);
             
-        // Assert we got teacher menus (Top level item)
-        $response->assertJsonFragment(['label' => 'Teacher Portal']);
+        // Assert we got teacher menus
+        $response->assertJsonFragment(['label' => 'Dashboard']);
         
-        // Assert children structure
-        $data = $response->json('data');
+        // Assert structure
+        $data = $response->json();
         $this->assertNotEmpty($data, 'Menu data is empty');
-        $this->assertEquals('Teacher Portal', $data[0]['label']);
-        $this->assertNotEmpty($data[0]['children'], 'Teacher Portal has no children');
-        $childrenLabels = collect($data[0]['children'])->pluck('label');
-        $this->assertTrue($childrenLabels->contains('Dashboard'), 'Dashboard menu missing. found: ' . $childrenLabels->implode(', '));
-        $this->assertTrue($childrenLabels->contains('My Schedule'), 'My Schedule menu missing');
+        
+        // Look for Academics group which contains classes
+        $academicsGroup = collect($data)->firstWhere('id', 'classes_group');
+        $this->assertNotNull($academicsGroup, 'Academics group missing');
+        $this->assertNotEmpty($academicsGroup['children'], 'Academics group has no children');
     }
 
     /**
@@ -70,7 +74,7 @@ class NavigationMenuTest extends TestCase
 
         // First request
         $response = $this->actingAs($user)
-            ->getJson('/api/navigation?role=teacher&v2=true');
+            ->getJson('/api/menu?role=teacher');
 
         $response->assertStatus(200);
         $etag = $response->headers->get('ETag');
@@ -79,7 +83,7 @@ class NavigationMenuTest extends TestCase
         // Second request with ETag
         $response2 = $this->actingAs($user)
             ->withHeaders(['If-None-Match' => $etag])
-            ->getJson('/api/navigation?role=teacher&v2=true');
+            ->getJson('/api/menu?role=teacher');
 
         $response2->assertStatus(304);
     }
@@ -94,10 +98,10 @@ class NavigationMenuTest extends TestCase
         $user->givePermissionTo('manage-menus'); // Ensure permission is there if needed
 
         $response = $this->actingAs($user)
-            ->getJson('/api/navigation?role=admin&v2=true');
+            ->getJson('/api/menu?role=admin');
 
         $response->assertStatus(200);
-        $response->assertJsonPath('data.0.label', fn($label) => !empty($label));
+        $response->assertJsonPath('0.label', fn($label) => !empty($label));
     }
 
     public function test_admin_can_preview_teacher_menus()
@@ -108,17 +112,15 @@ class NavigationMenuTest extends TestCase
 
         // Request preview for teacher role
         $response = $this->actingAs($admin)
-            ->getJson('/api/navigation?role=teacher&v2=true&preview=1');
+            ->getJson('/api/menu?role=teacher&preview=1');
 
         $response->assertStatus(200);
-        $data = $response->json('data');
+        $data = $response->json();
         $this->assertNotEmpty($data, 'Preview data is empty');
 
-        // Ensure teacher-specific items are present in preview (e.g., Teacher Portal/My Schedule)
+        // Ensure teacher-specific items are present in preview
         $labels = collect($data)->pluck('label');
-        $this->assertTrue($labels->contains('Teacher Portal'), 'Teacher Portal not present in preview');
-        $children = collect($data[0]['children'] ?? [])->pluck('label');
-        $this->assertTrue($children->contains('My Schedule'), 'My Schedule missing in preview');
+        $this->assertTrue($labels->contains('Dashboard'), 'Dashboard not present in preview');
     }
 
     public function test_non_admin_cannot_use_preview()
@@ -128,7 +130,7 @@ class NavigationMenuTest extends TestCase
         // No manage-menus permission
 
         $response = $this->actingAs($user)
-            ->getJson('/api/navigation?role=teacher&v2=true&preview=1');
+            ->getJson('/api/menu?role=teacher&preview=1');
 
         $response->assertStatus(403);
     }

@@ -74,7 +74,7 @@ if (!ToolsSwitcher.isFirebaseEnabled() || (isLocal || isLocalIp)) {
   if (auth && ToolsSwitcher.isEnabled('firebase', 'auth')) {
     signInAnonymously(auth)
       .then(() => console.log('✅ Signed in anonymously'))
-      .catch(error => console.error('❌ Anonymous sign-in failed:', error));
+      .catch(error => console.log('❌ Anonymous sign-in failed:', error));
   }
 }
 

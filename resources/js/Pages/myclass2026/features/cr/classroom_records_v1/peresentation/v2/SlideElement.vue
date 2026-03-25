@@ -50,6 +50,18 @@
       {{ element.content }}
     </div>
 
+    <!-- HTML Element -->
+    <div 
+      v-else-if="element.type === 'html'"
+      class="element-html"
+      :contenteditable="mode === 'edit' && isSelected"
+      @blur="updateHtmlContent"
+      @mousedown.stop="startDrag"
+      @click.stop="selectElement($event)"
+      v-html="element.content"
+      ref="htmlElement"
+    ></div>
+
     <!-- Rectangle Shape Element -->
     <div 
       v-else-if="element.type === 'rectangle'"
@@ -411,6 +423,9 @@ export default {
       } else if (this.element.type === 'text') {
         style.width = 'auto';
         style.maxWidth = `${this.element.width}px`;
+      } else if (this.element.type === 'html') {
+        style.width = 'auto';
+        style.maxWidth = `${this.element.width}px`;
       } else if (this.element.type === 'rectangle') {
         // Handle rectangle dimensions - ensure non-zero values
         const width = this.element.width || 200;
@@ -624,6 +639,15 @@ export default {
     },
     updateTextContent(event) {
       const newContent = event.target.innerText;
+      if (newContent !== this.element.content) {
+        this.$emit('update', {
+          ...this.element,
+          content: newContent
+        });
+      }
+    },
+    updateHtmlContent(event) {
+      const newContent = event.target.innerHTML;
       if (newContent !== this.element.content) {
         this.$emit('update', {
           ...this.element,
@@ -972,6 +996,38 @@ export default {
 
 .element-text[contenteditable="true"] {
   background: rgba(74, 144, 226, 0.1);
+  border-radius: 4px;
+}
+
+/* HTML Element Styles */
+.element-html {
+  padding: 8px 12px;
+  min-width: 50px;
+  min-height: 30px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  outline: none;
+  background: transparent;
+}
+
+.element-html[contenteditable="true"] {
+  background: rgba(74, 144, 226, 0.1);
+  border-radius: 4px;
+  outline: 1px dashed #4a90e2;
+}
+
+.element-html ::v-deep img {
+  max-width: 100%;
+  height: auto;
+}
+
+.element-html ::v-deep * {
+  margin: revert;
+  padding: revert;
+}
+
+.slide-element.present .element-html:hover {
+  background: rgba(106, 74, 226, 0.08);
   border-radius: 4px;
 }
 

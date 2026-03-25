@@ -42,6 +42,8 @@
         "vue": "^3.3.13"
     },
     "dependencies": {
+        "@ckeditor/ckeditor5-build-classic": "^39.0.2",
+        "@ckeditor/ckeditor5-vue": "^5.0.0",
         "@ericblade/quagga2": "^1.8.4",
         "@google/generative-ai": "^0.24.1",
         "@he-tree/vue3": "^1.2.9",
@@ -60,7 +62,7 @@
         "emoji-picker-element": "^1.26.2",
         "face-api.js": "^0.22.2",
         "file-saver": "^2.0.5",
-        "firebase": "^11.6.0",
+        "firebase": "^11.10.0",
         "html2canvas": "^1.4.1",
         "html5-qrcode": "^2.3.8",
         "jspdf": "^4.2.0",

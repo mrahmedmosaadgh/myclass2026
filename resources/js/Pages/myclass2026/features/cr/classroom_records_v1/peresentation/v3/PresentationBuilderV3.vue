@@ -6,85 +6,64 @@
     <!-- Top Bar -->
     <TopBar
       :mode="mode"
-      :current-slide-index="currentSlideIndex"
-      :total-slides="slides.length"
-      :slide-height="computedSlideHeight"
-      :slide-width="computedSlideWidth"
       :selected-size="selectedSize"
       :custom-width="customWidth"
       :custom-height="customHeight"
-      :is-drawing-mode="isDrawingMode"
-      :is-eraser-mode="isEraserMode"
-      :pen-size="penSize"
-      :pen-color="penColor"
+      :has-prev-slide="hasPrevSlide"
+      :has-next-slide="hasNextSlide"
       @mode-change="mode = $event"
-      @export="exportJSON"
-      @import="importJSON"
-      @delete-slide="deleteSlide"
-      @height-change="slideHeight = $event"
       @slide-size-change="handleSlideSizeChange"
-      @add-element="addElement"
-      @add-image="triggerImageUpload"
       @add-slide="addSlide"
+      @add-text="addElement('text')"
+      @add-rectangle="addElement('rectangle')"
+      @add-image="triggerImageUpload"
+      @prev-slide="prevSlide"
+      @next-slide="nextSlide"
       @paste="triggerPaste"
-      @toggle-drawing="toggleDrawingMode"
-      @toggle-eraser="toggleEraserMode"
-      @pen-size-change="penSize = $event"
-      @pen-color-change="(color) => { //console.log('🎨 Pen color changed to:', color);
-        penColor = color }"
-      @clear-drawing="clearDrawing"
-      @undo-drawing="undoDrawing"
     />
 
     <!-- Main Content -->
-    <div class="flex h-screen pt-4">
-      <!-- Edit Mode -->
-      <template v-if="mode === 'edit'">
-        <!-- Left Slide Panel -->
+    <div class="flex h-screen">
+      <!-- Main Content Area -->
+      <div class="flex-1 bg-gray-900 overflow-auto">
+        <!-- Slide Panel -->
         <SlidePanel
+          ref="slidePanelRef"
           :slides="slides"
           :current-slide-index="currentSlideIndex"
           @slide-select="currentSlideIndex = $event"
           @slide-delete="deleteSlide"
         />
 
-        <!-- Editor Canvas -->
-        <EditorCanvas
-          :current-slide="currentSlide"
-          :slide-height="computedSlideHeight"
-          :slide-width="computedSlideWidth"
-          :selected-size="selectedSize"
-          :custom-width="customWidth"
-          :custom-height="customHeight"
-          :is-eraser-mode="isEraserMode"
-          :is-drawing-mode="isDrawingMode"
-          :pen-size="penSize"
-          :pen-color="penColor"
-          :drawing-paths="drawingPaths"
-          @slide-update="updateSlide"
-          @slide-size-change="handleSlideSizeChange"
-          @drawing-start="handleDrawingStart"
-          @drawing-move="handleDrawingMove"
-          @drawing-end="handleDrawingEnd"
-          @drawing-clear="clearDrawing"
-          @drawing-undo="undoDrawing"
-        />
-      </template>
+        <!-- Canvas Area - Full Width -->
+        <div class="w-full flex justify-center items-center p-4">
+          <DrawingCanvas
+            v-if="mode === 'edit'"
+            :slide-width="computedSlideWidth"
+            :slide-height="computedSlideHeight"
+            :current-slide="currentSlide"
+            :is-presentation="false"
+            @slide-update="updateSlide"
+            @element-update="updateElement"
+            @element-delete="deleteElement"
+            @element-duplicate="duplicateElement"
+          />
 
-      <!-- Present Mode -->
-      <PresenterV3
-        v-else
-        :slides="slides"
-        :current-slide-index="currentSlideIndex"
-        :slide-width="computedSlideWidth"
-        :slide-height="computedSlideHeight"
-        :selected-size="selectedSize"
-        :custom-width="customWidth"
-        :custom-height="customHeight"
-        @slide-change="currentSlideIndex = $event"
-        @exit="mode = 'edit'"
-        @slide-size-change="handleSlideSizeChange"
-      />
+          <PresenterV3
+            v-if="mode === 'present'"
+            :slides="slides"
+            :current-slide-index="currentSlideIndex"
+            :slide-width="computedSlideWidth"
+            :slide-height="computedSlideHeight"
+            :selected-size="selectedSize"
+            :custom-width="customWidth"
+            :custom-height="customHeight"
+            @slide-change="currentSlideIndex = $event"
+            @exit="mode = 'edit'"
+            @slide-size-change="handleSlideSizeChange"
+          />
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -94,8 +73,47 @@ import { ref, computed } from 'vue'
 import { Head } from '@inertiajs/vue3'
 import TopBar from './components/TopBar.vue'
 import SlidePanel from './components/SlidePanel.vue'
-import EditorCanvas from './components/EditorCanvas.vue'
+import DrawingCanvas from './components/DrawingCanvas.vue'
 import PresenterV3 from './components/PresenterV3.vue'
+
+// Define props to prevent Vue warnings
+const props = defineProps({
+  errors: {
+    type: Object,
+    default: () => ({})
+  },
+  jetstream: {
+    type: Object,
+    default: () => ({})
+  },
+  auth: {
+    type: Object,
+    default: () => ({})
+  },
+  errorBags: {
+    type: Object,
+    default: () => ({})
+  },
+  csrf_token: {
+    type: String,
+    default: ''
+  },
+  user_context: {
+    type: Object,
+    default: () => ({})
+  },
+  context_meta: {
+    type: Object,
+    default: () => ({})
+  },
+  title: {
+    type: String,
+    default: ''
+  }
+})
+
+// Refs
+const slidePanelRef = ref(null)
 
 // State
 const mode = ref('edit') // 'edit' | 'present'
@@ -107,14 +125,6 @@ const slideWidth = ref(794) // Default width
 const selectedSize = ref('widescreen')
 const customWidth = ref(1920)
 const customHeight = ref(1080)
-
-// Drawing settings
-const isDrawingMode = ref(false)
-const isEraserMode = ref(false)
-const penSize = ref(2)
-const penColor = ref('#000000')
-const drawingPaths = ref([])
-const currentPath = ref(null)
 
 const slides = ref([
   {
@@ -149,9 +159,13 @@ const computedSlideHeight = computed(() => {
     case 'custom':
       return customHeight.value || 1080
     default:
-      return slideHeight.value
+      return 1123
   }
 })
+
+// Slide navigation computed properties
+const hasPrevSlide = computed(() => currentSlideIndex.value > 0)
+const hasNextSlide = computed(() => currentSlideIndex.value < slides.value.length - 1)
 
 // Methods
 const addSlide = () => {
@@ -163,12 +177,29 @@ const addSlide = () => {
   currentSlideIndex.value = slides.value.length - 1
 }
 
-const deleteSlide = (index) => {
-  if (slides.value.length > 1) {
-    slides.value.splice(index, 1)
+const deleteSlide = (slideId) => {
+  if (slides.value.length <= 1) return // Don't delete last slide
+  
+  const slideIndex = slides.value.findIndex(slide => slide.id === slideId)
+  if (slideIndex !== -1) {
+    slides.value.splice(slideIndex, 1)
+    
+    // Adjust current slide index if needed
     if (currentSlideIndex.value >= slides.value.length) {
       currentSlideIndex.value = slides.value.length - 1
     }
+  }
+}
+
+const prevSlide = () => {
+  if (hasPrevSlide.value) {
+    currentSlideIndex.value--
+  }
+}
+
+const nextSlide = () => {
+  if (hasNextSlide.value) {
+    currentSlideIndex.value++
   }
 }
 
@@ -273,25 +304,201 @@ const triggerImageUpload = () => {
 }
 
 const triggerPaste = async () => {
-  // Focus on the canvas and trigger paste
-  const canvas = document.querySelector('[tabindex="0"]')
-  if (canvas) {
-    canvas.focus()
-    // Create a synthetic paste event
-    const pasteEvent = new Event('paste', { bubbles: true })
-    canvas.dispatchEvent(pasteEvent)
+  try {
+    // Request clipboard read permission
+    const clipboardItems = await navigator.clipboard.read()
+    
+    // Focus on the canvas first
+    const canvas = document.querySelector('[tabindex="0"]')
+    if (canvas) {
+      canvas.focus()
+      
+      let pastedSuccessfully = false
+      // Manually add clipboard data to event
+      let imageHandled = false
+      
+      for (const item of clipboardItems) {
+        for (const type of item.types) {
+          if (type.startsWith('image/') && !imageHandled) {
+            const blob = await item.getType(type)
+            
+            // Create image element directly
+            const reader = new FileReader()
+            reader.onload = (e) => {
+              const img = new Image()
+              img.onload = () => {
+                const imageElement = {
+                  id: Date.now(),
+                  type: 'image',
+                  x: 100,
+                  y: 100,
+                  width: Math.min(img.width, 400), // Limit width
+                  height: Math.min(img.height, 300), // Limit height
+                  src: e.target.result,
+                  opacity: 1,
+                  startHidden: false,
+                  clickable: false,
+                  moveable: false,
+                  zIndex: 1
+                }
+                
+                // Add to current slide
+                const updatedSlide = {
+                  ...currentSlide.value,
+                  elements: [...currentSlide.value.elements, imageElement]
+                }
+                updateSlide(updatedSlide)
+                showSuccessToast('Image pasted successfully!')
+              }
+              img.src = e.target.result
+            }
+            reader.readAsDataURL(blob)
+            imageHandled = true
+            pastedSuccessfully = true
+            break
+          } else if (type === 'text/plain') {
+            const text = await item.getType(type)
+            const textContent = await text.text()
+            
+            if (textContent?.trim()) {
+              const textElement = {
+                id: Date.now(),
+                type: 'text',
+                x: 100,
+                y: 100,
+                width: 400,
+                height: 30,
+                content: textContent.trim(),
+                fontSize: 24,
+                color: '#000000',
+                background: '#3B82F6',
+                border: '2px solid #1E40AF',
+                opacity: 1,
+                startHidden: false,
+                clickable: false,
+                moveable: true,
+                zIndex: 1
+              }
+              
+              // Add to current slide
+              const updatedSlide = {
+                ...currentSlide.value,
+                elements: [...currentSlide.value.elements, textElement]
+              }
+              updateSlide(updatedSlide)
+              showSuccessToast('Text pasted successfully!')
+              pastedSuccessfully = true
+            }
+          }
+        }
+        if (imageHandled) break
+      }
+      
+      if (!pastedSuccessfully) {
+        showInfoToast('No supported content found in clipboard')
+      }
+    }
+  } catch (error) {
+    console.error('Failed to read clipboard:', error)
+    
+    // Fallback: Focus canvas and show instructions
+    const canvas = document.querySelector('[tabindex="0"]')
+    if (canvas) {
+      canvas.focus()
+      showInfoToast('Press Ctrl+V to paste')
+    }
   }
+}
+
+// Toast notification functions
+const showSuccessToast = (message) => {
+  const toast = document.createElement('div')
+  toast.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 transition-all duration-300'
+  toast.textContent = message
+  document.body.appendChild(toast)
+  
+  // Animate in
+  setTimeout(() => {
+    toast.classList.add('opacity-100')
+  }, 10)
+  
+  // Remove after delay
+  setTimeout(() => {
+    toast.classList.add('opacity-0')
+    setTimeout(() => {
+      if (document.body.contains(toast)) {
+        document.body.removeChild(toast)
+      }
+    }, 300)
+  }, 2000)
+}
+
+const showInfoToast = (message) => {
+  const toast = document.createElement('div')
+  toast.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg z-50 transition-all duration-300'
+  toast.textContent = message
+  document.body.appendChild(toast)
+  
+  // Animate in
+  setTimeout(() => {
+    toast.classList.add('opacity-100')
+  }, 10)
+  
+  // Remove after delay
+  setTimeout(() => {
+    toast.classList.add('opacity-0')
+    setTimeout(() => {
+      if (document.body.contains(toast)) {
+        document.body.removeChild(toast)
+      }
+    }, 300)
+  }, 2000)
+}
+
+// Element management functions - moved to component level for accessibility
+const updateElement = (element) => {
+  if (!element) return // Guard clause for null/undefined
+  
+  const updatedSlide = {
+    ...currentSlide.value,
+    elements: currentSlide.value.elements.map(el => el.id === element.id ? element : el)
+  }
+  updateSlide(updatedSlide)
+}
+
+const deleteElement = (elementId) => {
+  if (!elementId) return // Guard clause for null/undefined
+  
+  const updatedSlide = {
+    ...currentSlide.value,
+    elements: currentSlide.value.elements.filter(el => el.id !== elementId)
+  }
+  updateSlide(updatedSlide)
+}
+
+const duplicateElement = (element) => {
+  if (!element) return // Guard clause for null/undefined
+  
+  const newElement = {
+    ...element,
+    id: Date.now(),
+    x: (element.x || 0) + 20,
+    y: (element.y || 0) + 20
+  }
+  const updatedSlide = {
+    ...currentSlide.value,
+    elements: [...currentSlide.value.elements, newElement]
+  }
+  updateSlide(updatedSlide)
 }
 
 // Drawing methods
 const toggleDrawingMode = () => {
   isDrawingMode.value = !isDrawingMode.value
-  ///console.log('🎨 Drawing mode toggled to:', isDrawingMode.value)
 }
 
 const toggleEraserMode = () => {
   isEraserMode.value = !isEraserMode.value
-  // Turn off drawing mode when eraser is activated
   if (isEraserMode.value) {
     isDrawingMode.value = false
   }
@@ -421,5 +628,12 @@ const importJSON = (file) => {
     }
   }
   reader.readAsText(file)
+}
+
+// Mobile slide panel toggle
+const toggleMobileSlidePanel = () => {
+  if (slidePanelRef.value) {
+    slidePanelRef.value.openMobilePanel()
+  }
 }
 </script>

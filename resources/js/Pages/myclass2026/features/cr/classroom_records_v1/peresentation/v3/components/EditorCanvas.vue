@@ -24,8 +24,9 @@
 
         <!-- Drawing Layer (always visible in edit mode, on top of all elements) -->
         <svg
-          class="absolute inset-0 pointer-events-none"
-          :style="{ width: slideWidth + 'px', height: slideHeight + 'px', zIndex: 999 }"
+          class="absolute inset-0"
+         
+          :style="{ width: slideWidth + 'px', height: slideHeight + 'px', zIndex: 40 }"
         >
           <defs>
             <rect
@@ -59,54 +60,7 @@
           </g>
         </svg>
 
-        <!-- Drawing Canvas Overlay (for capturing mouse events) -->
-        <div
-          v-if="isDrawingMode || isEraserMode"
-          class="absolute inset-0"
-          :class="isEraserMode ? 'cursor-none' : 'cursor-crosshair'"
-          :style="{ width: slideWidth + 'px', height: slideHeight + 'px', zIndex: 1000 }"
-          @mousedown="startDrawing"
-          @mousemove="handleMouseMove"
-          @mouseup="stopDrawing"
-          @mouseleave="handleMouseLeave"
-        >
-          <!-- Visual Eraser Cursor -->
-          <div
-            v-if="isEraserMode && eraserPosition"
-            class="fixed pointer-events-none border-2 border-red-500 rounded-full bg-red-500/20"
-            :style="{
-              left: (eraserPosition.x - 10) + 'px',
-              top: (eraserPosition.y - 10) + 'px',
-              width: '20px',
-              height: '20px',
-              zIndex: 9999
-            }"
-          ></div>
-          <!-- Live drawing preview -->
-          <svg
-            class="absolute inset-0 pointer-events-none"
-            :style="{ width: slideWidth + 'px', height: slideHeight + 'px' }"
-          >
-            <defs>
-              <rect
-                id="drawing-clip"
-                :width="slideWidth"
-                :height="slideHeight"
-              />
-            </defs>
-            <g clip-path="url(#drawing-clip)">
-              <path
-                v-if="currentPath"
-                :d="currentPath.d"
-                :stroke="currentPath.color"
-                :stroke-width="currentPath.size"
-                fill="none"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </g>
-          </svg>
-        </div>
+     
 
         <!-- Paste Zone Overlay -->
         <div
@@ -325,15 +279,35 @@ const draw = (event) => {
   const x = event.clientX - rect.left
   const y = event.clientY - rect.top
   
-  // Add smooth curves using quadratic curves
+  // Enhanced smooth curves using cubic Bezier curves
   const points = currentPath.value.points
   if (points.length >= 2) {
     const lastPoint = points[points.length - 1]
-    const controlPoint = {
-      x: (lastPoint.x + x) / 2,
-      y: (lastPoint.y + y) / 2
+    
+    // Only add point if moved enough distance (reduces point density)
+    const distance = Math.sqrt(Math.pow(x - lastPoint.x, 2) + Math.pow(y - lastPoint.y, 2))
+    if (distance > 2) { // Minimum distance threshold
+      if (points.length >= 3) {
+        // Use cubic Bezier for smoother curves
+        const secondLastPoint = points[points.length - 2]
+        const controlPoint1 = {
+          x: lastPoint.x + (secondLastPoint.x - lastPoint.x) * 0.2,
+          y: lastPoint.y + (secondLastPoint.y - lastPoint.y) * 0.2
+        }
+        const controlPoint2 = {
+          x: lastPoint.x + (x - lastPoint.x) * 0.2,
+          y: lastPoint.y + (y - lastPoint.y) * 0.2
+        }
+        currentPath.value.d += ` C${controlPoint1.x},${controlPoint1.y} ${controlPoint2.x},${controlPoint2.y} ${x},${y}`
+      } else {
+        // Use quadratic for initial segments
+        const controlPoint = {
+          x: lastPoint.x + (x - lastPoint.x) * 0.3,
+          y: lastPoint.y + (y - lastPoint.y) * 0.3
+        }
+        currentPath.value.d += ` Q${controlPoint.x},${controlPoint.y} ${x},${y}`
+      }
     }
-    currentPath.value.d += ` Q${controlPoint.x},${controlPoint.y} ${x},${y}`
   } else {
     currentPath.value.d += ` L${x},${y}`
   }
@@ -356,6 +330,52 @@ const stopDrawing = () => {
     emit('drawing-end', currentPath.value)
     currentPath.value = null
   }
+}
+
+// Touch event handlers for mobile drawing
+const handleTouchStart = (event) => {
+  event.preventDefault()
+  if (!props.isDrawingMode && !props.isEraserMode) return
+  
+  const touch = event.touches[0]
+  if (!touch) return
+  
+  // Create a synthetic mouse event for compatibility
+  const syntheticEvent = {
+    currentTarget: event.currentTarget,
+    clientX: touch.clientX,
+    clientY: touch.clientY
+  }
+  
+  startDrawing(syntheticEvent)
+}
+
+const handleTouchMove = (event) => {
+  event.preventDefault()
+  if (!isDrawingLocal.value) return
+  
+  const touch = event.touches[0]
+  if (!touch) return
+  
+  // Create a synthetic mouse event for compatibility
+  const syntheticEvent = {
+    currentTarget: event.currentTarget,
+    clientX: touch.clientX,
+    clientY: touch.clientY
+  }
+  
+  // Update eraser position for touch
+  if (props.isEraserMode) {
+    eraserPosition.value = { x: touch.clientX, y: touch.clientY }
+  }
+  
+  // Use the enhanced drawing algorithm
+  draw(syntheticEvent)
+}
+
+const handleTouchEnd = (event) => {
+  event.preventDefault()
+  stopDrawing()
 }
 
 // Helper function to find drawing elements at a specific position

@@ -48,6 +48,7 @@ Route::middleware(['auth', 'verified', 'role:admin|hr_admin|super_admin'])->pref
 
 Route::middleware(['auth', 'verified', 'role:admin|super_admin'])->prefix('admin')->name('admin.')->group(function () {
     // Resource Routes
+    Route::get('/teachers', [TeacherManagementController::class, 'index']);
 
     Route::resource('hr', HRController::class);
     
@@ -66,7 +67,7 @@ Route::middleware(['auth', 'verified', 'role:admin|super_admin'])->prefix('admin
     Route::resource('academic-year', AcademicYearController::class);
     Route::resource('semester', SemesterController::class);
     Route::resource('calendar', CalendarController::class);
-    Route::resource('schedule-dailies', ScheduleDailyController::class) ;
+    Route::resource('schedule-dailies', ScheduleDailyController::class);
     // Route::resource('schedule-copies', ScheduleCopyController::class);
     Route::resource('schedules', ScheduleController::class);
     Route::post('schedule/update2', [ScheduleController::class, 'update2'])->name('schedules.update2');
@@ -86,32 +87,34 @@ Route::middleware(['auth', 'verified', 'role:admin|super_admin'])->prefix('admin
 
     Route::get('classroom/export', [ClassroomController::class, 'export'])
         ->name('classroom.export');
-        Route::post('classroom/import', [ClassroomController::class, 'import'])
+    Route::post('classroom/import', [ClassroomController::class, 'import'])
         ->name('classroom.import');
-        Route::post('classroom/validate-import', [ClassroomController::class, 'validateImport'])
+    Route::post('classroom/validate-import', [ClassroomController::class, 'validateImport'])
         ->name('classroom.validate-import');
-        Route::post('classroom/undo-import/{importId}', [ClassroomController::class, 'undoImport'])
+    Route::post('classroom/undo-import/{importId}', [ClassroomController::class, 'undoImport'])
         ->name('classroom.undo-import');
 
-        Route::post('grade-subject/import', [GradeSubjectController::class, 'import'])
+    Route::post('grade-subject/import', [GradeSubjectController::class, 'import'])
         ->name('grade-subject.import');
-        Route::post('grade-subject/validate-import', [GradeSubjectController::class, 'validateImport'])
+    Route::post('grade-subject/validate-import', [GradeSubjectController::class, 'validateImport'])
         ->name('grade-subject.validate-import');
-        Route::post('grade-subject/undo-import/{importId}', [GradeSubjectController::class, 'undoImport'])
+    Route::post('grade-subject/undo-import/{importId}', [GradeSubjectController::class, 'undoImport'])
         ->name('grade-subject.undo-import');
 
 
-     Route::post('subject/import', [SubjectController::class, 'import'])
+    Route::post('subject/import', [SubjectController::class, 'import'])
         ->name('subjects.import');
 
-     Route::post('subject/validate-import', [SubjectController::class, 'validateImport'])
+    Route::post('subject/validate-import', [SubjectController::class, 'validateImport'])
         ->name('subjects.validate-import');
 
-    // Lesson Plan Templates Routes
-    Route::get('subject/{subject}/lesson-plan-templates', [SubjectController::class, 'manageLessonPlanTemplates'])
-        ->name('subject.lesson-plan-templates');
-    Route::patch('subject/{subject}/lesson-plan-templates', [SubjectController::class, 'updateLessonPlanTemplates'])
-        ->name('subject.update-lesson-plan-templates');
+    // DEPRECATED: Lesson Plan Templates Routes
+    // Templates are now managed via /api/lesson-plan-templates
+    // These routes return 410 Gone or redirect to subjects.index
+    // Route::get('subject/{subject}/lesson-plan-templates', [SubjectController::class, 'manageLessonPlanTemplates'])
+    //     ->name('subject.lesson-plan-templates');
+    // Route::patch('subject/{subject}/lesson-plan-templates', [SubjectController::class, 'updateLessonPlanTemplates'])
+    //     ->name('subject.update-lesson-plan-templates');
 
 
 
@@ -129,13 +132,13 @@ Route::middleware(['auth', 'verified', 'role:admin|super_admin'])->prefix('admin
     Route::get('classrooms/by-grade/{gradeId}', [SchoolFilterController::class, 'getClassroomsByGrade'])
         ->name('classrooms.by-grade');
 
-        // classroom-subject-teacher/validate-import
+    // classroom-subject-teacher/validate-import
 
 
 
 
 
-        Route::post('classroom-subject-teacher/validate-import', [ClassroomSubjectTeacherController::class, 'validateImport'])
+    Route::post('classroom-subject-teacher/validate-import', [ClassroomSubjectTeacherController::class, 'validateImport'])
         ->name('classroom-subject-teacher.validate-import');
     Route::post('classroom-subject-teacher/import', [ClassroomSubjectTeacherController::class, 'import'])
         ->name('classroom-subject-teacher.import');
@@ -170,11 +173,25 @@ Route::middleware(['auth', 'verified', 'role:admin|super_admin'])->prefix('admin
 
 
 
-Route:: middleware(['auth', 'verified', 'role:admin'])->prefix('api')->group(function () {
+Route::middleware(['auth', 'verified', 'role:admin'])->prefix('api')->group(function () {
     // Route::get('/teachers', [TeacherManagementController::class, 'index']);
 // Route:: middleware(['auth', 'verified', 'role:admin'])->group(function () {
-Route::post('/teachers', [TeacherManagementController::class, 'store']);
-Route::put('/teachers/{teacher}', [TeacherManagementController::class, 'update']);
-Route::delete('/teachers/{teacher}', [TeacherManagementController::class, 'destroy']);
-Route::get('/teachers/export', [TeacherManagementController::class, 'export']);
+
+    Route::post('/teachers', [TeacherManagementController::class, 'store']);
+    Route::put('/teachers/{teacher}', [TeacherManagementController::class, 'update']);
+    Route::delete('/teachers/{teacher}', [TeacherManagementController::class, 'destroy']);
+    Route::get('/teachers/export', [TeacherManagementController::class, 'export']);
 });
+
+
+
+
+
+
+
+
+
+
+
+
+

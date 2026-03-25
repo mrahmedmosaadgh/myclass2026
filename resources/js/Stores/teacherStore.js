@@ -5,6 +5,7 @@ import axios from 'axios';
 export const useTeacherStore = defineStore('teacher', () => {
     const grades = ref([]);
     const classrooms = ref([]);
+    const subjects = ref([]);
     const loading = ref(false);
     const error = ref(null);
     const loaded = ref(false);
@@ -36,6 +37,11 @@ export const useTeacherStore = defineStore('teacher', () => {
                         grade: item.grade // Attach grade info
                     }))
                 );
+
+                // Extract unique subjects
+                subjects.value = response.data.data.flatMap(item =>
+                    item.classrooms.flatMap(c => c.subjects)
+                ).filter((s, i, arr) => arr.findIndex(t => t.id === s.id) === i);
             } else {
                 // Fallback to old format
                 grades.value = response.data.grades || [];
@@ -56,6 +62,7 @@ export const useTeacherStore = defineStore('teacher', () => {
     return {
         grades,
         classrooms,
+        subjects,
         loading,
         error,
         loaded,

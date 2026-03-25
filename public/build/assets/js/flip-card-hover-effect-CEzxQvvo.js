@@ -1,1 +1,0 @@
-import{_ as a,L as c,o,y as s}from"./feature-admin-core-BWNP0pMM.js";import"./vendor-xlsx-DkH2s96g.js";const r={},t={class:"card"};function d(f,e){return o(),c("div",t,e[0]||(e[0]=[s("div",{class:"flip-card"},[s("div",{class:"flip-front"},"Front"),s("div",{class:"flip-back"},"Back")],-1)]))}const l=a(r,[["render",d],["__scopeId","data-v-01ef2814"]]);export{l as default};
