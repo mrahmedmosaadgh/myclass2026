@@ -18,6 +18,7 @@ const isMuted = ref(false);
 const isInteractive = ref(false); // Controls if the buttons accept clicks
 const activeGroupId = ref(null); // The group currently selected by teacher to answer
 const isQrScanning = ref(false); // State for QR overlay
+const isPracticeMode = ref(false); // Practice mode bypasses group selection
 let html5QrCode = null;
 
 // Simple Web Audio API helper
@@ -77,6 +78,14 @@ function handleOptionHover() {
 
 function handleOptionClick(optId) {
   if (props.isEditMode || !isInteractive.value || isGraded.value) return;
+  
+  if (isPracticeMode.value) {
+    // Just toggle the badge for practice (using a fake 'practice' ID or similar)
+    gameStore.logGroupAnswer(props.element.id, 'practice-mode', optId);
+    playSound('hover');
+    return;
+  }
+
   if (!activeGroupId.value) return; // Must select a group to assign to
   
   gameStore.logGroupAnswer(props.element.id, activeGroupId.value, optId);
@@ -107,6 +116,13 @@ function startQuiz() {
 
 function lockQuiz() {
   isInteractive.value = false;
+  isPracticeMode.value = false;
+  activeGroupId.value = null;
+}
+
+function startPractice() {
+  isInteractive.value = true;
+  isPracticeMode.value = true;
   activeGroupId.value = null;
 }
 
@@ -181,6 +197,7 @@ function shuffleOptions() {
 function replayQuiz() {
   gameStore.questionHistory[props.element.id] = { groupAnswers: {}, status: 'locked_in' };
   isInteractive.value = false;
+  isPracticeMode.value = false;
   activeGroupId.value = null;
 }
 
@@ -277,7 +294,7 @@ function getOptionClass(optId) {
   if (!isInteractive.value) return 'locked-mode-btn';
   
   // If active group selected, make it glow if they can click it
-  if (activeGroupId.value) return 'assignable-btn';
+  if (activeGroupId.value || isPracticeMode.value) return 'assignable-btn';
   
   return 'interactive-btn';
 }
@@ -375,10 +392,16 @@ function getOptionClass(optId) {
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"></polyline><line x1="4" y1="20" x2="21" y2="3"></line><polyline points="21 16 21 21 16 21"></polyline><line x1="15" y1="15" x2="21" y2="21"></line><line x1="4" y1="4" x2="9" y2="9"></line></svg>
           Shuffle Options
         </button>
+
+        <button class="ctrl-btn btn-practice" @click.stop="startPractice">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+          Just Practice
+        </button>
       </template>
 
       <template v-else-if="isInteractive && !isGraded">
-        <span class="instructor-hint" v-if="activeGroupId">Click an Option to assign it to the selected group...</span>
+        <span class="instructor-hint" v-if="isPracticeMode">Practice Mode: Interaction is for demonstration only (scores not saved).</span>
+        <span class="instructor-hint" v-else-if="activeGroupId">Click an Option to assign it to the selected group...</span>
         <span class="instructor-hint" v-else>Click a Group on the right, then click their answer option.</span>
         
         <div style="flex:1"></div>
@@ -404,7 +427,7 @@ function getOptionClass(optId) {
         
         <button class="ctrl-btn btn-secondary" @click.stop="replayQuiz">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><polyline points="23 20 23 14 17 14"></polyline><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"></path></svg>
-          Replay Quiz
+          Reset Quiz
         </button>
       </template>
     </div>
@@ -698,6 +721,9 @@ function getOptionClass(optId) {
 .btn-lock:hover { background-color: #e5e7eb; }
 .btn-secondary { background-color: #f1f5f9; color: #334155; border-color: #cbd5e1; }
 .btn-secondary:hover { background-color: #e2e8f0; }
+
+.btn-practice { background-color: #ecfdf5; color: #065f46; border-color: #6ee7b7; }
+.btn-practice:hover { background-color: #d1fae5; }
 
 /* QR Modal */
 .qr-modal-backdrop {
