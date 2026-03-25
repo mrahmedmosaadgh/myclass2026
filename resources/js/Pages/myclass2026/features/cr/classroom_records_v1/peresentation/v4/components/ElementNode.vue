@@ -181,6 +181,15 @@ function handleClick() {
 
       <div class="mini-divider"></div>
 
+      <!-- Layer Control -->
+      <div class="layer-control" title="Adjust Layer (Z-Index)">
+        <button @click.prevent="update({ zIndex: Math.max(0, (element.zIndex || 1) - 1) })" title="Send Backward">-</button>
+        <span class="z-index-display">{{ element.zIndex || 1 }}</span>
+        <button @click.prevent="update({ zIndex: (element.zIndex || 1) + 1 })" title="Bring Forward">+</button>
+      </div>
+
+      <div class="mini-divider"></div>
+
       <button @click.prevent="presentation.duplicateElement(element.id)" title="Duplicate">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
       </button>
@@ -199,6 +208,17 @@ function handleClick() {
       @duplicate="() => presentation.duplicateElement(element.id)"
       @delete="() => presentation.deleteElement(element.id)"
     />
+
+    <!-- Explicit Touch Move Action (Mandatory for mobile text overlap) -->
+    <div 
+      v-if="isSelected && ui.isEditMode"
+      class="move-handle"
+      @mousedown.stop.prevent="startDrag($event)"
+      @touchstart.stop.prevent="startDrag($event)"
+      title="Drag to Move"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M9 19l3 3 3-3M19 9l3 3-3 3M2 12h20M12 2v20"/></svg>
+    </div>
 
     <!-- Resize Handles -->
     <div v-if="isSelected">
@@ -379,6 +399,30 @@ function handleClick() {
   display: flex;
 }
 
+.move-handle {
+  position: absolute;
+  top: -30px;
+  left: 0;
+  width: 26px;
+  height: 26px;
+  background: #3b82f6;
+  color: white;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  z-index: 1005;
+  pointer-events: auto;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+.move-handle:active {
+  cursor: grabbing;
+  background: #2563eb;
+  transform: scale(1.05);
+}
+
 .toolbar-dropdown-content::before {
   content: "";
   position: absolute;
@@ -402,6 +446,35 @@ function handleClick() {
   color: #9ca3af;
   margin: 0;
   line-height: 1.3;
+}
+
+.layer-control {
+  display: flex;
+  align-items: center;
+  background: #f8fafc;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+
+.layer-control button {
+  padding: 2px 6px;
+  font-size: 12px;
+  font-weight: bold;
+  border-radius: 0;
+}
+
+.layer-control button:hover {
+  background: #e2e8f0;
+}
+
+.z-index-display {
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 14px;
+  text-align: center;
+  color: #475569;
+  pointer-events: none;
 }
 
 .text-red-500:hover {

@@ -80,13 +80,19 @@ async function handlePasteBtn() {
 }
 
 function exportJson() {
-  const jsonString = JSON.stringify(presentation.slides, null, 2);
+  const payload = {
+    title: presentation.title || "Untitled Presentation",
+    slides: presentation.slides
+  };
+  const jsonString = JSON.stringify(payload, null, 2);
   const blob = new Blob([jsonString], { type: "application/json" });
   const url = window.URL.createObjectURL(blob);
   
   const downloadAnchorNode = document.createElement('a');
   downloadAnchorNode.setAttribute("href", url);
-  downloadAnchorNode.setAttribute("download", "presentation_v4_export.json");
+  
+  const safeFilename = payload.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'presentation';
+  downloadAnchorNode.setAttribute("download", `${safeFilename}_v4.json`);
   document.body.appendChild(downloadAnchorNode);
   downloadAnchorNode.click();
   downloadAnchorNode.remove();
@@ -114,11 +120,11 @@ function importJson() {
       }
 
       try {
-        if (Array.isArray(parsedData)) {
+        if (Array.isArray(parsedData) || (parsedData && Array.isArray(parsedData.slides))) {
           presentation.loadPresentation(parsedData);
           ui.clearSelection();
         } else {
-          alert('Invalid file format. Not a recognized presentation array.');
+          alert('Invalid file format. Not a recognized presentation payload.');
         }
       } catch(err) {
         console.error('Memory Load Error:', err);

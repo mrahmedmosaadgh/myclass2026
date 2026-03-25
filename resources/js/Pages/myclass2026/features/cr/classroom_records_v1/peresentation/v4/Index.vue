@@ -35,7 +35,16 @@ onUnmounted(() => {
 <template>
   <div class="v4-container">
     <div class="header">
-      <h1>V4 Presentation Feature</h1>
+      <div v-if="ui.isEditMode" class="title-editor">
+        <input 
+          v-model="presentation.title" 
+          type="text" 
+          class="title-input" 
+          placeholder="Presentation Title..."
+          title="Click to edit title"
+        >
+      </div>
+      <h1 v-else>{{ presentation.title }}</h1>
       <p>Minimal, working reference implementation according to plan</p>
       
       <div class="mode-toggle">
@@ -79,6 +88,38 @@ onUnmounted(() => {
   font-weight: bold;
   color: #111827;
   margin-bottom: 0.5rem;
+}
+
+.title-editor {
+  margin-bottom: 0.5rem;
+  display: flex;
+  justify-content: center;
+}
+
+.title-input {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #111827;
+  text-align: center;
+  border: 1px dashed transparent;
+  background: transparent;
+  padding: 4px 12px;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 600px;
+  transition: all 0.2s;
+}
+
+.title-input:hover {
+  border-color: #d1d5db;
+  background: white;
+}
+
+.title-input:focus {
+  outline: none;
+  border-color: #6366f1;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
 }
 
 .header p {

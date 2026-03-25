@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 
 export const usePresentationStore = defineStore('presentation', () => {
+  const title = ref('Untitled Presentation');
   const slides = ref([
     {
       id: 'slide-1',
@@ -99,14 +100,20 @@ export const usePresentationStore = defineStore('presentation', () => {
     Object.assign(el, changes);
   }
 
-  function loadPresentation(newSlides) {
-    if (Array.isArray(newSlides)) {
-      slides.value = newSlides;
+  function loadPresentation(data) {
+    if (Array.isArray(data)) {
+      slides.value = data;
+      title.value = 'Imported Presentation';
+      currentSlideIndex.value = 0;
+    } else if (data && data.slides && Array.isArray(data.slides)) {
+      slides.value = data.slides;
+      title.value = data.title || 'Imported Presentation';
       currentSlideIndex.value = 0;
     }
   }
 
   return {
+    title,
     slides,
     currentSlideIndex,
     currentSlide,
