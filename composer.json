@@ -18,7 +18,7 @@
         "laravel/tinker": "^2.10.1",
         "minishlink/web-push": "^9.0",
         "myclabs/deep-copy": "^1.13",
-        "phpoffice/phpspreadsheet": "*",
+        "phpoffice/phpspreadsheet": "^5.5",
         "spatie/laravel-permission": "^6.16",
         "spomky-labs/web-push": "^3.1",
         "tightenco/ziggy": "^2.5"
@@ -77,6 +77,9 @@
         "allow-plugins": {
             "pestphp/pest-plugin": true,
             "php-http/discovery": true
+        },
+        "platform": {
+            "php": "8.2.0"
         }
     },
     "minimum-stability": "stable",
