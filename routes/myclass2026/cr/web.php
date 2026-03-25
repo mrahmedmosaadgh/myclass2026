@@ -3,7 +3,6 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MyClass2026\Cr\ClassroomRecordsPageController;
 use App\Http\Controllers\Api\Cr\CrSessionController;
-use App\Http\Controllers\QuizSessionController;
 use Inertia\Inertia;
 
 /*

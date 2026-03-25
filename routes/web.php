@@ -35,10 +35,19 @@ Route::domain('qudratpro.com')->group(function () {
             $class = 'App\Http\Controllers\QuizSessionController';
             $exists = class_exists($class);
             $path = $exists ? (new \ReflectionClass($class))->getFileName() : 'not found';
+            
+            // Also check the route file content
+            $routeFile = base_path('routes/myclass2026/cr/web.php');
+            $routeContent = file_exists($routeFile) ? file_get_contents($routeFile) : 'not found';
+            $snippet = str_contains($routeContent, '\App\Http\Controllers\QuizSessionController::class') 
+                ? 'Hardened' : 'Legacy (Unprotected)';
+
             return response()->json([
                 'class' => $class,
                 'exists' => $exists,
                 'path' => $path,
+                'route_file' => $routeFile,
+                'route_snippet' => $snippet,
                 'composer_autoload' => file_exists(base_path('vendor/autoload.php')),
             ]);
         } catch (\Exception $e) {
@@ -596,11 +605,11 @@ Route::middleware([
         // Live Quiz Session Routes
         Route::prefix('quiz/live')->name('quiz.live.')->group(function () {
             // Teacher control page
-            Route::get('/test', [App\Http\Controllers\QuizSessionController::class, 'teacherControl'])
+            Route::get('/test', [\App\Http\Controllers\QuizSessionController::class, 'teacherControl'])
                 ->name('test');
 
             // Student join page
-            Route::get('/join', [App\Http\Controllers\QuizSessionController::class, 'studentJoin'])
+            Route::get('/join', [\App\Http\Controllers\QuizSessionController::class, 'studentJoin'])
                 ->name('join');
         });
 });
