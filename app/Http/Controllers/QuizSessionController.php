@@ -138,8 +138,76 @@ class QuizSessionController extends Controller
     }
 
     /**
-     * Submit answer (student only)
+     * Sync current slide across all participants (teacher only)
      */
+    public function syncSlide(Request $request, QuizSession $session)
+    {
+        if ($session->teacher_id !== Auth::id()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'slideIndex' => 'required|integer'
+        ]);
+
+        // Fire real-time signal via Laravel Event (which syncs to Firebase)
+        event(new \App\Events\RealtimeEvent("quiz_{$session->access_code}", 'SLIDE_CHANGED', [
+            'slideIndex' => $validated['slideIndex']
+        ]));
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Launch ad-hoc quiz from presentation (teacher only)
+     */
+    public function launchQuiz(Request $request, QuizSession $session)
+    {
+        if ($session->teacher_id !== Auth::id()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'question' => 'required|string',
+            'options' => 'required|array|min:2',
+            'correctAnswer' => 'required|integer',
+            'duration' => 'required|integer|min:5'
+        ]);
+
+        // Create a real question for validation/history
+        $qType = \App\Models\QuestionType::where('slug', 'multiple_choice')->first();
+        $newQuestion = \App\Models\Question::create([
+            'text' => $validated['question'],
+            'question_type_id' => $qType->id,
+            'author_id' => Auth::id(),
+            'status' => 'active'
+        ]);
+
+        foreach ($validated['options'] as $idx => $optText) {
+            $newQuestion->options()->create([
+                'text' => $optText,
+                'is_correct' => $idx === $validated['correctAnswer']
+            ]);
+        }
+
+        $endTime = now()->addSeconds($validated['duration'])->timestamp * 1000;
+
+        $session->update([
+            'current_question_id' => $newQuestion->id,
+            'status' => 'active'
+        ]);
+
+        // Broadcast to students
+        event(new \App\Events\RealtimeEvent("quiz_{$session->access_code}", 'QUIZ_STARTED', [
+            'questionId' => $newQuestion->id,
+            'endTime' => $endTime
+        ]));
+
+        return response()->json([
+            'success' => true,
+            'endTime' => $endTime
+        ]);
+    }
     public function submitAnswer(Request $request, QuizSession $session)
     {
         $validated = $request->validate([
@@ -199,6 +267,38 @@ class QuizSessionController extends Controller
         return response()->json([
             'session' => $session,
             'message' => 'Settings updated successfully',
+        ]);
+    }
+
+    /**
+     * Get live stats for a session (teacher only)
+     */
+    public function getStats(QuizSession $session)
+    {
+        if ($session->teacher_id !== Auth::id()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $questionId = $session->current_question_id;
+        if (!$questionId) {
+            return response()->json(['total' => 0, 'options' => []]);
+        }
+
+        $stats = DB::table('quiz_attempts')
+            ->join('question_options', 'quiz_attempts.selected_option_id', '=', 'question_options.id')
+            ->where('quiz_session_id', $session->id)
+            ->where('quiz_attempts.question_id', $questionId)
+            ->select('question_options.text', 'quiz_attempts.selected_option_id', DB::raw('count(*) as count'))
+            ->groupBy('question_options.text', 'quiz_attempts.selected_option_id')
+            ->get();
+
+        // Map to format suitable for frontend
+        $total = $stats->sum('count');
+        
+        return response()->json([
+            'total' => $total,
+            'stats' => $stats,
+            'current_question_id' => $questionId
         ]);
     }
 

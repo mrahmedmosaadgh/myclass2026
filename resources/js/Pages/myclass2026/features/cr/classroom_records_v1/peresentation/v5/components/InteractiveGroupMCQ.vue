@@ -18,6 +18,7 @@ const isMuted = ref(false);
 const isInteractive = ref(false); // Controls if the buttons accept clicks
 const activeGroupId = ref(null); // The group currently selected by teacher to answer
 const isQrScanning = ref(false); // State for QR overlay
+const isPracticeMode = ref(false); // Practice mode bypasses group selection
 let html5QrCode = null;
 
 // Simple Web Audio API helper
@@ -77,6 +78,14 @@ function handleOptionHover() {
 
 function handleOptionClick(optId) {
   if (props.isEditMode || !isInteractive.value || isGraded.value) return;
+  
+  if (isPracticeMode.value) {
+    // Just toggle the badge for practice (using a fake 'practice' ID or similar)
+    gameStore.logGroupAnswer(props.element.id, 'practice-mode', optId);
+    playSound('hover');
+    return;
+  }
+
   if (!activeGroupId.value) return; // Must select a group to assign to
   
   gameStore.logGroupAnswer(props.element.id, activeGroupId.value, optId);
@@ -107,6 +116,13 @@ function startQuiz() {
 
 function lockQuiz() {
   isInteractive.value = false;
+  isPracticeMode.value = false;
+  activeGroupId.value = null;
+}
+
+function startPractice() {
+  isInteractive.value = true;
+  isPracticeMode.value = true;
   activeGroupId.value = null;
 }
 
@@ -181,6 +197,7 @@ function shuffleOptions() {
 function replayQuiz() {
   gameStore.questionHistory[props.element.id] = { groupAnswers: {}, status: 'locked_in' };
   isInteractive.value = false;
+  isPracticeMode.value = false;
   activeGroupId.value = null;
 }
 
@@ -195,28 +212,35 @@ async function toggleQrScanner() {
   // Wait for the modal DOM element to render
   setTimeout(() => {
     html5QrCode = new Html5Qrcode("qr-reader-" + props.element.id);
-    html5QrCode.start({ facingMode: "environment" }, {
+    
+    const qrConfig = {
       fps: 10,
       qrbox: { width: 250, height: 250 }
-    }, (decodedText) => {
-      // On Success
+    };
+
+    const onScanSuccess = (decodedText) => {
       const targetGroup = gameStore.groups.find(g => g.id == decodedText || g.name.toLowerCase() === decodedText.toLowerCase());
       if (targetGroup && !isGraded.value) {
          playSound('hover');
          activeGroupId.value = targetGroup.id;
-         // Optional: Do not stop scanner automatically, allow teacher to select answer then scan the next card
       }
-    }, (err) => {
-      // Ignore normal scanning empty errors
-    }).catch(err => {
-      console.warn("QR Scanner Start Error:", err);
-      $q.notify({
-        type: 'negative',
-        message: 'Could not start camera. Make sure permissions are granted.',
-        position: 'top'
+    };
+
+    // Attempt to start with environment camera first, fallback if not found (for desktops)
+    html5QrCode.start({ facingMode: "environment" }, qrConfig, onScanSuccess)
+      .catch(err => {
+          console.log("Environment scanner failed, trying default camera...", err);
+          return html5QrCode.start({ facingMode: "user" }, qrConfig, onScanSuccess);
+      })
+      .catch(err => {
+          console.warn("QR Scanner Start Error:", err);
+          $q.notify({
+            type: 'negative',
+            message: 'Camera not found or blocked. Check permissions.',
+            position: 'top'
+          });
+          isQrScanning.value = false;
       });
-      isQrScanning.value = false;
-    });
   }, 100);
 }
 
@@ -270,7 +294,7 @@ function getOptionClass(optId) {
   if (!isInteractive.value) return 'locked-mode-btn';
   
   // If active group selected, make it glow if they can click it
-  if (activeGroupId.value) return 'assignable-btn';
+  if (activeGroupId.value || isPracticeMode.value) return 'assignable-btn';
   
   return 'interactive-btn';
 }
@@ -351,10 +375,16 @@ function getOptionClass(optId) {
                    <span v-else class="graded-mark wrong-mark">✕</span>
                 </div>
               </template>
-           </div>
-         </div>
+
+               <div v-else-if="!isGraded && isInteractive" class="status-icon-wrapper">
+                  <img v-if="activeGroupId === g.id" src="/icon/solve/download (3).png" class="status-img pulse" title="Group is solving..." width="20" height="20" />
+                  <img v-else-if="!qHistory.groupAnswers[g.id]" src="/icon/solve/download.png" class="status-img grayscale" title="Not solving yet" width="20" height="20" />
+                  <img v-else src="/icon/solve/download (1).png" class="status-img" title="Answered!" width="20" height="20" />
+               </div>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
 
     <!-- Instructor Control Bar -->
     <div v-if="!isEditMode" class="quiz-controls">
@@ -368,10 +398,16 @@ function getOptionClass(optId) {
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"></polyline><line x1="4" y1="20" x2="21" y2="3"></line><polyline points="21 16 21 21 16 21"></polyline><line x1="15" y1="15" x2="21" y2="21"></line><line x1="4" y1="4" x2="9" y2="9"></line></svg>
           Shuffle Options
         </button>
+
+        <button class="ctrl-btn btn-practice" @click.stop="startPractice">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+          Just Practice
+        </button>
       </template>
 
       <template v-else-if="isInteractive && !isGraded">
-        <span class="instructor-hint" v-if="activeGroupId">Click an Option to assign it to the selected group...</span>
+        <span class="instructor-hint" v-if="isPracticeMode">Practice Mode: Interaction is for demonstration only (scores not saved).</span>
+        <span class="instructor-hint" v-else-if="activeGroupId">Click an Option to assign it to the selected group...</span>
         <span class="instructor-hint" v-else>Click a Group on the right, then click their answer option.</span>
         
         <div style="flex:1"></div>
@@ -397,7 +433,7 @@ function getOptionClass(optId) {
         
         <button class="ctrl-btn btn-secondary" @click.stop="replayQuiz">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><polyline points="23 20 23 14 17 14"></polyline><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"></path></svg>
-          Replay Quiz
+          Reset Quiz
         </button>
       </template>
     </div>
@@ -622,6 +658,28 @@ function getOptionClass(optId) {
 .correct-mark { color: #10b981; }
 .wrong-mark { color: #ef4444; }
 
+/* Status Icons */
+.status-icon-wrapper {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+.status-img {
+  object-fit: contain;
+}
+.pulse {
+  animation: pulse-animation 2s infinite;
+}
+.grayscale {
+  filter: grayscale(100%);
+  opacity: 0.3;
+}
+@keyframes pulse-animation {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+
 /* Button Modes */
 .assignable-btn { cursor: copy; border-color: #93c5fd; }
 .assignable-btn:hover { background: #eff6ff; box-shadow: 0 0 0 2px #bfdbfe; }
@@ -691,6 +749,9 @@ function getOptionClass(optId) {
 .btn-lock:hover { background-color: #e5e7eb; }
 .btn-secondary { background-color: #f1f5f9; color: #334155; border-color: #cbd5e1; }
 .btn-secondary:hover { background-color: #e2e8f0; }
+
+.btn-practice { background-color: #ecfdf5; color: #065f46; border-color: #6ee7b7; }
+.btn-practice:hover { background-color: #d1fae5; }
 
 /* QR Modal */
 .qr-modal-backdrop {

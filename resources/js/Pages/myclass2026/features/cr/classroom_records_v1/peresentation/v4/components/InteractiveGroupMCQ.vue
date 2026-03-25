@@ -377,9 +377,9 @@ function getOptionClass(optId) {
               </template>
 
                <div v-else-if="!isGraded && isInteractive" class="status-icon-wrapper">
-                  <img v-if="activeGroupId === g.id" src="/icon/solve/download (3).png" class="status-img pulse" title="Group is solving..." width="20" height="20" />
-                  <img v-else-if="!qHistory.groupAnswers[g.id]" src="/icon/solve/download.png" class="status-img grayscale" title="Not solving yet" width="20" height="20" />
-                  <img v-else src="/icon/solve/download (1).png" class="status-img" title="Answered!" width="20" height="20" />
+                  <img v-if="activeGroupId === g.id" src="/icon/solve/status-solving.png" class="status-img pulse" title="Group is solving..." width="20" height="20" />
+                  <img v-else-if="!qHistory.groupAnswers[g.id]" src="/icon/solve/status-idle.png" class="status-img grayscale" title="Not solving yet" width="20" height="20" />
+                  <img v-else src="/icon/solve/status-answered.png" class="status-img" title="Answered!" width="20" height="20" />
                </div>
             </div>
           </div>

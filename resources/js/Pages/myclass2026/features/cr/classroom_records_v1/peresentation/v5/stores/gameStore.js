@@ -22,7 +22,17 @@ export const useGameStore = defineStore('presentation-game', () => {
   // Format: { [elementId]: { groupAnswers: { [groupId]: optionId }, status: 'locked_in' | 'graded' } }
   const questionHistory = ref({});
 
+  // Remote Session State
+  const sessionId = ref(null);
+  const accessCode = ref(null);
+  const sessionStatus = ref('offline'); // offline, waiting, active, completed
+
   // Group Management Actions
+  function setSession(id, code, status = 'waiting') {
+    sessionId.value = id;
+    accessCode.value = code;
+    sessionStatus.value = status;
+  }
   function addGroup(name, color) {
     groups.value.push({
       id: 'g' + Date.now() + Math.random().toString(36).substr(2, 5),
@@ -81,7 +91,11 @@ export const useGameStore = defineStore('presentation-game', () => {
     isLeaderboardOpen,
     isGroupSetupOpen,
     questionHistory,
+    sessionId,
+    accessCode,
+    sessionStatus,
 
+    setSession,
     addGroup,
     removeGroup,
     updateGroupName,

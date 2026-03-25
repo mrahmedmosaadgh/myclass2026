@@ -62,6 +62,16 @@ Route::middleware([
             );
         })->name('builder-v4');
         
+        // V5 Presentation Builder
+        Route::get('/builder-v5', function () {
+            return Inertia::render(
+                'myclass2026/features/cr/classroom_records_v1/peresentation/v5/Index',
+                [
+                    'title' => 'Presentation Builder V5 - MyClass2026'
+                ]
+            );
+        })->name('builder-v5');
+        
         // Slide editor
         Route::get('/slide-editor', function () {
             return Inertia::render('myclass2026/features/cr/classroom_records_v1/peresentation/SlideEditor');
@@ -76,6 +86,23 @@ Route::middleware([
         Route::get('/presenter', function () {
             return Inertia::render('myclass2026/features/cr/classroom_records_v1/peresentation/SlidePresenter');
         })->name('presenter');
+
+        // Remote V5 routes
+        Route::prefix('remote')->name('remote.')->group(function () {
+            Route::get('/teacher', function () {
+                return Inertia::render(
+                    'myclass2026/features/cr/classroom_records_v1/peresentation/v5/remote/TeacherPresenter',
+                    ['title' => 'Teacher Live V5']
+                );
+            })->name('teacher');
+
+            Route::get('/student', function () {
+                return Inertia::render(
+                    'myclass2026/features/cr/classroom_records_v1/peresentation/v5/remote/StudentInteract',
+                    ['title' => 'Student Quiz V5']
+                );
+            })->name('student');
+        });
     });
 
     // API Routes for Session Management
@@ -87,5 +114,12 @@ Route::middleware([
         // Batch update student scores
         Route::patch('/batch', [CrSessionController::class, 'batchUpdate'])
             ->name('batch');
+
+        // V5 Remote Session Routes
+        Route::post('/sessions/join', [QuizSessionController::class, 'join'])->name('sessions.join');
+        Route::post('/sessions/{session}/sync-slide', [QuizSessionController::class, 'syncSlide'])->name('sessions.sync-slide');
+        Route::post('/sessions/{session}/launch-quiz', [QuizSessionController::class, 'launchQuiz'])->name('sessions.launch-quiz');
+        Route::post('/sessions/{session}/submit-answer', [QuizSessionController::class, 'submitAnswer'])->name('sessions.submit-answer');
+        Route::get('/sessions/{session}/stats', [QuizSessionController::class, 'getStats'])->name('sessions.stats');
     });
 });
