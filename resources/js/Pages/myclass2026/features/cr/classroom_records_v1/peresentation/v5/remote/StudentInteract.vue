@@ -1,3 +1,7 @@
+<script>
+export default { layout: false };
+</script>
+
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useGameStore } from '../stores/gameStore';

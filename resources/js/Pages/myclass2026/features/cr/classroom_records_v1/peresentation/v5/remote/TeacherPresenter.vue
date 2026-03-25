@@ -1,3 +1,7 @@
+<script>
+export default { layout: false };
+</script>
+
 <script setup>
 import { onMounted, onUnmounted, ref, computed } from 'vue';
 import { usePresentationStore } from '../stores/presentationStore';
