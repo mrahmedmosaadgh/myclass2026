@@ -195,28 +195,35 @@ async function toggleQrScanner() {
   // Wait for the modal DOM element to render
   setTimeout(() => {
     html5QrCode = new Html5Qrcode("qr-reader-" + props.element.id);
-    html5QrCode.start({ facingMode: "environment" }, {
+    
+    const qrConfig = {
       fps: 10,
       qrbox: { width: 250, height: 250 }
-    }, (decodedText) => {
-      // On Success
+    };
+
+    const onScanSuccess = (decodedText) => {
       const targetGroup = gameStore.groups.find(g => g.id == decodedText || g.name.toLowerCase() === decodedText.toLowerCase());
       if (targetGroup && !isGraded.value) {
          playSound('hover');
          activeGroupId.value = targetGroup.id;
-         // Optional: Do not stop scanner automatically, allow teacher to select answer then scan the next card
       }
-    }, (err) => {
-      // Ignore normal scanning empty errors
-    }).catch(err => {
-      console.warn("QR Scanner Start Error:", err);
-      $q.notify({
-        type: 'negative',
-        message: 'Could not start camera. Make sure permissions are granted.',
-        position: 'top'
+    };
+
+    // Attempt to start with environment camera first, fallback if not found (for desktops)
+    html5QrCode.start({ facingMode: "environment" }, qrConfig, onScanSuccess)
+      .catch(err => {
+          console.log("Environment scanner failed, trying default camera...", err);
+          return html5QrCode.start({ facingMode: "user" }, qrConfig, onScanSuccess);
+      })
+      .catch(err => {
+          console.warn("QR Scanner Start Error:", err);
+          $q.notify({
+            type: 'negative',
+            message: 'Camera not found or blocked. Check permissions.',
+            position: 'top'
+          });
+          isQrScanning.value = false;
       });
-      isQrScanning.value = false;
-    });
   }, 100);
 }
 
