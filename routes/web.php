@@ -53,6 +53,22 @@ Route::get('/api/school-branding/{school_slug}', [SchoolLoginController::class, 
     ->name('school.branding');
 
 // Simple login route - user-friendly, no complex redirects
+Route::get('/debug-controller', function() {
+    try {
+        $class = 'App\Http\Controllers\QuizSessionController';
+        $exists = class_exists($class);
+        $path = $exists ? (new \ReflectionClass($class))->getFileName() : 'not found';
+        return response()->json([
+            'class' => $class,
+            'exists' => $exists,
+            'path' => $path,
+            'composer_autoload' => file_exists(base_path('vendor/autoload.php')),
+        ]);
+    } catch (\Exception $e) {
+        return response()->json(['error' => $e->getMessage()]);
+    }
+});
+
 Route::get('/login', function () {
     return Inertia::render('Auth/Login');
 })->name('login');
