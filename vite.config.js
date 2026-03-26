@@ -85,25 +85,14 @@ export default defineConfig(({ mode }) => {
                     chunkFileNames: 'assets/js/[name]-[hash].js',
                     entryFileNames: 'assets/js/[name]-[hash].js',
                     manualChunks: (id) => {
-                        // 1. Vendor Grouping — ONLY large, independent libraries
+                        // ONLY vendor grouping — application code is handled by Rollup automatically.
+                        // DO NOT add any application code groupings here (pages, components, features, roles).
+                        // They ALL cause "Cannot access X before initialization" circular dependency errors.
                         if (id.includes('node_modules')) {
                             if (id.includes('firebase') || id.includes('@firebase')) return 'vendor-firebase';
                             if (id.includes('xlsx')) return 'vendor-xlsx';
                             if (id.includes('vuedraggable') || id.includes('sortablejs')) return 'vendor-draggable';
                         }
-
-                        // 2. MyClass2026 Feature Grouping — small, self-contained feature folders
-                        if (id.includes('resources/js/Pages/myclass2026/features/')) {
-                            const parts = id.split('features/')[1].split('/');
-                            const featureName = parts[0];
-                            const featureMap = { 'cr': 'classroom-records', 'fg': 'focus-grid', 'qr-tools': 'qr-tools', 'smart-scanner': 'smart-scanner' };
-                            return `feature-${featureMap[featureName] || featureName}`;
-                        }
-
-                        // Everything else (Pages, Components, Roles, etc.) is handled
-                        // automatically by Rollup to avoid circular dependency errors.
-                        // DO NOT add page-section-* or comp-section-* groupings here —
-                        // they cause "Cannot access X before initialization" errors.
                     }
                 },
             },
