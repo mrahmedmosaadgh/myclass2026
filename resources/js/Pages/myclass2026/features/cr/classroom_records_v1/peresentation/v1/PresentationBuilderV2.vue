@@ -109,7 +109,7 @@ export default {
   components: {
     Head,
     SlideEditor,
-    AnimationEditorV2,
+    // AnimationEditorV2,
     SlidePresenterV2
   },
   data() {
