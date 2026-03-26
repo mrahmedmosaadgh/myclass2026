@@ -266,15 +266,17 @@ class QuizSessionController extends Controller
             'nickname' => 'nullable|string', // Support guest identification
         ]);
 
-        $query = QuizSessionParticipant::where('quiz_session_id', $session->id);
-        
-        if (Auth::check()) {
-            $query->where('student_id', Auth::id());
-        } elseif ($validated['nickname']) {
-            $query->where('nickname', $validated['nickname']);
-        } else {
-            return response()->json(['message' => 'Identification required'], 403);
-        }
+        $query = QuizSessionParticipant::where('quiz_session_id', $session->id)
+            ->where(function($q) use ($validated) {
+                if ($validated['nickname']) {
+                    $q->where('nickname', $validated['nickname']);
+                    if (Auth::check()) {
+                        $q->orWhere('student_id', Auth::id());
+                    }
+                } elseif (Auth::check()) {
+                    $q->where('student_id', Auth::id());
+                }
+            });
 
         $participant = $query->first();
 
@@ -299,8 +301,8 @@ class QuizSessionController extends Controller
         $attempt = QuizAttempt::firstOrCreate(
             [
                 'quiz_session_id' => $session->id,
-                'user_id' => Auth::id(),
-                'nickname' => Auth::check() ? null : $validated['nickname'],
+                'user_id' => $participant->student_id,
+                'nickname' => $participant->nickname,
             ],
             [
                 'started_at' => now(),
