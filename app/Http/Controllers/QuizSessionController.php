@@ -508,6 +508,8 @@ class QuizSessionController extends Controller
         ]);
 
         return response()->json($result);
+    }
+
     /**
      * Mark a short answer as correct and award points (teacher only)
      */
