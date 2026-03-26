@@ -366,8 +366,9 @@ class QuizSessionController extends Controller
     {
         return Inertia::render(
             'myclass2026/features/cr/classroom_records_v1/peresentation/v5/remote/StudentInteract',
-            ['title' => 'Student Quiz V5']
         );
+    }
+
     /**
      * Debug Firebase connectivity (bypasses event queue)
      */
