@@ -128,7 +128,7 @@ export default defineConfig(({ mode }) => {
                             return 'feature-bm';
                         }
                         
-                        // Group MyClass2026 Features & Roles
+                        // Group MyClass2026 Features (but NOT roles - too many files cause circular deps)
                         if (id.includes('resources/js/Pages/myclass2026/')) {
                             if (id.includes('/features/')) {
                                 const parts = id.split('features/')[1].split('/');
@@ -136,15 +136,13 @@ export default defineConfig(({ mode }) => {
                                 const featureMap = { 'cr': 'classroom-records', 'fg': 'focus-grid', 'qr-tools': 'qr-tools', 'smart-scanner': 'smart-scanner' };
                                 return `feature-${featureMap[featureName] || featureName}`;
                             }
-                            if (id.includes('/roles/')) {
-                                const parts = id.split('roles/')[1].split('/');
-                                return `role-${parts[0]}`;
-                            }
+                            // Roles are intentionally NOT grouped - Rollup handles them automatically
+                            // to avoid "Cannot access X before initialization" circular dep errors
                         }
 
-                        // Group other major Page sections
+                        // Group other major Page sections (WeeklyPlans removed - causes circular deps)
                         if (id.includes('resources/js/Pages/')) {
-                            const sections = ['Admin', 'Auth', 'CourseManagement', 'Courses', 'Dashboard', 'Documentation', 'Firebase', 'Notifications', 'Profile', 'Student', 'Teacher', 'WeeklyPlans', 'academy', 'modules', 'my_class', 'my_table_mnger', 'myclass_v2', 'old_features', 'qudratpro2026', 'print_html', 'project_manager'];
+                            const sections = ['Admin', 'Auth', 'CourseManagement', 'Courses', 'Dashboard', 'Documentation', 'Firebase', 'Notifications', 'Profile', 'Student', 'Teacher', 'academy', 'modules', 'my_class', 'my_table_mnger', 'myclass_v2', 'old_features', 'qudratpro2026', 'print_html', 'project_manager'];
                             for (const section of sections) {
                                 if (id.includes(`resources/js/Pages/${section}`)) {
                                     return `page-section-${section.toLowerCase()}`;
