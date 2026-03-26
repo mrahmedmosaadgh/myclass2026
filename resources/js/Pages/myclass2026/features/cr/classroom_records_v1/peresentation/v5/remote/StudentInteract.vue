@@ -34,7 +34,7 @@ useRealtimeChannel(studentChannel, (signal) => {
     presentation.selectSlide(signal.context.slideIndex);
   } else if (signal.event === 'QUIZ_STARTED') {
     currentQuiz.value = {
-      id: signal.context.questionId,
+      id: signal.context.quiz_id,
       endTime: signal.context.endTime
     };
   } else if (signal.event === 'QUIZ_ENDED') {

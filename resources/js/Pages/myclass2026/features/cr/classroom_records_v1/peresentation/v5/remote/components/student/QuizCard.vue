@@ -16,7 +16,7 @@ const isAnswered = ref(false);
 
 const loadQuestion = async () => {
   try {
-    const response = await axios.get(`/api/questions/${props.quizId}`);
+    const response = await axios.get(`/api/cr/questions/${props.quizId}`);
     question.value = response.data;
   } catch (err) {
     console.error('Failed to load question:', err);
