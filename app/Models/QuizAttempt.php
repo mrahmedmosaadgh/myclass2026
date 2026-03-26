@@ -15,6 +15,7 @@ class QuizAttempt extends Model
         'user_id',
         'quiz_id',
         'quiz_session_id',
+        'nickname',
         'started_at',
         'completed_at',
         'total_questions',

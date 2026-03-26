@@ -13,6 +13,7 @@ class QuizSessionParticipant extends Model
     protected $fillable = [
         'quiz_session_id',
         'student_id',
+        'nickname',
         'score',
         'status',
     ];
