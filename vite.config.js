@@ -92,6 +92,9 @@ export default defineConfig(({ mode }) => {
                             // Removing echarts/katex to avoid circular dependencies with feature chunks
                             if (id.includes('firebase') || id.includes('@firebase')) return 'vendor-firebase';
                             if (id.includes('xlsx')) return 'vendor-xlsx';
+                            // vuedraggable is used in multiple page-section chunks; deduplicate it
+                            // to prevent "Cannot access 'ni' before initialization" circular dep error
+                            if (id.includes('vuedraggable') || id.includes('sortablejs')) return 'vendor-draggable';
                         }
 
                         // 2. Application Feature Grouping (The Fix for 1200+ Requests)

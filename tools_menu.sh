@@ -70,7 +70,7 @@ case "$CHOICE" in
     
     git add -A
     git commit -m "build: manual update assets | $TIMESTAMP" || true
-    git push origin main
+    git push origin main || echo "⚠️ Git push to GitHub timed out (HTTP 408), skipping - will sync directly via Rsync."
     cd ../..
     
     echo "🌐 Syncing Local Build Directory directly to Hostinger via Rsync..."
