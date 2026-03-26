@@ -12,6 +12,9 @@ echo "🚀 Starting Full Project Update..."
 git config --global user.email "ahmedmosaad@example.com"
 git config --global user.name "Ahmed Mosaad"
 
+# Increase Git buffer to 500MB to prevent HTTP 408 timeouts on large pushes
+git config --global http.postBuffer 524288000
+
 # 1. Build the assets
 echo "📦 Building assets..."
 npm run build
@@ -30,14 +33,14 @@ git remote set-url origin https://github.com/mrahmedmosaadgh/myclass2026_build.g
 
 git add -A
 git commit -m "build: auto-update assets | $TIMESTAMP | Mac" || true
-git push origin main || echo "⚠️ Git push timed out, syncing directly via Rsync."
+git push origin main || echo "⚠️ Build repo push failed, will sync via Rsync."
 cd ../..
 
 # 3. Update Main Repository
 echo "🖥️ Updating Main Repository..."
 git add .
-git commit -m "feat: auto-update source & submodule | $TIMESTAMP | Mac"
-git push origin production
+git commit -m "feat: auto-update source & submodule | $TIMESTAMP | Mac" || true
+git push origin production || echo "⚠️ Main repo push failed, will retry or sync via Rsync."
 
 # 4. Remote Sync (Hostinger)
 echo "🌐 Syncing to Hostinger..."
