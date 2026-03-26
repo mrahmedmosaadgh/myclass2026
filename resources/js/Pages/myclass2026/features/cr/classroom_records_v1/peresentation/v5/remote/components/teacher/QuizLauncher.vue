@@ -5,6 +5,7 @@ import axios from 'axios';
 
 const gameStore = useGameStore();
 
+const quizType = ref('multiple_choice'); // 'multiple_choice' or 'short_answer'
 const questionText = ref('');
 const options = ref(['', '', '', '']);
 const correctAnswer = ref(0);
@@ -12,15 +13,17 @@ const timer = ref(60);
 const isLaunching = ref(false);
 
 const launchQuiz = async () => {
-  if (!questionText.value || options.value.some(o => !o)) return;
+  if (!questionText.value) return;
+  if (quizType.value === 'multiple_choice' && options.value.some(o => !o)) return;
   if (!gameStore.sessionId) return;
   
   isLaunching.value = true;
   try {
     await axios.post(`/api/cr/sessions/${gameStore.sessionId}/launch-quiz`, {
       question: questionText.value,
-      options: options.value,
-      correctAnswer: correctAnswer.value,
+      type: quizType.value,
+      options: quizType.value === 'multiple_choice' ? options.value : null,
+      correctAnswer: quizType.value === 'multiple_choice' ? correctAnswer.value : null,
       duration: timer.value
     });
     
@@ -38,7 +41,19 @@ const launchQuiz = async () => {
 
 <template>
   <div class="quiz-launcher">
-    <h3 class="panel-title">Launch Live Quiz</h3>
+    <div class="header-row">
+      <h3 class="panel-title">Launch Live Quiz</h3>
+      <div class="type-toggle">
+        <button 
+          :class="{ active: quizType === 'multiple_choice' }" 
+          @click="quizType = 'multiple_choice'"
+        >MCQ</button>
+        <button 
+          :class="{ active: quizType === 'short_answer' }" 
+          @click="quizType = 'short_answer'"
+        >Short Answer</button>
+      </div>
+    </div>
     
     <div class="form-group">
       <label>Question Text</label>
@@ -49,7 +64,7 @@ const launchQuiz = async () => {
       ></textarea>
     </div>
 
-    <div class="options-grid">
+    <div v-if="quizType === 'multiple_choice'" class="options-grid">
       <div v-for="(opt, idx) in options" :key="idx" class="option-item">
         <div class="option-header">
           <label>Option {{ String.fromCharCode(65 + idx) }}</label>
@@ -92,11 +107,43 @@ const launchQuiz = async () => {
   gap: 1.25rem;
 }
 
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .panel-title {
   font-size: 1.1rem;
   font-weight: 700;
   margin: 0;
   color: #1e293b;
+}
+
+.type-toggle {
+  display: flex;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 8px;
+  gap: 4px;
+}
+
+.type-toggle button {
+  padding: 4px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.type-toggle button.active {
+  background: white;
+  color: #6366f1;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .form-group {

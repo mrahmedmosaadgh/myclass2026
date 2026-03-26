@@ -5,12 +5,14 @@ import axios from 'axios';
 
 const props = defineProps({
   quizId: { type: [Number, String], required: true },
+  type: { type: String, default: 'multiple_choice' },
   studentName: { type: String, default: '' }
 });
 
 const gameStore = useGameStore();
 const question = ref(null);
 const selectedIndex = ref(null);
+const shortAnswerText = ref('');
 const isSubmitting = ref(false);
 const isAnswered = ref(false);
 
@@ -23,18 +25,25 @@ const loadQuestion = async () => {
   }
 };
 
-const submitAnswer = async (optionId) => {
+const submitAnswer = async (answerValue) => {
   if (isAnswered.value || isSubmitting.value) return;
+  if (props.type === 'short_answer' && !shortAnswerText.value.trim()) return;
   
-  selectedIndex.value = question.value.options.findIndex(o => o.id === optionId);
   isSubmitting.value = true;
   
   try {
-    await axios.post(`/api/cr/sessions/${gameStore.sessionId}/submit-answer`, {
+    const payload = {
       question_id: props.quizId,
-      answer: optionId,
+      answer: props.type === 'multiple_choice' ? answerValue : shortAnswerText.value,
       nickname: props.studentName
-    });
+    };
+
+    await axios.post(`/api/cr/sessions/${gameStore.sessionId}/submit-answer`, payload);
+    
+    if (props.type === 'multiple_choice') {
+      selectedIndex.value = question.value.options.findIndex(o => o.id === answerValue);
+    }
+    
     isAnswered.value = true;
   } catch (err) {
     console.error('Answer submission failed:', err);
@@ -54,11 +63,12 @@ onMounted(loadQuestion);
     
     <template v-else>
       <div class="question-header">
-        <span class="q-badge">LIVE QUIZ</span>
-        <h2 class="question-text">{{ question.text }}</h2>
+        <span class="q-badge">LIVE {{ type === 'short_answer' ? 'SHORT ANSWER' : 'QUIZ' }}</span>
+        <h2 class="question-text">{{ question.question_text }}</h2>
       </div>
 
-      <div class="options-list">
+      <!-- Multiple Choice UI -->
+      <div v-if="type === 'multiple_choice'" class="options-list">
         <button 
           v-for="(opt, idx) in question.options" 
           :key="idx"
@@ -71,8 +81,25 @@ onMounted(loadQuestion);
           :disabled="isAnswered || isSubmitting"
         >
           <span class="opt-letter">{{ String.fromCharCode(65 + idx) }}</span>
-          <span class="opt-text">{{ opt.text }}</span>
+          <span class="opt-text">{{ opt.option_text }}</span>
           <span v-if="selectedIndex === idx && isAnswered" class="check-icon">✓</span>
+        </button>
+      </div>
+
+      <!-- Short Answer UI -->
+      <div v-else-if="type === 'short_answer'" class="short-answer-form">
+        <textarea 
+          v-model="shortAnswerText" 
+          placeholder="Type your answer here..."
+          :disabled="isAnswered || isSubmitting"
+          rows="3"
+        ></textarea>
+        <button 
+          class="submit-btn" 
+          @click="submitAnswer" 
+          :disabled="isAnswered || isSubmitting || !shortAnswerText.trim()"
+        >
+          {{ isSubmitting ? 'Sending...' : 'Submit Answer' }}
         </button>
       </div>
 
@@ -201,6 +228,49 @@ onMounted(loadQuestion);
 
 .locked-msg .icon { font-size: 1.2rem; }
 .locked-msg p { margin: 0; font-size: 0.9rem; font-weight: 600; }
+
+.short-answer-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.short-answer-form textarea {
+  padding: 1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 1rem;
+  resize: none;
+  font-family: inherit;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.short-answer-form textarea:focus {
+  outline: none;
+  border-color: #6366f1;
+  background: #f8faff;
+}
+
+.submit-btn {
+  padding: 1rem;
+  background: #6366f1;
+  color: white;
+  border: none;
+  border-radius: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background: #4f46e5;
+  transform: translateY(-2px);
+}
+
+.submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 .loading-q {
   padding: 3rem;

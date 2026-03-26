@@ -120,6 +120,9 @@ Route::prefix('classroom-records/presentation/remote')->name('classroom-records.
 
 Route::prefix('api/cr')->name('cr.')->group(function () {
     Route::post('/sessions/join', [\App\Http\Controllers\QuizSessionController::class, 'join'])->name('sessions.join');
+    Route::post('/sessions/{session}/launch-quiz', [\App\Http\Controllers\QuizSessionController::class, 'launchQuiz']);
     Route::post('/sessions/{session}/submit-answer', [\App\Http\Controllers\QuizSessionController::class, 'submitAnswer'])->name('sessions.submit-answer');
-    Route::get('/questions/{question}', [App\Http\Controllers\QuestionController::class, 'show'])->name('questions.show');
+    Route::post('/sessions/{session}/mark-answer', [\App\Http\Controllers\QuizSessionController::class, 'markAnswer']);
+    Route::get('/sessions/{session}/stats', [\App\Http\Controllers\QuizSessionController::class, 'getStats']);
+    Route::get('/questions/{question}', [\App\Http\Controllers\QuestionController::class, 'show'])->name('questions.show');
 });

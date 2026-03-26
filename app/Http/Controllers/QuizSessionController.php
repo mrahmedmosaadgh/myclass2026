@@ -209,13 +209,16 @@ class QuizSessionController extends Controller
 
         $validated = $request->validate([
             'question' => 'required|string',
-            'options' => 'required|array|min:2',
-            'correctAnswer' => 'required|integer',
+            'type' => 'nullable|string|in:multiple_choice,short_answer',
+            'options' => 'required_if:type,multiple_choice|array',
+            'correctAnswer' => 'required_if:type,multiple_choice|integer',
             'duration' => 'required|integer|min:5'
         ]);
 
+        $typeSlug = $validated['type'] ?? 'multiple_choice';
+
         // Create a real question for validation/history
-        $qType = \App\Models\QuestionType::where('slug', 'multiple_choice')->first();
+        $qType = \App\Models\QuestionType::where('slug', $typeSlug)->first();
         $newQuestion = \App\Models\Question::create([
             'question_text' => $validated['question'],
             'question_type_id' => $qType->id,
@@ -223,14 +226,16 @@ class QuizSessionController extends Controller
             'status' => 'active'
         ]);
 
-        $optionKeys = ['A', 'B', 'C', 'D', 'E', 'F'];
-        foreach ($validated['options'] as $idx => $optText) {
-            $newQuestion->options()->create([
-                'option_key' => $optionKeys[$idx] ?? (string)$idx,
-                'option_text' => $optText,
-                'is_correct' => $idx === $validated['correctAnswer'],
-                'order_index' => $idx
-            ]);
+        if ($typeSlug === 'multiple_choice' && isset($validated['options'])) {
+            $optionKeys = ['A', 'B', 'C', 'D', 'E', 'F'];
+            foreach ($validated['options'] as $idx => $optText) {
+                $newQuestion->options()->create([
+                    'option_key' => $optionKeys[$idx] ?? (string)$idx,
+                    'option_text' => $optText,
+                    'is_correct' => $idx === $validated['correctAnswer'],
+                    'order_index' => $idx
+                ]);
+            }
         }
 
         $endTime = now()->addSeconds($validated['duration'])->timestamp * 1000;
@@ -243,12 +248,14 @@ class QuizSessionController extends Controller
         // Broadcast to students
         event(new \App\Events\RealtimeEvent("quiz_{$session->access_code}", 'QUIZ_STARTED', [
             'quiz_id' => $newQuestion->id,
-            'endTime' => $endTime
+            'endTime' => $endTime,
+            'type' => $typeSlug
         ]));
 
         return response()->json([
             'success' => true,
-            'endTime' => $endTime
+            'endTime' => $endTime,
+            'type' => $typeSlug
         ]);
     }
     public function submitAnswer(Request $request, QuizSession $session)
@@ -293,6 +300,7 @@ class QuizSessionController extends Controller
             [
                 'quiz_session_id' => $session->id,
                 'user_id' => Auth::id(),
+                'nickname' => Auth::check() ? null : $validated['nickname'],
             ],
             [
                 'started_at' => now(),
@@ -319,6 +327,18 @@ class QuizSessionController extends Controller
             $points = $session->settings['points_per_question'] ?? 10;
             $participant->incrementScore($points);
         }
+
+        // Notify teacher of the submission
+        app(\App\Services\RealtimeNotificationService::class)->notify(
+            "quiz_{$session->access_code}_teacher",
+            [
+                'event' => 'ANSWER_SUBMITTED',
+                'context' => [
+                    'student_name' => $validated['nickname'] ?? (Auth::check() ? Auth::user()->name : 'Guest'),
+                    'question_id' => $validated['question_id']
+                ]
+            ]
+        );
 
         return response()->json([
             'success' => true,
@@ -360,27 +380,57 @@ class QuizSessionController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $questionId = $session->current_question_id;
-        if (!$questionId) {
+        $session->load('currentQuestion.questionType');
+        $question = $session->currentQuestion;
+        
+        if (!$question) {
             return response()->json(['total' => 0, 'stats' => []]);
         }
 
+        if ($question->questionType->slug === 'short_answer') {
+            // Fetch individual answers for short answer questions
+            $answers = DB::table('quiz_attempt_answers')
+                ->join('quiz_attempts', 'quiz_attempt_answers.attempt_id', '=', 'quiz_attempts.id')
+                ->leftJoin('users', 'quiz_attempts.user_id', '=', 'users.id')
+                ->where('quiz_attempts.quiz_session_id', $session->id)
+                ->where('quiz_attempt_answers.question_id', $question->id)
+                ->select(
+                    'users.name as student_name',
+                    'quiz_attempts.nickname as guest_nickname',
+                    'quiz_attempt_answers.selected_text as answer',
+                    'quiz_attempt_answers.answered_at',
+                    'quiz_attempt_answers.is_correct'
+                )
+                ->orderBy('quiz_attempt_answers.answered_at', 'desc')
+                ->get()
+                ->map(function($a) {
+                    $a->display_name = $a->student_name ?: ($a->guest_nickname ?: 'Guest');
+                    return $a;
+                });
+
+            return response()->json([
+                'type' => 'short_answer',
+                'total' => $answers->count(),
+                'responses' => $answers,
+                'current_question_id' => $question->id
+            ]);
+        }
+
+        // Default MCQ logic
         $stats = DB::table('quiz_attempt_answers')
             ->join('quiz_attempts', 'quiz_attempt_answers.attempt_id', '=', 'quiz_attempts.id')
             ->join('question_options', 'quiz_attempt_answers.selected_option_id', '=', 'question_options.id')
             ->where('quiz_attempts.quiz_session_id', $session->id)
-            ->where('quiz_attempt_answers.question_id', $questionId)
+            ->where('quiz_attempt_answers.question_id', $question->id)
             ->select('question_options.option_text as text', 'quiz_attempt_answers.selected_option_id', DB::raw('count(*) as count'))
             ->groupBy('question_options.option_text', 'quiz_attempt_answers.selected_option_id')
             ->get();
 
-        // Map to format suitable for frontend
-        $total = $stats->sum('count');
-        
         return response()->json([
-            'total' => $total,
+            'type' => 'multiple_choice',
+            'total' => $stats->sum('count'),
             'stats' => $stats,
-            'current_question_id' => $questionId
+            'current_question_id' => $question->id
         ]);
     }
 
@@ -458,5 +508,57 @@ class QuizSessionController extends Controller
         ]);
 
         return response()->json($result);
+    /**
+     * Mark a short answer as correct and award points (teacher only)
+     */
+    public function markAnswer(Request $request, QuizSession $session)
+    {
+        if ($session->teacher_id !== Auth::id()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'question_id' => 'required|exists:questions,id',
+            'student_id' => 'nullable|exists:users,id',
+            'nickname' => 'nullable|string',
+        ]);
+
+        // Find the attempt
+        $query = QuizAttempt::where('quiz_session_id', $session->id);
+        if ($validated['student_id']) {
+            $query->where('user_id', $validated['student_id']);
+        } else {
+            $query->where('nickname', $validated['nickname']);
+        }
+        $attempt = $query->first();
+
+        if (!$attempt) {
+            return response()->json(['message' => 'Attempt not found'], 404);
+        }
+
+        // Find the answer and mark correct
+        $answer = \App\Models\QuizAttemptAnswer::where('attempt_id', $attempt->id)
+            ->where('question_id', $validated['question_id'])
+            ->first();
+
+        if ($answer && !$answer->is_correct) {
+            $answer->update(['is_correct' => true]);
+            
+            // Increment participant score
+            $pQuery = QuizSessionParticipant::where('quiz_session_id', $session->id);
+            if ($validated['student_id']) {
+                $pQuery->where('student_id', $validated['student_id']);
+            } else {
+                $pQuery->where('nickname', $validated['nickname']);
+            }
+            $participant = $pQuery->first();
+            
+            if ($participant) {
+                $points = $session->settings['points_per_question'] ?? 10;
+                $participant->incrementScore($points);
+            }
+        }
+
+        return response()->json(['success' => true]);
     }
 }

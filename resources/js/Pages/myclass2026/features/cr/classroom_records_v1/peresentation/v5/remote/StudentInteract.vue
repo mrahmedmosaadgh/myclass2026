@@ -35,7 +35,8 @@ useRealtimeChannel(studentChannel, (signal) => {
   } else if (signal.event === 'QUIZ_STARTED') {
     currentQuiz.value = {
       id: signal.context.quiz_id,
-      endTime: signal.context.endTime
+      endTime: signal.context.endTime,
+      type: signal.context.type || 'multiple_choice'
     };
   } else if (signal.event === 'QUIZ_ENDED') {
     currentQuiz.value = null;
@@ -120,7 +121,12 @@ const testDirectWrite = async () => {
         <!-- Dynamic Quiz Card overlay/section -->
         <section v-if="currentQuiz" class="quiz-interaction">
           <TimerBar :end-time="currentQuiz.endTime" />
-          <QuizCard :quiz-id="currentQuiz.id" :student-name="studentName" />
+          <QuizCard 
+            :key="currentQuiz.id"
+            :quiz-id="currentQuiz.id" 
+            :type="currentQuiz.type"
+            :student-name="studentName" 
+          />
         </section>
         
         <section v-else class="waiting-area">
