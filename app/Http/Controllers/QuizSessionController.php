@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\QuizSession;
 use App\Models\QuizSessionParticipant;
 use App\Models\Question;
+use App\Models\QuizAttempt;
+use App\Models\QuizAttemptAnswer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -319,7 +321,7 @@ class QuizSessionController extends Controller
         );
 
         // 2. Record the answer in quiz_attempt_answers
-        \App\Models\QuizAttemptAnswer::updateOrCreate(
+        QuizAttemptAnswer::updateOrCreate(
             [
                 'attempt_id' => $attempt->id,
                 'question_id' => $validated['question_id'],
