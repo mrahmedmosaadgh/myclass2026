@@ -125,9 +125,38 @@ export default defineConfig(({ mode }) => {
                             return 'feature-bm';
                         }
                         
-                        // Group Focus Grid
-                        if (id.includes('resources/js/Pages/myclass2026/features/fg')) {
-                            return 'feature-focus-grid';
+                        // Group MyClass2026 Features & Roles
+                        if (id.includes('resources/js/Pages/myclass2026/')) {
+                            if (id.includes('/features/')) {
+                                const parts = id.split('features/')[1].split('/');
+                                const featureName = parts[0];
+                                const featureMap = { 'cr': 'classroom-records', 'fg': 'focus-grid', 'qr-tools': 'qr-tools', 'smart-scanner': 'smart-scanner' };
+                                return `feature-${featureMap[featureName] || featureName}`;
+                            }
+                            if (id.includes('/roles/')) {
+                                const parts = id.split('roles/')[1].split('/');
+                                return `role-${parts[0]}`;
+                            }
+                        }
+
+                        // Group other major Page sections
+                        if (id.includes('resources/js/Pages/')) {
+                            const sections = ['Admin', 'Auth', 'CourseManagement', 'Courses', 'Dashboard', 'Documentation', 'Firebase', 'Notifications', 'Profile', 'Student', 'Teacher', 'WeeklyPlans', 'academy', 'modules', 'my_class', 'my_table_mnger', 'myclass_v2', 'old_features', 'qudratpro2026', 'print_html', 'project_manager'];
+                            for (const section of sections) {
+                                if (id.includes(`resources/js/Pages/${section}`)) {
+                                    return `page-section-${section.toLowerCase()}`;
+                                }
+                            }
+                        }
+
+                        // Group major Component sections
+                        if (id.includes('resources/js/Components/')) {
+                            const compSections = ['AI', 'Chat', 'Common', 'Courses', 'Firebase', 'Icons', 'Messages', 'QuestionBank', 'Quiz', 'Realtime', 'Schedule', 'SkillPractice', 'Students', 'dailyTasks', 'templates'];
+                            for (const compSection of compSections) {
+                                if (id.includes(`resources/js/Components/${compSection}`)) {
+                                    return `comp-section-${compSection.toLowerCase()}`;
+                                }
+                            }
                         }
                     }
                 },

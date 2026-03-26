@@ -81,6 +81,11 @@ const debugFirebase = async () => {
   }
 };
 
+// Real-time listener for signals from students
+const teacherChannel = computed(() => 
+  gameStore.accessCode ? `quiz_${gameStore.accessCode}_teacher` : null
+);
+
 useRealtimeChannel(teacherChannel, (signal) => {
   console.log('Teacher received signal:', signal);
   debugOutput.value.unshift({ 
