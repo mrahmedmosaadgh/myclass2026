@@ -23,7 +23,7 @@ use Illuminate\Queue\SerializesModels;
  *   // Notify everyone
  *   event(new RealtimeEvent('system.all', 'MAINTENANCE', ['scheduled_at' => '2026-02-10']));
  */
-class RealtimeEvent implements ShouldBroadcast
+class RealtimeEvent
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
