@@ -75,6 +75,13 @@ class QuizSessionController extends Controller
             ]);
         }
 
+        // Notify teacher that a student has joined
+        event(new \App\Events\RealtimeEvent("quiz_{$session->access_code}_teacher", 'STUDENT_JOINED', [
+            'student_id' => Auth::id(),
+            'name' => Auth::user()->name,
+            'status' => 'online'
+        ]));
+
         return response()->json([
             'success' => true,
             'session' => $session->load(['currentQuestion.questionType', 'currentQuestion.options', 'participants.student']),
@@ -361,5 +368,24 @@ class QuizSessionController extends Controller
             'myclass2026/features/cr/classroom_records_v1/peresentation/v5/remote/StudentInteract',
             ['title' => 'Student Quiz V5']
         );
+    /**
+     * Debug Firebase connectivity (bypasses event queue)
+     */
+    public function debugFirebase(Request $request)
+    {
+        $validated = $request->validate([
+            'access_code' => 'required|string',
+        ]);
+
+        $service = app(\App\Services\RealtimeNotificationService::class);
+        $result = $service->notifyWithDetails("quiz_{$validated['access_code']}_teacher", [
+            'event' => 'DEBUG_PING',
+            'context' => [
+                'message' => 'Manual debug ping from Laravel',
+                'timestamp' => now()->toDateTimeString(),
+            ]
+        ]);
+
+        return response()->json($result);
     }
 }

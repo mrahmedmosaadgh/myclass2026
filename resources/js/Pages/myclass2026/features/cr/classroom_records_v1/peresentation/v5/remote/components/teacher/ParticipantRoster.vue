@@ -1,14 +1,38 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useGameStore } from '../../../stores/gameStore';
+import { useRealtimeChannel } from '@/composables/useRealtimeChannel';
 
 const gameStore = useGameStore();
 
-// Mock participants (will be populated via Laravel load + Firebase join signal)
-const participants = ref([
-  { id: 1, name: 'Sample Student 1', group: 'Group A', status: 'online' },
-  { id: 2, name: 'Sample Student 2', group: 'Group B', status: 'offline' },
-]);
+// Reactive participants list
+const participants = ref([]);
+
+// Real-time listener for student joins
+const teacherChannel = computed(() => 
+  gameStore.accessCode ? `quiz_${gameStore.accessCode}_teacher` : null
+);
+
+useRealtimeChannel(teacherChannel, (signal) => {
+  if (signal.event === 'STUDENT_JOINED') {
+    const student = signal.context;
+    // Check if already in list
+    const existing = participants.value.find(p => p.id === student.student_id);
+    if (existing) {
+      existing.status = 'online';
+    } else {
+      participants.value.push({
+        id: student.student_id,
+        name: student.name,
+        group: student.group || 'Joined',
+        status: 'online'
+      });
+    }
+  } else if (signal.event === 'STUDENT_LEFT') {
+    const student = participants.value.find(p => p.id === signal.context.student_id);
+    if (student) student.status = 'offline';
+  }
+});
 
 const onlineCount = computed(() => participants.value.filter(p => p.status === 'online').length);
 </script>

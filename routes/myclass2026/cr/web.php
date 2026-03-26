@@ -110,5 +110,6 @@ Route::middleware([
         Route::post('/sessions/{session}/launch-quiz', [\App\Http\Controllers\QuizSessionController::class, 'launchQuiz'])->name('sessions.launch-quiz');
         Route::post('/sessions/{session}/submit-answer', [\App\Http\Controllers\QuizSessionController::class, 'submitAnswer'])->name('sessions.submit-answer');
         Route::get('/sessions/{session}/stats', [\App\Http\Controllers\QuizSessionController::class, 'getStats'])->name('sessions.stats');
+        Route::post('/debug-firebase', [\App\Http\Controllers\QuizSessionController::class, 'debugFirebase'])->name('debug-firebase');
     });
 });

@@ -7,6 +7,8 @@ import { ref, onMounted, computed } from 'vue';
 import { useGameStore } from '../stores/gameStore';
 import { usePresentationStore } from '../stores/presentationStore';
 import { useRealtimeChannel } from '@/composables/useRealtimeChannel';
+import { database } from '@/firebase/init';
+import { ref as dbRef, set } from 'firebase/database';
 import JoinForm from './components/student/JoinForm.vue';
 import StudentSlideView from './components/student/StudentSlideView.vue';
 import QuizCard from './components/student/QuizCard.vue';
@@ -44,6 +46,36 @@ const handleJoin = (data) => {
   studentName.value = data.name;
   isJoined.value = true;
 };
+
+// Debugging
+const isTestingSignal = ref(false);
+const testResult = ref(null);
+
+const testDirectWrite = async () => {
+  if (!gameStore.accessCode) return;
+  isTestingSignal.value = true;
+  testResult.value = '⚡ Testing...';
+  
+  try {
+    const path = `channels/quiz_${gameStore.accessCode}_teacher`;
+    const signalRef = dbRef(database, path);
+    
+    await set(signalRef, {
+      event: 'STUDENT_TEST_PING',
+      context: { name: studentName.value, time: new Date().toLocaleTimeString() },
+      timestamp: Math.floor(Date.now() / 1000),
+      trigger_id: 'test_' + Math.random()
+    });
+    
+    testResult.value = '✅ Success! Check Teacher Log.';
+  } catch (err) {
+    console.error('Test write failed:', err);
+    testResult.value = `❌ FAILED: ${err.code || err.message}`;
+  } finally {
+    isTestingSignal.value = false;
+    setTimeout(() => { if (testResult.value?.includes('Success')) testResult.value = null; }, 5000);
+  }
+};
 </script>
 
 <template>
@@ -62,6 +94,20 @@ const handleJoin = (data) => {
         </div>
         <div class="session-badge">
           Code: <strong>{{ gameStore.accessCode }}</strong>
+        </div>
+        
+        <!-- Debug Tool -->
+        <div class="student-debug">
+          <button 
+            class="btn-debug-mini" 
+            :disabled="isTestingSignal"
+            @click="testDirectWrite"
+          >
+            🧪 {{ isTestingSignal ? '...' : 'Signal' }}
+          </button>
+          <div v-if="testResult" class="debug-toast" :class="{ error: testResult.includes('❌') }">
+            {{ testResult }}
+          </div>
         </div>
       </header>
 
@@ -196,5 +242,52 @@ const handleJoin = (data) => {
 
 .card {
   border: 1px solid #e2e8f0;
+}
+
+.student-debug {
+  position: relative;
+}
+
+.btn-debug-mini {
+  padding: 4px 8px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-debug-mini:hover:not(:disabled) {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.debug-toast {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  background: #10b981;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  z-index: 100;
+  animation: fadeIn 0.2s ease;
+}
+
+.debug-toast.error {
+  background: #ef4444;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 </style>

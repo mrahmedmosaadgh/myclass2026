@@ -13,9 +13,8 @@ use Illuminate\Queue\InteractsWithQueue;
  * Automatically sends Firebase signals when RealtimeEvent is fired.
  * You NEVER need to touch this file after initial setup.
  */
-class FirebaseRealtimeListener implements ShouldQueue
+class FirebaseRealtimeListener
 {
-    use InteractsWithQueue;
 
     protected RealtimeNotificationService $firebaseService;
 
