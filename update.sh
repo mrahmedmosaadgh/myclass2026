@@ -8,6 +8,10 @@ TIMESTAMP=$(date +"%Y-%m-%d %H:%M")
 
 echo "🚀 Starting Full Project Update..."
 
+# Set local git identity for this session (prevents 'identity unknown' errors)
+git config user.email "ahmedmosaad@example.com"
+git config user.name "Ahmed Mosaad"
+
 # 1. Build the assets
 echo "📦 Building assets..."
 npm run build
@@ -36,7 +40,7 @@ echo "🌐 Syncing to Hostinger..."
 # NOTE: This requires 'sshpass' installed on your Mac: brew install esolitos/ipa/sshpass
 # If you don't have sshpass, you will be prompted for your password manually.
 
-SSH_CMD="cd ~/domains/qudratpro.com/public_html && git fetch origin && git reset --hard origin/production && git submodule update --init --remote && php artisan optimize"
+SSH_CMD="cd ~/domains/qudratpro.com/public_html && git fetch origin && git checkout production || git checkout -b production origin/production && git reset --hard origin/production && git submodule update --init --remote && php artisan optimize"
 
 ssh -p 65002 u474447882@62.72.37.122 "$SSH_CMD"
 
