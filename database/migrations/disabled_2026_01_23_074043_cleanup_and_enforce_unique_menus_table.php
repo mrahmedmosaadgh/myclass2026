@@ -57,14 +57,15 @@ return new class extends Migration
                 ->delete();
         }
 
-        Schema::table('menus', function (Blueprint $table) {
-            // Add unique constraint on route (nullable, so multiple nulls allowed usually, but let's be strict for named routes)
-            // Note: In some SQL dialects, multiple NULLs are allowed in UNIQUE.
-            // We will add unique on route.
-            $table->unique('route', 'menus_route_unique');
+        $existingIndexes = collect(DB::select("SHOW INDEX FROM menus"))->pluck('Key_name');
 
-            // Add unique constraint on label + parent_id (for folder structure uniqueness)
-            $table->unique(['label', 'parent_id'], 'menus_label_parent_unique');
+        Schema::table('menus', function (Blueprint $table) use ($existingIndexes) {
+            if (!$existingIndexes->contains('menus_route_unique')) {
+                $table->unique('route', 'menus_route_unique');
+            }
+            if (!$existingIndexes->contains('menus_label_parent_unique')) {
+                $table->unique(['label', 'parent_id'], 'menus_label_parent_unique');
+            }
         });
     }
 

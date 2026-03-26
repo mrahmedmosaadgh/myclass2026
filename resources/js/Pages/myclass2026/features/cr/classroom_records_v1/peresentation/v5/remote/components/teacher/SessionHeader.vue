@@ -38,6 +38,24 @@ const statusColor = computed(() => {
         <span class="dot" :style="{ backgroundColor: statusColor }"></span>
         <span class="status-text">{{ gameStore.sessionStatus.toUpperCase() }}</span>
       </div>
+      
+      <!-- Session Controls -->
+      <div class="session-controls">
+        <button 
+          v-if="gameStore.sessionStatus === 'active' || gameStore.sessionStatus === 'waiting'"
+          class="btn-end"
+          @click="gameStore.endSession()"
+        >
+          Stop Session
+        </button>
+        <button 
+          v-if="gameStore.sessionStatus === 'completed' || gameStore.sessionStatus === 'offline'"
+          class="btn-new"
+          @click="window.location.reload()"
+        >
+          Start New
+        </button>
+      </div>
     </div>
 
     <div class="right-section">
@@ -138,6 +156,34 @@ const statusColor = computed(() => {
   font-weight: 700;
   color: #475569;
 }
+
+.session-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-end, .btn-new {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-end {
+  background: #fef2f2;
+  color: #ef4444;
+  border: 1px solid #fee2e2;
+}
+.btn-end:hover { background: #fee2e2; }
+
+.btn-new {
+  background: #f0fdf4;
+  color: #10b981;
+  border: 1px solid #dcfce7;
+}
+.btn-new:hover { background: #dcfce7; }
 
 .stat-item {
   display: flex;
