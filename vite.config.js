@@ -85,80 +85,25 @@ export default defineConfig(({ mode }) => {
                     chunkFileNames: 'assets/js/[name]-[hash].js',
                     entryFileNames: 'assets/js/[name]-[hash].js',
                     manualChunks: (id) => {
-                        // 1. Minimal Vendor Grouping (Safety First)
-                        // We ONLY group libraries we know are safe and independent.
-                        // We do NOT group Vue, Quasar, or Utils to avoid "initialization errors".
+                        // 1. Vendor Grouping — ONLY large, independent libraries
                         if (id.includes('node_modules')) {
-                            // Removing echarts/katex to avoid circular dependencies with feature chunks
                             if (id.includes('firebase') || id.includes('@firebase')) return 'vendor-firebase';
                             if (id.includes('xlsx')) return 'vendor-xlsx';
-                            // vuedraggable is used in multiple page-section chunks; deduplicate it
-                            // to prevent "Cannot access 'ni' before initialization" circular dep error
                             if (id.includes('vuedraggable') || id.includes('sortablejs')) return 'vendor-draggable';
                         }
 
-                        // 2. Application Feature Grouping (The Fix for 1200+ Requests)
-                        // We MUST group these to stop the "1 file per component" madness.
-
-                        // Group ALL Quiz components (Question System, Quiz Management, etc.)
-                        if (id.includes('resources/js/Components/QuestionSystem') ||
-                            id.includes('resources/js/Pages/QuizManagement') ||
-                            id.includes('resources/js/Pages/my_table_mnger/lesson_presentation/quiz') ||
-                            id.includes('resources/js/composables/useLazyQuizComponents')) {
-                            return 'feature-quiz-engine';
+                        // 2. MyClass2026 Feature Grouping — small, self-contained feature folders
+                        if (id.includes('resources/js/Pages/myclass2026/features/')) {
+                            const parts = id.split('features/')[1].split('/');
+                            const featureName = parts[0];
+                            const featureMap = { 'cr': 'classroom-records', 'fg': 'focus-grid', 'qr-tools': 'qr-tools', 'smart-scanner': 'smart-scanner' };
+                            return `feature-${featureMap[featureName] || featureName}`;
                         }
 
-                        // Group Admin sections
-                        if (id.includes('resources/js/Pages/Admin') ||
-                            id.includes('resources/js/Pages/my_class/admin') ||
-                            id.includes('resources/js/Pages/my_class/super_admin')) {
-                            return 'feature-admin-core';
-                        }
-
-                        // Group Teacher sections
-                        if (id.includes('resources/js/Pages/Teacher') ||
-                            id.includes('resources/js/Pages/my_class/teacher')) {
-                            return 'feature-teacher-portal';
-                        }
-
-                        // Group Basic Math (BM) sections
-                        if (id.includes('resources/js/Pages/Courses/bm') ||
-                            id.includes('resources/js/Components/Courses/bm') ||
-                            id.includes('resources/js/Composables/Courses/bm')) {
-                            return 'feature-bm';
-                        }
-                        
-                        // Group MyClass2026 Features (but NOT roles - too many files cause circular deps)
-                        if (id.includes('resources/js/Pages/myclass2026/')) {
-                            if (id.includes('/features/')) {
-                                const parts = id.split('features/')[1].split('/');
-                                const featureName = parts[0];
-                                const featureMap = { 'cr': 'classroom-records', 'fg': 'focus-grid', 'qr-tools': 'qr-tools', 'smart-scanner': 'smart-scanner' };
-                                return `feature-${featureMap[featureName] || featureName}`;
-                            }
-                            // Roles are intentionally NOT grouped - Rollup handles them automatically
-                            // to avoid "Cannot access X before initialization" circular dep errors
-                        }
-
-                        // Group other major Page sections (WeeklyPlans removed - causes circular deps)
-                        if (id.includes('resources/js/Pages/')) {
-                            const sections = ['Admin', 'Auth', 'CourseManagement', 'Courses', 'Dashboard', 'Documentation', 'Firebase', 'Notifications', 'Profile', 'Student', 'Teacher', 'academy', 'modules', 'my_class', 'my_table_mnger', 'myclass_v2', 'old_features', 'qudratpro2026', 'print_html', 'project_manager'];
-                            for (const section of sections) {
-                                if (id.includes(`resources/js/Pages/${section}`)) {
-                                    return `page-section-${section.toLowerCase()}`;
-                                }
-                            }
-                        }
-
-                        // Group major Component sections
-                        if (id.includes('resources/js/Components/')) {
-                            const compSections = ['AI', 'Chat', 'Common', 'Courses', 'Firebase', 'Icons', 'Messages', 'QuestionBank', 'Quiz', 'Realtime', 'Schedule', 'SkillPractice', 'Students', 'dailyTasks', 'templates'];
-                            for (const compSection of compSections) {
-                                if (id.includes(`resources/js/Components/${compSection}`)) {
-                                    return `comp-section-${compSection.toLowerCase()}`;
-                                }
-                            }
-                        }
+                        // Everything else (Pages, Components, Roles, etc.) is handled
+                        // automatically by Rollup to avoid circular dependency errors.
+                        // DO NOT add page-section-* or comp-section-* groupings here —
+                        // they cause "Cannot access X before initialization" errors.
                     }
                 },
             },
