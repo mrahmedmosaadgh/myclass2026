@@ -3,17 +3,18 @@
 set -e
 
 echo "=============================="
-echo " MyClass2026 Tools Menu"
 echo "=============================="
 echo "1) Deploy: Full update + sync (update.sh)"
 echo "2) Deploy: Full update + sync (cache clear + route verify)"
 echo "3) Logs: Show last N lines of production laravel.log"
 echo "4) Logs: Clear (truncate) production laravel.log"
 echo "5) Server: Cache clear + route verify (remote only, no deploy)"
-echo "6) Exit"
+echo "6) Build: Delete Hostinger build files (public/build)"
+echo "7) Build: Push build repo & sync Hostinger build directory"
+echo "8) Exit"
 echo ""
 
-read -p "Choose an option (1-6): " CHOICE
+read -p "Choose an option (1-8): " CHOICE
 
 case "$CHOICE" in
   1)
@@ -52,6 +53,37 @@ case "$CHOICE" in
     echo "✅ Remote cache cleared and routes verified."
     ;;
   6)
+    echo "🗑️ Deleting build files on Hostinger (public/build)..."
+    SSH_CMD="cd ~/domains/qudratpro.com/public_html \
+&& rm -rf public/build/assets \
+&& rm -f public/build/manifest.json"
+    ssh -p 65002 u474447882@62.72.37.122 "$SSH_CMD"
+    echo "✅ Remote build files deleted."
+    ;;
+  7)
+    echo "📂 Pushing Build Repository (public/build)..."
+    TIMESTAMP=$(date +"%Y-%m-%d %H:%M")
+    cd public/build
+    
+    # Standard remote url
+    git remote set-url origin https://github.com/mrahmedmosaadgh/myclass2026_build.git
+    
+    git add -A
+    git commit -m "build: manual update assets | $TIMESTAMP" || true
+    git push origin main
+    cd ../..
+    
+    echo "🌐 Syncing Local Build Directory directly to Hostinger via Rsync..."
+    rsync -avz -e "ssh -p 65002" public/build/assets u474447882@62.72.37.122:~/domains/qudratpro.com/public_html/public/build/ || true
+    rsync -avz -e "ssh -p 65002" public/build/manifest.json u474447882@62.72.37.122:~/domains/qudratpro.com/public_html/public/build/ || true
+    
+    SSH_CMD="cd ~/domains/qudratpro.com/public_html \
+&& php artisan optimize:clear \
+&& php artisan optimize"
+    ssh -p 65002 u474447882@62.72.37.122 "$SSH_CMD"
+    echo "✅ Build files zipped and synced to Hostinger via Rsync."
+    ;;
+  8)
     echo "Bye."
     exit 0
     ;;

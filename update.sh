@@ -24,6 +24,10 @@ fi
 # 2. Update Build Repository (Submodule)
 echo "📂 Updating Build Repository..."
 cd public/build
+
+# Standard remote url
+git remote set-url origin https://github.com/mrahmedmosaadgh/myclass2026_build.git
+
 git add -A
 git commit -m "build: auto-update assets | $TIMESTAMP | Mac"
 git push origin main
@@ -44,12 +48,15 @@ SSH_CMD="cd ~/domains/qudratpro.com/public_html \
 && git fetch origin production \
 && (git checkout production || git checkout -b production FETCH_HEAD) \
 && git reset --hard FETCH_HEAD \
-&& git submodule update --init --remote \
 && (composer dump-autoload -o || true) \
 && php artisan optimize:clear \
 && php artisan optimize \
 && php artisan route:list | grep submit-answer || true"
 
 ssh -p 65002 u474447882@62.72.37.122 "$SSH_CMD"
+
+echo "⚡ Syncing Local Build Directory (public/build) to Hostinger via Rsync..."
+rsync -avz -e "ssh -p 65002" public/build/assets u474447882@62.72.37.122:~/domains/qudratpro.com/public_html/public/build/ || true
+rsync -avz -e "ssh -p 65002" public/build/manifest.json u474447882@62.72.37.122:~/domains/qudratpro.com/public_html/public/build/ || true
 
 echo "✅ ALL DONE! Project is updated locally and on Hostinger."
