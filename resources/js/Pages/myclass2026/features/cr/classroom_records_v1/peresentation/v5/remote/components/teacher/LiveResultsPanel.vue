@@ -6,6 +6,8 @@ import axios from 'axios';
 
 const gameStore = useGameStore();
 let statsInterval = null;
+let lastFetchTime = 0;
+const FETCH_THROTTLE_MS = 2000; // Minimum 2 seconds between fetches
 
 const results = ref({
   totalResponses: 0,
@@ -16,14 +18,19 @@ const results = ref({
 
 const isQuizActive = computed(() => gameStore.sessionStatus === 'active' && gameStore.sessionId);
 
-const fetchStats = async () => {
+const fetchStats = async (force = false) => {
   if (!isQuizActive.value) return;
+  
+  const now = Date.now();
+  if (!force && now - lastFetchTime < FETCH_THROTTLE_MS) return;
+  
+  lastFetchTime = now;
   try {
     const response = await axios.get(`/api/cr/sessions/${gameStore.sessionId}/stats`);
     results.value.totalResponses = response.data.total;
     
     // Map backend stats to visual options
-    results.value.options = response.data.stats.map(s => ({
+    results.value.options = (response.data.stats || []).map(s => ({
       text: s.text,
       count: s.count,
       percentage: response.data.total > 0 ? (s.count / response.data.total) * 100 : 0
@@ -33,7 +40,7 @@ const fetchStats = async () => {
   }
 };
 
-// Listen for student submissions to trigger immediate refresh
+// Listen for student submissions to trigger refresh (throttled)
 const teacherChannel = computed(() => 
   gameStore.accessCode ? `quiz_${gameStore.accessCode}_teacher` : null
 );
@@ -46,8 +53,9 @@ useRealtimeChannel(teacherChannel, (signal) => {
 
 watch(isQuizActive, (active) => {
   if (active) {
-    statsInterval = setInterval(fetchStats, 3000);
-    fetchStats();
+    // Fallback interval (longer)
+    statsInterval = setInterval(() => fetchStats(false), 10000);
+    fetchStats(true); // Initial fetch (forced)
   } else {
     clearInterval(statsInterval);
   }
