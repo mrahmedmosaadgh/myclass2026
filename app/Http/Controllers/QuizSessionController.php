@@ -52,33 +52,42 @@ class QuizSessionController extends Controller
     {
         $validated = $request->validate([
             'access_code' => 'required|string|exists:quiz_sessions,access_code',
+            'name' => 'required|string|max:50',
         ]);
 
         $session = QuizSession::where('access_code', $validated['access_code'])->first();
 
-        if ($session->isCompleted()) {
+        if ($session->status === 'completed') {
             return response()->json([
                 'message' => 'This session has already ended',
             ], 400);
         }
 
-        // Check if student already joined
-        $participant = QuizSessionParticipant::where('quiz_session_id', $session->id)
-            ->where('student_id', Auth::id())
-            ->first();
+        // Check if student already joined (by user_id or by name if guest)
+        $query = QuizSessionParticipant::where('quiz_session_id', $session->id);
+        
+        if (Auth::check()) {
+            $query->where('student_id', Auth::id());
+        } else {
+            $query->where('nickname', $validated['name']);
+        }
+
+        $participant = $query->first();
 
         if (!$participant) {
             $participant = QuizSessionParticipant::create([
                 'quiz_session_id' => $session->id,
-                'student_id' => Auth::id(),
+                'student_id' => Auth::check() ? Auth::id() : null,
+                'nickname' => !Auth::check() ? $validated['name'] : null,
                 'status' => 'joined',
             ]);
         }
 
         // Notify teacher that a student has joined
+        $studentName = Auth::check() ? Auth::user()->name : $validated['name'];
         event(new \App\Events\RealtimeEvent("quiz_{$session->access_code}_teacher", 'STUDENT_JOINED', [
-            'student_id' => Auth::id(),
-            'name' => Auth::user()->name,
+            'student_id' => Auth::id() ?? $participant->id,
+            'name' => $studentName,
             'status' => 'online'
         ]));
 
@@ -87,6 +96,29 @@ class QuizSessionController extends Controller
             'session' => $session->load(['currentQuestion.questionType', 'currentQuestion.options', 'participants.student']),
             'participant' => $participant->load('student'),
             'message' => 'Joined session successfully',
+        ]);
+    }
+
+    /**
+     * End a session (Teacher only)
+     */
+    public function endSession(Request $request, QuizSession $session)
+    {
+        if ($session->teacher_id !== Auth::id()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $session->update([
+            'status' => 'completed',
+            'ended_at' => now(),
+        ]);
+
+        // Notify all participants
+        event(new \App\Events\RealtimeEvent("quiz_{$session->access_code}", 'QUIZ_ENDED', []));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Session ended successfully'
         ]);
     }
 
@@ -224,11 +256,20 @@ class QuizSessionController extends Controller
         $validated = $request->validate([
             'question_id' => 'required|exists:questions,id',
             'answer' => 'required',
+            'nickname' => 'nullable|string', // Support guest identification
         ]);
 
-        $participant = QuizSessionParticipant::where('quiz_session_id', $session->id)
-            ->where('student_id', Auth::id())
-            ->first();
+        $query = QuizSessionParticipant::where('quiz_session_id', $session->id);
+        
+        if (Auth::check()) {
+            $query->where('student_id', Auth::id());
+        } elseif ($validated['nickname']) {
+            $query->where('nickname', $validated['nickname']);
+        } else {
+            return response()->json(['message' => 'Identification required'], 403);
+        }
+
+        $participant = $query->first();
 
         if (!$participant) {
             return response()->json(['message' => 'Not a participant'], 403);

@@ -4,7 +4,8 @@ import { useGameStore } from '../../../stores/gameStore';
 import axios from 'axios';
 
 const props = defineProps({
-  quizId: { type: [Number, String], required: true }
+  quizId: { type: [Number, String], required: true },
+  studentName: { type: String, default: '' }
 });
 
 const gameStore = useGameStore();
@@ -31,7 +32,8 @@ const submitAnswer = async (optionId) => {
   try {
     await axios.post(`/api/cr/sessions/${gameStore.sessionId}/submit-answer`, {
       question_id: props.quizId,
-      answer: optionId
+      answer: optionId,
+      nickname: props.studentName
     });
     isAnswered.value = true;
   } catch (err) {

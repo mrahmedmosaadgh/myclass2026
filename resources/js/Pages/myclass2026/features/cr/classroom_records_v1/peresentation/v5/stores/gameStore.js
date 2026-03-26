@@ -90,6 +90,24 @@ export const useGameStore = defineStore('presentation-game', () => {
     questionHistory.value = {};
   }
 
+  async function endSession() {
+    if (!sessionId.value) return;
+    try {
+      await axios.post(`/api/cr/sessions/${sessionId.value}/end`);
+      sessionStatus.value = 'completed';
+    } catch (err) {
+      console.error('Failed to end session:', err);
+    }
+  }
+
+  function resetSession() {
+    sessionId.value = null;
+    accessCode.value = null;
+    sessionStatus.value = 'offline';
+    participants.value = [];
+    questionHistory.value = {};
+  }
+
   // Answer Logging (Future-proofed for Firebase)
   function logGroupAnswer(elementId, groupId, optionId) {
     if (!questionHistory.value[elementId]) {
@@ -132,6 +150,8 @@ export const useGameStore = defineStore('presentation-game', () => {
     handleStudentSignal,
     logGroupAnswer,
     clearGroupAnswer,
-    getGroupAnswer
+    getGroupAnswer,
+    endSession,
+    resetSession
   };
 });

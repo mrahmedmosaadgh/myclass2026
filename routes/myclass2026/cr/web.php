@@ -108,6 +108,7 @@ Route::middleware([
         Route::post('/sessions/{session}/sync-slide', [\App\Http\Controllers\QuizSessionController::class, 'syncSlide'])->name('sessions.sync-slide');
         Route::post('/sessions/{session}/launch-quiz', [\App\Http\Controllers\QuizSessionController::class, 'launchQuiz'])->name('sessions.launch-quiz');
         Route::get('/sessions/{session}/stats', [\App\Http\Controllers\QuizSessionController::class, 'getStats'])->name('sessions.stats');
+        Route::post('/sessions/{session}/end', [\App\Http\Controllers\QuizSessionController::class, 'endSession'])->name('sessions.end');
         Route::post('/debug-firebase', [\App\Http\Controllers\QuizSessionController::class, 'debugFirebase'])->name('debug-firebase');
     });
 });

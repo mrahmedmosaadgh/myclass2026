@@ -120,7 +120,7 @@ const testDirectWrite = async () => {
         <!-- Dynamic Quiz Card overlay/section -->
         <section v-if="currentQuiz" class="quiz-interaction">
           <TimerBar :end-time="currentQuiz.endTime" />
-          <QuizCard :quiz-id="currentQuiz.id" />
+          <QuizCard :quiz-id="currentQuiz.id" :student-name="studentName" />
         </section>
         
         <section v-else class="waiting-area">
