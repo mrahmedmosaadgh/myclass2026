@@ -308,7 +308,7 @@ class QuizSessionController extends Controller
         }
 
         // 1. Get or create a QuizAttempt for this student/session
-        $attempt = QuizAttempt::firstOrCreate(
+        $attempt = \App\Models\QuizAttempt::firstOrCreate(
             [
                 'quiz_session_id' => $session->id,
                 'user_id' => $participant->student_id,

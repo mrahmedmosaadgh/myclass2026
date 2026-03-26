@@ -91,6 +91,11 @@ Route::middleware([
         Route::prefix('remote')->name('remote.')->group(function () {
             Route::get('/teacher', [\App\Http\Controllers\QuizSessionController::class, 'teacherRemote'])->name('teacher');
             Route::get('/student', [\App\Http\Controllers\QuizSessionController::class, 'studentJoin'])->name('student');
+            Route::get('/test', function () {
+                return Inertia::render('myclass2026/features/cr/classroom_records_v1/peresentation/v5/remote/RemoteDiagnostics', [
+                    'title' => 'Remote Diagnostics - MyClass2026',
+                ]);
+            })->name('test');
         });
     });
 
