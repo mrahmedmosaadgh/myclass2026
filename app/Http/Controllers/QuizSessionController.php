@@ -237,13 +237,41 @@ class QuizSessionController extends Controller
         // Check answer correctness
         $question = Question::with(['options', 'questionType'])->find($validated['question_id']);
         $isCorrect = false;
+        $selectedOptionId = null;
 
         if ($question->questionType->slug === 'multiple_choice') {
             $correctOption = $question->options->where('is_correct', true)->first();
-            $isCorrect = $correctOption && $validated['answer'] == $correctOption->id;
+            $selectedOptionId = $validated['answer'];
+            $isCorrect = $correctOption && $selectedOptionId == $correctOption->id;
         } elseif ($question->questionType->slug === 'numeric') {
             $isCorrect = $validated['answer'] == $question->correct_answer;
         }
+
+        // 1. Get or create a QuizAttempt for this student/session
+        $attempt = QuizAttempt::firstOrCreate(
+            [
+                'quiz_session_id' => $session->id,
+                'user_id' => Auth::id(),
+            ],
+            [
+                'started_at' => now(),
+                'total_questions' => 0,
+            ]
+        );
+
+        // 2. Record the answer in quiz_attempt_answers
+        \App\Models\QuizAttemptAnswer::updateOrCreate(
+            [
+                'attempt_id' => $attempt->id,
+                'question_id' => $validated['question_id'],
+            ],
+            [
+                'selected_option_id' => $selectedOptionId,
+                'selected_text' => is_string($validated['answer']) ? $validated['answer'] : null,
+                'is_correct' => $isCorrect,
+                'answered_at' => now(),
+            ]
+        );
 
         // Update score if correct
         if ($isCorrect) {
@@ -293,15 +321,16 @@ class QuizSessionController extends Controller
 
         $questionId = $session->current_question_id;
         if (!$questionId) {
-            return response()->json(['total' => 0, 'options' => []]);
+            return response()->json(['total' => 0, 'stats' => []]);
         }
 
-        $stats = DB::table('quiz_attempts')
-            ->join('question_options', 'quiz_attempts.selected_option_id', '=', 'question_options.id')
-            ->where('quiz_session_id', $session->id)
-            ->where('quiz_attempts.question_id', $questionId)
-            ->select('question_options.text', 'quiz_attempts.selected_option_id', DB::raw('count(*) as count'))
-            ->groupBy('question_options.text', 'quiz_attempts.selected_option_id')
+        $stats = DB::table('quiz_attempt_answers')
+            ->join('quiz_attempts', 'quiz_attempt_answers.attempt_id', '=', 'quiz_attempts.id')
+            ->join('question_options', 'quiz_attempt_answers.selected_option_id', '=', 'question_options.id')
+            ->where('quiz_attempts.quiz_session_id', $session->id)
+            ->where('quiz_attempt_answers.question_id', $questionId)
+            ->select('question_options.option_text as text', 'quiz_attempt_answers.selected_option_id', DB::raw('count(*) as count'))
+            ->groupBy('question_options.option_text', 'quiz_attempt_answers.selected_option_id')
             ->get();
 
         // Map to format suitable for frontend
