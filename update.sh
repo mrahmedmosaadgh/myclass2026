@@ -29,8 +29,8 @@ cd public/build
 git remote set-url origin https://github.com/mrahmedmosaadgh/myclass2026_build.git
 
 git add -A
-git commit -m "build: auto-update assets | $TIMESTAMP | Mac"
-git push origin main
+git commit -m "build: auto-update assets | $TIMESTAMP | Mac" || true
+git push origin main || echo "⚠️ Git push timed out, syncing directly via Rsync."
 cd ../..
 
 # 3. Update Main Repository
@@ -47,7 +47,7 @@ echo "🌐 Syncing to Hostinger..."
 SSH_CMD="cd ~/domains/qudratpro.com/public_html \
 && git fetch origin production \
 && (git checkout production || git checkout -b production FETCH_HEAD) \
-&& git reset --hard FETCH_HEAD \
+&& GIT_ALLOW_PROTOCOL=false git -c submodule.recurse=false reset --hard FETCH_HEAD \
 && (composer dump-autoload -o || true) \
 && php artisan optimize:clear \
 && php artisan optimize \
