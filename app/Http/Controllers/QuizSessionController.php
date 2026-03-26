@@ -210,8 +210,8 @@ class QuizSessionController extends Controller
         $validated = $request->validate([
             'question' => 'required|string',
             'type' => 'nullable|string|in:multiple_choice,short_answer',
-            'options' => 'required_if:type,multiple_choice|array',
-            'correctAnswer' => 'required_if:type,multiple_choice|integer',
+            'options' => 'required_if:type,multiple_choice|nullable|array',
+            'correctAnswer' => 'required_if:type,multiple_choice|nullable|integer',
             'duration' => 'required|integer|min:5'
         ]);
 
