@@ -64,13 +64,13 @@ class QuizSessionController extends Controller
         }
 
         // Check if student already joined (by user_id or by name if guest)
-        $query = QuizSessionParticipant::where('quiz_session_id', $session->id);
-        
-        if (Auth::check()) {
-            $query->where('student_id', Auth::id());
-        } else {
-            $query->where('nickname', $validated['name']);
-        }
+        $query = QuizSessionParticipant::where('quiz_session_id', $session->id)
+            ->where(function($q) use ($validated) {
+                $q->where('nickname', $validated['name']);
+                if (Auth::check()) {
+                    $q->orWhere('student_id', Auth::id());
+                }
+            });
 
         $participant = $query->first();
 
@@ -78,9 +78,17 @@ class QuizSessionController extends Controller
             $participant = QuizSessionParticipant::create([
                 'quiz_session_id' => $session->id,
                 'student_id' => Auth::check() ? Auth::id() : null,
-                'nickname' => !Auth::check() ? $validated['name'] : null,
+                'nickname' => $validated['name'],
                 'status' => 'joined',
             ]);
+        } else {
+            // Ensure we have both if available
+            if (Auth::check() && !$participant->student_id) {
+                $participant->update(['student_id' => Auth::id()]);
+            }
+            if (!$participant->nickname) {
+                $participant->update(['nickname' => $validated['name']]);
+            }
         }
 
         // Notify teacher that a student has joined
