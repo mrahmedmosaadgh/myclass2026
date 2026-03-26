@@ -24,6 +24,10 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        Schema::table('quiz_attempts', function (Blueprint $table) {
+            $table->foreign('quiz_session_id')->references('id')->on('quiz_sessions')->nullOnDelete();
+        });
+
         Schema::create('quiz_session_participants', function (Blueprint $table) {
             $table->id();
             $table->foreignId('quiz_session_id')->constrained('quiz_sessions')->cascadeOnDelete();
