@@ -242,7 +242,7 @@ class QuizSessionController extends Controller
 
         // Broadcast to students
         event(new \App\Events\RealtimeEvent("quiz_{$session->access_code}", 'QUIZ_STARTED', [
-            'questionId' => $newQuestion->id,
+            'quiz_id' => $newQuestion->id,
             'endTime' => $endTime
         ]));
 
