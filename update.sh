@@ -40,7 +40,7 @@ echo "🌐 Syncing to Hostinger..."
 # NOTE: This requires 'sshpass' installed on your Mac: brew install esolitos/ipa/sshpass
 # If you don't have sshpass, you will be prompted for your password manually.
 
-SSH_CMD="cd ~/domains/qudratpro.com/public_html && git fetch --all && (git checkout production 2>/dev/null || git checkout -b production origin/production) && git reset --hard origin/production && git submodule update --init --remote && php artisan optimize"
+SSH_CMD="cd ~/domains/qudratpro.com/public_html && git fetch origin production && git checkout production || git checkout -b production FETCH_HEAD && git reset --hard FETCH_HEAD && git submodule update --init --remote && php artisan optimize"
 
 ssh -p 65002 u474447882@62.72.37.122 "$SSH_CMD"
 
