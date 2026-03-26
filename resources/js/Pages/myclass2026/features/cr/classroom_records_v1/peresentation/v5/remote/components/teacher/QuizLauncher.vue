@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useGameStore } from '../../../stores/gameStore';
 import axios from 'axios';
 
@@ -11,6 +11,36 @@ const options = ref(['', '', '', '']);
 const correctAnswer = ref(0);
 const timer = ref(60);
 const isLaunching = ref(false);
+const history = ref([]);
+
+onMounted(() => {
+  const savedHistory = localStorage.getItem('teacher_quiz_history');
+  if (savedHistory) {
+    try {
+      history.value = JSON.parse(savedHistory);
+    } catch (e) {
+      console.error('Failed to parse history', e);
+    }
+  }
+});
+
+const saveHistory = () => {
+  localStorage.setItem('teacher_quiz_history', JSON.stringify(history.value));
+};
+
+const reuseQuestion = (q) => {
+  quizType.value = q.type;
+  questionText.value = q.question;
+  if (q.type === 'multiple_choice') {
+    options.value = [...q.options];
+    correctAnswer.value = q.correctAnswer;
+  }
+};
+
+const deleteQuestion = (index) => {
+  history.value.splice(index, 1);
+  saveHistory();
+};
 
 const launchQuiz = async () => {
   if (!questionText.value) return;
@@ -19,14 +49,24 @@ const launchQuiz = async () => {
   
   isLaunching.value = true;
   try {
-    await axios.post(`/api/cr/sessions/${gameStore.sessionId}/launch-quiz`, {
+    const payload = {
       question: questionText.value,
       type: quizType.value,
       options: quizType.value === 'multiple_choice' ? options.value : null,
       correctAnswer: quizType.value === 'multiple_choice' ? correctAnswer.value : null,
       duration: timer.value
-    });
+    };
+
+    await axios.post(`/api/cr/sessions/${gameStore.sessionId}/launch-quiz`, payload);
     
+    // Add to history (avoid duplicates of exact same question)
+    const exists = history.value.findIndex(h => h.question === payload.question && h.type === payload.type);
+    if (exists !== -1) history.value.splice(exists, 1);
+    
+    history.value.unshift(payload);
+    if (history.value.length > 10) history.value.pop(); // Keep last 10
+    saveHistory();
+
     // Clear form after launch
     questionText.value = '';
     options.value = ['', '', '', ''];
@@ -96,6 +136,27 @@ const launchQuiz = async () => {
       >
         {{ isLaunching ? 'Launching...' : '🚀 Launch to Students' }}
       </button>
+    </div>
+
+    <!-- Question History -->
+    <div v-if="history.length > 0" class="quiz-history">
+      <div class="history-header">
+        <h4>Recent Questions</h4>
+      </div>
+      <div class="history-list">
+        <div v-for="(q, idx) in history" :key="idx" class="history-item">
+          <div class="h-info">
+            <span class="h-type" :class="q.type">
+              {{ q.type === 'short_answer' ? 'Short' : 'MCQ' }}
+            </span>
+            <p class="h-text">{{ q.question }}</p>
+          </div>
+          <div class="h-actions">
+            <button class="btn-reuse" @click="reuseQuestion(q)" title="Reuse this question">🔄</button>
+            <button class="btn-delete" @click="deleteQuestion(idx)" title="Remove from history">×</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -252,6 +313,85 @@ textarea:focus {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* History Styles */
+.quiz-history {
+  margin-top: 1.5rem;
+  border-top: 1px dashed #e2e8f0;
+  padding-top: 1rem;
+}
+
+.history-header h4 {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6rem;
+  background: #f8fafc;
+  border-radius: 0.5rem;
+  border: 1px solid #e2e8f0;
+}
+
+.h-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.h-type {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.h-type.multiple_choice { background: #e0e7ff; color: #6366f1; }
+.h-type.short_answer { background: #fef2f2; color: #ef4444; }
+
+.h-text {
+  font-size: 0.85rem;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #475569;
+}
+
+.h-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.h-actions button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.btn-reuse:hover { background: #e0e7ff; }
+.btn-delete:hover { background: #fee2e2; }
 
 @media (max-width: 480px) {
   .options-grid {

@@ -17,6 +17,10 @@ const statusColor = computed(() => {
     default: return '#64748b'; // Gray
   }
 });
+
+const refreshPage = () => {
+  window.location.reload();
+};
 </script>
 
 <template>
@@ -51,7 +55,7 @@ const statusColor = computed(() => {
         <button 
           v-if="gameStore.sessionStatus === 'completed' || gameStore.sessionStatus === 'offline'"
           class="btn-new"
-          @click="window.location.reload()"
+          @click="refreshPage"
         >
           Start New
         </button>

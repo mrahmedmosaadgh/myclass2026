@@ -15,12 +15,39 @@ import QuizCard from './components/student/QuizCard.vue';
 import TimerBar from './components/student/TimerBar.vue';
 import StudentScoreHUD from './components/student/StudentScoreHUD.vue';
 
+import axios from 'axios';
+
 const gameStore = useGameStore();
 const presentation = usePresentationStore();
 
 const isJoined = ref(false);
 const currentQuiz = ref(null);
 const studentName = ref('');
+
+const checkAutoJoin = async () => {
+  const savedName = localStorage.getItem('quiz_nickname');
+  if (savedName && gameStore.accessCode) {
+    try {
+      const response = await axios.post('/api/cr/sessions/join', {
+        access_code: gameStore.accessCode,
+        name: savedName
+      });
+      if (response.data.success) {
+        studentName.value = savedName;
+        isJoined.value = true;
+        gameStore.setSession(
+          response.data.session.id,
+          response.data.session.access_code,
+          response.data.session.status
+        );
+      }
+    } catch (err) {
+      console.warn('Auto-join failed:', err);
+    }
+  }
+};
+
+onMounted(checkAutoJoin);
 
 // Real-time listener for the student channel
 const studentChannel = computed(() => 

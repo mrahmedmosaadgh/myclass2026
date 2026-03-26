@@ -97,32 +97,26 @@ Route::middleware([
     // API Routes for Session Management
     Route::prefix('api/cr')->name('cr.')->group(function () {
         // Initialize or load a classroom records session
-        Route::post('/init-session', [CrSessionController::class, 'initSession'])
-            ->name('init-session');
+        Route::post('/init-session', [CrSessionController::class, 'initSession'])->name('init-session');
         
-        // Batch update student scores
-        Route::patch('/batch', [CrSessionController::class, 'batchUpdate'])
-            ->name('batch');
+        // Batch update student scores (Main CR)
+        Route::patch('/batch', [CrSessionController::class, 'batchUpdate'])->name('batch');
 
-        // V5 Remote Session Routes (Teacher Only)
-        Route::post('/sessions/{session}/sync-slide', [\App\Http\Controllers\QuizSessionController::class, 'syncSlide'])->name('sessions.sync-slide');
-        Route::post('/sessions/{session}/launch-quiz', [\App\Http\Controllers\QuizSessionController::class, 'launchQuiz'])->name('sessions.launch-quiz');
-        Route::get('/sessions/{session}/stats', [\App\Http\Controllers\QuizSessionController::class, 'getStats'])->name('sessions.stats');
-        Route::post('/sessions/{session}/end', [\App\Http\Controllers\QuizSessionController::class, 'endSession'])->name('sessions.end');
-        Route::post('/debug-firebase', [\App\Http\Controllers\QuizSessionController::class, 'debugFirebase'])->name('debug-firebase');
+        // V5 Remote Teacher Controls (Auth Required)
+        Route::middleware(['auth:sanctum', 'verified'])->group(function() {
+            Route::post('/sessions/{session}/sync-slide', [\App\Http\Controllers\QuizSessionController::class, 'syncSlide'])->name('sessions.sync-slide');
+            Route::post('/sessions/{session}/launch-quiz', [\App\Http\Controllers\QuizSessionController::class, 'launchQuiz'])->name('sessions.launch-quiz');
+            Route::get('/sessions/{session}/stats', [\App\Http\Controllers\QuizSessionController::class, 'getStats'])->name('sessions.stats');
+            Route::post('/sessions/{session}/end', [\App\Http\Controllers\QuizSessionController::class, 'endSession'])->name('sessions.end');
+            Route::post('/sessions/{session}/mark-answer', [\App\Http\Controllers\QuizSessionController::class, 'markAnswer'])->name('sessions.mark-answer');
+            Route::post('/debug-firebase', [\App\Http\Controllers\QuizSessionController::class, 'debugFirebase'])->name('debug-firebase');
+        });
     });
 });
 
-// Public Student Routes (No Auth Required)
-Route::prefix('classroom-records/presentation/remote')->name('classroom-records.presentation.remote.')->group(function () {
-    Route::get('/student', [\App\Http\Controllers\QuizSessionController::class, 'studentJoin'])->name('student');
-});
-
+// Student & Public API Routes
 Route::prefix('api/cr')->name('cr.')->group(function () {
     Route::post('/sessions/join', [\App\Http\Controllers\QuizSessionController::class, 'join'])->name('sessions.join');
-    Route::post('/sessions/{session}/launch-quiz', [\App\Http\Controllers\QuizSessionController::class, 'launchQuiz']);
     Route::post('/sessions/{session}/submit-answer', [\App\Http\Controllers\QuizSessionController::class, 'submitAnswer'])->name('sessions.submit-answer');
-    Route::post('/sessions/{session}/mark-answer', [\App\Http\Controllers\QuizSessionController::class, 'markAnswer']);
-    Route::get('/sessions/{session}/stats', [\App\Http\Controllers\QuizSessionController::class, 'getStats']);
     Route::get('/questions/{question}', [\App\Http\Controllers\QuestionController::class, 'show'])->name('questions.show');
 });

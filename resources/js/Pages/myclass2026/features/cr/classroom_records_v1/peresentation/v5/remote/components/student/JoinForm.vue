@@ -37,6 +37,7 @@ const submitJoin = async () => {
         data.session.access_code,
         data.session.status
       );
+      localStorage.setItem('quiz_nickname', name.value);
       emit('joined', { name: name.value });
     } else {
       isError.value = true;
