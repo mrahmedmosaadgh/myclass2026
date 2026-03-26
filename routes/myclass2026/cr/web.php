@@ -104,12 +104,20 @@ Route::middleware([
         Route::patch('/batch', [CrSessionController::class, 'batchUpdate'])
             ->name('batch');
 
-        // V5 Remote Session Routes
-        Route::post('/sessions/join', [\App\Http\Controllers\QuizSessionController::class, 'join'])->name('sessions.join');
+        // V5 Remote Session Routes (Teacher Only)
         Route::post('/sessions/{session}/sync-slide', [\App\Http\Controllers\QuizSessionController::class, 'syncSlide'])->name('sessions.sync-slide');
         Route::post('/sessions/{session}/launch-quiz', [\App\Http\Controllers\QuizSessionController::class, 'launchQuiz'])->name('sessions.launch-quiz');
-        Route::post('/sessions/{session}/submit-answer', [\App\Http\Controllers\QuizSessionController::class, 'submitAnswer'])->name('sessions.submit-answer');
         Route::get('/sessions/{session}/stats', [\App\Http\Controllers\QuizSessionController::class, 'getStats'])->name('sessions.stats');
         Route::post('/debug-firebase', [\App\Http\Controllers\QuizSessionController::class, 'debugFirebase'])->name('debug-firebase');
     });
+});
+
+// Public Student Routes (No Auth Required)
+Route::prefix('classroom-records/presentation/remote')->name('classroom-records.presentation.remote.')->group(function () {
+    Route::get('/student', [\App\Http\Controllers\QuizSessionController::class, 'studentJoin'])->name('student');
+});
+
+Route::prefix('api/cr')->name('cr.')->group(function () {
+    Route::post('/sessions/join', [\App\Http\Controllers\QuizSessionController::class, 'join'])->name('sessions.join');
+    Route::post('/sessions/{session}/submit-answer', [\App\Http\Controllers\QuizSessionController::class, 'submitAnswer'])->name('sessions.submit-answer');
 });
