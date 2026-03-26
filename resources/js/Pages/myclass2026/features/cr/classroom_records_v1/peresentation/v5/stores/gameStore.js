@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 
 export const useGameStore = defineStore('presentation-game', () => {
   const gameSettings = ref({
@@ -26,6 +26,30 @@ export const useGameStore = defineStore('presentation-game', () => {
   const sessionId = ref(null);
   const accessCode = ref(null);
   const sessionStatus = ref('offline'); // offline, waiting, active, completed
+  const participants = ref([]);
+
+  const onlineCount = computed(() => participants.value.filter(p => p.status === 'online').length);
+
+  // Participant Management Actions
+  function handleStudentSignal(signal) {
+    if (signal.event === 'STUDENT_JOINED') {
+      const student = signal.context;
+      const existing = participants.value.find(p => p.id === student.student_id);
+      if (existing) {
+        existing.status = 'online';
+      } else {
+        participants.value.push({
+          id: student.student_id,
+          name: student.name,
+          group: student.group || 'Joined',
+          status: 'online'
+        });
+      }
+    } else if (signal.event === 'STUDENT_LEFT') {
+      const student = participants.value.find(p => p.id === signal.context.student_id);
+      if (student) student.status = 'offline';
+    }
+  }
 
   // Group Management Actions
   function setSession(id, code, status = 'waiting') {
@@ -94,6 +118,8 @@ export const useGameStore = defineStore('presentation-game', () => {
     sessionId,
     accessCode,
     sessionStatus,
+    participants,
+    onlineCount,
 
     setSession,
     addGroup,
@@ -103,6 +129,7 @@ export const useGameStore = defineStore('presentation-game', () => {
     updateGroupScore,
     resetScores,
 
+    handleStudentSignal,
     logGroupAnswer,
     clearGroupAnswer,
     getGroupAnswer

@@ -50,7 +50,7 @@ const statusColor = computed(() => {
         <span class="stat-label">Join Link</span>
       </div>
       <div class="stat-item">
-        <span class="stat-value">0</span>
+        <span class="stat-value">{{ gameStore.onlineCount }}</span>
         <span class="stat-label">Students Online</span>
       </div>
     </div>

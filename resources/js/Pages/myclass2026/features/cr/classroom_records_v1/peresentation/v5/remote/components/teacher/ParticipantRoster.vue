@@ -4,9 +4,7 @@ import { useGameStore } from '../../../stores/gameStore';
 import { useRealtimeChannel } from '@/composables/useRealtimeChannel';
 
 const gameStore = useGameStore();
-
-// Reactive participants list
-const participants = ref([]);
+const participants = computed(() => gameStore.participants);
 
 // Real-time listener for student joins
 const teacherChannel = computed(() => 
@@ -14,27 +12,10 @@ const teacherChannel = computed(() =>
 );
 
 useRealtimeChannel(teacherChannel, (signal) => {
-  if (signal.event === 'STUDENT_JOINED') {
-    const student = signal.context;
-    // Check if already in list
-    const existing = participants.value.find(p => p.id === student.student_id);
-    if (existing) {
-      existing.status = 'online';
-    } else {
-      participants.value.push({
-        id: student.student_id,
-        name: student.name,
-        group: student.group || 'Joined',
-        status: 'online'
-      });
-    }
-  } else if (signal.event === 'STUDENT_LEFT') {
-    const student = participants.value.find(p => p.id === signal.context.student_id);
-    if (student) student.status = 'offline';
-  }
+  gameStore.handleStudentSignal(signal);
 });
 
-const onlineCount = computed(() => participants.value.filter(p => p.status === 'online').length);
+const onlineCount = computed(() => gameStore.onlineCount);
 </script>
 
 <template>
