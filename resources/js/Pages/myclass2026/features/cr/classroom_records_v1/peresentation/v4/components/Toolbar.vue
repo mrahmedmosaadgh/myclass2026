@@ -171,6 +171,13 @@ function importJson() {
   };
   input.click();
 }
+
+function confirmReset() {
+  if (confirm("Start a new presentation?\n\nTip: You may want to export your current presentation as JSON before clearing it.\n\nClick OK to clear all data and start fresh.")) {
+    presentation.resetPresentation();
+    ui.clearSelection();
+  }
+}
 </script>
 
 <template>
@@ -248,6 +255,13 @@ function importJson() {
     
     <div class="divider"></div>
 
+    <div class="save-status" :title="presentation.saveStatus === 'saved' ? 'All changes saved locally' : 'Saving...'">
+      <div class="status-indicator" :class="presentation.saveStatus"></div>
+      <span class="status-text">{{ presentation.saveStatus === 'saved' ? 'Saved' : 'Saving...' }}</span>
+    </div>
+
+    <div class="divider"></div>
+
     <button @click="exportJson" title="Export Presentation as JSON">
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
       Export
@@ -256,6 +270,11 @@ function importJson() {
     <button @click="importJson" title="Import Presentation from JSON Backup">
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
       Import
+    </button>
+
+    <button @click="confirmReset" title="Start a New Presentation">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+      Reset
     </button>
   </div>
 </template>
@@ -314,5 +333,44 @@ function importJson() {
     padding: 6px;
     min-width: 50px;
   }
+}
+
+.save-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 54px;
+  padding: 0 4px;
+}
+
+.status-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-top: 4px;
+  margin-bottom: 2px;
+}
+
+.status-indicator.saved {
+  background-color: #10b981;
+}
+
+.status-indicator.saving {
+  background-color: #f59e0b;
+  animation: pulse 1s infinite;
+}
+
+.status-text {
+  font-size: 11px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
 }
 </style>

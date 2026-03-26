@@ -9,10 +9,11 @@ echo "1) Deploy: Full update + sync (update.sh)"
 echo "2) Deploy: Full update + sync (cache clear + route verify)"
 echo "3) Logs: Show last N lines of production laravel.log"
 echo "4) Logs: Clear (truncate) production laravel.log"
-echo "5) Exit"
+echo "5) Server: Cache clear + route verify (remote only, no deploy)"
+echo "6) Exit"
 echo ""
 
-read -p "Choose an option (1-5): " CHOICE
+read -p "Choose an option (1-6): " CHOICE
 
 case "$CHOICE" in
   1)
@@ -41,6 +42,16 @@ case "$CHOICE" in
     fi
     ;;
   5)
+    echo "🌐 Running remote cache clear + route verify on Hostinger..."
+    SSH_REMOTE_CMD="cd ~/domains/qudratpro.com/public_html \
+&& php artisan optimize:clear \
+&& php artisan optimize \
+&& echo '--- Route check (submit-answer) ---' \
+&& php artisan route:list | grep submit-answer || true"
+    ssh -p 65002 u474447882@62.72.37.122 "$SSH_REMOTE_CMD"
+    echo "✅ Remote cache cleared and routes verified."
+    ;;
+  6)
     echo "Bye."
     exit 0
     ;;
