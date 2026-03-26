@@ -1,63 +1,57 @@
-# Guide: Managing Dual-Repository Synchronization
+# Guide: Managing Production Deployment with Submodules
 
-This project uses a dual-repository setup to manage source code and build assets separately. This is essential for production environments like Hostinger where building assets on-site is not feasible.
+This project uses a dual-repository setup to manage source code and build assets. We use **Git Submodules** to link the source code repo to the build repo.
 
 ## 📁 Repository Structure
 
-1.  **Main Repository** (`/`): Contains all PHP, Vue source code, and configuration.
-2.  **Build Repository** (`/public/build`): Contains compiled JS, CSS, and manifest files.
+1.  **Main Repository** (`/`): Contains all PHP, Vue source code, and configuration. (Branch: `production`)
+2.  **Build Repository** (`/public/build`): Contains compiled assets. (Linked as a **Git Submodule**)
 
 ---
 
 ## 🛠️ Step-by-Step Update Workflow (Local)
 
-Follow these steps once you have completed your code changes:
+Once you've made code changes:
 
-### 1. Build the Assets
-Ensure your local `npm run build` is successful. This updates the files in `public/build`.
+### 1. Build and Push Assets (Build Repo)
 ```bash
 npm run build
-```
-
-### 2. Push Source Code (Main Repo)
-```bash
-git add .
-git commit -m "feat: your description | YYYY-MM-DD HH:MM | Mac"
-git push origin main3-clean
-```
-
-### 3. Push Build Assets (Build Repo)
-The `public/build` directory is a separate Git repository. You **must** enter it to push.
-```bash
 cd public/build
 git add -A
-git commit -m "build: update assets for [feat name] | YYYY-MM-DD HH:MM | Mac"
+git commit -m "build: update for [feature] | 2026-03-26 | Mac"
 git push origin main
 cd ../..
+```
+
+### 2. Update and Push Source Code (Main Repo)
+When you update `public/build`, the main repo sees a "change" in the submodule pointer. You **must** commit this.
+```bash
+git add .
+git commit -m "feat: your description | 2026-03-26 | Mac"
+git push origin production
 ```
 
 ---
 
 ## 🚀 Step-by-Step Sync Workflow (Hostinger SSH)
 
-Run these commands in your Hostinger terminal to apply the updates:
-
-### 1. Update Source Code
+Run these **one-time** setup commands first (to clean old files):
 ```bash
-git fetch origin
-git reset --hard origin/main3-clean
+# ONE TIME ONLY: Remove old build dir to allow submodule to take over
+rm -rf public/build
 ```
 
-### 2. Update Build Assets
+Then run these to sync updates:
 ```bash
-cd public/build
+# 1. Update Source Code
 git fetch origin
-git reset --hard origin/main
-cd ../..
-```
+git reset --hard origin/production
 
-### 3. Final Laravel Optimization
-```bash
+# 2. Update Build Assets (Submodule)
+# This one command replaces the old "cd public/build && git pull" step
+git submodule update --init --remote
+
+# 3. Final Laravel Optimization
 php artisan optimize
 ```
 
@@ -65,6 +59,6 @@ php artisan optimize
 
 ## ⚠️ Important Notes
 
-*   **Hostinger Git Limits**: If `git pull` fails due to untracked files, always use `git reset --hard origin/[branch]` after fetching.
-*   **Case Sensitivity**: Remember that Hostinger (Linux) is case-sensitive. Ensure your component filenames and imports match exactly.
-*   **Performance**: If you notice 1800+ requests, verify that your new pages use `layout: false` if they are standalone tools.
+*   **Default Branch**: We now use `production` as the master branch for deployments.
+*   **Submodule Status**: If `git status` shows "modified: public/build (new commits)", it means your build repo is ahead of your current main repo pointer. Always commit the build folder in the main repo after pushing to the build repo.
+*   **Hostinger Reset**: If you get errors, always use `git reset --hard origin/production` first to ensure a clean slate.
