@@ -1,0 +1,8 @@
+Use this URL to force load the new version:
+
+YOUR_DOMAIN/simple-focus-app-offline/v1?refresh=true
+
+Or add a timestamp:
+YOUR_DOMAIN/simple-focus-app-offline/v1?t=1711549440
+
+This will bypass browser cache and load the fresh version with all UI improvements.

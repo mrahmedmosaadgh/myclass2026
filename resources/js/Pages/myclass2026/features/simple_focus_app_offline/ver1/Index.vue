@@ -381,18 +381,28 @@ onMounted(() => {
     // Clear old cache to force refresh
     caches.keys().then(cacheNames => {
       cacheNames.forEach(cacheName => {
-        if (cacheName.startsWith('offline-cache-') && cacheName !== 'offline-cache-v1.2.0') {
+        if (cacheName.startsWith('offline-cache-') && cacheName !== 'offline-cache-v1.2.1') {
           caches.delete(cacheName);
         }
       });
     });
   }
   
-  // Force page refresh if old version detected
+  // Force page refresh if old version detected or URL has cache busting
   const lastVersion = localStorage.getItem('focus-app-version');
-  const currentVersion = '1.2.0';
-  if (lastVersion !== currentVersion) {
+  const currentVersion = '1.2.1';
+  const urlParams = new URLSearchParams(window.location.search);
+  const forceRefresh = urlParams.get('refresh');
+  
+  if (lastVersion !== currentVersion || forceRefresh === 'true') {
     localStorage.setItem('focus-app-version', currentVersion);
+    
+    // Clean up URL after refresh
+    if (forceRefresh === 'true') {
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, '', cleanUrl);
+    }
+    
     // Force a hard refresh
     window.location.reload(true);
   }

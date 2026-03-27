@@ -4,9 +4,12 @@
  */
 
 // Cache version - increment to force cache refresh
-const CACHE_VERSION = 'v1.2.0';
+const CACHE_VERSION = 'v1.2.1';
 const CACHE_NAME = `offline-cache-${CACHE_VERSION}`;
 const OFFLINE_URL = '/presentation-offline.html';
+
+// Add timestamp for additional cache busting
+const CACHE_TIMESTAMP = Date.now();
 
 // Files to cache for offline use (will be populated dynamically)
 const CACHE_URLS = [
