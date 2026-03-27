@@ -64,6 +64,10 @@ export function resolvePageComponent(pageName) {
         'MyTableManager': () => import(`./Pages/my_table_mnger/${pageName.replace('my_table_mnger/', '')}.vue`),
         'PrintHTML': () => import(`./Pages/print_html/${pageName.replace('print_html/', '')}.vue`),
         'ProjectManager': () => import(`./Pages/project_manager/${pageName.replace('project_manager/', '')}.vue`),
+        
+        // Focus App Offline sections
+        'myclass2026/features/simple_focus_app_offline/ver1': () => import(`./Pages/myclass2026/features/simple_focus_app_offline/ver1/${pageName.replace('myclass2026/features/simple_focus_app_offline/ver1/', '')}.vue`),
+        'myclass2026/features/simple_focus_app_offline/ver2': () => import(`./Pages/myclass2026/features/simple_focus_app_offline/ver2/${pageName.replace('myclass2026/features/simple_focus_app_offline/ver2/', '')}.vue`),
     };
 
     // Check if the page belongs to a specific section
