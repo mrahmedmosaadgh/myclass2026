@@ -29,7 +29,7 @@ const gameStore = useGameStore();
 
 // UI state
 const isSidebarOpen = ref(true);
-const activeTab = ref('quiz'); // 'quiz' or 'participants'
+const activeTab = ref('results'); // default to live results
 const isQRModalOpen = ref(false);
 
 const studentJoinUrl = computed(() => {
@@ -116,39 +116,42 @@ useRealtimeChannel(teacherChannel, (signal) => {
       <!-- Right: Control Panel (Mobile: Stacks below) -->
       <aside class="control-panel card">
         <div class="panel-tabs">
-          <button 
-            :class="{ active: activeTab === 'quiz' }" 
-            @click="activeTab = 'quiz'"
-          >
-            Quiz Control
+          <button :class="{ active: activeTab === 'results' }" @click="activeTab = 'results'">
+            📊 Results
           </button>
-          <button 
-            :class="{ active: activeTab === 'participants' }" 
-            @click="activeTab = 'participants'"
-          >
-            Participants
+          <button :class="{ active: activeTab === 'quiz' }" @click="activeTab = 'quiz'">
+            🚀 Launch
+          </button>
+          <button :class="{ active: activeTab === 'participants' }" @click="activeTab = 'participants'">
+            👥 Students
           </button>
         </div>
 
         <div class="panel-content">
+          <!-- Live Results — primary view -->
+          <div v-show="activeTab === 'results'">
+            <LiveResultsPanel />
+          </div>
+
+          <!-- Quiz Launcher -->
           <div v-show="activeTab === 'quiz'">
             <QuizLauncher />
-            <LiveResultsPanel class="mt-4" />
           </div>
+
+          <!-- Participants -->
           <div v-show="activeTab === 'participants'">
             <ParticipantRoster />
-            
+
             <!-- Debug Tools -->
             <div class="debug-tools mt-8 pt-4 border-top">
               <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Debug Tools</h4>
-              <button 
-                class="btn-debug" 
+              <button
+                class="btn-debug"
                 :disabled="isDebuggingFirebase"
                 @click="debugFirebase"
               >
                 {{ isDebuggingFirebase ? 'Testing...' : '🧪 Test Firebase' }}
               </button>
-              
               <div v-if="debugOutput.length > 0" class="debug-log mt-2">
                 <div v-for="(log, i) in debugOutput.slice(0, 5)" :key="i" :class="['log-entry', log.type]">
                   <span class="log-time">[{{ log.time }}]</span>
