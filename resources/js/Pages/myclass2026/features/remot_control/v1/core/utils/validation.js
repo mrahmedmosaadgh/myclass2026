@@ -30,14 +30,20 @@ export const validateCommand = (command, schema = null) => {
   }
 
   // Required fields validation
-  const requiredFields = ['commandId', 'channelId', 'type', 'metadata']
-  requiredFields.forEach(field => {
+  const requiredStringFields = ['commandId', 'channelId', 'type']
+  requiredStringFields.forEach(field => {
     if (!command[field]) {
       errors.push(`Missing required field: ${field}`)
     } else if (typeof command[field] !== 'string') {
       errors.push(`Field ${field} must be a string`)
     }
   })
+
+  if (!command.metadata) {
+    errors.push('Missing required field: metadata')
+  } else if (typeof command.metadata !== 'object' || Array.isArray(command.metadata)) {
+    errors.push('Field metadata must be an object')
+  }
 
   // Validate commandId format (UUID-like)
   if (command.commandId && !isValidId(command.commandId)) {
