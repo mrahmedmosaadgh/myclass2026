@@ -51,6 +51,7 @@ function handleFileChange(event) {
         {{ isImporting ? 'IMPORTING...' : 'IMPORT JSON' }}
       </button>
       <button class="tool-button danger" @click="emit('clear')">CLEAR DATA</button>
+      <button class="tool-button critical" @click="emit('reset')">RESET EVERYTHING</button>
       <button
         v-if="canInstall && !isInstalled"
         class="tool-button success"
@@ -132,9 +133,32 @@ function handleFileChange(event) {
   color: #fecaca;
 }
 
+.tool-button.critical {
+  border-color: #dc2626;
+  color: #ef4444;
+  font-weight: 600;
+  background: rgba(220, 38, 38, 0.05);
+  animation: pulse-red 2s infinite;
+}
+
+.tool-button.critical:hover {
+  background: rgba(220, 38, 38, 0.15);
+  border-color: #b91c1c;
+  box-shadow: 0 0 12px rgba(220, 38, 38, 0.4);
+}
+
 .tool-button.success {
   border-color: #86efac;
   color: #86efac;
+}
+
+@keyframes pulse-red {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(220, 38, 38, 0);
+  }
 }
 
 .tool-chip {

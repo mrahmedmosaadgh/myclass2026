@@ -10,6 +10,7 @@ import TimerPanel from './components/TimerPanel.vue';
 import ActionChooser from './components/ActionChooser.vue';
 import TimelineLog from './components/TimelineLog.vue';
 import DataToolsPanel from './components/DataToolsPanel.vue';
+import FocusMood from './components/FocusMood.vue';
 
 defineOptions({ layout: StandaloneLayout });
 
@@ -62,6 +63,7 @@ const confirmState = ref({
   onConfirm: null,
 });
 
+const focusMoodVisible = ref(false);
 const pendingImportFile = ref(null);
 
 function askConfirm({ title, message, confirmLabel = 'CONFIRM', cancelLabel = 'CANCEL', tone = 'warning', onConfirm }) {
@@ -222,6 +224,51 @@ function handleClear() {
   });
 }
 
+function handleResetEverything() {
+  askConfirm({
+    title: '⚠️ RESET EVERYTHING',
+    message: '⚠️ WARNING: This will permanently delete ALL focus app data including:\n\n• All tasks and notes\n• All session history\n• Timeline entries\n• App settings and preferences\n\nThis action CANNOT be undone. Are you absolutely sure you want to start completely fresh?',
+    confirmLabel: 'RESET EVERYTHING',
+    cancelLabel: 'CANCEL',
+    tone: 'danger',
+    onConfirm: () => {
+      // Clear all app data
+      clearAllData();
+      // Also clear any other localStorage items for this app
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.includes('focus-app')) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+      
+      // Reload the page to start fresh
+      window.location.reload();
+    },
+  });
+}
+
+function handleFocusMood() {
+  if (!activeTask.value) {
+    askConfirm({
+      title: 'NO ACTIVE TASK',
+      message: 'Start a task first to enter Focus Mood mode.',
+      confirmLabel: 'OK',
+      cancelLabel: 'BACK',
+      tone: 'warning',
+    });
+    return;
+  }
+  
+  focusMoodVisible.value = true;
+}
+
+function exitFocusMood() {
+  focusMoodVisible.value = false;
+}
+
 function handleInstall() {
   askConfirm({
     title: 'INSTALL APP',
@@ -304,6 +351,7 @@ onMounted(() => {
         @pause="handlePause"
         @resume="handleResume"
         @reset="handleReset"
+        @focus-mood="handleFocusMood"
       />
     </section>
 
@@ -336,6 +384,7 @@ onMounted(() => {
         :service-worker-status="serviceWorkerStatus"
         @export="handleExport"
         @clear="handleClear"
+        @reset="handleResetEverything"
         @install="handleInstall"
         @import-file="handleImportFile"
       />
@@ -366,6 +415,16 @@ onMounted(() => {
     :tone="confirmState.tone"
     @cancel="closeConfirm"
     @confirm="runConfirm"
+  />
+
+  <FocusMood
+    :visible="focusMoodVisible"
+    :task-title="runningTaskLabel"
+    :timer-label="timerLabel"
+    :progress="timerProgress"
+    :remaining-seconds="state.timer.remainingSeconds"
+    :timer-status="state.timer.status"
+    @exit="exitFocusMood"
   />
 </template>
 

@@ -45,6 +45,7 @@ const emit = defineEmits(['pause', 'resume', 'reset']);
       <button class="timer-button" @click="emit('pause')">PAUSE</button>
       <button class="timer-button" @click="emit('resume')">RESUME</button>
       <button class="timer-button danger" @click="emit('reset')">RESET</button>
+      <button class="timer-button focus-mood" @click="emit('focus-mood')">FOCUS MOOD</button>
     </div>
   </section>
 </template>
@@ -170,5 +171,18 @@ const emit = defineEmits(['pause', 'resume', 'reset']);
   background: rgba(239, 68, 68, 0.15);
   border-color: #dc2626;
   box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
+}
+
+.timer-button.focus-mood {
+  border-color: #a855f7;
+  color: #e9d5ff;
+  background: rgba(168, 85, 247, 0.1);
+}
+
+.timer-button.focus-mood:hover:not(:disabled) {
+  background: rgba(168, 85, 247, 0.2);
+  border-color: #9333ea;
+  box-shadow: 0 0 16px rgba(168, 85, 247, 0.4);
+  transform: translateY(-1px);
 }
 </style>
