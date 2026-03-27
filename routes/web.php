@@ -25,6 +25,9 @@ use Spatie\Permission\Models\Role;
 // Include Classroom Records v1 Routes
 include dirname(__DIR__).'/routes/myclass2026/cr/web.php';
 
+// Include Remote Control System Routes
+include dirname(__DIR__).'/routes/myclass2026/remote_control.php';
+
 // Domain-based Routing for QudratPro
 Route::domain('qudratpro.com')->group(function () {
     require base_path('routes/qudrat/web.php');
