@@ -20,19 +20,16 @@ echo "🚀 Starting BACKEND ONLY Update..."
 # ── Pre-flight ──
 command -v git >/dev/null 2>&1 || { echo "❌ git not found."; exit 1; }
 
-# ── Stage & Commit ──
-echo "🖥️ Committing Backend Changes..."
-# Stage everything EXCEPT the frontend submodule (public/build).
+# ── Local Commit (if any) ──
+echo "🖥️ Committing Local Backend Changes..."
 git add -- ':!public/build'
 
-# Exit cleanly if nothing to commit
 if git diff --cached --quiet; then
-  echo "✅ No backend changes to commit."
-  exit 0
+  echo "✅ No local backend changes to commit."
+else
+  git commit -m "feat(backend): source sync"
+  git push origin production || echo "⚠️ Main repo push failed, but will still attempt server sync."
 fi
-
-git commit -m "feat(backend): auto-update source | $TIMESTAMP"
-git push origin production || echo "⚠️ Main repo push failed, but will still attempt server sync."
 
 # ── Remote Sync ──
 echo "🌐 Syncing to Hostinger..."

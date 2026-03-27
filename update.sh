@@ -57,7 +57,7 @@ fi
 echo "🖥️ Updating Main Repository..."
 git add .
 git diff --cached --quiet && echo "  ℹ️  No source changes to commit." || {
-  git commit -m "feat: auto-update source & submodule | $TIMESTAMP"
+  git commit -m "feat: auto-update source & submodule"
   git push origin production || echo "  ⚠️ Main repo push failed."
 }
 
