@@ -320,8 +320,13 @@ export function useRealtimeChannel(channelId, options = {}) {
         throw new Error('Firebase database not available')
       }
 
+      console.log('🔥 Updating state in Firebase:', paths.state)
+      console.log('🔥 State data:', stateObj)
+      
       const stateRef = dbRef(database, paths.state)
       await set(stateRef, stateObj)
+      
+      console.log('✅ State updated in Firebase successfully')
       
       // Log event if enabled
       if (config.logEvents) {
@@ -329,7 +334,10 @@ export function useRealtimeChannel(channelId, options = {}) {
       }
       
     } catch (error) {
-      console.error('Failed to update Firebase state:', error)
+      console.error('❌ Failed to update Firebase state:', error)
+      console.error('❌ Error details:', error.message)
+      console.error('❌ Firebase path attempted:', paths.state)
+      console.error('❌ Database available:', !!database)
       lastError.value = error
       
       // Retry if connection issue
@@ -404,9 +412,14 @@ export function useRealtimeChannel(channelId, options = {}) {
         throw new Error('Firebase database not available')
       }
 
+      console.log('🔥 Writing command to Firebase:', command.commandId)
+      console.log('🔥 Firebase path:', paths.commands)
+      
       const commandsRef = dbRef(database, paths.commands)
       const newCommandRef = push(commandsRef)
       await set(newCommandRef, command)
+      
+      console.log('✅ Command written to Firebase successfully')
       
       // Remove from pending
       const index = pendingCommands.value.findIndex(c => c.commandId === command.commandId)
@@ -428,7 +441,10 @@ export function useRealtimeChannel(channelId, options = {}) {
       return true
       
     } catch (error) {
-      console.error('Failed to send command:', error)
+      console.error('❌ Failed to send command to Firebase:', error)
+      console.error('❌ Error details:', error.message)
+      console.error('❌ Firebase path attempted:', paths.commands)
+      console.error('❌ Database available:', !!database)
       lastError.value = error
       
       // Increment retry count
