@@ -264,7 +264,7 @@
 </template>
 
 <script>
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, watch } from 'vue'
 import { useRealtimeChannel } from './core/composables/useRealtimeChannel.js'
 import ChannelProvider from './components/ChannelProvider.vue'
 import StateReceiver from './components/StateReceiver.vue'

@@ -312,7 +312,7 @@ export default {
       default: 'test-channel-1'
     }
   },
-  setup(props) {
+  setup(props, { emit }) {
     // Inject channel if available
     const injectedChannel = inject('channel', null)
     
