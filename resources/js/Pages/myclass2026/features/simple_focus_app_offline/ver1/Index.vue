@@ -4,6 +4,7 @@ import { Head } from '@inertiajs/vue3';
 import StandaloneLayout from './layouts/StandaloneLayout.vue';
 import { useFocusApp } from './composables/useFocusApp';
 import { useStandaloneApp } from './composables/useStandaloneApp';
+import { useWakeLock } from './composables/useWakeLock';
 import ConfirmDialog from './components/ConfirmDialog.vue';
 import TaskComposer from './components/TaskComposer.vue';
 import TimerPanel from './components/TimerPanel.vue';
@@ -52,6 +53,14 @@ const {
   serviceWorkerStatus,
   promptInstall,
 } = useStandaloneApp();
+
+const {
+  isSupported: wakeLockSupported,
+  isActive: wakeLockActive,
+  error: wakeLockError,
+  requestWakeLock,
+  releaseWakeLock,
+} = useWakeLock();
 
 const confirmState = ref({
   open: false,
@@ -269,6 +278,23 @@ function exitFocusMood() {
   focusMoodVisible.value = false;
 }
 
+function toggleWakeLock() {
+  if (wakeLockActive.value) {
+    releaseWakeLock();
+  } else {
+    const success = requestWakeLock();
+    if (!success && wakeLockError.value) {
+      askConfirm({
+        title: 'WAKE LOCK ERROR',
+        message: wakeLockError.value,
+        confirmLabel: 'OK',
+        cancelLabel: 'BACK',
+        tone: 'warning',
+      });
+    }
+  }
+}
+
 function handleInstall() {
   askConfirm({
     title: 'INSTALL APP',
@@ -382,11 +408,14 @@ onMounted(() => {
         :is-installed="isInstalled"
         :is-importing="isImporting"
         :service-worker-status="serviceWorkerStatus"
+        :wake-lock-supported="wakeLockSupported"
+        :wake-lock-active="wakeLockActive"
         @export="handleExport"
         @clear="handleClear"
         @reset="handleResetEverything"
         @install="handleInstall"
         @import-file="handleImportFile"
+        @toggle-wake-lock="toggleWakeLock"
       />
     </section>
 
@@ -426,6 +455,28 @@ onMounted(() => {
     :timer-status="state.timer.status"
     @exit="exitFocusMood"
   />
+
+  <!-- Floating Focus Mood Button -->
+  <button 
+    class="floating-focus-btn" 
+    @click="handleFocusMood"
+    :title="activeTask ? 'Enter Focus Mood' : 'Start a task first'"
+  >
+    <span class="focus-icon">🎯</span>
+    <span class="focus-text">FOCUS</span>
+  </button>
+
+  <!-- Floating Wake Lock Button -->
+  <button 
+    v-if="wakeLockSupported"
+    class="floating-wake-btn" 
+    :class="{ 'wake-active': wakeLockActive }"
+    @click="toggleWakeLock"
+    :title="wakeLockActive ? 'Turn off screen wake lock' : 'Keep screen awake during focus sessions'"
+  >
+    <span class="wake-icon">{{ wakeLockActive ? '🔓' : '🔒' }}</span>
+    <span class="wake-text">{{ wakeLockActive ? 'UNLOCK' : 'LOCK' }}</span>
+  </button>
 </template>
 
 <style scoped>
@@ -529,6 +580,195 @@ onMounted(() => {
 
   .focus-app {
     padding: 0.75rem;
+  }
+}
+
+/* Floating Focus Button */
+.floating-focus-btn {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.9), rgba(139, 92, 246, 0.9));
+  border: 2px solid rgba(168, 85, 247, 0.6);
+  color: #f0fdf4;
+  padding: 1rem;
+  border-radius: 50%;
+  cursor: pointer;
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  z-index: 1000;
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 32px rgba(168, 85, 247, 0.4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 80px;
+  min-height: 80px;
+  backdrop-filter: blur(8px);
+}
+
+.floating-focus-btn:hover {
+  transform: translateY(-2px) scale(1.05);
+  background: linear-gradient(135deg, rgba(168, 85, 247, 1), rgba(139, 92, 246, 1));
+  border-color: rgba(168, 85, 247, 0.8);
+  box-shadow: 0 12px 40px rgba(168, 85, 247, 0.6);
+}
+
+.floating-focus-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.floating-focus-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.floating-focus-btn:disabled:hover {
+  transform: none;
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.5), rgba(139, 92, 246, 0.5));
+  box-shadow: 0 8px 32px rgba(168, 85, 247, 0.2);
+}
+
+.focus-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.2rem;
+}
+
+.focus-text {
+  font-size: 0.7rem;
+  line-height: 1;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .floating-focus-btn {
+    bottom: 1rem;
+    right: 1rem;
+    min-width: 70px;
+    min-height: 70px;
+    padding: 0.8rem;
+  }
+  
+  .focus-icon {
+    font-size: 1.2rem;
+    margin-bottom: 0.1rem;
+  }
+  
+  .focus-text {
+    font-size: 0.6rem;
+  }
+}
+
+/* Hide floating button in focus mood */
+.focus-mood-overlay ~ .floating-focus-btn,
+.focus-mood-overlay ~ .floating-wake-btn {
+  display: none;
+}
+
+/* Floating Wake Lock Button */
+.floating-wake-btn {
+  position: fixed;
+  bottom: 2rem;
+  right: 6rem;
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.8), rgba(8, 145, 178, 0.8));
+  border: 2px solid rgba(6, 182, 212, 0.5);
+  color: #f0fdf4;
+  padding: 0.8rem;
+  border-radius: 50%;
+  cursor: pointer;
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  z-index: 999;
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 32px rgba(6, 182, 212, 0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 60px;
+  min-height: 60px;
+  backdrop-filter: blur(8px);
+}
+
+.floating-wake-btn:hover {
+  transform: translateY(-2px) scale(1.05);
+  background: linear-gradient(135deg, rgba(6, 182, 212, 1), rgba(8, 145, 178, 1));
+  border-color: rgba(6, 182, 212, 0.8);
+  box-shadow: 0 12px 40px rgba(6, 182, 212, 0.5);
+}
+
+.floating-wake-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.floating-wake-btn.wake-active {
+  background: linear-gradient(135deg, rgba(6, 182, 212, 1), rgba(8, 145, 178, 1));
+  border-color: rgba(6, 182, 212, 0.9);
+  box-shadow: 0 8px 32px rgba(6, 182, 212, 0.6);
+  animation: pulse-cyan-float 2s infinite;
+}
+
+.floating-wake-btn.wake-active:hover {
+  background: linear-gradient(135deg, rgba(6, 182, 212, 1), rgba(8, 145, 178, 1));
+  border-color: rgba(6, 182, 212, 1);
+  box-shadow: 0 12px 40px rgba(6, 182, 212, 0.8);
+}
+
+.wake-icon {
+  font-size: 1.2rem;
+  margin-bottom: 0.1rem;
+}
+
+.wake-text {
+  font-size: 0.6rem;
+  line-height: 1;
+}
+
+@keyframes pulse-cyan-float {
+  0%, 100% {
+    box-shadow: 0 8px 32px rgba(6, 182, 212, 0.6);
+  }
+  50% {
+    box-shadow: 0 8px 40px rgba(6, 182, 212, 0.9);
+  }
+}
+
+/* Mobile positioning adjustments */
+@media (max-width: 768px) {
+  .floating-wake-btn {
+    bottom: 1rem;
+    right: 5rem;
+    min-width: 50px;
+    min-height: 50px;
+    padding: 0.6rem;
+  }
+  
+  .wake-icon {
+    font-size: 1rem;
+    margin-bottom: 0.05rem;
+  }
+  
+  .wake-text {
+    font-size: 0.5rem;
+  }
+}
+
+/* Adjust focus button position when wake lock button is present */
+@media (min-width: 769px) {
+  .floating-focus-btn {
+    bottom: 2rem;
+    right: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .floating-focus-btn {
+    bottom: 1rem;
+    right: 1rem;
   }
 }
 </style>

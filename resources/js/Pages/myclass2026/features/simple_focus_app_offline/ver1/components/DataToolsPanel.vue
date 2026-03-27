@@ -16,11 +16,19 @@ const props = defineProps({
   },
   serviceWorkerStatus: {
     type: String,
-    default: 'idle',
+    default: 'unknown',
+  },
+  wakeLockSupported: {
+    type: Boolean,
+    default: false,
+  },
+  wakeLockActive: {
+    type: Boolean,
+    default: false,
   },
 });
 
-const emit = defineEmits(['export', 'clear', 'install', 'import-file']);
+const emit = defineEmits(['export', 'clear', 'install', 'import-file', 'reset', 'toggle-wake-lock']);
 
 const fileInput = ref(null);
 
@@ -52,6 +60,14 @@ function handleFileChange(event) {
       </button>
       <button class="tool-button danger" @click="emit('clear')">CLEAR DATA</button>
       <button class="tool-button critical" @click="emit('reset')">RESET EVERYTHING</button>
+      <button 
+        v-if="wakeLockSupported"
+        class="tool-button"
+        :class="{ 'wake-lock-active': wakeLockActive }"
+        @click="emit('toggle-wake-lock')"
+      >
+        {{ wakeLockActive ? 'SCREEN ON' : 'SCREEN OFF' }}
+      </button>
       <button
         v-if="canInstall && !isInstalled"
         class="tool-button success"
@@ -150,6 +166,28 @@ function handleFileChange(event) {
 .tool-button.success {
   border-color: #86efac;
   color: #86efac;
+}
+
+.tool-button.wake-lock-active {
+  border-color: #06b6d4;
+  color: #06b6d4;
+  background: rgba(6, 182, 212, 0.1);
+  animation: pulse-cyan 2s infinite;
+}
+
+.tool-button.wake-lock-active:hover {
+  background: rgba(6, 182, 212, 0.2);
+  border-color: #0891b2;
+  box-shadow: 0 0 12px rgba(6, 182, 212, 0.4);
+}
+
+@keyframes pulse-cyan {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(6, 182, 212, 0);
+  }
 }
 
 @keyframes pulse-red {
