@@ -5,10 +5,41 @@ export function useWakeLock() {
   const isSupported = ref('wakeLock' in navigator);
   const isActive = ref(false);
   const error = ref(null);
+  const isFirstTab = ref(true);
+
+  // Check if this is the first tab using localStorage
+  function checkFirstTab() {
+    const storageKey = 'focus-app-wake-lock-tab';
+    const existingTab = localStorage.getItem(storageKey);
+    
+    if (!existingTab) {
+      // This is the first tab
+      const tabId = Date.now().toString();
+      localStorage.setItem(storageKey, tabId);
+      isFirstTab.value = true;
+      
+      // Clean up when tab closes
+      window.addEventListener('beforeunload', () => {
+        localStorage.removeItem(storageKey);
+      });
+      
+      return true;
+    } else {
+      // Another tab already has wake lock
+      isFirstTab.value = false;
+      return false;
+    }
+  }
 
   async function requestWakeLock() {
     if (!isSupported.value) {
       error.value = 'Wake Lock API not supported on this device';
+      return false;
+    }
+
+    // Only allow wake lock in first tab
+    if (!checkFirstTab()) {
+      error.value = 'Wake lock only available in first browser tab';
       return false;
     }
 
@@ -27,12 +58,14 @@ export function useWakeLock() {
       wakeLock.value.addEventListener('release', () => {
         isActive.value = false;
         wakeLock.value = null;
+        localStorage.removeItem('focus-app-wake-lock-tab');
       });
 
       return true;
     } catch (err) {
       error.value = err.message || 'Failed to request wake lock';
       isActive.value = false;
+      localStorage.removeItem('focus-app-wake-lock-tab');
       return false;
     }
   }
@@ -44,6 +77,7 @@ export function useWakeLock() {
         wakeLock.value = null;
         isActive.value = false;
         error.value = null;
+        localStorage.removeItem('focus-app-wake-lock-tab');
         return true;
       } catch (err) {
         error.value = err.message || 'Failed to release wake lock';
@@ -71,10 +105,14 @@ export function useWakeLock() {
     document.addEventListener('visibilitychange', handleVisibilityChange);
   }
 
+  // Check if we're the first tab on initialization
+  checkFirstTab();
+
   return {
     isSupported,
     isActive,
     error,
+    isFirstTab,
     requestWakeLock,
     releaseWakeLock,
   };

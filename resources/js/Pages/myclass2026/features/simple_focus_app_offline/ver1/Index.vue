@@ -58,6 +58,7 @@ const {
   isSupported: wakeLockSupported,
   isActive: wakeLockActive,
   error: wakeLockError,
+  isFirstTab: wakeLockFirstTab,
   requestWakeLock,
   releaseWakeLock,
 } = useWakeLock();
@@ -282,6 +283,17 @@ function toggleWakeLock() {
   if (wakeLockActive.value) {
     releaseWakeLock();
   } else {
+    if (!wakeLockFirstTab.value) {
+      askConfirm({
+        title: 'WAKE LOCK UNAVAILABLE',
+        message: 'Screen wake lock is only available in the first browser tab that opens. Please use the first tab for wake lock functionality.',
+        confirmLabel: 'OK',
+        cancelLabel: 'BACK',
+        tone: 'warning',
+      });
+      return;
+    }
+    
     const success = requestWakeLock();
     if (!success && wakeLockError.value) {
       askConfirm({
@@ -293,6 +305,41 @@ function toggleWakeLock() {
       });
     }
   }
+}
+
+function handleClearCache() {
+  askConfirm({
+    title: 'CLEAR CACHE',
+    message: 'This will clear all cached files and force a refresh of the app. This may help if you\'re seeing old content. Continue?',
+    confirmLabel: 'CLEAR CACHE',
+    cancelLabel: 'CANCEL',
+    tone: 'warning',
+    onConfirm: async () => {
+      try {
+        // Clear all caches
+        if ('caches' in window) {
+          const cacheNames = await caches.keys();
+          await Promise.all(cacheNames.map(name => caches.delete(name)));
+        }
+        
+        // Clear service worker
+        if ('serviceWorker' in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations.map(reg => reg.unregister()));
+        }
+        
+        // Clear app version to force refresh
+        localStorage.removeItem('focus-app-version');
+        
+        // Force hard refresh
+        window.location.reload(true);
+      } catch (error) {
+        console.error('Failed to clear cache:', error);
+        // Fallback - just reload
+        window.location.reload(true);
+      }
+    },
+  });
 }
 
 function handleInstall() {
@@ -328,6 +375,27 @@ async function handleImportFile(file) {
 
 onMounted(() => {
   hydrateFromStorage();
+  
+  // Force cache refresh for focus app
+  if ('serviceWorker' in navigator && 'caches' in window) {
+    // Clear old cache to force refresh
+    caches.keys().then(cacheNames => {
+      cacheNames.forEach(cacheName => {
+        if (cacheName.startsWith('offline-cache-') && cacheName !== 'offline-cache-v1.2.0') {
+          caches.delete(cacheName);
+        }
+      });
+    });
+  }
+  
+  // Force page refresh if old version detected
+  const lastVersion = localStorage.getItem('focus-app-version');
+  const currentVersion = '1.2.0';
+  if (lastVersion !== currentVersion) {
+    localStorage.setItem('focus-app-version', currentVersion);
+    // Force a hard refresh
+    window.location.reload(true);
+  }
 });
 </script>
 
@@ -408,11 +476,12 @@ onMounted(() => {
         :is-installed="isInstalled"
         :is-importing="isImporting"
         :service-worker-status="serviceWorkerStatus"
-        :wake-lock-supported="wakeLockSupported"
+        :wake-lock-supported="wakeLockSupported && wakeLockFirstTab"
         :wake-lock-active="wakeLockActive"
         @export="handleExport"
         @clear="handleClear"
         @reset="handleResetEverything"
+        @clear-cache="handleClearCache"
         @install="handleInstall"
         @import-file="handleImportFile"
         @toggle-wake-lock="toggleWakeLock"
@@ -468,7 +537,7 @@ onMounted(() => {
 
   <!-- Floating Wake Lock Button -->
   <button 
-    v-if="wakeLockSupported"
+    v-if="wakeLockSupported && wakeLockFirstTab"
     class="floating-wake-btn" 
     :class="{ 'wake-active': wakeLockActive }"
     @click="toggleWakeLock"

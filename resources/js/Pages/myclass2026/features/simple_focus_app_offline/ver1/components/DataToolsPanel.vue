@@ -28,7 +28,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['export', 'clear', 'install', 'import-file', 'reset', 'toggle-wake-lock']);
+const emit = defineEmits(['export', 'clear', 'install', 'import-file', 'reset', 'toggle-wake-lock', 'clear-cache']);
 
 const fileInput = ref(null);
 
@@ -60,6 +60,7 @@ function handleFileChange(event) {
       </button>
       <button class="tool-button danger" @click="emit('clear')">CLEAR DATA</button>
       <button class="tool-button critical" @click="emit('reset')">RESET EVERYTHING</button>
+      <button class="tool-button warning" @click="emit('clear-cache')">CLEAR CACHE</button>
       <button 
         v-if="wakeLockSupported"
         class="tool-button"
@@ -147,6 +148,18 @@ function handleFileChange(event) {
 .tool-button.danger {
   border-color: #f87171;
   color: #fecaca;
+}
+
+.tool-button.warning {
+  border-color: #f59e0b;
+  color: #fde68a;
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.tool-button.warning:hover {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: #d97706;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
 }
 
 .tool-button.critical {

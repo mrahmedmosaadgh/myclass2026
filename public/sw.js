@@ -3,7 +3,9 @@
  * Includes push notifications and offline caching capabilities
  */
 
-const CACHE_NAME = 'education-app-v1';
+// Cache version - increment to force cache refresh
+const CACHE_VERSION = 'v1.2.0';
+const CACHE_NAME = `offline-cache-${CACHE_VERSION}`;
 const OFFLINE_URL = '/presentation-offline.html';
 
 // Files to cache for offline use (will be populated dynamically)
@@ -14,6 +16,9 @@ const CACHE_URLS = [
   '/simple-focus-app-offline/v1',
   '/simple-focus-app-offline/v1/manifest.webmanifest',
   '/simple-focus-app-offline/v1/icon.svg',
+  // Force cache refresh for focus app assets
+  '/build/assets/app.css',
+  '/build/assets/app.js',
   // Presentation Builder V2 specific routes
   '/classroom-records/presentation/builder-v2',
   '/build/assets/',
