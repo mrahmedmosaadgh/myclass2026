@@ -44,6 +44,7 @@ const fetchStats = async (force = false) => {
     const { data } = await axios.get(`/api/cr/sessions/${gameStore.sessionId}/stats`);
     results.value.totalResponses = data.total;
     results.value.type = data.type;
+    results.value.current_question_id = data.current_question_id;
     if (data.type === 'short_answer') {
       results.value.responses = data.responses || [];
     } else {

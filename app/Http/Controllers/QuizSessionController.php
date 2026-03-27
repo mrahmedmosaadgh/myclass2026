@@ -408,6 +408,7 @@ class QuizSessionController extends Controller
                 ->where('quiz_attempt_answers.question_id', $question->id)
                 ->select(
                     'users.name as student_name',
+                    'quiz_attempts.user_id as student_id',
                     'quiz_attempts.nickname as guest_nickname',
                     'quiz_attempt_answers.selected_text as answer',
                     'quiz_attempt_answers.answered_at',
