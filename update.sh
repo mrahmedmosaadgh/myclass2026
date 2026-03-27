@@ -1,65 +1,78 @@
 #!/bin/bash
 
-# One-Click Update Script for MyClass2026 (Mac/Linux)
-# This script automates: build -> push assets -> push source
+# ============================================================
+# Full Update Script — Build + Push + Sync
+# Automates: npm build → push build submodule → push source → Hostinger sync
+# ============================================================
 
-# Get timestamp for commit message
+set -e
+
 TIMESTAMP=$(date +"%Y-%m-%d %H:%M")
+
+# ── Shared Constants (inherited from tools_menu.sh or set defaults) ──
+SSH_USER="${SSH_USER:-u474447882}"
+SSH_HOST="${SSH_HOST:-62.72.37.122}"
+SSH_PORT="${SSH_PORT:-65002}"
+REMOTE_DIR="${REMOTE_DIR:-~/domains/qudratpro.com/public_html}"
+SSH_CONN="${SSH_USER}@${SSH_HOST}"
 
 echo "🚀 Starting Full Project Update..."
 
-# Set local git identity for this session (global to handle submodules)
-git config --global user.email "ahmedmosaad@example.com"
-git config --global user.name "Ahmed Mosaad"
+# ── Pre-flight checks ──
+command -v npm >/dev/null 2>&1 || { echo "❌ npm not found. Install Node.js first."; exit 1; }
+command -v git >/dev/null 2>&1 || { echo "❌ git not found."; exit 1; }
+command -v rsync >/dev/null 2>&1 || { echo "❌ rsync not found. Install via: brew install rsync"; exit 1; }
 
-# Increase Git buffer to 500MB to prevent HTTP 408 timeouts on large pushes
-git config --global http.postBuffer 524288000
+# Set git identity (local to this repo, not global)
+git config user.email "ahmedmosaad@example.com"
+git config user.name "Ahmed Mosaad"
 
-# 1. Build the assets
+# Increase Git buffer to 500MB to prevent HTTP 408 timeouts
+git config http.postBuffer 524288000
+
+# ── Step 1: Build ──
 echo "📦 Building assets..."
-npm run build
-
-if [ $? -ne 0 ]; then
-    echo "❌ Build failed. Aborting."
-    exit 1
+if ! npm run build; then
+  echo "❌ Build failed. Aborting."
+  exit 1
 fi
 
-# 2. Update Build Repository (Submodule)
-echo "📂 Updating Build Repository..."
-cd public/build
+# ── Step 2: Push Build Submodule ──
+echo "📂 Updating Build Repository (public/build)..."
+if [ -d "public/build/.git" ]; then
+  (
+    cd public/build
+    git remote set-url origin https://github.com/mrahmedmosaadgh/myclass2026_build.git 2>/dev/null || true
+    git add -A
+    git diff --cached --quiet && echo "  ℹ️  No new build changes." || {
+      git commit -m "build: auto-update assets | $TIMESTAMP"
+      git push origin main || echo "  ⚠️ Build repo push failed (timeout likely). Will sync via Rsync."
+    }
+  )
+else
+  echo "  ⚠️ public/build is not a git repo. Skipping submodule push."
+fi
 
-# Standard remote url
-git remote set-url origin https://github.com/mrahmedmosaadgh/myclass2026_build.git
-
-git add -A
-git commit -m "build: auto-update assets | $TIMESTAMP | Mac" || true
-git push origin main || echo "⚠️ Build repo push failed, will sync via Rsync."
-cd ../..
-
-# 3. Update Main Repository
+# ── Step 3: Push Main Repository ──
 echo "🖥️ Updating Main Repository..."
 git add .
-git commit -m "feat: auto-update source & submodule | $TIMESTAMP | Mac" || true
-git push origin production || echo "⚠️ Main repo push failed, will retry or sync via Rsync."
+git diff --cached --quiet && echo "  ℹ️  No source changes to commit." || {
+  git commit -m "feat: auto-update source & submodule | $TIMESTAMP"
+  git push origin production || echo "  ⚠️ Main repo push failed."
+}
 
-# 4. Remote Sync (Hostinger)
+# ── Step 4: Remote Sync (Hostinger) ──
 echo "🌐 Syncing to Hostinger..."
-# NOTE: This requires 'sshpass' installed on your Mac: brew install esolitos/ipa/sshpass
-# If you don't have sshpass, you will be prompted for your password manually.
-
-SSH_CMD="cd ~/domains/qudratpro.com/public_html \
+ssh -p "$SSH_PORT" "$SSH_CONN" "cd $REMOTE_DIR \
 && git fetch origin production \
 && (git checkout production || git checkout -b production FETCH_HEAD) \
 && GIT_ALLOW_PROTOCOL=false git -c submodule.recurse=false reset --hard FETCH_HEAD \
 && (composer dump-autoload -o || true) \
 && php artisan optimize:clear \
-&& php artisan optimize \
-&& php artisan route:list | grep submit-answer || true"
+&& php artisan optimize" || echo "  ⚠️ Remote git sync had issues, proceeding to Rsync."
 
-ssh -p 65002 u474447882@62.72.37.122 "$SSH_CMD"
-
-echo "⚡ Syncing Local Build Directory (public/build) to Hostinger via Rsync..."
-rsync -avz -e "ssh -p 65002" public/build/assets u474447882@62.72.37.122:~/domains/qudratpro.com/public_html/public/build/ || true
-rsync -avz -e "ssh -p 65002" public/build/manifest.json u474447882@62.72.37.122:~/domains/qudratpro.com/public_html/public/build/ || true
+echo "⚡ Syncing build assets to Hostinger via Rsync..."
+rsync -avz -e "ssh -p $SSH_PORT" public/build/assets "$SSH_CONN:$REMOTE_DIR/public/build/" || true
+rsync -avz -e "ssh -p $SSH_PORT" public/build/manifest.json "$SSH_CONN:$REMOTE_DIR/public/build/" || true
 
 echo "✅ ALL DONE! Project is updated locally and on Hostinger."

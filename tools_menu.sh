@@ -1,94 +1,145 @@
 #!/bin/bash
 
-set -e
+# ============================================================
+# MyClass2026 — Deployment & Server Tools Menu
+# ============================================================
+# This is the main entry point for all deployment operations.
+# Each option delegates to a standalone script for modularity.
+# ============================================================
 
-echo "=============================="
-echo "=============================="
-echo "1) Deploy: Full update + sync (update.sh)"
-echo "2) Deploy: Full update + sync (cache clear + route verify)"
-echo "3) Logs: Show last N lines of production laravel.log"
-echo "4) Logs: Clear (truncate) production laravel.log"
-echo "5) Server: Cache clear + route verify (remote only, no deploy)"
-echo "6) Build: Delete Hostinger build files (public/build)"
-echo "7) Build: Push build repo & sync Hostinger build directory"
-echo "8) Exit"
+# ── Shared Constants ──
+# All scripts source these so SSH details live in ONE place.
+export SSH_USER="u474447882"
+export SSH_HOST="62.72.37.122"
+export SSH_PORT="65002"
+export REMOTE_DIR="~/domains/qudratpro.com/public_html"
+export SSH_CONN="${SSH_USER}@${SSH_HOST}"
+
+# ── Helper: Test SSH connectivity before any remote operation ──
+test_ssh() {
+  echo "🔌 Testing SSH connection..."
+  if ssh -p "$SSH_PORT" -o ConnectTimeout=10 "$SSH_CONN" "echo ok" > /dev/null 2>&1; then
+    echo "✅ SSH connection verified."
+    return 0
+  else
+    echo "❌ Cannot reach Hostinger via SSH. Check your network or VPN."
+    return 1
+  fi
+}
+
+# ── Helper: Check if a script file exists before running it ──
+run_script() {
+  local SCRIPT="$1"
+  if [ ! -f "$SCRIPT" ]; then
+    echo "❌ Script not found: $SCRIPT"
+    echo "   Make sure the file exists in the project root."
+    return 1
+  fi
+  bash "$SCRIPT"
+}
+
+# ── Menu ──
+echo ""
+echo "╔══════════════════════════════════════════╗"
+echo "║     MyClass2026 — Deployment Tools       ║"
+echo "╠══════════════════════════════════════════╣"
+echo "║  1) Deploy: Full (build + push + sync)   ║"
+echo "║  2) Deploy: Backend Only                 ║"
+echo "║  3) Deploy: Frontend Only (after build)  ║"
+echo "║  4) Deploy: Full + Cache Clear           ║"
+echo "║  ──────────────────────────────────────  ║"
+echo "║  5) Logs: Show production laravel.log    ║"
+echo "║  6) Logs: Clear production laravel.log   ║"
+echo "║  ──────────────────────────────────────  ║"
+echo "║  7) Server: Cache clear + route verify   ║"
+echo "║  8) Server: Delete remote build files    ║"
+echo "║  ──────────────────────────────────────  ║"
+echo "║  9) Exit                                 ║"
+echo "╚══════════════════════════════════════════╝"
 echo ""
 
-read -p "Choose an option (1-8): " CHOICE
+read -p "Choose an option (1-9): " CHOICE
 
 case "$CHOICE" in
+
   1)
-    echo "Running: ./update.sh"
-    bash ./update.sh
+    run_script ./update.sh
     ;;
+
   2)
-    echo "Running: ./update_production_hostinger_with_cache_clear.sh"
-    bash ./update_production_hostinger_with_cache_clear.sh
+    run_script ./update_backend.sh
     ;;
+
   3)
-    read -p "How many lines? (default 120): " LINES
-    if [ -z "$LINES" ]; then
-      LINES=120
+    # Pre-flight: verify build output exists locally
+    if [ ! -f "public/build/manifest.json" ]; then
+      echo "⚠️  No manifest.json found in public/build."
+      read -p "Run 'npm run build' first? (y/N): " DO_BUILD
+      if [ "$DO_BUILD" = "y" ] || [ "$DO_BUILD" = "Y" ]; then
+        npm run build || { echo "❌ Build failed. Aborting."; exit 1; }
+      else
+        echo "Cancelled."
+        exit 0
+      fi
     fi
-    echo "Running: ./get_production_laravel_errors.sh $LINES"
-    bash ./get_production_laravel_errors.sh "$LINES"
+    run_script ./update_frontend.sh
     ;;
+
   4)
-    read -p "This will empty laravel.log on production. Continue? (y/N): " CONFIRM
+    run_script ./update_production_hostinger_with_cache_clear.sh
+    ;;
+
+  5)
+    read -p "How many lines? (default 120): " LINES
+    LINES=${LINES:-120}
+    test_ssh || exit 1
+    echo "📜 Fetching last $LINES lines of laravel.log..."
+    ssh -p "$SSH_PORT" "$SSH_CONN" "tail -n $LINES $REMOTE_DIR/storage/logs/laravel.log" 2>/dev/null || \
+      echo "⚠️  Could not read log file. It may not exist yet."
+    ;;
+
+  6)
+    read -p "⚠️  This will EMPTY laravel.log on production. Continue? (y/N): " CONFIRM
     if [ "$CONFIRM" = "y" ] || [ "$CONFIRM" = "Y" ]; then
-      echo "Running: ./clear_production_laravel_log.sh"
-      bash ./clear_production_laravel_log.sh
+      test_ssh || exit 1
+      ssh -p "$SSH_PORT" "$SSH_CONN" "truncate -s 0 $REMOTE_DIR/storage/logs/laravel.log" 2>/dev/null
+      echo "✅ Production laravel.log cleared."
     else
       echo "Cancelled."
     fi
     ;;
-  5)
+
+  7)
+    test_ssh || exit 1
     echo "🌐 Running remote cache clear + route verify on Hostinger..."
-    SSH_REMOTE_CMD="cd ~/domains/qudratpro.com/public_html \
+    ssh -p "$SSH_PORT" "$SSH_CONN" "cd $REMOTE_DIR \
 && php artisan optimize:clear \
 && php artisan optimize \
 && echo '--- Route check (submit-answer) ---' \
 && php artisan route:list | grep submit-answer || true"
-    ssh -p 65002 u474447882@62.72.37.122 "$SSH_REMOTE_CMD"
     echo "✅ Remote cache cleared and routes verified."
     ;;
-  6)
-    echo "🗑️ Deleting build files on Hostinger (public/build)..."
-    SSH_CMD="cd ~/domains/qudratpro.com/public_html \
+
+  8)
+    read -p "⚠️  This will DELETE all build assets on Hostinger. Continue? (y/N): " CONFIRM
+    if [ "$CONFIRM" = "y" ] || [ "$CONFIRM" = "Y" ]; then
+      test_ssh || exit 1
+      ssh -p "$SSH_PORT" "$SSH_CONN" "cd $REMOTE_DIR \
 && rm -rf public/build/assets \
 && rm -f public/build/manifest.json"
-    ssh -p 65002 u474447882@62.72.37.122 "$SSH_CMD"
-    echo "✅ Remote build files deleted."
+      echo "✅ Remote build files deleted."
+    else
+      echo "Cancelled."
+    fi
     ;;
-  7)
-    echo "📂 Pushing Build Repository (public/build)..."
-    TIMESTAMP=$(date +"%Y-%m-%d %H:%M")
-    cd public/build
-    
-    # Standard remote url
-    git remote set-url origin https://github.com/mrahmedmosaadgh/myclass2026_build.git
-    
-    git add -A
-    git commit -m "build: manual update assets | $TIMESTAMP" || true
-    git push origin main || echo "⚠️ Git push to GitHub timed out (HTTP 408), skipping - will sync directly via Rsync."
-    cd ../..
-    
-    echo "🌐 Syncing Local Build Directory directly to Hostinger via Rsync..."
-    rsync -avz -e "ssh -p 65002" public/build/assets u474447882@62.72.37.122:~/domains/qudratpro.com/public_html/public/build/ || true
-    rsync -avz -e "ssh -p 65002" public/build/manifest.json u474447882@62.72.37.122:~/domains/qudratpro.com/public_html/public/build/ || true
-    
-    SSH_CMD="cd ~/domains/qudratpro.com/public_html \
-&& php artisan optimize:clear \
-&& php artisan optimize"
-    ssh -p 65002 u474447882@62.72.37.122 "$SSH_CMD"
-    echo "✅ Build files zipped and synced to Hostinger via Rsync."
-    ;;
-  8)
-    echo "Bye."
+
+  9)
+    echo "Bye 👋"
     exit 0
     ;;
+
   *)
-    echo "Invalid choice."
+    echo "❌ Invalid choice. Please enter 1-9."
     exit 1
     ;;
 esac
