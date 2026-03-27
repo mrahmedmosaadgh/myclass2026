@@ -1,0 +1,194 @@
+<script setup>
+import { computed, onBeforeUnmount, watch } from 'vue';
+
+const props = defineProps({
+  open: {
+    type: Boolean,
+    default: false,
+  },
+  title: {
+    type: String,
+    default: 'CONFIRM ACTION',
+  },
+  message: {
+    type: String,
+    default: '',
+  },
+  confirmLabel: {
+    type: String,
+    default: 'CONFIRM',
+  },
+  cancelLabel: {
+    type: String,
+    default: 'CANCEL',
+  },
+  tone: {
+    type: String,
+    default: 'warning',
+  },
+});
+
+const emit = defineEmits(['confirm', 'cancel']);
+
+const toneClass = computed(() => {
+  switch (props.tone) {
+    case 'danger':
+      return 'dialog-danger';
+    case 'success':
+      return 'dialog-success';
+    default:
+      return 'dialog-warning';
+  }
+});
+
+function handleKeydown(event) {
+  if (!props.open) {
+    return;
+  }
+
+  if (event.key === 'Escape') {
+    emit('cancel');
+  }
+
+  if (event.key === 'Enter') {
+    emit('confirm');
+  }
+}
+
+watch(
+  () => props.open,
+  (open) => {
+    if (open) {
+      window.addEventListener('keydown', handleKeydown);
+    } else {
+      window.removeEventListener('keydown', handleKeydown);
+    }
+  },
+  { immediate: true }
+);
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleKeydown);
+});
+</script>
+
+<template>
+  <Teleport to="body">
+    <div v-if="open" class="confirm-overlay">
+      <div class="confirm-panel" :class="toneClass">
+        <div class="confirm-header">
+          <span class="confirm-cursor">▌</span>
+          <h2>{{ title }}</h2>
+        </div>
+
+        <p class="confirm-message">{{ message }}</p>
+
+        <div class="confirm-actions">
+          <button class="confirm-button ghost" @click="emit('cancel')">
+            {{ cancelLabel }}
+          </button>
+          <button class="confirm-button solid" @click="emit('confirm')">
+            {{ confirmLabel }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
+</template>
+
+<style scoped>
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+  backdrop-filter: blur(2px);
+}
+
+.confirm-panel {
+  width: min(560px, 100%);
+  border: 1px solid #4ade80;
+  background: linear-gradient(180deg, rgba(10, 10, 10, 0.98), rgba(0, 0, 0, 0.98));
+  color: #f0fdf4;
+  box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.2), 0 24px 80px rgba(0, 0, 0, 0.8);
+  padding: 1rem;
+  font-family: 'Courier New', Courier, monospace;
+  border-radius: 2px;
+}
+
+.confirm-warning {
+  border-color: #fbbf24;
+  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.3), 0 24px 80px rgba(251, 191, 36, 0.1);
+}
+
+.confirm-danger {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.3), 0 24px 80px rgba(239, 68, 68, 0.1);
+}
+
+.confirm-success {
+  border-color: #22c55e;
+}
+
+.confirm-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+
+.confirm-header h2 {
+  margin: 0;
+  font-size: 1rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.confirm-cursor {
+  color: #22c55e;
+}
+
+.confirm-message {
+  margin: 0;
+  line-height: 1.7;
+  color: #86efac;
+  white-space: pre-line;
+}
+
+.confirm-actions {
+  margin-top: 1.2rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.confirm-button {
+  border: 1px solid #22c55e;
+  background: transparent;
+  color: #d1fae5;
+  padding: 0.75rem 1rem;
+  font-family: inherit;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease;
+}
+
+.confirm-button:hover {
+  transform: translateY(-1px);
+}
+
+.confirm-button.solid {
+  background: #22c55e;
+  color: #000;
+}
+
+.confirm-button.ghost:hover {
+  background: rgba(34, 197, 94, 0.1);
+}
+</style>

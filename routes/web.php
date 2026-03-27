@@ -295,6 +295,11 @@ Route::get('/simple-focus-app-offline/v1', function () {
     return Inertia::render('myclass2026/features/simple_focus_app_offline/ver1/Index');
 })->name('simple-focus-app-offline.v1');
 
+// Simple Focus App Offline v2 (public, no-auth standalone app)
+Route::get('/simple-focus-app-offline/v2', function () {
+    return Inertia::render('myclass2026/features/simple_focus_app_offline/ver2/Index');
+})->name('simple-focus-app-offline.v2');
+
 Route::get('/simple-focus-app-offline/v1/manifest.webmanifest', function () {
     $manifest = [
         'name' => 'Simple Focus App Offline',
@@ -350,6 +355,49 @@ SVG;
 
     return response($svg, 200)->header('Content-Type', 'image/svg+xml');
 })->name('simple-focus-app-offline.v1.icon');
+
+// Simple Focus App Offline v2 manifest and icon
+Route::get('/simple-focus-app-offline/v2/manifest.webmanifest', function () {
+    $manifest = [
+        'name' => 'Simple Focus App Offline v2',
+        'short_name' => 'Simple Focus v2',
+        'description' => 'Enhanced DOS-style focus app for offline task tracking.',
+        'id' => '/simple-focus-app-offline/v2',
+        'start_url' => '/simple-focus-app-offline/v2',
+        'scope' => '/simple-focus-app-offline/v2',
+        'display' => 'standalone',
+        'background_color' => '#000000',
+        'theme_color' => '#000000',
+        'orientation' => 'portrait-primary',
+        'icons' => [
+            [
+                'src' => '/simple-focus-app-offline/v2/icon.svg',
+                'sizes' => 'any',
+                'type' => 'image/svg+xml',
+            ],
+        ],
+    ];
+
+    return response(json_encode($manifest, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), 200)
+        ->header('Content-Type', 'application/manifest+json');
+})->name('simple-focus-app-offline.v2.manifest');
+
+Route::get('/simple-focus-app-offline/v2/icon.svg', function () {
+    $svg = <<<'SVG'
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Simple Focus v2">
+  <rect width="512" height="512" rx="96" fill="#000000"/>
+  <rect x="36" y="36" width="440" height="440" rx="72" fill="none" stroke="#4ade80" stroke-width="12"/>
+  <path d="M110 150h292v42H110zM110 226h206v42H110zM110 302h160v42H110z" fill="#4ade80"/>
+  <circle cx="390" cy="328" r="42" fill="#4ade80"/>
+  <path d="M380 328l10 10 22-24" fill="none" stroke="#000" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="390" cy="230" r="8" fill="#a855f7"/>
+  <circle cx="390" cy="200" r="8" fill="#a855f7"/>
+  <circle cx="390" cy="170" r="8" fill="#a855f7"/>
+</svg>
+SVG;
+
+    return response($svg, 200)->header('Content-Type', 'image/svg+xml');
+})->name('simple-focus-app-offline.v2.icon');
 
 // Public Offline System Test Route (no authentication required)
 Route::get('/offline-test', function () {

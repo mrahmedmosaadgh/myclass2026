@@ -19,6 +19,9 @@ const CACHE_URLS = [
   '/simple-focus-app-offline/v1',
   '/simple-focus-app-offline/v1/manifest.webmanifest',
   '/simple-focus-app-offline/v1/icon.svg',
+  '/simple-focus-app-offline/v2',
+  '/simple-focus-app-offline/v2/manifest.webmanifest',
+  '/simple-focus-app-offline/v2/icon.svg',
   // Force cache refresh for focus app assets
   '/build/assets/app.css',
   '/build/assets/app.js',
