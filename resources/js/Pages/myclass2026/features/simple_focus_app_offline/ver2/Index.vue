@@ -563,9 +563,9 @@ onMounted(() => {
   min-height: 100vh;
   padding: 1.2rem;
   background: #000;
-  color: #f0fdf4;
+  color: #4ade80;
   font-family: 'Courier New', Courier, monospace;
-  text-shadow: 0 0 6px rgba(74, 222, 128, 0.1);
+  text-shadow: 0 0 8px rgba(74, 222, 128, 0.3);
 }
 
 .topbar {
@@ -581,8 +581,8 @@ onMounted(() => {
   color: #4ade80;
   letter-spacing: 0.22em;
   font-size: 0.9rem;
-  font-weight: 600;
-  text-shadow: 0 0 12px rgba(74, 222, 128, 0.4);
+  font-weight: 700;
+  text-shadow: 0 0 12px rgba(74, 222, 128, 0.5);
 }
 
 .sub-line {
@@ -590,7 +590,7 @@ onMounted(() => {
   color: #86efac;
   letter-spacing: 0.12em;
   font-size: 0.76rem;
-  opacity: 0.9;
+  text-shadow: 0 0 6px rgba(134, 239, 172, 0.3);
 }
 
 .status-strip {
@@ -601,6 +601,7 @@ onMounted(() => {
   font-size: 0.76rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+  text-shadow: 0 0 6px rgba(134, 239, 172, 0.3);
   background: rgba(34, 197, 94, 0.08);
   padding: 0.5rem 0.8rem;
   border: 1px solid rgba(34, 197, 94, 0.2);

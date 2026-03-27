@@ -97,7 +97,8 @@ function handleFileChange(event) {
   background: rgba(10, 10, 10, 0.85);
   padding: 1rem;
   font-family: 'Courier New', Courier, monospace;
-  color: #f0fdf4;
+  color: #4ade80;
+  text-shadow: 0 0 6px rgba(74, 222, 128, 0.3);
   box-shadow: inset 0 0 0 1px rgba(74, 222, 128, 0.1), 0 0 20px rgba(0, 0, 0, 0.3);
   border-radius: 2px;
 }
@@ -116,7 +117,8 @@ function handleFileChange(event) {
   color: #4ade80;
   letter-spacing: 0.18em;
   font-size: 0.8rem;
-  font-weight: 500;
+  font-weight: 600;
+  text-shadow: 0 0 8px rgba(74, 222, 128, 0.4);
 }
 
 .tools-actions {

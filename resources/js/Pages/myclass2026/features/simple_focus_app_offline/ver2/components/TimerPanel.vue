@@ -135,22 +135,24 @@ const emit = defineEmits(['pause', 'resume', 'reset']);
 .timer-button {
   border: 1px solid #4ade80;
   background: transparent;
-  color: #f0fdf4;
+  color: #4ade80;
   padding: 0.8rem 1rem;
   font-family: inherit;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   cursor: pointer;
-  font-weight: 500;
+  font-weight: 600;
   transition: all 0.2s;
   border-radius: 2px;
+  text-shadow: 0 0 8px rgba(74, 222, 128, 0.3);
 }
 
 .timer-button:hover:not(:disabled) {
-  background: rgba(74, 222, 128, 0.15);
+  background: rgba(74, 222, 128, 0.2);
   border-color: #22c55e;
-  box-shadow: 0 0 12px rgba(74, 222, 128, 0.2);
+  box-shadow: 0 0 16px rgba(74, 222, 128, 0.4);
   transform: translateY(-1px);
+  color: #22c55e;
 }
 
 .timer-button:active:not(:disabled) {
@@ -164,25 +166,29 @@ const emit = defineEmits(['pause', 'resume', 'reset']);
 
 .timer-button.danger {
   border-color: #ef4444;
-  color: #fca5a5;
+  color: #ef4444;
+  text-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
 }
 
 .timer-button.danger:hover:not(:disabled) {
-  background: rgba(239, 68, 68, 0.15);
+  background: rgba(239, 68, 68, 0.2);
   border-color: #dc2626;
-  box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.4);
+  color: #dc2626;
 }
 
 .timer-button.focus-mood {
   border-color: #a855f7;
-  color: #e9d5ff;
+  color: #a855f7;
   background: rgba(168, 85, 247, 0.1);
+  text-shadow: 0 0 8px rgba(168, 85, 247, 0.3);
 }
 
 .timer-button.focus-mood:hover:not(:disabled) {
   background: rgba(168, 85, 247, 0.2);
   border-color: #9333ea;
   box-shadow: 0 0 16px rgba(168, 85, 247, 0.4);
+  color: #9333ea;
   transform: translateY(-1px);
 }
 </style>
