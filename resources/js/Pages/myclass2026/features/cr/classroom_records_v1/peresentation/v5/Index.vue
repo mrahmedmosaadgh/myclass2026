@@ -40,7 +40,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="v4-container">
+  <div class="v5-container">
     <div class="header">
       <div v-if="ui.isEditMode" class="title-editor">
         <input 
@@ -97,7 +97,7 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.v4-container {
+.v5-container {
   padding: 2rem;
   min-height: 100vh;
   background-color: #f3f4f6;
@@ -230,7 +230,7 @@ onUnmounted(() => {
 }
 
 @media (max-width: 1024px) {
-  .v4-container {
+  .v5-container {
     padding: 1rem;
   }
   .editor-layout {

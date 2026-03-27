@@ -11,6 +11,9 @@ const CACHE_URLS = [
   '/',
   '/presentation-offline.html',
   '/api/health-check',
+  '/simple-focus-app-offline/v1',
+  '/simple-focus-app-offline/v1/manifest.webmanifest',
+  '/simple-focus-app-offline/v1/icon.svg',
   // Presentation Builder V2 specific routes
   '/classroom-records/presentation/builder-v2',
   '/build/assets/',

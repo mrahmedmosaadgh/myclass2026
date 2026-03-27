@@ -15,15 +15,21 @@ V1_MENU="$REPO_ROOT/tools_menu_versions/toolsmenuv1/tools_menu.sh"
 V2_MENU="$REPO_ROOT/tools_menu_versions/toolsmenuv2/tools_menu.sh"
 DEFAULT_CHOICE="3"
 
+# ── Color Constants ──
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+
 cd "$REPO_ROOT" || {
-  echo "❌ Unable to enter repo root: $REPO_ROOT"
+  echo -e "${RED}❌ Unable to enter repo root: $REPO_ROOT${NC}"
   exit 1
 }
 
 run_menu() {
   local MENU_PATH="$1"
   if [ ! -f "$MENU_PATH" ]; then
-    echo "❌ Menu not found: $MENU_PATH"
+    echo -e "${RED}❌ Menu not found: $MENU_PATH${NC}"
     return 1
   fi
 
@@ -37,12 +43,12 @@ while true; do
   echo "╠══════════════════════════════════════════════════╣"
   echo "║  1) Version 1 — Original archived menu          ║"
   echo "║  2) Version 2 — Recommended improved menu       ║"
-  echo "║  3) Final — Recommended choice (uses Version 2) ║"
+  echo -e "║  ${GREEN}3) Final — Recommended choice (uses Version 2)${NC} ║"
   echo "║  ──────────────────────────────────────────────  ║"
   echo "║  4) Exit                                         ║"
   echo "╚══════════════════════════════════════════════════╝"
   echo ""
-  echo "Default selection: 3"
+  echo -e "${GREEN}Default selection: 3${NC}"
   echo ""
 
   read -r -p "Choose a version (1-4) [3]: " CHOICE
@@ -67,7 +73,7 @@ while true; do
       exit 0
       ;;
     *)
-      echo "❌ Invalid choice. Please enter 1-4."
+      echo -e "${RED}❌ Invalid choice. Please enter 1-4.${NC}"
       ;;
   esac
 

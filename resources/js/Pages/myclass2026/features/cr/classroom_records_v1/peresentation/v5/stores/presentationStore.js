@@ -1,11 +1,10 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 
 export const usePresentationStore = defineStore('presentation', () => {
-  const title = ref('Untitled Presentation');
-  const usePhases = ref(false);
-  const hasInitializedPhases = ref(false);
-  const slides = ref([
+  const saveStatus = ref('saved'); // 'saved' | 'saving'
+
+  const defaultSlides = [
     {
       id: 'slide-1',
       elements: [
@@ -36,9 +35,65 @@ export const usePresentationStore = defineStore('presentation', () => {
         }
       ]
     }
-  ]);
+  ];
 
-  const currentSlideIndex = ref(0);
+  const localSaved = localStorage.getItem('cr_v5_presentation');
+  let initialData = {
+    title: 'Untitled Presentation',
+    usePhases: false,
+    hasInitializedPhases: false,
+    slides: JSON.parse(JSON.stringify(defaultSlides)),
+    currentSlideIndex: 0
+  };
+
+  if (localSaved) {
+    try {
+      const parsed = JSON.parse(localSaved);
+      if (parsed.slides && Array.isArray(parsed.slides)) {
+        initialData = parsed;
+      }
+    } catch (e) {
+      console.warn('Failed to parse locally saved presentation.', e);
+    }
+  }
+
+  const title = ref(initialData.title);
+  const usePhases = ref(initialData.usePhases);
+  const hasInitializedPhases = ref(initialData.hasInitializedPhases);
+  const slides = ref(initialData.slides);
+  const currentSlideIndex = ref(initialData.currentSlideIndex || 0);
+
+  let saveTimeout = null;
+  
+  function triggerAutoSave() {
+    saveStatus.value = 'saving';
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+      const payload = {
+        title: title.value,
+        usePhases: usePhases.value,
+        hasInitializedPhases: hasInitializedPhases.value,
+        slides: slides.value,
+        currentSlideIndex: currentSlideIndex.value,
+        lastSaved: new Date().toISOString()
+      };
+      localStorage.setItem('cr_v5_presentation', JSON.stringify(payload));
+      saveStatus.value = 'saved';
+    }, 600);
+  }
+
+  watch([title, usePhases, slides, currentSlideIndex], () => {
+    triggerAutoSave();
+  }, { deep: true });
+
+  function resetPresentation() {
+    localStorage.removeItem('cr_v5_presentation');
+    title.value = 'Untitled Presentation';
+    usePhases.value = false;
+    hasInitializedPhases.value = false;
+    slides.value = JSON.parse(JSON.stringify(defaultSlides));
+    currentSlideIndex.value = 0;
+  }
 
   const currentSlide = computed(() => {
     return slides.value[currentSlideIndex.value];
@@ -168,6 +223,8 @@ export const usePresentationStore = defineStore('presentation', () => {
     selectSlideById,
     deleteSlide,
     deleteSlideById,
-    loadPresentation
+    loadPresentation,
+    resetPresentation,
+    saveStatus
   };
 });

@@ -14,9 +14,15 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 cd "$REPO_ROOT" || {
-  echo "❌ Unable to enter repo root: $REPO_ROOT"
+  echo -e "${RED}❌ Unable to enter repo root: $REPO_ROOT${NC}"
   exit 1
 }
+
+# ── Color Constants ──
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
 
 # ── Shared Constants ──
 # Defaults can still be overridden by environment variables.
@@ -48,7 +54,7 @@ cleanup_stale_lock() {
 
   OTHER_PID="$(cat "$DEPLOY_LOCK" 2>/dev/null || true)"
   if [ -n "$OTHER_PID" ] && ps -p "$OTHER_PID" >/dev/null 2>&1; then
-    echo "🛑  ERROR: Another deployment/write task is already running (PID: $OTHER_PID)."
+    echo -e "${RED}🛑  ERROR: Another deployment/write task is already running (PID: $OTHER_PID).${NC}"
     echo "   Please wait for it to finish or close the other terminal."
     return 1
   fi
@@ -81,11 +87,11 @@ confirm_action() {
 test_ssh() {
   echo "🔌 Testing SSH connection..."
   if ssh -p "$SSH_PORT" -o ConnectTimeout=10 "$SSH_CONN" "echo ok" >/dev/null 2>&1; then
-    echo "✅ SSH connection verified."
+    echo -e "${GREEN}✅ SSH connection verified.${NC}"
     return 0
   fi
 
-  echo "❌ Cannot reach Hostinger via SSH. Check your network, VPN, or credentials."
+  echo -e "${RED}❌ Cannot reach Hostinger via SSH. Check your network, VPN, or credentials.${NC}"
   return 1
 }
 
@@ -93,7 +99,7 @@ test_ssh() {
 run_script() {
   local SCRIPT="$1"
   if [ ! -f "$SCRIPT" ]; then
-    echo "❌ Script not found: $SCRIPT"
+    echo -e "${RED}❌ Script not found: $SCRIPT${NC}"
     echo "   Make sure the file exists in the project root."
     return 1
   fi
@@ -105,17 +111,17 @@ view_production_log() {
   local LINES="$1"
   test_ssh || return 1
   echo "📜 Fetching last $LINES lines of laravel.log..."
-  ssh -p "$SSH_PORT" "$SSH_CONN" "cd $REMOTE_DIR && if [ -f storage/logs/laravel.log ]; then tail -n $LINES storage/logs/laravel.log; else echo '⚠️  laravel.log not found at storage/logs/laravel.log'; fi"
+  ssh -p "$SSH_PORT" "$SSH_CONN" "cd $REMOTE_DIR && if [ -f storage/logs/laravel.log ]; then tail -n $LINES storage/logs/laravel.log; else echo '${YELLOW}⚠️  laravel.log not found at storage/logs/laravel.log${NC}'; fi"
 }
 
 clear_production_log() {
   test_ssh || return 1
-  if ! confirm_action "⚠️  This will EMPTY laravel.log on production. Continue?"; then
+  if ! confirm_action "${YELLOW}⚠️  This will EMPTY laravel.log on production. Continue?${NC}"; then
     echo "Cancelled."
     return 0
   fi
 
-  ssh -p "$SSH_PORT" "$SSH_CONN" "cd $REMOTE_DIR && if [ -f storage/logs/laravel.log ]; then : > storage/logs/laravel.log && echo '✅ Production laravel.log cleared.'; else echo '⚠️  laravel.log not found at storage/logs/laravel.log'; fi"
+  ssh -p "$SSH_PORT" "$SSH_CONN" "cd $REMOTE_DIR && if [ -f storage/logs/laravel.log ]; then : > storage/logs/laravel.log && echo '${GREEN}✅ Production laravel.log cleared.${NC}'; else echo '${YELLOW}⚠️  laravel.log not found at storage/logs/laravel.log${NC}'; fi"
 }
 
 verify_remote_routes() {
@@ -136,9 +142,9 @@ verify_remote_routes() {
   local MISSING=0
   for ROUTE in "${EXPECTED_ROUTES[@]}"; do
     if echo "$ROUTE_OUTPUT" | grep -Fq "$ROUTE"; then
-      echo "✅ Found route: $ROUTE"
+      echo -e "${GREEN}✅ Found route: $ROUTE${NC}"
     else
-      echo "⚠️  Missing route: $ROUTE"
+      echo -e "${YELLOW}⚠️  Missing route: $ROUTE${NC}"
       MISSING=1
     fi
   done
@@ -161,21 +167,21 @@ clear_cache_and_verify() {
   release_lock
 
   if [ $VERIFY_STATUS -eq 0 ]; then
-    echo "✅ Remote cache cleared and expected routes verified."
+    echo -e "${GREEN}✅ Remote cache cleared and expected routes verified.${NC}"
   else
-    echo "⚠️  Remote cache cleared, but some expected routes were not found."
+    echo -e "${YELLOW}⚠️  Remote cache cleared, but some expected routes were not found.${NC}"
   fi
 }
 
 remove_build_files() {
   test_ssh || return 1
-  if ! confirm_action "⚠️  This will DELETE all build assets on Hostinger. Continue?"; then
+  if ! confirm_action "${RED}⚠️  This will DELETE all build assets on Hostinger. Continue?${NC}"; then
     echo "Cancelled."
     return 0
   fi
 
   acquire_lock || return 1
-  ssh -p "$SSH_PORT" "$SSH_CONN" "cd $REMOTE_DIR && rm -rf public/build/assets && rm -f public/build/manifest.json && echo '✅ Remote build files deleted.'"
+  ssh -p "$SSH_PORT" "$SSH_CONN" "cd $REMOTE_DIR && rm -rf public/build/assets && rm -f public/build/manifest.json && echo '${GREEN}✅ Remote build files deleted.${NC}'"
   release_lock
 }
 
@@ -217,11 +223,11 @@ while true; do
 
     3)
       if [ ! -f "public/build/manifest.json" ]; then
-        echo "⚠️  No manifest.json found in public/build."
+        echo -e "${YELLOW}⚠️  No manifest.json found in public/build.${NC}"
         read -r -p "Run 'npm run build' first? (y/N): " DO_BUILD
         if [ "$DO_BUILD" = "y" ] || [ "$DO_BUILD" = "Y" ]; then
           npm run build || {
-            echo "❌ Build failed. Aborting."
+            echo -e "${RED}❌ Build failed. Aborting.${NC}"
             continue
           }
         else
@@ -265,7 +271,7 @@ while true; do
       ;;
 
     *)
-      echo "❌ Invalid choice. Please enter 1-9."
+      echo -e "${RED}❌ Invalid choice. Please enter 1-9.${NC}"
       ;;
   esac
 
