@@ -300,6 +300,15 @@ Route::get('/simple-focus-app-offline/v2', function () {
     return Inertia::render('myclass2026/features/simple_focus_app_offline/ver2/Index');
 })->name('simple-focus-app-offline.v2');
 
+// Test route for v2
+Route::get('/simple-focus-app-offline/v2/test', function () {
+    return response()->json([
+        'status' => 'ok',
+        'message' => 'v2 route is working',
+        'timestamp' => now()
+    ]);
+})->name('simple-focus-app-offline.v2.test');
+
 Route::get('/simple-focus-app-offline/v1/manifest.webmanifest', function () {
     $manifest = [
         'name' => 'Simple Focus App Offline',
