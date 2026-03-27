@@ -75,11 +75,13 @@ function handleFileChange(event) {
 
 <style scoped>
 .tools-panel {
-  border: 1px solid rgba(34, 197, 94, 0.5);
-  background: rgba(0, 0, 0, 0.78);
+  border: 1px solid rgba(74, 222, 128, 0.5);
+  background: rgba(10, 10, 10, 0.85);
   padding: 1rem;
   font-family: 'Courier New', Courier, monospace;
-  color: #d1fae5;
+  color: #f0fdf4;
+  box-shadow: inset 0 0 0 1px rgba(74, 222, 128, 0.1), 0 0 20px rgba(0, 0, 0, 0.3);
+  border-radius: 2px;
 }
 
 .tools-head {
@@ -93,9 +95,10 @@ function handleFileChange(event) {
 
 .tools-tag,
 .tools-status {
-  color: #22c55e;
+  color: #4ade80;
   letter-spacing: 0.18em;
   font-size: 0.8rem;
+  font-weight: 500;
 }
 
 .tools-actions {

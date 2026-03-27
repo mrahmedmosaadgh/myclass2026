@@ -100,30 +100,34 @@ onBeforeUnmount(() => {
 .confirm-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.82);
+  background: rgba(0, 0, 0, 0.88);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   padding: 1rem;
+  backdrop-filter: blur(2px);
 }
 
 .confirm-panel {
   width: min(560px, 100%);
-  border: 1px solid #22c55e;
-  background: linear-gradient(180deg, rgba(3, 7, 18, 0.98), rgba(0, 0, 0, 0.98));
-  color: #d1fae5;
-  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.15), 0 24px 80px rgba(0, 0, 0, 0.6);
+  border: 1px solid #4ade80;
+  background: linear-gradient(180deg, rgba(10, 10, 10, 0.98), rgba(0, 0, 0, 0.98));
+  color: #f0fdf4;
+  box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.2), 0 24px 80px rgba(0, 0, 0, 0.8);
   padding: 1rem;
   font-family: 'Courier New', Courier, monospace;
+  border-radius: 2px;
 }
 
 .confirm-warning {
   border-color: #fbbf24;
+  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.3), 0 24px 80px rgba(251, 191, 36, 0.1);
 }
 
 .confirm-danger {
   border-color: #ef4444;
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.3), 0 24px 80px rgba(239, 68, 68, 0.1);
 }
 
 .confirm-success {

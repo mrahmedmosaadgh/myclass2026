@@ -69,11 +69,13 @@ const emptyState = computed(() => props.entries.length === 0);
 
 <style scoped>
 .timeline-panel {
-  border: 1px solid rgba(34, 197, 94, 0.45);
-  background: rgba(0, 0, 0, 0.78);
+  border: 1px solid rgba(74, 222, 128, 0.45);
+  background: rgba(10, 10, 10, 0.85);
   padding: 1rem;
   font-family: 'Courier New', Courier, monospace;
-  color: #d1fae5;
+  color: #f0fdf4;
+  box-shadow: inset 0 0 0 1px rgba(74, 222, 128, 0.1), 0 0 20px rgba(0, 0, 0, 0.3);
+  border-radius: 2px;
 }
 
 .timeline-head {
@@ -87,16 +89,19 @@ const emptyState = computed(() => props.entries.length === 0);
 
 .timeline-tag,
 .timeline-count {
-  color: #22c55e;
+  color: #4ade80;
   font-size: 0.8rem;
   letter-spacing: 0.18em;
+  font-weight: 500;
 }
 
 .timeline-empty {
-  border: 1px dashed rgba(34, 197, 94, 0.3);
+  border: 1px dashed rgba(74, 222, 128, 0.4);
   padding: 1rem;
   color: #86efac;
   text-align: center;
+  background: rgba(5, 10, 15, 0.5);
+  border-radius: 2px;
 }
 
 .timeline-list {
@@ -108,20 +113,31 @@ const emptyState = computed(() => props.entries.length === 0);
 .timeline-item {
   width: 100%;
   text-align: left;
-  border: 1px solid rgba(34, 197, 94, 0.22);
-  background: rgba(1, 6, 12, 0.95);
-  color: #ecfdf5;
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  background: rgba(5, 10, 15, 0.95);
+  color: #f0fdf4;
   padding: 0.85rem;
   cursor: pointer;
+  transition: all 0.2s;
+  border-radius: 2px;
 }
 
 .timeline-item:disabled {
   cursor: default;
+  opacity: 0.6;
+}
+
+.timeline-item:hover:not(:disabled) {
+  border-color: #4ade80;
+  background: rgba(10, 20, 30, 0.95);
+  box-shadow: 0 0 12px rgba(74, 222, 128, 0.15);
+  transform: translateY(-1px);
 }
 
 .timeline-item.active {
   border-color: #22c55e;
-  box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.25);
+  background: rgba(34, 197, 94, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.25), 0 0 16px rgba(34, 197, 94, 0.2);
 }
 
 .timeline-left {
@@ -134,8 +150,8 @@ const emptyState = computed(() => props.entries.length === 0);
   height: 10px;
   margin-top: 0.35rem;
   border-radius: 999px;
-  background: #22c55e;
-  box-shadow: 0 0 12px rgba(34, 197, 94, 0.5);
+  background: #4ade80;
+  box-shadow: 0 0 16px rgba(74, 222, 128, 0.6);
   flex: none;
 }
 

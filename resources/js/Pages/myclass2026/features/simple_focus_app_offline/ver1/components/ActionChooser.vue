@@ -83,11 +83,13 @@ const emit = defineEmits([
 
 <style scoped>
 .action-panel {
-  border: 1px solid rgba(34, 197, 94, 0.5);
-  background: rgba(0, 0, 0, 0.82);
+  border: 1px solid rgba(251, 191, 36, 0.6);
+  background: rgba(20, 15, 5, 0.9);
   padding: 1rem;
   font-family: 'Courier New', Courier, monospace;
-  color: #d1fae5;
+  color: #f0fdf4;
+  box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.2), 0 0 20px rgba(251, 191, 36, 0.1);
+  border-radius: 2px;
 }
 
 .action-head {
@@ -98,6 +100,8 @@ const emit = defineEmits([
   color: #fbbf24;
   letter-spacing: 0.18em;
   font-size: 0.8rem;
+  font-weight: 600;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
 }
 
 .action-head h2 {
@@ -131,18 +135,21 @@ const emit = defineEmits([
 
 .action-field input,
 .action-field textarea {
-  border: 1px solid rgba(34, 197, 94, 0.35);
-  background: rgba(1, 6, 12, 0.95);
-  color: #ecfdf5;
+  width: 100%;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  background: rgba(20, 15, 5, 0.95);
+  color: #f0fdf4;
   padding: 0.8rem 0.9rem;
   font-family: inherit;
   outline: none;
   resize: vertical;
+  border-radius: 2px;
 }
 
 .action-field input:focus,
 .action-field textarea:focus {
-  border-color: #22c55e;
+  border-color: #fbbf24;
+  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.15);
 }
 
 .action-buttons {
@@ -153,23 +160,39 @@ const emit = defineEmits([
 }
 
 .action-button {
-  border: 1px solid #22c55e;
+  border: 1px solid #fbbf24;
   background: transparent;
-  color: #d1fae5;
+  color: #f0fdf4;
   padding: 0.75rem 0.9rem;
   font-family: inherit;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+  border-radius: 2px;
 }
 
-.action-button:hover {
-  background: rgba(34, 197, 94, 0.1);
+.action-button:hover:not(:disabled) {
+  background: rgba(251, 191, 36, 0.15);
+  border-color: #f59e0b;
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.3);
+  transform: translateY(-1px);
+}
+
+.action-button:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .action-button.danger {
-  border-color: #f59e0b;
-  color: #fde68a;
+  border-color: #ef4444;
+  color: #fca5a5;
+}
+
+.action-button.danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: #dc2626;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
 }
 
 @media (max-width: 900px) {

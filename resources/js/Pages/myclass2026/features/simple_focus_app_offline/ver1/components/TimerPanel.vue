@@ -51,12 +51,14 @@ const emit = defineEmits(['pause', 'resume', 'reset']);
 
 <style scoped>
 .timer-panel {
-  border: 1px solid rgba(34, 197, 94, 0.55);
-  background: rgba(0, 0, 0, 0.84);
-  padding: 1.25rem;
-  text-align: center;
-  color: #d1fae5;
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  background: rgba(10, 10, 10, 0.9);
+  padding: 1.5rem;
   font-family: 'Courier New', Courier, monospace;
+  color: #f0fdf4;
+  text-align: center;
+  box-shadow: inset 0 0 0 1px rgba(74, 222, 128, 0.1), 0 0 20px rgba(0, 0, 0, 0.5);
+  border-radius: 2px;
 }
 
 .timer-head {
@@ -70,9 +72,10 @@ const emit = defineEmits(['pause', 'resume', 'reset']);
 
 .timer-tag,
 .timer-status {
-  color: #22c55e;
+  color: #4ade80;
   font-size: 0.8rem;
   letter-spacing: 0.18em;
+  font-weight: 500;
 }
 
 .timer-task {
@@ -82,29 +85,34 @@ const emit = defineEmits(['pause', 'resume', 'reset']);
   color: #f0fdf4;
   text-transform: uppercase;
   line-height: 1.2;
+  text-shadow: 0 0 16px rgba(74, 222, 128, 0.2);
 }
 
 .timer-display {
   margin-top: 0.95rem;
   font-size: clamp(3rem, 12vw, 6rem);
   color: #4ade80;
-  text-shadow: 0 0 16px rgba(74, 222, 128, 0.35);
+  text-shadow: 0 0 20px rgba(74, 222, 128, 0.5);
   letter-spacing: 0.12em;
+  font-weight: 600;
 }
 
 .timer-ruler {
   margin: 1rem auto 0;
   width: min(720px, 100%);
-  height: 10px;
-  border: 1px solid rgba(34, 197, 94, 0.4);
-  background: rgba(1, 6, 12, 0.95);
+  height: 12px;
+  border: 1px solid rgba(74, 222, 128, 0.5);
+  background: rgba(5, 10, 15, 0.95);
   overflow: hidden;
+  border-radius: 2px;
+  box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.3);
 }
 
 .timer-fill {
   height: 100%;
-  background: linear-gradient(90deg, #22c55e, #86efac);
+  background: linear-gradient(90deg, #22c55e, #4ade80, #86efac);
   transition: width 0.3s linear;
+  box-shadow: 0 0 8px rgba(74, 222, 128, 0.4);
 }
 
 .timer-action {
@@ -112,6 +120,7 @@ const emit = defineEmits(['pause', 'resume', 'reset']);
   margin: 0.9rem 0 0;
   color: #86efac;
   letter-spacing: 0.08em;
+  font-weight: 500;
 }
 
 .timer-actions {
@@ -123,18 +132,33 @@ const emit = defineEmits(['pause', 'resume', 'reset']);
 }
 
 .timer-button {
-  border: 1px solid #22c55e;
+  border: 1px solid #4ade80;
   background: transparent;
-  color: #d1fae5;
+  color: #f0fdf4;
   padding: 0.8rem 1rem;
   font-family: inherit;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+  border-radius: 2px;
 }
 
-.timer-button:hover {
-  background: rgba(34, 197, 94, 0.12);
+.timer-button:hover:not(:disabled) {
+  background: rgba(74, 222, 128, 0.15);
+  border-color: #22c55e;
+  box-shadow: 0 0 12px rgba(74, 222, 128, 0.2);
+  transform: translateY(-1px);
+}
+
+.timer-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.timer-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .timer-button.danger {
@@ -142,7 +166,9 @@ const emit = defineEmits(['pause', 'resume', 'reset']);
   color: #fca5a5;
 }
 
-.timer-button.danger:hover {
-  background: rgba(239, 68, 68, 0.12);
+.timer-button.danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: #dc2626;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
 }
 </style>

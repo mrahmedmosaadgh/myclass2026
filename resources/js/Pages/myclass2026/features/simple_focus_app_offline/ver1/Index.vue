@@ -372,10 +372,11 @@ onMounted(() => {
 <style scoped>
 .focus-app {
   min-height: 100vh;
-  padding: 1rem;
+  padding: 1.2rem;
   background: #000;
-  color: #d1fae5;
+  color: #f0fdf4;
   font-family: 'Courier New', Courier, monospace;
+  text-shadow: 0 0 6px rgba(74, 222, 128, 0.1);
 }
 
 .topbar {
@@ -388,9 +389,11 @@ onMounted(() => {
 }
 
 .brand-line {
-  color: #22c55e;
+  color: #4ade80;
   letter-spacing: 0.22em;
   font-size: 0.9rem;
+  font-weight: 600;
+  text-shadow: 0 0 12px rgba(74, 222, 128, 0.4);
 }
 
 .sub-line {
@@ -398,6 +401,7 @@ onMounted(() => {
   color: #86efac;
   letter-spacing: 0.12em;
   font-size: 0.76rem;
+  opacity: 0.9;
 }
 
 .status-strip {
@@ -408,6 +412,10 @@ onMounted(() => {
   font-size: 0.76rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+  background: rgba(34, 197, 94, 0.08);
+  padding: 0.5rem 0.8rem;
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  border-radius: 2px;
 }
 
 .hero-grid,
@@ -432,22 +440,26 @@ onMounted(() => {
 }
 
 .footer-box {
-  border: 1px solid rgba(34, 197, 94, 0.35);
+  border: 1px solid rgba(74, 222, 128, 0.4);
   padding: 0.8rem;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(10, 10, 10, 0.8);
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px rgba(74, 222, 128, 0.1);
 }
 
 .footer-box span {
   display: block;
-  color: #22c55e;
+  color: #4ade80;
   font-size: 0.75rem;
   letter-spacing: 0.18em;
   margin-bottom: 0.35rem;
+  font-weight: 500;
 }
 
 .footer-box strong {
   color: #f0fdf4;
   letter-spacing: 0.12em;
+  text-shadow: 0 0 8px rgba(74, 222, 128, 0.2);
 }
 
 @media (max-width: 900px) {
