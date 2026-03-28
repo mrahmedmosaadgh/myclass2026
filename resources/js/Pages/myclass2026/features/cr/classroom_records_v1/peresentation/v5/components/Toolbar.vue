@@ -4,11 +4,13 @@ import { usePaste } from '../composables/usePaste';
 import { usePresentationStore } from '../stores/presentationStore';
 import { useUIStore } from '../stores/uiStore';
 import { useGameStore } from '../stores/gameStore';
+import { useLiveQuestionStore } from '../stores/liveQuestionStore';
 
 const { createTextElement, createMathElement, createImageElement, createHTMLElement, createRectangleElement } = usePaste();
 const presentation = usePresentationStore();
 const ui = useUIStore();
 const gameStore = useGameStore();
+const liveQuestionStore = useLiveQuestionStore();
 
 const fileInput = ref(null);
 
@@ -250,6 +252,11 @@ function confirmReset() {
     <button @click="ui.isAIPasteDialogOpen = true" title="Paste Standard AI Generation">
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8" y2="16"></line><line x1="16" y1="16" x2="16" y2="16"></line></svg>
       AI Paste
+    </button>
+
+    <button @click="liveQuestionStore.openPanel()" title="Create Live Question Session">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.2 8.4c.5.38.8.97.8 1.6v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h2.5a.5.5 0 0 0 .5-.5v-2A2.5 2.5 0 0 1 9.5 3h0A2.5 2.5 0 0 1 12 5.5v2a.5.5 0 0 0 .5.5H15a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-3a2 2 0 0 1-2-2V8.4"></path><path d="M7 15h.01"></path><path d="M11 15h.01"></path><path d="M15 15h.01"></path><path d="M19 15h.01"></path></svg>
+      Live Question
     </button>
     
     <div class="divider"></div>
