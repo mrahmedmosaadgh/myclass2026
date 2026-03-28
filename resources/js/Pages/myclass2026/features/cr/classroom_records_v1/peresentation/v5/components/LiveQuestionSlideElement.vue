@@ -18,11 +18,19 @@ const sessionCode = ref('');
 const showQR = ref(false);
 const copySuccess = ref(false);
 
+// Computed property for QR code URL to avoid window.location issues
+const qrCodeUrl = computed(() => {
+  if (!sessionCode.value && !props.element.data?.sessionCode) return '';
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+  const code = sessionCode.value || props.element.data?.sessionCode;
+  return `${baseUrl}/remote-control/question-responses/student?code=${code}`;
+});
+
 // Initialize element data if not exists
 if (!props.element.data) {
   emit('update', {
     data: {
-      questionTitle: 'Enter your question...',
+      questionTitle: '',
       questionInstructions: '',
       responses: [],
       status: 'idle' // idle, active, graded
@@ -275,7 +283,7 @@ function replayQuestion() {
             @input="emit('update', { data: { ...element.data, questionTitle: $event.target.value } })"
             type="text"
             class="question-input"
-            placeholder="Enter your question here..."
+            placeholder="What is your question? (e.g., What is the capital of France?)"
             @click.stop
             @mousedown.stop
           />
@@ -381,7 +389,7 @@ function replayQuestion() {
             <h3>Scan to Join</h3>
             <div class="qr-code-wrapper">
               <QRCodeVue
-                :value="`${window.location.origin}/remote-control/question-responses/student?code=${sessionCode || element.data?.sessionCode}`"
+                :value="qrCodeUrl"
                 :size="200"
                 level="M"
                 render-as="svg"
@@ -404,7 +412,9 @@ function replayQuestion() {
           </svg>
           <span class="question-label">Question</span>
         </div>
-        <h2 class="question-title">{{ element.data?.questionTitle || 'Live Question' }}</h2>
+        <h2 class="question-title">
+  {{ element.data?.questionTitle || 'Enter your question in edit mode...' }}
+</h2>
         <div v-if="element.data?.questionInstructions" class="instructions-box">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"></circle>
