@@ -6,7 +6,7 @@ import { useGameStore } from './stores/gameStore';
 import { usePaste } from './composables/usePaste';
 import EditorCanvas from './components/EditorCanvas.vue';
 import Toolbar from './components/Toolbar.vue';
-import SlideNavigation from './components/SlideNavigation.vue';
+import SlideNavigationBar from './components/SlideNavigationBar.vue';
 import AIPasteDialog from './components/AIPasteDialog.vue';
 import GroupSetupModal from './components/GroupSetupModal.vue';
 import GroupQuizGenerator from './components/GroupQuizGenerator.vue';
@@ -22,6 +22,24 @@ const { handlePaste } = usePaste();
 function handleKeydown(e) {
   if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
 
+  // Zoom shortcuts
+  if ((e.ctrlKey || e.metaKey) && e.key === '=') {
+    e.preventDefault();
+    ui.zoomIn();
+    return;
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === '-') {
+    e.preventDefault();
+    ui.zoomOut();
+    return;
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === '0') {
+    e.preventDefault();
+    ui.resetZoom();
+    return;
+  }
+
+  // Slide navigation
   if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown') {
     presentation.selectSlide(presentation.currentSlideIndex + 1);
   } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {
@@ -55,12 +73,34 @@ onUnmounted(() => {
       <h1 v-else>{{ presentation.title }}</h1>
       <p>Minimal, working reference implementation according to plan</p>
       
-      <div class="mode-toggle">
-        <label class="switch">
-          <input type="checkbox" v-model="ui.isEditMode" @change="ui.clearSelection">
-          <span class="slider round"></span>
-        </label>
-        <span class="mode-label">{{ ui.isEditMode ? 'Edit Mode (Build)' : 'Present Mode (View)' }}</span>
+      <div class="header-controls">
+        <div class="mode-toggle">
+          <label class="switch">
+            <input type="checkbox" v-model="ui.isEditMode" @change="ui.clearSelection">
+            <span class="slider round"></span>
+          </label>
+          <span class="mode-label">{{ ui.isEditMode ? 'Edit Mode (Build)' : 'Present Mode (View)' }}</span>
+        </div>
+
+        <!-- Zoom Controls -->
+        <div class="zoom-controls">
+          <button @click="ui.zoomOut" :disabled="ui.zoomLevel <= 50" class="zoom-btn" title="Zoom Out">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+          
+          <button @click="ui.resetZoom" class="zoom-display" title="Reset to 100%">
+            {{ ui.zoomLevel }}%
+          </button>
+          
+          <button @click="ui.zoomIn" :disabled="ui.zoomLevel >= 200" class="zoom-btn" title="Zoom In">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
     
@@ -70,7 +110,7 @@ onUnmounted(() => {
 
     <div class="editor-layout">
       <!-- Sidebar Navigation -->
-      <SlideNavigation />
+      <SlideNavigationBar />
 
       <!-- Canvas Area -->
       <EditorCanvas />
@@ -155,12 +195,72 @@ onUnmounted(() => {
   color: #4b5563;
 }
 
-.mode-toggle {
+.header-controls {
   margin-top: 15px;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.mode-toggle {
+  display: flex;
+  align-items: center;
   gap: 12px;
+}
+
+/* Zoom Controls */
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.zoom-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #374151;
+  transition: all 0.2s;
+}
+
+.zoom-btn:hover:not(:disabled) {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.zoom-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.zoom-display {
+  min-width: 60px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  font-weight: 600;
+  font-size: 14px;
+  color: #111827;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.zoom-display:hover {
+  background: #f3f4f6;
 }
 
 .mode-label {

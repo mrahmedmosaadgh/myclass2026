@@ -9,6 +9,7 @@ export const useUIStore = defineStore('ui', () => {
   const isGroupQuizGeneratorOpen = ref(false);
   const lastPointer = ref({ x: 150, y: 150 });
   const pasteOffset = ref(0);
+  const zoomLevel = ref(100); // Zoom percentage (50-200)
 
   function selectElement(id) {
     if (!isEditMode.value) return;
@@ -34,6 +35,26 @@ export const useUIStore = defineStore('ui', () => {
     if (pasteOffset.value > 150) pasteOffset.value = 0;
   }
 
+  function zoomIn() {
+    if (zoomLevel.value < 200) {
+      zoomLevel.value = Math.min(200, zoomLevel.value + 10);
+    }
+  }
+
+  function zoomOut() {
+    if (zoomLevel.value > 50) {
+      zoomLevel.value = Math.max(50, zoomLevel.value - 10);
+    }
+  }
+
+  function resetZoom() {
+    zoomLevel.value = 100;
+  }
+
+  function setZoom(level) {
+    zoomLevel.value = Math.max(50, Math.min(200, level));
+  }
+
   return {
     selectedElementId,
     isEditMode,
@@ -42,10 +63,15 @@ export const useUIStore = defineStore('ui', () => {
     isGroupQuizGeneratorOpen,
     lastPointer,
     pasteOffset,
+    zoomLevel,
     selectElement,
     clearSelection,
     toggleMode,
     updateLastPointer,
-    incrementPasteOffset
+    incrementPasteOffset,
+    zoomIn,
+    zoomOut,
+    resetZoom,
+    setZoom
   };
 });

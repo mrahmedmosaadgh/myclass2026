@@ -23,7 +23,11 @@ function handleCanvasMousedown(e) {
   <div class="canvas-wrapper">
     <div
       class="canvas"
-      :style="{ height: (presentation.currentSlide?.height || 600) + 'px' }"
+      :style="{ 
+        height: (presentation.currentSlide?.height || 600) + 'px',
+        transform: `scale(${ui.zoomLevel / 100})`,
+        transformOrigin: 'top center'
+      }"
       @mousedown.self="handleCanvasMousedown"
     >
       <ElementNode

@@ -529,37 +529,35 @@ function onDragEnd() {
 
 .delete-btn {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  background: rgba(239, 68, 68, 0.95);
+  top: -6px;
+  right: -6px;
+  background: #ef4444;
   color: white;
-  border: none;
-  border-radius: 4px;
-  width: 18px;
-  height: 18px;
-  font-size: 12px;
-  font-weight: 500;
+  border: 2px solid white;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   opacity: 0;
   transition: all 0.2s ease;
-  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+  z-index: 20;
 }
 
 .delete-btn:hover {
   background: #dc2626;
-  transform: scale(1.1);
+  transform: scale(1.15);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.5);
 }
 
 .slide-thumb:hover .delete-btn {
   opacity: 1;
-}
-
-.delete-btn:hover {
-  background: #dc2626;
-  transform: scale(1.1);
 }
 
 .add-slide-btn {
@@ -706,19 +704,19 @@ function onDragEnd() {
 
 .slide-actions {
   position: absolute;
-  bottom: 4px;
-  right: 4px;
+  bottom: -6px;
+  right: -6px;
   display: flex;
-  gap: 3px;
+  gap: 6px;
   z-index: 10;
 }
 
 .add-between-btn {
-  width: 20px;
-  height: 20px;
-  background: rgba(16, 185, 129, 0.95);
-  border: none;
-  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  background: #10b981;
+  border: 2px solid white;
+  border-radius: 50%;
   color: white;
   cursor: pointer;
   display: flex;
@@ -726,7 +724,7 @@ function onDragEnd() {
   justify-content: center;
   transition: all 0.2s ease;
   opacity: 0;
-  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
 }
 
 .add-between-btn svg {
@@ -741,7 +739,7 @@ function onDragEnd() {
 .add-between-btn:hover {
   background: #059669;
   transform: scale(1.15);
-  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.4);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.5);
 }
 
 /* Drag and drop visual feedback */
