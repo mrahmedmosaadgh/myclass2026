@@ -12,6 +12,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (!Schema::hasTable('menus')) {
+            return;
+        }
+
         DB::table('menus')->where('role_specific', 'SuperSystem')->update(['role_specific' => 'super_admin']);
         DB::table('menus')->where('role_specific', 'SystemAdmin')->update(['role_specific' => 'super_admin']);
         DB::table('menus')->where('role_specific', 'SchoolAdmin')->update(['role_specific' => 'admin']);

@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (!Schema::hasTable('menus')) {
+            return;
+        }
+
         $existingIndexes = collect(DB::select("SHOW INDEX FROM menus"))->pluck('Key_name');
 
         if (!$existingIndexes->contains('menus_v2_composite_index')) {

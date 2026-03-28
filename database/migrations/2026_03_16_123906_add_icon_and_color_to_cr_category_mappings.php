@@ -12,8 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('cr_category_mappings', function (Blueprint $table) {
-            $table->string('icon')->default('📊')->after('label');
-            $table->string('color')->default('blue')->after('icon');
+            if (!Schema::hasColumn('cr_category_mappings', 'icon')) {
+                $table->string('icon')->default('📊')->after('label');
+            }
+            if (!Schema::hasColumn('cr_category_mappings', 'color')) {
+                $table->string('color')->default('blue')->after('icon');
+            }
         });
     }
 

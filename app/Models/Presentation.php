@@ -20,7 +20,8 @@ class Presentation extends Model
         'user_id',
         'school_id',
         'classroom_id',
-        'slides',
+        'slides_file_path',
+        'file_size_bytes',
         'current_slide_index',
         'use_phases',
         'has_initialized_phases',
@@ -31,13 +32,13 @@ class Presentation extends Model
     ];
 
     protected $casts = [
-        'slides' => 'array',
         'metadata' => 'array',
         'use_phases' => 'boolean',
         'has_initialized_phases' => 'boolean',
         'is_public' => 'boolean',
         'is_template' => 'boolean',
-        'current_slide_index' => 'integer'
+        'current_slide_index' => 'integer',
+        'file_size_bytes' => 'integer'
     ];
 
     protected $dates = [
@@ -193,15 +194,55 @@ class Presentation extends Model
 
     public function getSlideCount()
     {
-        return count($this->slides ?? []);
+        $slides = $this->loadSlidesFromFile();
+        return count($slides ?? []);
     }
 
     public function getSize()
     {
-        return strlen(json_encode([
-            'slides' => $this->slides,
-            'metadata' => $this->metadata
-        ]));
+        return $this->file_size_bytes ?? 0;
+    }
+
+    /**
+     * Load slides from file storage
+     */
+    public function loadSlidesFromFile()
+    {
+        if (!$this->slides_file_path) {
+            return [];
+        }
+
+        $fileService = app(\App\Services\PresentationFileService::class);
+        return $fileService->loadSlides($this->slides_file_path) ?? [];
+    }
+
+    /**
+     * Save slides to file storage
+     */
+    public function saveSlidesToFile(array $slides)
+    {
+        $fileService = app(\App\Services\PresentationFileService::class);
+        $result = $fileService->saveSlides($this->user_id, $this->id, $slides);
+        
+        $this->update([
+            'slides_file_path' => $result['path'],
+            'file_size_bytes' => $result['size']
+        ]);
+
+        return $result;
+    }
+
+    /**
+     * Delete slides file
+     */
+    public function deleteSlidesFile()
+    {
+        if (!$this->slides_file_path) {
+            return true;
+        }
+
+        $fileService = app(\App\Services\PresentationFileService::class);
+        return $fileService->deleteSlides($this->slides_file_path);
     }
 
     public function getSizeFormatted()

@@ -1,5 +1,6 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
+import { router } from '@inertiajs/vue3';
 import { usePaste } from '../composables/usePaste';
 import { usePresentationStore } from '../stores/presentationStore';
 import { useUIStore } from '../stores/uiStore';
@@ -13,6 +14,36 @@ const gameStore = useGameStore();
 const liveQuestionStore = useLiveQuestionStore();
 
 const fileInput = ref(null);
+const isSaving = ref(false);
+
+const saveStatusIcon = computed(() => {
+  if (isSaving.value) return '⏳';
+  if (presentation.saveStatus === 'saving') return '💾';
+  if (presentation.saveStatus === 'error') return '❌';
+  return '✅';
+});
+
+const saveStatusText = computed(() => {
+  if (isSaving.value) return 'Saving...';
+  if (presentation.saveStatus === 'saving') return 'Saving...';
+  if (presentation.saveStatus === 'error') return 'Error';
+  return 'Saved';
+});
+
+async function savePresentation() {
+  isSaving.value = true;
+  try {
+    await presentation.saveCurrentPresentation();
+  } catch (error) {
+    console.error('Save failed:', error);
+  } finally {
+    isSaving.value = false;
+  }
+}
+
+function openManagePage() {
+  router.visit(route('classroom-records.presentation.manage'));
+}
 
 function addText() {
   createTextElement('New Text');
@@ -206,6 +237,25 @@ function confirmReset() {
 
 <template>
   <div class="toolbar">
+    <!-- Save and Manage Section -->
+    <button @click="savePresentation" :disabled="isSaving" class="save-btn" title="Save Presentation (Ctrl+S)">
+      <span class="save-icon">{{ saveStatusIcon }}</span>
+      <span class="save-text">{{ saveStatusText }}</span>
+    </button>
+
+    <button @click="openManagePage" class="manage-btn" title="Manage All Presentations">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 3h7v7H3z"></path>
+        <path d="M14 3h7v7h-7z"></path>
+        <path d="M14 14h7v7h-7z"></path>
+        <path d="M3 14h7v7H3z"></path>
+      </svg>
+      Manage
+    </button>
+
+    <!-- Divider -->
+    <div class="divider"></div>
+
     <button @click="presentation.addSlide" title="Add New Slide">
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
@@ -405,5 +455,44 @@ function confirmReset() {
   0% { opacity: 1; }
   50% { opacity: 0.5; }
   100% { opacity: 1; }
+}
+
+/* Save and Manage Buttons */
+.save-btn {
+  background: #10b981 !important;
+  color: white !important;
+  font-weight: 500;
+  min-width: 80px;
+}
+
+.save-btn:hover {
+  background: #059669 !important;
+}
+
+.save-btn:disabled {
+  background: #9ca3af !important;
+  cursor: not-allowed;
+}
+
+.save-icon {
+  font-size: 16px;
+}
+
+.save-text {
+  font-size: 11px;
+}
+
+.manage-btn {
+  background: #3b82f6 !important;
+  color: white !important;
+  font-weight: 500;
+}
+
+.manage-btn:hover {
+  background: #2563eb !important;
+}
+
+.manage-btn svg {
+  color: white !important;
 }
 </style>

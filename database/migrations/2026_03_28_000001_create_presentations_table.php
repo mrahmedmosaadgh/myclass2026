@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('presentations')) {
+            return;
+        }
+
         Schema::create('presentations', function (Blueprint $table) {
             $table->id();
             
@@ -21,7 +25,6 @@ return new class extends Migration
             
             // Category for organization
             $table->unsignedBigInteger('category_id')->nullable();
-            $table->foreign('category_id')->references('id')->on('presentation_categories')->onDelete('set null');
             
             // User ownership
             $table->unsignedBigInteger('user_id');

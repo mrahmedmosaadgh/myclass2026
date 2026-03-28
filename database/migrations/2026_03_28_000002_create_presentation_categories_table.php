@@ -109,6 +109,11 @@ return new class extends Migration
                 'updated_at' => now(),
             ],
         ]);
+
+        // Add FK from presentations to presentation_categories now that the table exists
+        Schema::table('presentations', function (Blueprint $table) {
+            $table->foreign('category_id')->references('id')->on('presentation_categories')->onDelete('set null');
+        });
     }
 
     /**

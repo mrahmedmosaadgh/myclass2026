@@ -12,6 +12,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (!Schema::hasTable('menus')) {
+            return;
+        }
+
         // 1. Clean up duplicated menus (based on route)
         // Keep the one with the highest ID (newest) or v2_enabled
         $duplicates = DB::table('menus')

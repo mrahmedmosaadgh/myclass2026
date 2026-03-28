@@ -92,8 +92,9 @@ class PresentationController extends Controller
 
             $user = Auth::user();
             $data = $request->validated();
+            $slides = $data['slides'] ?? [];
 
-            // Create presentation
+            // Create presentation record first
             $presentation = Presentation::create([
                 'title' => $data['title'],
                 'description' => $data['description'] ?? null,
@@ -101,13 +102,11 @@ class PresentationController extends Controller
                 'user_id' => $user->id,
                 'school_id' => $user->school_id,
                 'classroom_id' => $data['classroom_id'] ?? null,
-                'slides' => $data['slides'] ?? [],
                 'current_slide_index' => $data['current_slide_index'] ?? 0,
                 'use_phases' => $data['use_phases'] ?? false,
                 'has_initialized_phases' => $data['has_initialized_phases'] ?? false,
                 'metadata' => [
-                    'size' => strlen(json_encode($data['slides'] ?? [])),
-                    'slide_count' => count($data['slides'] ?? []),
+                    'slide_count' => count($slides),
                     'version' => '1.0',
                     'created_from' => 'api'
                 ],
@@ -115,6 +114,11 @@ class PresentationController extends Controller
                 'is_public' => $data['is_public'] ?? false,
                 'is_template' => $data['is_template'] ?? false,
             ]);
+
+            // Save slides to file storage
+            if (!empty($slides)) {
+                $presentation->saveSlidesToFile($slides);
+            }
 
             // Create initial backup
             $presentation->createBackup('initial');
@@ -160,9 +164,14 @@ class PresentationController extends Controller
             $query->latest()->take(5);
         }]);
 
+        // Load slides from file storage
+        $slides = $presentation->loadSlidesFromFile();
+        $presentationData = $presentation->toArray();
+        $presentationData['slides'] = $slides;
+
         return response()->json([
             'success' => true,
-            'data' => $presentation
+            'data' => $presentationData
         ]);
     }
 
@@ -185,15 +194,15 @@ class PresentationController extends Controller
             DB::beginTransaction();
 
             $data = $request->validated();
-            $oldSlides = $presentation->slides;
+            $oldSlides = $presentation->loadSlidesFromFile();
+            $newSlides = $data['slides'] ?? null;
 
-            // Update presentation
+            // Update presentation metadata
             $presentation->update([
                 'title' => $data['title'],
                 'description' => $data['description'] ?? $presentation->description,
                 'category_id' => $data['category_id'] ?? $presentation->category_id,
                 'classroom_id' => $data['classroom_id'] ?? $presentation->classroom_id,
-                'slides' => $data['slides'] ?? $presentation->slides,
                 'current_slide_index' => $data['current_slide_index'] ?? $presentation->current_slide_index,
                 'use_phases' => $data['use_phases'] ?? $presentation->use_phases,
                 'has_initialized_phases' => $data['has_initialized_phases'] ?? $presentation->has_initialized_phases,
@@ -201,17 +210,21 @@ class PresentationController extends Controller
                 'is_public' => $data['is_public'] ?? $presentation->is_public,
                 'is_template' => $data['is_template'] ?? $presentation->is_template,
                 'metadata' => array_merge($presentation->metadata ?? [], [
-                    'size' => strlen(json_encode($data['slides'] ?? [])),
-                    'slide_count' => count($data['slides'] ?? []),
+                    'slide_count' => $newSlides ? count($newSlides) : count($oldSlides),
                     'last_updated_from' => 'api',
                     'updated_at' => now()->toISOString()
                 ])
             ]);
 
-            // Create backup if slides changed significantly
-            $slidesChanged = json_encode($oldSlides) !== json_encode($presentation->slides);
-            if ($slidesChanged || $request->has('create_backup')) {
-                $presentation->createBackup($request->get('backup_reason', 'auto'));
+            // Update slides file if provided
+            if ($newSlides !== null) {
+                $presentation->saveSlidesToFile($newSlides);
+                
+                // Create backup if slides changed significantly
+                $slidesChanged = json_encode($oldSlides) !== json_encode($newSlides);
+                if ($slidesChanged || $request->has('create_backup')) {
+                    $presentation->createBackup($request->get('backup_reason', 'auto'));
+                }
             }
 
             DB::commit();
@@ -255,6 +268,9 @@ class PresentationController extends Controller
 
             // Create backup before deletion
             $presentation->createBackup('before_delete');
+
+            // Delete slides file
+            $presentation->deleteSlidesFile();
 
             // Soft delete
             $presentation->delete();

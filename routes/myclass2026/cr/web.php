@@ -71,6 +71,16 @@ Route::middleware([
                 ]
             );
         })->name('builder-v5');
+
+        // Presentation Management Page
+        Route::get('/manage', function () {
+            return Inertia::render(
+                'myclass2026/features/cr/classroom_records_v1/peresentation/v5/PresentationManage',
+                [
+                    'title' => 'Manage Presentations - MyClass2026'
+                ]
+            );
+        })->name('manage');
         
         // Slide editor
         Route::get('/slide-editor', function () {

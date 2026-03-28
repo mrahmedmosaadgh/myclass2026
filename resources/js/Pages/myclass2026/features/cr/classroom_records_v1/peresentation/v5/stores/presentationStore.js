@@ -313,6 +313,38 @@ export const usePresentationStore = defineStore('presentation', () => {
     return await indexedDBStorage.getStorageStats();
   }
 
+  async function saveCurrentPresentation() {
+    try {
+      saveStatus.value = 'saving';
+      
+      const presentationData = {
+        title: title.value,
+        slides: slides.value,
+        currentSlideIndex: currentSlideIndex.value,
+        usePhases: usePhases.value,
+        hasInitializedPhases: hasInitializedPhases.value,
+        metadata: {
+          lastSaved: new Date().toISOString()
+        }
+      };
+
+      // Save to IndexedDB
+      const result = await indexedDBStorage.savePresentation(presentationData, {
+        overwrite: true,
+        createBackup: false
+      });
+
+      currentPresentationKey = result.id;
+      saveStatus.value = 'saved';
+      
+      return result;
+    } catch (error) {
+      console.error('Save failed:', error);
+      saveStatus.value = 'error';
+      throw error;
+    }
+  }
+
   return {
     title,
     usePhases,
@@ -339,6 +371,7 @@ export const usePresentationStore = defineStore('presentation', () => {
     savePresentationAs,
     exportCurrentPresentation,
     getStorageInfo,
+    saveCurrentPresentation,
     // Storage access
     indexedDBStorage
   };

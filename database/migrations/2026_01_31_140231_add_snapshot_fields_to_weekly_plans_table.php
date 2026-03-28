@@ -12,12 +12,21 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('weekly_plans', function (Blueprint $table) {
-            $table->unsignedTinyInteger('day_number')->nullable()->after('week_number');
-            $table->unsignedTinyInteger('period_order')->nullable()->after('day_number');
-            
-            $table->foreignId('classroom_id')->nullable()->constrained()->onDelete('cascade');
-            $table->foreignId('subject_id')->nullable()->constrained()->onDelete('cascade');
-            $table->foreignId('teacher_id')->nullable()->constrained()->onDelete('cascade');
+            if (!Schema::hasColumn('weekly_plans', 'day_number')) {
+                $table->unsignedTinyInteger('day_number')->nullable()->after('week_number');
+            }
+            if (!Schema::hasColumn('weekly_plans', 'period_order')) {
+                $table->unsignedTinyInteger('period_order')->nullable()->after('day_number');
+            }
+            if (!Schema::hasColumn('weekly_plans', 'classroom_id')) {
+                $table->foreignId('classroom_id')->nullable()->constrained()->onDelete('cascade');
+            }
+            if (!Schema::hasColumn('weekly_plans', 'subject_id')) {
+                $table->foreignId('subject_id')->nullable()->constrained()->onDelete('cascade');
+            }
+            if (!Schema::hasColumn('weekly_plans', 'teacher_id')) {
+                $table->foreignId('teacher_id')->nullable()->constrained()->onDelete('cascade');
+            }
         });
     }
 
