@@ -27,3 +27,4 @@ yarn-error.log
 # Lightpanda Local Binary
 /bin/lightpanda
 /bin/lightpanda-*.tar.gz
+fix-psr4-folders.sh
