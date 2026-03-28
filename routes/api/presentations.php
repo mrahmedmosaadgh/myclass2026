@@ -1,8 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\API\PresentationController;
-use App\Http\Controllers\API\PresentationCategoryController;
+use App\Http\Controllers\Api\PresentationController;
+use App\Http\Controllers\Api\PresentationCategoryController;
 
 /*
 |--------------------------------------------------------------------------

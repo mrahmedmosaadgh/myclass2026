@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Http\Controllers\API;
+namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Presentation;
 use App\Models\PresentationCategory;
-use App\Http\Requests\API\PresentationStoreRequest;
-use App\Http\Requests\API\PresentationUpdateRequest;
+use App\Http\Requests\Api\PresentationStoreRequest;
+use App\Http\Requests\Api\PresentationUpdateRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
