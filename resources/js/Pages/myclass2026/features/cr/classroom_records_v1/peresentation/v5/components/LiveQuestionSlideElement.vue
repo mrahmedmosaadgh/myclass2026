@@ -1,435 +1,359 @@
+<script setup>
+import { ref, computed } from 'vue';
+import { useQuestionSession } from '../../../../../remot_control/v1/examples/question_responses/composables/useQuestionSession';
+import { useLiveQuestionStore } from '../stores/liveQuestionStore';
+
+const props = defineProps({
+  element: Object,
+  isEditMode: Boolean
+});
+
+const emit = defineEmits(['update', 'select']);
+const liveQuestionStore = useLiveQuestionStore();
+
+const isInteractive = ref(false);
+const activeSession = ref(null);
+const sessionCode = ref('');
+
+// Initialize element data if not exists
+if (!props.element.data) {
+  emit('update', {
+    data: {
+      questionTitle: 'Enter your question...',
+      questionInstructions: '',
+      responses: [],
+      status: 'idle' // idle, active, graded
+    }
+  });
+}
+
+const isGraded = computed(() => props.element.data?.status === 'graded');
+const hasResponses = computed(() => (props.element.data?.responses || []).length > 0);
+
+// Generate session code
+function generateCode() {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+// Start live question session
+function startSession() {
+  if (!props.element.data?.questionTitle || props.element.data.questionTitle === 'Enter your question...') {
+    alert('Please enter a question first');
+    return;
+  }
+
+  sessionCode.value = generateCode();
+  isInteractive.value = true;
+
+  // Initialize remote control session
+  activeSession.value = useQuestionSession(sessionCode.value, 'teacher');
+
+  // Publish question
+  const questionData = {
+    id: props.element.id,
+    title: props.element.data.questionTitle,
+    instructions: props.element.data.questionInstructions || '',
+    minLength: 1,
+    maxLength: 1000
+  };
+
+  activeSession.value.publishQuestion(questionData);
+
+  // Listen for student responses
+  activeSession.value.channel.onCommand((command) => {
+    if (command.type === 'submit_answer') {
+      addResponse(command.payload);
+    }
+  });
+
+  emit('update', {
+    data: {
+      ...props.element.data,
+      sessionCode: sessionCode.value,
+      status: 'active'
+    }
+  });
+}
+
+// Stop session
+function lockSession() {
+  isInteractive.value = false;
+  
+  if (activeSession.value) {
+    activeSession.value.closeSession();
+    activeSession.value = null;
+  }
+
+  emit('update', {
+    data: {
+      ...props.element.data,
+      status: 'idle'
+    }
+  });
+}
+
+// Add student response
+function addResponse(response) {
+  const responses = props.element.data?.responses || [];
+  const existingIndex = responses.findIndex(r => r.studentId === response.studentId);
+  
+  if (existingIndex === -1) {
+    responses.push({
+      studentId: response.studentId,
+      studentName: response.studentName,
+      answer: response.answer?.text || response.answer,
+      timestamp: response.timestamp || new Date().toISOString(),
+      score: 0,
+      rank: null
+    });
+
+    emit('update', {
+      data: {
+        ...props.element.data,
+        responses
+      }
+    });
+  }
+}
+
+// Grade responses
+function gradeResponses() {
+  if (isGraded.value) return;
+
+  const responses = props.element.data?.responses || [];
+  if (responses.length === 0) {
+    alert('No responses to grade yet!');
+    return;
+  }
+
+  // Calculate rankings based on scores
+  const sorted = [...responses].sort((a, b) => b.score - a.score);
+  let currentRank = 1;
+  sorted.forEach((response, index) => {
+    if (index > 0 && sorted[index - 1].score > response.score) {
+      currentRank = index + 1;
+    }
+    response.rank = currentRank;
+  });
+
+  emit('update', {
+    data: {
+      ...props.element.data,
+      responses: sorted,
+      status: 'graded'
+    }
+  });
+}
+
+// Update student score
+function updateScore(studentId, score) {
+  const responses = props.element.data?.responses || [];
+  const response = responses.find(r => r.studentId === studentId);
+  if (response) {
+    response.score = parseInt(score) || 0;
+    emit('update', {
+      data: {
+        ...props.element.data,
+        responses
+      }
+    });
+  }
+}
+
+// Reset/replay
+function replayQuestion() {
+  emit('update', {
+    data: {
+      ...props.element.data,
+      responses: [],
+      status: 'idle'
+    }
+  });
+  isInteractive.value = false;
+  sessionCode.value = '';
+}
+</script>
+
 <template>
-  <div class="live-question-element" :class="{ 'presentation-mode': !isEditMode, 'active': element.data?.isActive }">
+  <div class="live-question-wrapper" @click="emit('select')">
     <!-- Edit Mode -->
-    <div v-if="isEditMode" class="edit-mode">
-      <div class="element-header">
-        <h3 class="element-title">Live Question Element</h3>
-        <div class="element-controls">
-          <button 
-            @click="startSession" 
-            :disabled="element.data?.isActive || !element.data?.questionTitle"
-            class="control-btn start-btn"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polygon points="5 3 19 12 5 21 5 3"></polygon>
-            </svg>
-            Start
-          </button>
-          <button 
-            @click="stopSession" 
-            :disabled="!element.data?.isActive"
-            class="control-btn stop-btn"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="6" y="4" width="4" height="16"></rect>
-              <rect x="14" y="4" width="4" height="16"></rect>
-            </svg>
-            Stop
-          </button>
-          <button @click="openResults" class="control-btn results-btn">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14,2 14,8 20,8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-              <polyline points="10,9 9,9 8,9"></polyline>
-            </svg>
-            Results
-          </button>
-        </div>
+    <div v-if="isEditMode" class="edit-container">
+      <div class="edit-header">
+        <h4>📝 Live Question</h4>
       </div>
       
-      <div class="question-editor">
+      <div class="edit-form">
         <div class="form-group">
-          <label>Question Title</label>
+          <label>Question:</label>
           <input 
-            v-model="element.data.questionTitle" 
-            type="text" 
-            placeholder="Enter your question..."
-            class="form-input"
+            v-model="element.data.questionTitle"
+            @input="emit('update', { data: { ...element.data, questionTitle: $event.target.value } })"
+            type="text"
+            class="question-input"
+            placeholder="What is your question?"
           />
         </div>
+        
         <div class="form-group">
-          <label>Instructions</label>
+          <label>Instructions (optional):</label>
           <textarea 
-            v-model="element.data.questionInstructions" 
-            placeholder="Provide instructions for students..."
-            class="form-textarea"
+            v-model="element.data.questionInstructions"
+            @input="emit('update', { data: { ...element.data, questionInstructions: $event.target.value } })"
+            class="instructions-input"
             rows="2"
+            placeholder="Additional instructions for students..."
           ></textarea>
         </div>
-        <div class="form-group">
-          <label>Time Limit (seconds)</label>
-          <input 
-            v-model="element.data.timeLimit" 
-            type="number" 
-            placeholder="Optional time limit"
-            class="form-input"
-            min="10"
-            max="300"
-          />
-        </div>
-      </div>
 
-      <div v-if="element.data?.isActive" class="session-status">
-        <div class="status-indicator active"></div>
-        <span class="status-text">Session Active</span>
-        <div class="session-info">
-          <span class="session-code">{{ element.data.sessionCode }}</span>
-          <span class="response-count">{{ element.data.responses?.length || 0 }} responses</span>
+        <div class="stats">
+          <span>📊 {{ hasResponses ? element.data.responses.length : 0 }} responses</span>
+          <span v-if="element.data.status === 'graded'" class="graded-badge">✓ Graded</span>
         </div>
       </div>
     </div>
 
     <!-- Presentation Mode -->
-    <div v-else class="presentation-mode">
-      <div v-if="!element.data?.isActive" class="inactive-state">
-        <div class="placeholder-content">
-          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path>
-          </svg>
-          <h3>{{ element.data?.questionTitle || 'Live Question' }}</h3>
-          <p>Start the session to enable student responses</p>
+    <div v-else class="presentation-container">
+      <!-- Control Bar -->
+      <div class="control-bar">
+        <button 
+          @click="startSession" 
+          :disabled="isInteractive || isGraded"
+          class="ctrl-btn start"
+        >
+          ▶ Start
+        </button>
+        
+        <button 
+          @click="lockSession" 
+          :disabled="!isInteractive"
+          class="ctrl-btn lock"
+        >
+          ⏸ Lock
+        </button>
+
+        <button 
+          @click="gradeResponses" 
+          :disabled="!hasResponses || isGraded"
+          class="ctrl-btn grade"
+        >
+          ✓ Grade
+        </button>
+
+        <button 
+          @click="replayQuestion"
+          class="ctrl-btn replay"
+        >
+          ↻ Reset
+        </button>
+
+        <div v-if="isInteractive" class="session-code">
+          Code: <strong>{{ sessionCode }}</strong>
         </div>
       </div>
 
-      <div v-else class="active-state">
-        <div class="question-display">
-          <h2 class="question-title">{{ element.data?.questionTitle }}</h2>
-          <p class="question-instructions">{{ element.data?.questionInstructions }}</p>
-        </div>
+      <!-- Question Display -->
+      <div class="question-display">
+        <h2 class="question-title">{{ element.data?.questionTitle || 'Live Question' }}</h2>
+        <p v-if="element.data?.questionInstructions" class="question-instructions">
+          {{ element.data.questionInstructions }}
+        </p>
+      </div>
 
-        <div class="session-info">
-          <div class="code-display">
-            <span class="code-label">Session Code:</span>
-            <span class="code-value">{{ element.data?.sessionCode }}</span>
-          </div>
-          <div class="responses-display">
-            <span class="responses-count">{{ element.data?.responses?.length || 0 }}</span>
-            <span class="responses-label">Responses</span>
-          </div>
-          <div v-if="element.data?.timeLimit" class="timer-display">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-            <span class="timer-value">{{ formatTime(remainingTime) }}</span>
-          </div>
-        </div>
-
-        <!-- Response Preview -->
-        <div v-if="element.data?.responses?.length > 0" class="response-preview">
-          <h4>Recent Responses</h4>
-          <div class="response-list">
-            <div 
-              v-for="response in recentResponses" 
-              :key="response.studentId"
-              class="response-item"
-            >
-              <span class="student-name">{{ response.studentName }}</span>
-              <span class="response-text">{{ truncateText(response.answer?.text || response.answer, 50) }}</span>
+      <!-- Responses List -->
+      <div v-if="hasResponses" class="responses-section">
+        <h3>Student Responses ({{ element.data.responses.length }})</h3>
+        
+        <div class="responses-list">
+          <div 
+            v-for="response in element.data.responses" 
+            :key="response.studentId"
+            class="response-card"
+            :class="{ 'graded': isGraded }"
+          >
+            <div class="response-header">
+              <div class="student-info">
+                <span v-if="response.rank" class="rank-badge" :class="`rank-${response.rank}`">
+                  #{{ response.rank }}
+                </span>
+                <span class="student-name">{{ response.studentName }}</span>
+              </div>
+              
+              <div class="score-input" v-if="!isGraded">
+                <input 
+                  type="number"
+                  :value="response.score"
+                  @input="updateScore(response.studentId, $event.target.value)"
+                  min="0"
+                  max="100"
+                  class="score-field"
+                  placeholder="0"
+                />
+                <span class="score-label">/100</span>
+              </div>
+              
+              <div v-else class="score-display">
+                <span class="score-value">{{ response.score }}</span>
+                <span class="score-label">pts</span>
+              </div>
+            </div>
+            
+            <div class="response-content">
+              {{ response.answer }}
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Results Modal -->
-    <LiveQuestionResults 
-      v-if="showResults"
-      :responses="element.data?.responses || []"
-      :question="element.data"
-      @close="showResults = false"
-    />
+      <!-- Empty State -->
+      <div v-else-if="!isInteractive" class="empty-state">
+        <p>👆 Click "Start" to begin collecting responses</p>
+      </div>
+
+      <div v-else class="waiting-state">
+        <p>⏳ Waiting for student responses...</p>
+        <p class="session-info">Students can join with code: <strong>{{ sessionCode }}</strong></p>
+      </div>
+    </div>
   </div>
 </template>
 
-<script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useLiveQuestionStore } from '../stores/liveQuestionStore'
-import { useGameStore } from '../stores/gameStore'
-import { useQuestionSession } from '../../../../../remot_control/v1/examples/question_responses/composables/useQuestionSession'
-import LiveQuestionResults from './LiveQuestionResults.vue'
-
-const props = defineProps({
-  element: {
-    type: Object,
-    required: true
-  },
-  isEditMode: {
-    type: Boolean,
-    default: true
-  }
-})
-
-const liveQuestionStore = useLiveQuestionStore()
-const gameStore = useGameStore()
-
-const showResults = ref(false)
-const activeSession = ref(null)
-const timerInterval = ref(null)
-const remainingTime = ref(0)
-
-const recentResponses = computed(() => {
-  const responses = props.element.data?.responses || []
-  return responses.slice(-3).reverse() // Show last 3 responses
-})
-
-function generateSessionCode() {
-  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
-  let code = ''
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
-  return code
-}
-
-async function startSession() {
-  if (!props.element.data?.questionTitle) {
-    alert('Please enter a question title first')
-    return
-  }
-
-  try {
-    const sessionCode = generateSessionCode()
-    
-    // Update element data
-    props.element.data.sessionCode = sessionCode
-    props.element.data.isActive = true
-    props.element.data.responses = []
-
-    // Initialize remote control session
-    activeSession.value = useQuestionSession(sessionCode, 'teacher')
-
-    // Publish question
-    const questionData = {
-      id: props.element.id,
-      title: props.element.data.questionTitle,
-      instructions: props.element.data.questionInstructions,
-      timeLimit: props.element.data.timeLimit,
-      minLength: 1,
-      maxLength: 1000
-    }
-
-    const published = activeSession.value.publishQuestion(questionData)
-    if (!published) {
-      throw new Error('Failed to publish question')
-    }
-
-    // Listen for responses
-    activeSession.value.channel.onCommand((command) => {
-      if (command.type === 'submit_answer') {
-        handleStudentResponse(command.payload)
-      }
-    })
-
-    // Start timer if time limit is set
-    if (props.element.data.timeLimit) {
-      remainingTime.value = props.element.data.timeLimit
-      startTimer()
-    }
-
-    console.log('Live question session started:', sessionCode)
-
-  } catch (error) {
-    console.error('Failed to start session:', error)
-    alert('Failed to start session. Please try again.')
-  }
-}
-
-function stopSession() {
-  if (activeSession.value) {
-    activeSession.value.closeSession()
-    activeSession.value = null
-  }
-
-  if (timerInterval.value) {
-    clearInterval(timerInterval.value)
-    timerInterval.value = null
-  }
-
-  props.element.data.isActive = false
-  remainingTime.value = 0
-
-  // Award points to groups based on responses
-  awardGroupPoints()
-}
-
-function handleStudentResponse(response) {
-  if (!props.element.data.responses) {
-    props.element.data.responses = []
-  }
-
-  // Add response if not already exists
-  const existingIndex = props.element.data.responses.findIndex(r => r.studentId === response.studentId)
-  if (existingIndex === -1) {
-    props.element.data.responses.push({
-      ...response,
-      score: 0,
-      rank: null
-    })
-  }
-}
-
-function startTimer() {
-  timerInterval.value = setInterval(() => {
-    remainingTime.value--
-    if (remainingTime.value <= 0) {
-      stopSession()
-    }
-  }, 1000)
-}
-
-function formatTime(seconds) {
-  const mins = Math.floor(seconds / 60)
-  const secs = seconds % 60
-  return `${mins}:${secs.toString().padStart(2, '0')}`
-}
-
-function truncateText(text, maxLength) {
-  if (text.length <= maxLength) return text
-  return text.substring(0, maxLength) + '...'
-}
-
-function openResults() {
-  showResults.value = true
-}
-
-function awardGroupPoints() {
-  const responses = props.element.data.responses || []
-  if (responses.length === 0) return
-
-  // Calculate rankings
-  const rankedResponses = [...responses]
-    .sort((a, b) => b.score - a.score)
-    .map((response, index) => ({
-      ...response,
-      rank: index + 1
-    }))
-
-  // Award points to groups based on rankings
-  rankedResponses.forEach((response) => {
-    if (response.score > 0) {
-      const points = Math.round(response.score / 10) // Convert score to points (1-10 points)
-      
-      // Find student's group and award points
-      // Check if student is in participants list first
-      const participant = gameStore.participants.find(p => p.id === response.studentId)
-      if (participant && participant.group) {
-        // Find group by name from participant's group assignment
-        const group = gameStore.groups.find(g => g.name === participant.group)
-        if (group) {
-          gameStore.updateGroupScore(group.id, points)
-          console.log(`Awarded ${points} points to group ${group.name} for ${response.studentName}'s response`)
-        }
-      }
-    }
-  })
-
-  // Log the question in history for grading purposes
-  gameStore.questionHistory[props.element.id] = {
-    type: 'live-question',
-    status: 'graded',
-    responses: rankedResponses,
-    totalPoints: rankedResponses.reduce((sum, r) => sum + (r.score > 0 ? Math.round(r.score / 10) : 0), 0),
-    gradedAt: new Date().toISOString()
-  }
-
-  console.log('Points awarded to groups based on live question responses')
-}
-
-onUnmounted(() => {
-  if (timerInterval.value) {
-    clearInterval(timerInterval.value)
-  }
-  if (activeSession.value) {
-    activeSession.value.closeSession()
-  }
-})
-</script>
-
 <style scoped>
-.live-question-element {
+.live-question-wrapper {
   width: 100%;
   height: 100%;
   background: white;
   border-radius: 8px;
-  border: 2px solid #e5e7eb;
   overflow: hidden;
-  position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
-.live-question-element.active {
-  border-color: #10b981;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
-}
-
-/* Edit Mode Styles */
-.edit-mode {
+/* Edit Mode */
+.edit-container {
   padding: 20px;
   height: 100%;
   overflow-y: auto;
 }
 
-.element-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #e5e7eb;
+.edit-header {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e5e7eb;
 }
 
-.element-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #374151;
+.edit-header h4 {
   margin: 0;
-}
-
-.element-controls {
-  display: flex;
-  gap: 8px;
-}
-
-.control-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  background: white;
+  font-size: 16px;
   color: #374151;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
 }
 
-.control-btn:hover:not(:disabled) {
-  background: #f3f4f6;
-  border-color: #9ca3af;
-}
-
-.control-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.start-btn:not(:disabled) {
-  background: #10b981;
-  color: white;
-  border-color: #10b981;
-}
-
-.stop-btn:not(:disabled) {
-  background: #ef4444;
-  color: white;
-  border-color: #ef4444;
-}
-
-.question-editor {
+.edit-form {
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -443,203 +367,281 @@ onUnmounted(() => {
 
 .form-group label {
   font-size: 12px;
-  font-weight: 500;
-  color: #374151;
+  font-weight: 600;
+  color: #6b7280;
 }
 
-.form-input, .form-textarea {
+.question-input,
+.instructions-input {
   padding: 8px 12px;
   border: 1px solid #d1d5db;
   border-radius: 6px;
   font-size: 14px;
-  transition: border-color 0.2s;
+  font-family: inherit;
 }
 
-.form-input:focus, .form-textarea:focus {
+.question-input:focus,
+.instructions-input:focus {
   outline: none;
   border-color: #10b981;
 }
 
-.session-status {
+.stats {
   display: flex;
-  align-items: center;
   gap: 12px;
-  margin-top: 20px;
-  padding: 12px;
-  background: #f0fdf4;
-  border: 1px solid #10b981;
+  align-items: center;
+  font-size: 12px;
+  color: #6b7280;
+  padding: 8px;
+  background: #f9fafb;
   border-radius: 6px;
 }
 
-.status-indicator {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+.graded-badge {
   background: #10b981;
-  animation: pulse 2s infinite;
-}
-
-.status-text {
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
   font-weight: 500;
-  color: #059669;
 }
 
-.session-info {
-  margin-left: auto;
+/* Presentation Mode */
+.presentation-container {
+  height: 100%;
   display: flex;
-  gap: 16px;
-  font-size: 12px;
+  flex-direction: column;
+  padding: 16px;
+}
+
+.control-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 12px;
+  background: #f3f4f6;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.ctrl-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ctrl-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ctrl-btn.start {
+  background: #10b981;
+  color: white;
+}
+
+.ctrl-btn.start:hover:not(:disabled) {
+  background: #059669;
+}
+
+.ctrl-btn.lock {
+  background: #f59e0b;
+  color: white;
+}
+
+.ctrl-btn.grade {
+  background: #3b82f6;
+  color: white;
+}
+
+.ctrl-btn.replay {
+  background: #6b7280;
+  color: white;
 }
 
 .session-code {
-  font-weight: 600;
-  color: #059669;
-}
-
-.response-count {
-  color: #6b7280;
-}
-
-/* Presentation Mode Styles */
-.presentation-mode {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.inactive-state {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f9fafb;
-}
-
-.placeholder-content {
-  text-align: center;
-  color: #6b7280;
-}
-
-.placeholder-content h3 {
-  margin: 16px 0 8px;
-  font-size: 18px;
+  margin-left: auto;
+  padding: 6px 12px;
+  background: white;
+  border-radius: 6px;
+  font-size: 13px;
   color: #374151;
 }
 
-.placeholder-content p {
-  margin: 0;
-  font-size: 14px;
-}
-
-.active-state {
-  height: 100%;
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+.session-code strong {
+  color: #10b981;
+  font-size: 16px;
+  margin-left: 4px;
 }
 
 .question-display {
+  padding: 20px;
+  background: #f9fafb;
+  border-radius: 8px;
+  margin-bottom: 16px;
   text-align: center;
 }
 
 .question-title {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 600;
   color: #111827;
-  margin: 0 0 12px;
+  margin: 0 0 8px;
 }
 
 .question-instructions {
-  font-size: 16px;
+  font-size: 14px;
   color: #6b7280;
   margin: 0;
 }
 
-.session-info {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 32px;
-  padding: 16px;
-  background: #f3f4f6;
-  border-radius: 8px;
-}
-
-.code-display, .responses-display, .timer-display {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.code-label, .responses-label {
-  font-size: 14px;
-  color: #6b7280;
-}
-
-.code-value {
-  font-size: 18px;
-  font-weight: 600;
-  color: #10b981;
-}
-
-.responses-count {
-  font-size: 24px;
-  font-weight: 600;
-  color: #10b981;
-}
-
-.timer-display {
-  color: #f59e0b;
-}
-
-.timer-value {
-  font-weight: 600;
-  margin-left: 4px;
-}
-
-.response-preview {
+.responses-section {
   flex: 1;
   overflow-y: auto;
 }
 
-.response-preview h4 {
+.responses-section h3 {
   font-size: 14px;
   font-weight: 600;
   color: #374151;
   margin: 0 0 12px;
 }
 
-.response-list {
+.responses-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.response-item {
+.response-card {
+  padding: 12px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.response-card.graded {
+  background: #f0fdf4;
+  border-color: #10b981;
+}
+
+.response-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
-  background: #f9fafb;
-  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.student-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+}
+
+.rank-1 {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+}
+
+.rank-2 {
+  background: linear-gradient(135deg, #d1d5db, #9ca3af);
+}
+
+.rank-3 {
+  background: linear-gradient(135deg, #f87171, #dc2626);
 }
 
 .student-name {
   font-weight: 500;
   color: #374151;
-  font-size: 12px;
+  font-size: 14px;
 }
 
-.response-text {
+.score-input {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.score-field {
+  width: 60px;
+  padding: 4px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.score-field:focus {
+  outline: none;
+  border-color: #10b981;
+}
+
+.score-display {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: #10b981;
+  border-radius: 4px;
+}
+
+.score-value {
+  font-weight: 700;
+  color: white;
+  font-size: 14px;
+}
+
+.score-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.response-content {
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.5;
+  padding: 8px;
+  background: white;
+  border-radius: 4px;
+}
+
+.empty-state,
+.waiting-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
   color: #6b7280;
-  font-size: 12px;
-  max-width: 60%;
-  text-align: right;
+  padding: 40px;
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+.session-info {
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+.session-info strong {
+  color: #10b981;
+  font-size: 18px;
 }
 </style>
