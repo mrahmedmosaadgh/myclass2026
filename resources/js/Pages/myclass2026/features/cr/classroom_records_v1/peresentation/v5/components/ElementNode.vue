@@ -48,6 +48,23 @@ const { startResize } = useResize(props.element, update);
 
 const isHovered = ref(false);
 const hasBeenRevealed = ref(false);
+const showZoomControl = ref(false);
+
+const isLocked = computed(() => props.element.locked || false);
+const elementZoom = computed(() => props.element.zoom || 100);
+
+function toggleLock() {
+  update({ locked: !isLocked.value });
+}
+
+function adjustZoom(delta) {
+  const newZoom = Math.max(25, Math.min(300, elementZoom.value + delta));
+  update({ zoom: newZoom });
+}
+
+function resetZoom() {
+  update({ zoom: 100 });
+}
 
 watch(() => ui.isEditMode, (newVal) => {
   if (newVal) {
@@ -94,10 +111,13 @@ function handleClick() {
     :class="{ 
       selected: isSelected, 
       'edit-mode': ui.isEditMode,
+      'locked': isLocked,
       'concealed-element': element.isConcealed && !hasBeenRevealed && !ui.isEditMode 
     }"
+    :data-locked="isLocked"
     :style="{
-      transform: `translate(${element.x}px, ${element.y}px)`,
+      transform: `translate(${element.x}px, ${element.y}px) scale(${elementZoom / 100})`,
+      transformOrigin: 'top left',
       width: element.width + 'px',
       height: element.height + 'px',
       zIndex: element.zIndex,
@@ -106,8 +126,8 @@ function handleClick() {
     }"
     @mouseenter="isHovered = true"
     @mouseleave="isHovered = false"
-    @mousedown.stop="if(ui.isEditMode) { ui.selectElement(element.id); startDrag($event); showContextMenu = false; }"
-    @touchstart.stop="if(ui.isEditMode) { ui.selectElement(element.id); startDrag($event); showContextMenu = false; }"
+    @mousedown.stop="if(ui.isEditMode && !isLocked) { ui.selectElement(element.id); startDrag($event); showContextMenu = false; } else if(ui.isEditMode) { ui.selectElement(element.id); }"
+    @touchstart.stop="if(ui.isEditMode && !isLocked) { ui.selectElement(element.id); startDrag($event); showContextMenu = false; } else if(ui.isEditMode) { ui.selectElement(element.id); }"
     @click.stop="handleClick"
     @contextmenu.prevent="if(ui.isEditMode) { ui.selectElement(element.id); showContextMenu = true; }"
   >
@@ -262,6 +282,58 @@ function handleClick() {
 
       <div class="mini-divider"></div>
 
+      <!-- Lock/Unlock Button -->
+      <button 
+        @click.prevent="toggleLock" 
+        :class="{ 'active': isLocked }"
+        :title="isLocked ? 'Unlock Element' : 'Lock Element'"
+      >
+        <svg v-if="isLocked" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+        <svg v-else xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+        </svg>
+      </button>
+
+      <!-- Zoom Control -->
+      <div class="toolbar-dropdown zoom-dropdown">
+        <button 
+          @click.prevent="showZoomControl = !showZoomControl"
+          :class="{ 'active': elementZoom !== 100 }"
+          title="Element Zoom"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            <line x1="11" y1="8" x2="11" y2="14"></line>
+            <line x1="8" y1="11" x2="14" y2="11"></line>
+          </svg>
+        </button>
+        <div v-if="showZoomControl" class="toolbar-dropdown-content zoom-control" @mousedown.stop @click.stop>
+          <small class="dropdown-title">Element Zoom</small>
+          <div class="zoom-buttons">
+            <button @click.prevent="adjustZoom(-10)" class="zoom-btn">-</button>
+            <span class="zoom-display">{{ elementZoom }}%</span>
+            <button @click.prevent="adjustZoom(10)" class="zoom-btn">+</button>
+          </div>
+          <input 
+            type="range" 
+            :value="elementZoom" 
+            @input="update({ zoom: parseInt($event.target.value) })"
+            min="25" 
+            max="300" 
+            step="5"
+            class="zoom-slider"
+          />
+          <button @click.prevent="resetZoom" class="reset-zoom-btn">Reset to 100%</button>
+        </div>
+      </div>
+
+      <div class="mini-divider"></div>
+
       <button @click.prevent="presentation.duplicateElement(element.id)" title="Duplicate">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
       </button>
@@ -292,8 +364,8 @@ function handleClick() {
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M9 19l3 3 3-3M19 9l3 3-3 3M2 12h20M12 2v20"/></svg>
     </div>
 
-    <!-- Resize Handles -->
-    <div v-if="isSelected">
+    <!-- Resize Handles (disabled when locked) -->
+    <div v-if="isSelected && !isLocked">
       <div class="handle nw" @mousedown="(e) => startResize(e, 'nw')" @touchstart="(e) => startResize(e, 'nw')" />
       <div class="handle n"  @mousedown="(e) => startResize(e, 'n')"  @touchstart="(e) => startResize(e, 'n')" />
       <div class="handle ne" @mousedown="(e) => startResize(e, 'ne')" @touchstart="(e) => startResize(e, 'ne')" />
@@ -318,6 +390,10 @@ function handleClick() {
   cursor: move;
 }
 
+.element-node.edit-mode.locked {
+  cursor: not-allowed;
+}
+
 .element-node.edit-mode:not(.selected) {
   outline: 1px dashed #cbd5e1;
 }
@@ -328,6 +404,11 @@ function handleClick() {
 
 .element-node.selected {
   outline: 2px solid #6366f1;
+}
+
+.element-node.selected.locked {
+  outline: 2px dashed #f59e0b;
+  outline-offset: 2px;
 }
 
 .text-container {
@@ -502,6 +583,109 @@ function handleClick() {
   left: 0;
   width: 100%;
   height: 8px;
+}
+
+/* Zoom Control Styles */
+.zoom-control {
+  min-width: 180px;
+  padding: 12px;
+}
+
+.zoom-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.zoom-btn {
+  width: 32px;
+  height: 32px;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.zoom-btn:hover {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+.zoom-display {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  min-width: 50px;
+  text-align: center;
+}
+
+.zoom-slider {
+  width: 100%;
+  margin: 8px 0;
+  cursor: pointer;
+}
+
+.zoom-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #6366f1;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.zoom-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: #6366f1;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+
+.reset-zoom-btn {
+  width: 100%;
+  padding: 6px 12px;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 8px;
+}
+
+.reset-zoom-btn:hover {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+/* Locked Element Indicator */
+.element-node.edit-mode.selected {
+  outline: 2px solid #6366f1;
+}
+
+.element-node.edit-mode.selected:has([data-locked="true"]) {
+  outline: 2px dashed #f59e0b;
+  outline-offset: 2px;
+}
+
+/* Hide move handle when locked */
+.move-handle {
+  display: flex;
+}
+
+.element-node:has([data-locked="true"]) .move-handle {
+  display: none;
 }
 
 .dropdown-title {
