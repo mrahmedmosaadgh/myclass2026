@@ -703,15 +703,10 @@ function generateId() {
  * Get or generate user ID
  */
 function getUserId() {
-  const key = 'rt_channel_user_id'
-  let userId = localStorage.getItem(key)
-  
-  if (!userId) {
-    userId = 'user_' + generateId()
-    localStorage.setItem(key, userId)
-  }
-  
-  return userId
+  // Generate unique ID per session/tab for testing real-time sync
+  // This ensures different tabs have different user IDs
+  const sessionId = 'user_' + generateId() + '_' + Date.now()
+  return sessionId
 }
 
 /**
