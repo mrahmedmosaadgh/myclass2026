@@ -27,6 +27,11 @@ Route::prefix('remote-control')->name('remote-control.')->group(function () {
         return Inertia::render('myclass2026/features/remot_control/v1/test_remote_control_v1');
     })->name('test-v1');
     
+    // Examples dashboard page
+    Route::get('/examples', function () {
+        return Inertia::render('myclass2026/features/remot_control/v1/examples_dashboard');
+    })->name('examples');
+    
     // API endpoint for testing Firebase connectivity
     Route::get('/api/test-firebase', function () {
         return response()->json([

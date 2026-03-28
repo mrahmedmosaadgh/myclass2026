@@ -98,7 +98,7 @@
           <!-- Display Component -->
           <div>
             <ChannelProvider 
-              channel-id="test-channel-1"
+              :channel-id="customChannelId || 'test-channel-1'"
               :show-connection-status="true"
               @initialized="onChannelInitialized"
             >
@@ -111,7 +111,7 @@
           <!-- Control Component -->
           <div>
             <ChannelProvider 
-              channel-id="test-channel-1"
+              :channel-id="customChannelId || 'test-channel-1'"
               :show-connection-status="true"
             >
               <template #default="{ channel }">
@@ -168,7 +168,7 @@
               Open this page in multiple tabs to see real-time synchronization.
             </p>
             
-            <ChatExample />
+            <ChatExample :channel-id="customChannelId || 'chat-example-1'" />
           </div>
         </div>
 
@@ -299,9 +299,15 @@ export default {
     ChatExample
   },
   setup() {
+    // Get URL parameters
+    const urlParams = new URLSearchParams(window.location.search)
+    const exampleParam = urlParams.get('example')
+    const channelParam = urlParams.get('channel')
+    
     // State
     const showDocs = ref(true)
-    const activeTab = ref('simple')
+    const activeTab = ref(exampleParam || 'simple')
+    const customChannelId = ref(channelParam || '')
     const globalChannel = ref(null)
     const directState = ref({})
     const startTime = Date.now()
@@ -510,6 +516,7 @@ export default {
       // State
       showDocs,
       activeTab,
+      customChannelId,
       globalChannel,
       directState,
       performance,
