@@ -111,6 +111,43 @@ function getSectionName(sectionId) {
           :class="{ active: presentation.currentSlideIndex === index }"
           @click="presentation.selectSlide(index)"
         >
+          <!-- Top Toolbar -->
+          <div v-if="ui.isEditMode" class="slide-toolbar slide-toolbar-top">
+            <button
+              class="toolbar-btn"
+              @click.stop="presentation.addSlideAt(index)"
+              title="Add Slide Before"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </button>
+            
+            <button
+              v-if="index > 0"
+              class="toolbar-btn"
+              @click.stop="presentation.moveSlideUp(index)"
+              title="Move Up"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="18 15 12 9 6 15"></polyline>
+              </svg>
+            </button>
+            
+            <button
+              v-if="presentation.slides.length > 1"
+              class="toolbar-btn toolbar-btn-delete"
+              @click.stop="presentation.deleteSlide(index)"
+              title="Delete Slide"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+
           <div class="slide-number">{{ index + 1 }}</div>
           
           <div 
@@ -128,15 +165,30 @@ function getSectionName(sectionId) {
             </svg>
           </div>
 
-          <!-- Delete Button -->
-          <button
-            v-if="ui.isEditMode && presentation.slides.length > 1"
-            class="delete-slide-btn"
-            @click.stop="presentation.deleteSlide(index)"
-            title="Delete Slide"
-          >
-            ×
-          </button>
+          <!-- Bottom Toolbar -->
+          <div v-if="ui.isEditMode" class="slide-toolbar slide-toolbar-bottom">
+            <button
+              class="toolbar-btn"
+              @click.stop="presentation.addSlideAt(index + 1)"
+              title="Add Slide After"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </button>
+            
+            <button
+              v-if="index < presentation.slides.length - 1"
+              class="toolbar-btn"
+              @click.stop="presentation.moveSlideDown(index)"
+              title="Move Down"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -372,38 +424,69 @@ function getSectionName(sectionId) {
   border-color: #818cf8;
 }
 
-/* Delete Button */
-.delete-slide-btn {
+/* Slide Toolbars */
+.slide-toolbar {
   position: absolute;
-  top: -8px;
-  right: -8px;
-  width: 24px;
-  height: 24px;
-  background: #ef4444;
-  color: white;
-  border: 2px solid white;
-  border-radius: 50%;
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 1;
+  left: 0;
+  right: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
+  gap: 4px;
+  padding: 4px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-radius: 6px;
   opacity: 0;
-  transition: all 0.2s;
-  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+  transform: scaleY(0);
+  transform-origin: top;
+  transition: all 0.2s ease;
   z-index: 10;
 }
 
-.delete-slide-btn:hover {
-  background: #dc2626;
-  transform: scale(1.15);
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.5);
+.slide-toolbar-top {
+  top: -2px;
+  transform-origin: top;
 }
 
-.slide-card:hover .delete-slide-btn {
+.slide-toolbar-bottom {
+  bottom: -2px;
+  transform-origin: bottom;
+}
+
+.slide-card:hover .slide-toolbar {
   opacity: 1;
+  transform: scaleY(1);
+}
+
+.toolbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+}
+
+.toolbar-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: scale(1.1);
+}
+
+.toolbar-btn-delete {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+.toolbar-btn-delete:hover {
+  background: rgba(239, 68, 68, 0.5);
+  border-color: rgba(239, 68, 68, 0.7);
 }
 
 /* Scroll Buttons */

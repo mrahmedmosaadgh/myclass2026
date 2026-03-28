@@ -40,6 +40,13 @@ function toggleFullscreen() {
     document.exitFullscreen();
   }
 }
+
+function toggleMode() {
+  ui.isEditMode = !ui.isEditMode;
+  if (ui.isEditMode) {
+    ui.clearSelection();
+  }
+}
 </script>
 
 <template>
@@ -49,102 +56,53 @@ function toggleFullscreen() {
       <div class="progress-bar" :style="{ width: progress + '%' }"></div>
     </div>
 
-    <!-- Navigation Controls -->
-    <div class="nav-controls">
-      <!-- Left Section: Navigation Buttons -->
-      <div class="nav-section left">
-        <button 
-          @click="goToFirst" 
-          :disabled="!canGoPrevious"
-          class="nav-btn"
-          title="First Slide"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="11 17 6 12 11 7"></polyline>
-            <polyline points="18 17 13 12 18 7"></polyline>
-          </svg>
-        </button>
-
-        <button 
-          @click="goToPrevious" 
-          :disabled="!canGoPrevious"
-          class="nav-btn primary"
-          title="Previous Slide"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="15 18 9 12 15 6"></polyline>
-          </svg>
-        </button>
-
-        <button 
-          @click="goToNext" 
-          :disabled="!canGoNext"
-          class="nav-btn primary"
-          title="Next Slide"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="9 18 15 12 9 6"></polyline>
-          </svg>
-        </button>
-
-        <button 
-          @click="goToLast" 
-          :disabled="!canGoNext"
-          class="nav-btn"
-          title="Last Slide"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="13 17 18 12 13 7"></polyline>
-            <polyline points="6 17 11 12 6 7"></polyline>
-          </svg>
-        </button>
+    <!-- Main Content -->
+    <div class="nav-content">
+      <!-- Left: Title & Details -->
+      <div class="title-section">
+        <h1 class="presentation-title">{{ presentation.title }}</h1>
+        <p class="presentation-subtitle">Minimal, working reference implementation according to plan</p>
       </div>
 
-      <!-- Center Section: Slide Counter -->
-      <div class="nav-section center">
-        <div class="slide-counter">
-          <span class="current-slide">{{ currentSlideNumber }}</span>
-          <span class="separator">/</span>
-          <span class="total-slides">{{ totalSlides }}</span>
+      <!-- Right: Controls -->
+      <div class="controls-section">
+        <!-- Mode Toggle -->
+        <div class="mode-toggle">
+          <label class="switch">
+            <input type="checkbox" v-model="ui.isEditMode" @change="ui.clearSelection">
+            <span class="slider round"></span>
+          </label>
+          <span class="mode-label">{{ ui.isEditMode ? 'Edit Mode (Build)' : 'Present Mode (View)' }}</span>
         </div>
-        <div class="slide-title" v-if="presentation.currentSlide?.title">
-          {{ presentation.currentSlide.title }}
+
+        <!-- Zoom Controls -->
+        <div class="zoom-controls">
+          <button @click="ui.zoomOut" :disabled="ui.zoomLevel <= 50" class="zoom-btn" title="Zoom Out (Ctrl/Cmd -)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+          
+          <button @click="ui.resetZoom" class="zoom-display" title="Reset to 100% (Ctrl/Cmd 0)">
+            {{ ui.zoomLevel }}%
+          </button>
+          
+          <button @click="ui.zoomIn" :disabled="ui.zoomLevel >= 200" class="zoom-btn" title="Zoom In (Ctrl/Cmd +)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Slide Phase Label -->
+        <div class="slide-phase">
+          <span class="phase-label">SLIDE PHASE:</span>
+          <div class="phase-indicator">
+            <div class="phase-bar"></div>
+          </div>
         </div>
       </div>
-
-      <!-- Right Section: Utility Buttons -->
-      <div class="nav-section right">
-        <button 
-          @click="toggleFullscreen" 
-          class="nav-btn"
-          title="Toggle Fullscreen"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
-          </svg>
-        </button>
-
-        <button 
-          @click="ui.isEditMode = true" 
-          class="nav-btn edit-btn"
-          title="Exit Presentation Mode"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-          </svg>
-          <span>Edit</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Keyboard Shortcuts Hint -->
-    <div class="keyboard-hint">
-      <span>← →</span> Navigate
-      <span class="separator">•</span>
-      <span>F</span> Fullscreen
-      <span class="separator">•</span>
-      <span>Esc</span> Exit
     </div>
   </div>
 </template>
@@ -152,243 +110,282 @@ function toggleFullscreen() {
 <style scoped>
 .presentation-nav-bar {
   position: fixed;
-  bottom: 0;
+  top: 0;
   left: 0;
   right: 0;
   z-index: 9999;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.85) 100%);
-  backdrop-filter: blur(10px);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  transition: transform 0.3s ease, opacity 0.3s ease;
-}
-
-.presentation-nav-bar:hover {
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.98) 0%, rgba(0, 0, 0, 0.92) 100%);
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 /* Progress Bar */
 .progress-bar-container {
   position: absolute;
-  top: 0;
+  bottom: 0;
   left: 0;
   right: 0;
   height: 3px;
-  background: rgba(255, 255, 255, 0.1);
+  background: #e5e7eb;
   overflow: hidden;
 }
 
 .progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
   transition: width 0.3s ease;
-  box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
 }
 
-/* Navigation Controls */
-.nav-controls {
+/* Main Content */
+.nav-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 24px;
-  gap: 20px;
+  padding: 8px 24px;
+  gap: 24px;
+  min-height: 60px;
 }
 
-.nav-section {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.nav-section.left {
+/* Title Section */
+.title-section {
   flex: 1;
-  justify-content: flex-start;
+  min-width: 0;
 }
 
-.nav-section.center {
-  flex: 2;
-  justify-content: center;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.nav-section.right {
-  flex: 1;
-  justify-content: flex-end;
-}
-
-/* Navigation Buttons */
-.nav-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  color: white;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 14px;
-  font-weight: 500;
-  min-width: 44px;
-}
-
-.nav-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.3);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.nav-btn:active:not(:disabled) {
-  transform: translateY(0);
-}
-
-.nav-btn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-.nav-btn.primary {
-  background: rgba(99, 102, 241, 0.3);
-  border-color: rgba(99, 102, 241, 0.5);
-}
-
-.nav-btn.primary:hover:not(:disabled) {
-  background: rgba(99, 102, 241, 0.5);
-  border-color: rgba(99, 102, 241, 0.7);
-}
-
-.nav-btn.edit-btn {
-  background: rgba(16, 185, 129, 0.3);
-  border-color: rgba(16, 185, 129, 0.5);
-}
-
-.nav-btn.edit-btn:hover {
-  background: rgba(16, 185, 129, 0.5);
-  border-color: rgba(16, 185, 129, 0.7);
-}
-
-/* Slide Counter */
-.slide-counter {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  font-weight: 600;
-  color: white;
-  font-size: 20px;
-  letter-spacing: 0.5px;
-}
-
-.current-slide {
-  font-size: 28px;
-  color: #6366f1;
-  text-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
-}
-
-.separator {
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 18px;
-}
-
-.total-slides {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 18px;
-}
-
-.slide-title {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.7);
-  text-align: center;
-  max-width: 300px;
+.presentation-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* Keyboard Hints */
-.keyboard-hint {
+.presentation-subtitle {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin: 2px 0 0 0;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Controls Section */
+.controls-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+/* Mode Toggle */
+.mode-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mode-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
   position: absolute;
-  top: -32px;
-  right: 24px;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #10b981;
+  transition: .3s;
+}
+
+.switch input:checked + .slider {
+  background-color: #6366f1;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .3s;
+}
+
+.switch input:checked + .slider:before {
+  transform: translateX(20px);
+}
+
+.slider.round {
+  border-radius: 24px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+/* Zoom Controls */
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 3px;
+}
+
+.zoom-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #374151;
+  transition: all 0.2s;
+}
+
+.zoom-btn:hover:not(:disabled) {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.zoom-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.zoom-display {
+  min-width: 50px;
+  height: 28px;
+  background: transparent;
+  border: none;
+  font-weight: 600;
+  font-size: 0.813rem;
+  color: #111827;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.zoom-display:hover {
+  background: #e5e7eb;
+}
+
+/* Slide Phase */
+.slide-phase {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px;
-  background: rgba(0, 0, 0, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.6);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
 }
 
-.presentation-nav-bar:hover .keyboard-hint {
-  opacity: 1;
-}
-
-.keyboard-hint span:not(.separator) {
-  padding: 2px 6px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-  font-family: monospace;
+.phase-label {
+  font-size: 0.688rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.8);
+  color: #6b7280;
+  letter-spacing: 0.05em;
 }
 
-.keyboard-hint .separator {
-  color: rgba(255, 255, 255, 0.3);
+.phase-indicator {
+  width: 120px;
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.phase-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+  transition: width 0.3s ease;
 }
 
 /* Responsive */
-@media (max-width: 768px) {
-  .nav-controls {
-    padding: 10px 16px;
+@media (max-width: 1024px) {
+  .nav-content {
+    padding: 8px 16px;
+    gap: 16px;
+  }
+
+  .presentation-title {
+    font-size: 1.125rem;
+  }
+
+  .presentation-subtitle {
+    font-size: 0.688rem;
+  }
+
+  .controls-section {
     gap: 12px;
   }
 
-  .nav-btn {
-    padding: 8px 10px;
-    min-width: 40px;
-  }
-
-  .nav-btn span {
+  .mode-label {
     display: none;
   }
 
-  .slide-counter {
-    font-size: 16px;
-  }
-
-  .current-slide {
-    font-size: 22px;
-  }
-
-  .total-slides {
-    font-size: 14px;
-  }
-
-  .slide-title {
-    font-size: 11px;
-    max-width: 150px;
-  }
-
-  .keyboard-hint {
+  .slide-phase {
     display: none;
   }
 }
 
-/* Auto-hide on inactivity */
-@keyframes fadeOut {
-  from { opacity: 1; transform: translateY(0); }
-  to { opacity: 0; transform: translateY(100%); }
-}
+@media (max-width: 640px) {
+  .nav-content {
+    padding: 6px 12px;
+    gap: 12px;
+    min-height: 50px;
+  }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(100%); }
-  to { opacity: 1; transform: translateY(0); }
+  .presentation-title {
+    font-size: 1rem;
+  }
+
+  .presentation-subtitle {
+    display: none;
+  }
+
+  .zoom-controls {
+    gap: 2px;
+    padding: 2px;
+  }
+
+  .zoom-btn {
+    width: 24px;
+    height: 24px;
+  }
+
+  .zoom-display {
+    min-width: 45px;
+    height: 24px;
+    font-size: 0.75rem;
+  }
 }
 </style>

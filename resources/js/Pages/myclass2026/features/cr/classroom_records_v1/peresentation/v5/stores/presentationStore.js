@@ -214,6 +214,26 @@ export const usePresentationStore = defineStore('presentation', () => {
     }
   }
 
+  function moveSlideUp(index) {
+    if (index <= 0) return;
+    moveSlide(index, index - 1);
+  }
+
+  function moveSlideDown(index) {
+    if (index >= slides.value.length - 1) return;
+    moveSlide(index, index + 1);
+  }
+
+  function addSlideAt(index) {
+    const newSlide = {
+      id: 'slide-' + Date.now() + Math.random().toString(36).substr(2, 5),
+      elements: [],
+      sectionId: currentSlide.value?.sectionId
+    };
+    slides.value.splice(index, 0, newSlide);
+    currentSlideIndex.value = index;
+  }
+
   function addElement(elementDetails) {
     if (!currentSlide.value) return;
     currentSlide.value.elements.push({
@@ -359,7 +379,10 @@ export const usePresentationStore = defineStore('presentation', () => {
     addSlide,
     addSlideToPhase,
     addSlideAtIndex,
+    addSlideAt,
     moveSlide,
+    moveSlideUp,
+    moveSlideDown,
     selectSlide,
     selectSlideById,
     deleteSlide,
