@@ -330,7 +330,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useQuestionSession } from './composables/useQuestionSession.js'
 import QuestionRenderer from './components/QuestionRenderer.vue'
 import ResponseCollector from './components/ResponseCollector.vue'
@@ -414,11 +414,19 @@ export default {
         sessionCode.value = generatedCode.value
         session = useQuestionSession(sessionCode.value, 'teacher')
         
-        // Wait for connection
-        await new Promise(resolve => {
+        // Wait for connection with timeout
+        await new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Connection timeout'))
+          }, 10000) // 10 second timeout
+          
           const checkConnection = () => {
             if (session.isConnected.value) {
+              clearTimeout(timeout)
               resolve()
+            } else if (session.lastError?.value) {
+              clearTimeout(timeout)
+              reject(session.lastError.value instanceof Error ? session.lastError.value : new Error(String(session.lastError.value)))
             } else {
               setTimeout(checkConnection, 100)
             }
@@ -426,9 +434,13 @@ export default {
           checkConnection()
         })
         
+        console.log('Teacher session started successfully:', sessionCode.value)
+        
       } catch (error) {
         console.error('Failed to start session:', error)
-        alert('Failed to start session. Please try again.')
+        alert('Failed to start session: ' + error.message + '. Please check your internet connection and try again.')
+        sessionCode.value = ''
+        session = null
       } finally {
         isStarting.value = false
       }
@@ -603,11 +615,18 @@ export default {
       try {
         session = useQuestionSession(sessionCode.value, 'teacher')
         
-        // Wait for connection
-        await new Promise(resolve => {
+        await new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Connection timeout'))
+          }, 10000)
+
           const checkConnection = () => {
             if (session.isConnected.value) {
+              clearTimeout(timeout)
               resolve()
+            } else if (session.lastError?.value) {
+              clearTimeout(timeout)
+              reject(session.lastError.value instanceof Error ? session.lastError.value : new Error(String(session.lastError.value)))
             } else {
               setTimeout(checkConnection, 100)
             }
@@ -710,6 +729,7 @@ export default {
       currentQuestion: computed(() => session?.currentQuestion.value || null),
       responses: computed(() => session?.responses.value || []),
       responseCount: computed(() => session?.responseCount.value || 0),
+      lastError: computed(() => session?.channel?.lastError?.value || null),
       
       // Methods
       generateSessionCode,

@@ -57,156 +57,156 @@ https://qudratpro.com/remote-control/examples
 
 1. **Teacher**: Start session → Refresh page → Session auto-continues ✅
 2. **Student**: Join session → Answer question → Refresh page → Choose "Rejoin" ✅
-3. **Both**: Session data persists across browser restarts (24-hour limit)
+ 3. **Both**: Session data persists across browser restarts (24-hour limit)
 
 ---
 
 ## 🔄 **Session Persistence Experience**
 
-### **Real-World Implementation**
+### **What Actually Worked in Production-Like Testing**
 
-Both teacher and student sessions now persist across page reloads, providing a seamless experience even when browsers crash or pages are accidentally refreshed.
+The most important lesson was that session persistence was **not only a localStorage problem**. The bigger issue was making sure the realtime channel actually initializes, reconnects, and keeps Firebase as the source of truth.
 
-### **🎓 Teacher Session Persistence**
+### **🎓 Teacher Experience Guide**
 
-**What Happens:**
-- Teacher starts session with 6-digit code
-- Publishes questions and collects responses
-- Page refreshes accidentally
-- ✅ Session automatically restores with all data
+**Expected flow:**
+- Teacher generates a code
+- Teacher starts a session
+- Firebase connects quickly
+- Teacher publishes questions
+- Refreshing the page restores the session and reconnects cleanly
 
-**Implementation:**
+**What broke first:**
+- Creating the realtime composable inside a button click caused the teacher session to appear started while the channel had not fully initialized
+- Connection state was treated like a boolean even though the channel returned string statuses such as `connected` and `disconnected`
+- The session layer was calling `sendCommand` with the wrong shape
+
+**What fixed it:**
 ```javascript
-// Auto-save every 5 seconds
-const saveSessionState = () => {
-  const sessionState = {
-    sessionCode: sessionCode.value,
-    currentQuestion: session?.currentQuestion.value,
-    responses: session?.responses.value || [],
-    savedAt: new Date().toISOString()
+// Realtime channel must initialize immediately
+export function useRealtimeChannel(channelId, options = {}) {
+  initialize()
+
+  const instance = getCurrentInstance()
+  if (instance) {
+    onUnmounted(() => {
+      disconnect()
+    })
   }
-  localStorage.setItem('question_teacher_session', JSON.stringify(sessionState))
 }
 
-// Auto-restore on page load
+// Connection status should be normalized to a boolean for UI usage
+const isConnected = computed(() => channel.isConnected.value === 'connected')
+```
+
+**Teacher persistence pattern that proved reliable:**
+```javascript
+const saveSessionState = () => {
+  if (!sessionCode.value) return
+
+  localStorage.setItem('question_teacher_session', JSON.stringify({
+    sessionCode: sessionCode.value,
+    generatedCode: generatedCode.value,
+    currentQuestion: session?.currentQuestion.value || null,
+    responses: session?.responses.value || [],
+    sessionStatus: session?.sessionStatus.value || 'waiting',
+    savedAt: new Date().toISOString()
+  }))
+}
+
 const loadSessionState = () => {
-  const saved = localStorage.getItem('question_teacher_session')
-  if (saved) {
-    const sessionState = JSON.parse(saved)
-    // Check if < 24 hours old
-    if (hoursDiff < 24) {
-      sessionCode.value = sessionState.sessionCode
-      reconnectToSession(sessionState)
-    }
+  const raw = localStorage.getItem('question_teacher_session')
+  if (!raw) return false
+
+  const saved = JSON.parse(raw)
+  const hoursDiff = (Date.now() - new Date(saved.savedAt).getTime()) / (1000 * 60 * 60)
+
+  if (hoursDiff >= 24) {
+    localStorage.removeItem('question_teacher_session')
+    return false
   }
+
+  sessionCode.value = saved.sessionCode
+  generatedCode.value = saved.generatedCode
+  return true
 }
 ```
 
-**Visual Indicators:**
-- "Restoring Previous Session..." loading message
-- Purple "Restored" badge when recovered
-- "Clear Saved Session" button for manual control
+### **👨‍🎓 Student Experience Guide**
 
-### **👨‍🎓 Student Session Persistence**
+**Expected flow:**
+- Student enters code and name
+- Student joins and waits for questions
+- Refreshing the page should not force a full re-entry
+- Student should be able to rejoin or clear saved data
 
-**What Happens:**
-- Student joins session with name
-- Answers questions in real-time
-- Page refreshes or browser closes
-- ✅ "Previous Session Found" with choice to rejoin or clear
+**What worked best:**
+- Save only the minimal student session fields locally
+- Keep the active question and final session truth in Firebase
+- Show an explicit previous-session banner instead of silently forcing rejoin
 
-**Implementation:**
 ```javascript
-// Student session storage
 const saveStudentSession = () => {
-  const sessionData = {
+  if (!sessionCode.value || !studentInfo.value) return
+
+  localStorage.setItem('question_student_session', JSON.stringify({
     sessionCode: sessionCode.value,
     studentName: studentInfo.value.name,
+    studentId: studentInfo.value.id,
+    isAuthenticated: studentInfo.value.isAuthenticated,
     answerSubmitted: answerSubmitted.value,
     savedAt: new Date().toISOString()
-  }
-  localStorage.setItem('question_student_session', JSON.stringify(sessionData))
-}
-
-// Previous session detection
-const loadStudentSession = () => {
-  const saved = localStorage.getItem('question_student_session')
-  if (saved) {
-    const sessionData = JSON.parse(saved)
-    if (hoursDiff < 24) {
-      hasPreviousSession.value = true
-      previousSessionCode.value = sessionData.sessionCode
-      previousStudentName.value = sessionData.studentName
-    }
-  }
+  }))
 }
 ```
 
-**Student Choice UI:**
-```vue
-<!-- Previous Session Found -->
-<div class="p-4 bg-purple-50 border border-purple-200 rounded-lg">
-  <div class="flex items-center justify-between">
-    <div>
-      <p class="text-purple-800 font-medium">Previous Session Found</p>
-      <p class="text-purple-700 text-sm">
-        Session: {{ previousSessionCode }} | Name: {{ previousStudentName }}
-      </p>
-    </div>
-    <div class="flex space-x-2">
-      <button @click="rejoinPreviousSession" class="bg-purple-600 text-white rounded-lg">
-        Rejoin
-      </button>
-      <button @click="clearPreviousSession" class="bg-gray-600 text-white rounded-lg">
-        Clear
-      </button>
-    </div>
-  </div>
-</div>
-```
+### **🧠 Experience-Based Rules**
 
-### **🔒 Privacy & Security Features**
+1. **Firebase is the source of truth**
+   - Local storage should restore identity and session intent, not replace realtime state.
 
-**24-Hour Expiration:**
-```javascript
-// Check if session is recent (within 24 hours)
-const savedTime = new Date(sessionState.savedAt)
-const now = new Date()
-const hoursDiff = (now - savedTime) / (1000 * 60 * 60)
+2. **Initialize composables immediately if they may be created from user actions**
+   - If channel setup depends only on `onMounted`, it can fail when created inside a click handler.
 
-if (hoursDiff < 24) {
-  // Restore session
-} else {
-  // Auto-clear for privacy
-  localStorage.removeItem('question_teacher_session')
-}
-```
+3. **Use the channel API exactly as designed**
+   ```javascript
+   channel.sendCommand('publish_question', question, {
+     priority: 'high',
+     requiresAck: true
+   })
+   ```
 
-**User Control:**
-- Teachers: "Clear Saved Session" button
-- Students: "Rejoin" or "Clear" options
-- Both: Manual cleanup anytime
-- Automatic cleanup on session end
+4. **Listen through channel hooks, not imaginary reactive fields**
+   ```javascript
+   channel.onStateChange(handleChannelState)
+   channel.onCommand(handleChannelCommand)
+   ```
 
-### **📊 Benefits Achieved**
+5. **Persist only what is needed for recovery**
+   - Session code
+   - user identity
+   - answer submitted state
+   - timestamps
 
-**Before Implementation:**
-- ❌ Page refresh = lost session
-- ❌ Browser crash = data loss
-- ❌ Manual rejoin required
-- ❌ Student confusion
+### **🔒 Privacy & Recovery Behavior**
 
-**After Implementation:**
-- ✅ Seamless session continuation
-- ✅ Automatic data recovery
-- ✅ User choice and control
-- ✅ Professional user experience
+- Sessions expire after 24 hours
+- Corrupted local storage is cleared automatically
+- Teachers can clear saved session data manually
+- Students can choose to rejoin or clear
 
-**Real-World Impact:**
-- **Teachers**: Can work without fear of losing session
-- **Students**: Don't lose progress on technical issues
-- **System**: Robust against browser behavior
-- **Experience**: Production-ready reliability
+### **📊 Real Benefit**
+
+**Before:**
+- Teacher could click start and still end up with a non-working session
+- Refreshing was risky
+- Students could lose context after reload
+
+**After:**
+- Teacher session startup is much more reliable
+- Refresh recovery is predictable
+- Student rejoin flow is explicit and safer
+- Performance is better because only new commands are processed and critical commands use high priority
 
 ---
 
@@ -430,6 +430,57 @@ channel.onStateChange((newState) => {
    }
    ```
 
+### **🔄 Session Persistence Best Practices**
+
+1. **Implement Auto-Save for Critical Data**
+   ```javascript
+   // Save every 5 seconds
+   const saveInterval = setInterval(saveSessionState, 5000)
+   
+   // Save immediately on important changes
+   watch([sessionCode, currentQuestion], saveSessionState)
+   ```
+
+2. **Use Time-Based Expiration**
+   ```javascript
+   // Check session age before restoring
+   const hoursDiff = (now - savedTime) / (1000 * 60 * 60)
+   if (hoursDiff < 24) {
+     restoreSession()
+   } else {
+     clearOldSession()
+   }
+   ```
+
+3. **Provide User Choice**
+   ```vue
+   <!-- Always give users control over their data -->
+   <div class="flex space-x-2">
+     <button @click="rejoinSession">Rejoin</button>
+     <button @click="clearSession">Start Fresh</button>
+   </div>
+   ```
+
+4. **Handle Storage Errors Gracefully**
+   ```javascript
+   try {
+     const saved = localStorage.getItem('session_key')
+     const sessionData = JSON.parse(saved)
+   } catch (error) {
+     console.error('Failed to load session:', error)
+     localStorage.removeItem('session_key') // Clear corrupted data
+   }
+   ```
+
+5. **Clean Up on Session End**
+   ```javascript
+   const endSession = () => {
+     clearSessionState()
+     stopAutoSave()
+     // Clear all persisted data
+   }
+   ```
+
 ### **❌ DON'T**
 
 1. **Don't Share User IDs Between Tabs**
@@ -553,6 +604,34 @@ if (!internal.rateLimiter?.check()) {
 }
 ```
 
+### **Issue 4: Teacher Session Starts But Never Connects**
+
+**Symptoms:**
+- Teacher clicks **Start Session**
+- Spinner keeps running or ends with timeout
+- No stable connected state appears
+- Publishing a question does nothing
+
+**Root Cause:** The realtime composable was being created from a user action, but initialization depended on lifecycle timing instead of running immediately.
+
+**Solution:**
+```javascript
+// ✅ Initialize immediately inside the composable
+export function useRealtimeChannel(channelId, options = {}) {
+  initialize()
+
+  const instance = getCurrentInstance()
+  if (instance) {
+    onUnmounted(() => {
+      disconnect()
+    })
+  }
+}
+
+// ✅ Normalize connection status for UI
+const isConnected = computed(() => channel.isConnected.value === 'connected')
+```
+
 ### **Issue 5: Session Not Persisting on Reload**
 
 **Symptoms:**
@@ -621,6 +700,31 @@ const loadSessionState = () => {
 ```
 
 ### **Issue 7: Multiple Tabs Conflicting**
+
+**Symptoms:**
+- Multiple tabs showing same session
+- Data conflicts between tabs
+- Session state inconsistent
+
+**Root Cause:** Same localStorage key shared across tabs
+
+**Solution:**
+```javascript
+// ✅ Use tab-specific session IDs
+const getTabId = () => {
+  let tabId = sessionStorage.getItem('tab_session_id')
+  if (!tabId) {
+    tabId = 'tab_' + crypto.randomUUID()
+    sessionStorage.setItem('tab_session_id', tabId)
+  }
+  return tabId
+}
+
+// ✅ Tab-specific localStorage keys
+const sessionKey = `question_teacher_session_${getTabId()}`
+```
+
+### **Issue 8: Deployment Submodule Conflicts**
 
 **Symptoms:**
 - Deployment says "ALL DONE" but assets don't update
@@ -1103,6 +1207,30 @@ Your remote control system is working when:
 4. ✅ **No console errors** (Clean execution)
 5. ✅ **Offline fallback** (Works without Firebase)
 6. ✅ **Proper cleanup** (No memory leaks)
+7. ✅ **Session persistence** (Data survives page reloads)
+8. ✅ **Rate limiting** (Handles high traffic gracefully)
+9. ✅ **User control** (Clear options for privacy)
+10. ✅ **Error recovery** (Graceful handling of issues)
+
+### **🔄 Session Persistence Success Indicators**
+
+**Teacher Session:**
+- ✅ Page refresh shows "Restoring Previous Session..."
+- ✅ Purple "Restored" badge appears after recovery
+- ✅ Session code and questions preserved
+- ✅ Student responses maintained
+
+**Student Session:**
+- ✅ "Previous Session Found" banner appears
+- ✅ Student can choose "Rejoin" or "Clear"
+- ✅ Name and answer status preserved
+- ✅ Seamless reconnection to active session
+
+**Privacy & Security:**
+- ✅ Sessions auto-expire after 24 hours
+- ✅ Manual clear options available
+- ✅ No sensitive data stored long-term
+- ✅ User has full control over their data
 
 ---
 

@@ -3,7 +3,7 @@
  * The foundation of the generic real-time communication system
  */
 
-import { ref, reactive, onMounted, onUnmounted, watch } from 'vue'
+import { ref, reactive, getCurrentInstance, onUnmounted } from 'vue'
 import { useOfflineStorage } from './useOfflineStorage.js'
 import { validateCommand, validateState, sanitizeData } from '../utils/validation.js'
 import { debounce, createRateLimiter } from '../utils/debounce.js'
@@ -60,7 +60,8 @@ export function useRealtimeChannel(channelId, options = {}) {
     rateLimiter: null,
     debouncedUpdateState: null,
     reconnectTimer: null,
-    userId: null
+    userId: null,
+    initialized: false
   })
 
   // Firebase paths
@@ -75,6 +76,12 @@ export function useRealtimeChannel(channelId, options = {}) {
    * Initialize the channel
    */
   const initialize = async () => {
+    if (internal.initialized) {
+      return
+    }
+
+    internal.initialized = true
+
     try {
       // Initialize offline storage if enabled
       if (config.persistence) {
@@ -686,15 +693,14 @@ export function useRealtimeChannel(channelId, options = {}) {
    */
   const getRateLimiter = () => internal.rateLimiter
 
-  // Initialize on mount
-  onMounted(() => {
-    initialize()
-  })
+  initialize()
 
-  // Cleanup on unmount
-  onUnmounted(() => {
-    disconnect()
-  })
+  const instance = getCurrentInstance()
+  if (instance) {
+    onUnmounted(() => {
+      disconnect()
+    })
+  }
 
   return {
     // Reactive state

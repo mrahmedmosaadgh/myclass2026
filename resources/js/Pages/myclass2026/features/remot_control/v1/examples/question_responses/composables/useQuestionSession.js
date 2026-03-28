@@ -3,7 +3,7 @@
  * Manages real-time question-answer sessions using Remote Control v1
  */
 
-import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import { useRealtimeChannel } from '../../../core/composables/useRealtimeChannel.js'
 
@@ -12,8 +12,10 @@ export function useQuestionSession(sessionCode, userRole = 'student') {
   const channel = useRealtimeChannel(sessionCode, {
     firebasePath: 'question_sessions',
     persistence: true,
-    logEvents: true,
-    debounce: 100
+    logEvents: false, // Changed to false to reduce console noise
+    debounce: 100,
+    rateLimitMaxCalls: 50, // Increased for better performance
+    rateLimitWindowMs: 1000
   })
 
   // Reactive state
@@ -29,7 +31,7 @@ export function useQuestionSession(sessionCode, userRole = 'student') {
   // Computed properties
   const isTeacher = computed(() => userRole === 'teacher')
   const isStudent = computed(() => userRole === 'student')
-  const isConnected = computed(() => channel.isConnected.value)
+  const isConnected = computed(() => channel.isConnected.value === 'connected')
   const responseCount = computed(() => responses.value.length)
   const hasActiveQuestion = computed(() => currentQuestion.value && sessionStatus.value === 'active')
 
@@ -84,12 +86,19 @@ export function useQuestionSession(sessionCode, userRole = 'student') {
       publishedBy: auth?.user?.name || 'Anonymous Teacher'
     }
 
-    channel.sendCommand({
-      type: 'publish_question',
-      data: question
-    }, {
+    channel.sendCommand('publish_question', question, {
       priority: 'high',
       requiresAck: true
+    })
+
+    channel.updateState({
+      question,
+      status: 'active',
+      metadata: {
+        createdAt: sessionMetadata.value?.createdAt || new Date().toISOString(),
+        publishedAt: question.publishedAt,
+        publishedBy: question.publishedBy
+      }
     })
 
     currentQuestion.value = question
@@ -104,11 +113,19 @@ export function useQuestionSession(sessionCode, userRole = 'student') {
       return false
     }
 
-    channel.sendCommand({
-      type: 'close_session',
-      data: {
-        closedAt: new Date().toISOString(),
-        closedBy: auth?.user?.name || 'Anonymous Teacher'
+    const closedAt = new Date().toISOString()
+
+    channel.sendCommand('close_session', {
+      closedAt,
+      closedBy: auth?.user?.name || 'Anonymous Teacher'
+    })
+
+    channel.updateState({
+      question: currentQuestion.value,
+      status: 'closed',
+      metadata: {
+        ...sessionMetadata.value,
+        closedAt
       }
     })
 
@@ -122,11 +139,19 @@ export function useQuestionSession(sessionCode, userRole = 'student') {
       return false
     }
 
-    channel.sendCommand({
-      type: 'reopen_session',
-      data: {
-        reopenedAt: new Date().toISOString(),
-        reopenedBy: auth?.user?.name || 'Anonymous Teacher'
+    const reopenedAt = new Date().toISOString()
+
+    channel.sendCommand('reopen_session', {
+      reopenedAt,
+      reopenedBy: auth?.user?.name || 'Anonymous Teacher'
+    })
+
+    channel.updateState({
+      question: currentQuestion.value,
+      status: 'active',
+      metadata: {
+        ...sessionMetadata.value,
+        reopenedAt
       }
     })
 
@@ -189,10 +214,7 @@ export function useQuestionSession(sessionCode, userRole = 'student') {
 
     initializeStudentInfo()
 
-    channel.sendCommand({
-      type: 'join_session',
-      data: studentInfo.value
-    })
+    channel.sendCommand('join_session', studentInfo.value)
 
     return true
   }
@@ -218,10 +240,7 @@ export function useQuestionSession(sessionCode, userRole = 'student') {
       responseTime: calculateResponseTime()
     }
 
-    channel.sendCommand({
-      type: 'submit_answer',
-      data: response
-    }, {
+    channel.sendCommand('submit_answer', response, {
       priority: 'high',
       requiresAck: true
     })
@@ -244,32 +263,33 @@ export function useQuestionSession(sessionCode, userRole = 'student') {
 
   // Event Handlers
   const handleChannelState = (newState) => {
-    if (newState?.question) {
-      currentQuestion.value = newState.question
+    const stateData = newState?.data || newState
+
+    if (stateData?.question) {
+      currentQuestion.value = stateData.question
       sessionStatus.value = 'active'
     }
     
-    if (newState?.status) {
-      sessionStatus.value = newState.status
+    if (stateData?.status) {
+      sessionStatus.value = stateData.status
     }
     
-    if (newState?.metadata) {
-      sessionMetadata.value = newState.metadata
+    if (stateData?.metadata) {
+      sessionMetadata.value = stateData.metadata
     }
   }
 
-  const handleChannelEvent = (event) => {
-    switch (event.type) {
+  const handleChannelCommand = (command) => {
+    switch (command.type) {
       case 'submit_answer':
         if (isTeacher.value) {
-          responses.value.push(event.data)
+          responses.value.push(command.payload)
         }
         break
         
       case 'join_session':
         if (isTeacher.value) {
-          // Handle student joining (optional: show in teacher view)
-          console.log('Student joined:', event.data)
+          console.log('Student joined:', command.payload)
         }
         break
         
@@ -283,31 +303,15 @@ export function useQuestionSession(sessionCode, userRole = 'student') {
         
       case 'publish_question':
         if (isStudent.value) {
-          currentQuestion.value = event.data
+          currentQuestion.value = command.payload
           sessionStatus.value = 'active'
         }
         break
     }
   }
 
-  // Watchers
-  watch(channel.state, handleChannelState, { deep: true })
-  watch(channel.events, (events) => {
-    events.forEach(handleChannelEvent)
-  }, { deep: true })
-
-  // Auto-join for students
-  onMounted(() => {
-    if (isStudent.value) {
-      initializeStudentInfo()
-      joinSession()
-    }
-  })
-
-  // Cleanup
-  onUnmounted(() => {
-    // Channel cleanup is handled by useRealtimeChannel
-  })
+  channel.onStateChange(handleChannelState)
+  channel.onCommand(handleChannelCommand)
 
   return {
     // Teacher API
@@ -335,8 +339,7 @@ export function useQuestionSession(sessionCode, userRole = 'student') {
     isConnected,
     responseCount,
     hasActiveQuestion,
-    
-    // Channel access (for advanced usage)
+    lastError: channel.lastError,
     channel
   }
 }
