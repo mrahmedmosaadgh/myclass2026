@@ -1,10 +1,10 @@
 import { defineStore } from 'pinia';
 import { ref, computed, watch } from 'vue';
-import { useOfflineStorage } from '../composables/useOfflineStorage.js';
+import { useIndexedDBStorage } from '../composables/useIndexedDBStorage.js';
 
 export const usePresentationStore = defineStore('presentation', () => {
   const saveStatus = ref('saved'); // 'saved' | 'saving'
-  const offlineStorage = useOfflineStorage();
+  const indexedDBStorage = useIndexedDBStorage();
 
   const defaultSlides = [
     {
@@ -39,7 +39,6 @@ export const usePresentationStore = defineStore('presentation', () => {
     }
   ];
 
-  const localSaved = localStorage.getItem('cr_v5_presentation');
   let initialData = {
     title: 'Untitled Presentation',
     usePhases: false,
@@ -48,16 +47,26 @@ export const usePresentationStore = defineStore('presentation', () => {
     currentSlideIndex: 0
   };
 
-  if (localSaved) {
+  // Try to load current presentation from IndexedDB
+  const loadCurrentPresentation = async () => {
     try {
-      const parsed = JSON.parse(localSaved);
-      if (parsed.slides && Array.isArray(parsed.slides)) {
-        initialData = parsed;
+      const currentPresentation = await indexedDBStorage.getCurrentPresentation();
+      if (currentPresentation) {
+        initialData = {
+          title: currentPresentation.title,
+          usePhases: currentPresentation.usePhases,
+          hasInitializedPhases: currentPresentation.hasInitializedPhases,
+          slides: currentPresentation.slides,
+          currentSlideIndex: currentPresentation.currentSlideIndex || 0
+        };
       }
     } catch (e) {
-      console.warn('Failed to parse locally saved presentation.', e);
+      console.warn('Failed to load presentation from IndexedDB, using defaults.', e);
     }
-  }
+  };
+
+  // Load asynchronously (non-blocking)
+  loadCurrentPresentation();
 
   const title = ref(initialData.title);
   const usePhases = ref(initialData.usePhases);
@@ -66,21 +75,38 @@ export const usePresentationStore = defineStore('presentation', () => {
   const currentSlideIndex = ref(initialData.currentSlideIndex || 0);
 
   let saveTimeout = null;
+  let currentPresentationKey = null;
   
   function triggerAutoSave() {
     saveStatus.value = 'saving';
     clearTimeout(saveTimeout);
-    saveTimeout = setTimeout(() => {
-      const payload = {
-        title: title.value,
-        usePhases: usePhases.value,
-        hasInitializedPhases: hasInitializedPhases.value,
-        slides: slides.value,
-        currentSlideIndex: currentSlideIndex.value,
-        lastSaved: new Date().toISOString()
-      };
-      localStorage.setItem('cr_v5_presentation', JSON.stringify(payload));
-      saveStatus.value = 'saved';
+    saveTimeout = setTimeout(async () => {
+      try {
+        const payload = {
+          title: title.value,
+          usePhases: usePhases.value,
+          hasInitializedPhases: hasInitializedPhases.value,
+          slides: slides.value,
+          currentSlideIndex: currentSlideIndex.value,
+          lastSaved: new Date().toISOString()
+        };
+
+        // Save with IndexedDB storage
+        if (indexedDBStorage.isStorageAvailable()) {
+          const result = await indexedDBStorage.savePresentation(payload, {
+            overwrite: true,
+            createBackup: false
+          });
+          currentPresentationKey = result.id;
+        } else {
+          console.warn('IndexedDB not available, auto-save disabled');
+        }
+        
+        saveStatus.value = 'saved';
+      } catch (error) {
+        console.error('Auto-save failed:', error);
+        saveStatus.value = 'error';
+      }
     }, 600);
   }
 
@@ -89,7 +115,11 @@ export const usePresentationStore = defineStore('presentation', () => {
   }, { deep: true });
 
   function resetPresentation() {
-    localStorage.removeItem('cr_v5_presentation');
+    // Clear current presentation metadata
+    if (indexedDBStorage.isStorageAvailable()) {
+      indexedDBStorage.db.offline_metadata.delete('current_presentation');
+    }
+    
     title.value = 'Untitled Presentation';
     usePhases.value = false;
     hasInitializedPhases.value = false;
@@ -233,6 +263,56 @@ export const usePresentationStore = defineStore('presentation', () => {
     }
   }
 
+  // Enhanced save methods
+  async function savePresentationAs(name) {
+    try {
+      const payload = {
+        title: name,
+        usePhases: usePhases.value,
+        hasInitializedPhases: hasInitializedPhases.value,
+        slides: slides.value,
+        currentSlideIndex: currentSlideIndex.value,
+        lastSaved: new Date().toISOString()
+      };
+
+      const result = await indexedDBStorage.savePresentation(payload, {
+        name,
+        overwrite: false,
+        createBackup: true
+      });
+
+      currentPresentationKey = result.id;
+      saveStatus.value = 'saved';
+      return result;
+    } catch (error) {
+      console.error('Save as failed:', error);
+      saveStatus.value = 'error';
+      throw error;
+    }
+  }
+
+  async function exportCurrentPresentation() {
+    try {
+      const payload = {
+        title: title.value,
+        usePhases: usePhases.value,
+        hasInitializedPhases: hasInitializedPhases.value,
+        slides: slides.value,
+        currentSlideIndex: currentSlideIndex.value,
+        lastSaved: new Date().toISOString()
+      };
+
+      await indexedDBStorage.exportPresentation(payload);
+    } catch (error) {
+      console.error('Export failed:', error);
+      throw error;
+    }
+  }
+
+  async function getStorageInfo() {
+    return await indexedDBStorage.getStorageStats();
+  }
+
   return {
     title,
     usePhases,
@@ -254,6 +334,12 @@ export const usePresentationStore = defineStore('presentation', () => {
     deleteSlideById,
     loadPresentation,
     resetPresentation,
-    saveStatus
+    saveStatus,
+    // Enhanced methods
+    savePresentationAs,
+    exportCurrentPresentation,
+    getStorageInfo,
+    // Storage access
+    indexedDBStorage
   };
 });

@@ -2,6 +2,13 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| Presentations API Routes
+|--------------------------------------------------------------------------
+*/
+require __DIR__.'/api/presentations.php';
 use App\Http\Controllers\SchoolController;
 use App\Http\Controllers\ContextController;
 use App\Http\Controllers\CourseManagement\LessonPlanTemplateController;

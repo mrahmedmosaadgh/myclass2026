@@ -28,7 +28,7 @@
                 <textarea
                   v-model="questionTitle"
                   class="form-textarea"
-                  placeholder="Enter your question here..."
+                  placeholder="Enter your question_here..."
                   rows="3"
                   maxlength="500"
                 ></textarea>

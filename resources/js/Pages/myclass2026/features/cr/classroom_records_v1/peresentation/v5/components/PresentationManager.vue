@@ -16,20 +16,33 @@
     <div class="storage-stats">
       <div class="stat-item">
         <span class="stat-label">Storage Used:</span>
-        <span class="stat-value">{{ formatBytes(storageStats.used) }}</span>
+        <span class="stat-value">{{ storageStats.totalSizeFormatted }}</span>
       </div>
       <div class="stat-item">
         <span class="stat-label">Available:</span>
-        <span class="stat-value">{{ formatBytes(storageStats.available) }}</span>
+        <span class="stat-value">{{ storageStats.availableSpaceFormatted }}</span>
       </div>
       <div class="stat-item">
         <span class="stat-label">Presentations:</span>
-        <span class="stat-value">{{ storageStats.presentationsCount }} / {{ STORAGE_CONFIG.MAX_PRESENTATIONS_COUNT }}</span>
+        <span class="stat-value">{{ storageStats.totalPresentations }}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Backups:</span>
+        <span class="stat-value">{{ storageStats.totalBackups }}</span>
       </div>
     </div>
 
+    <!-- Storage Info -->
+    <div class="storage-info">
+      <small>
+        📦 Using IndexedDB for enhanced storage capacity
+        <br>
+        🗄️ Much larger than localStorage (5MB) - typically 50MB-1GB available
+      </small>
+    </div>
+
     <!-- Storage Warning -->
-    <div v-if="storageStats.available < 1024 * 1024" class="storage-warning">
+    <div v-if="storageStats.availableSpace !== 'Unknown' && storageStats.availableSpace < 10 * 1024 * 1024" class="storage-warning">
       ⚠️ Low storage space! Consider deleting old presentations or exporting them.
     </div>
 
@@ -166,12 +179,12 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { useOfflineStorage } from '../composables/useOfflineStorage.js';
+import { useIndexedDBStorage } from '../composables/useIndexedDBStorage.js';
 import { usePresentationStore } from '../stores/presentationStore.js';
 
 const emit = defineEmits(['presentation-loaded', 'presentation-created']);
 
-const storage = useOfflineStorage();
+const storage = useIndexedDBStorage();
 const presentationStore = usePresentationStore();
 
 // State
@@ -186,12 +199,10 @@ const importOptions = ref({
 });
 
 // Computed
-const presentations = computed(() => storage.getAllPresentations());
+const presentations = ref([]);
 const storageStats = computed(() => storage.storageStats);
 const storageError = computed(() => storage.storageError);
-const currentPresentationKey = computed(() => {
-  return localStorage.getItem('cr_v5_current_presentation');
-});
+const currentPresentationKey = ref(null);
 
 // Methods
 const formatBytes = (bytes) => {
@@ -209,8 +220,9 @@ const formatDate = (dateString) => {
 
 const loadPresentation = async (key) => {
   try {
-    const presentation = storage.loadPresentation(key);
+    const presentation = await storage.loadPresentation(key);
     presentationStore.loadPresentation(presentation);
+    currentPresentationKey.value = key;
     emit('presentation-loaded', presentation);
   } catch (error) {
     console.error('Error loading presentation:', error);
@@ -219,8 +231,8 @@ const loadPresentation = async (key) => {
 
 const exportPresentation = async (key) => {
   try {
-    const presentation = storage.loadPresentation(key);
-    storage.exportPresentation(presentation);
+    const presentation = await storage.loadPresentation(key);
+    await storage.exportPresentation(presentation);
   } catch (error) {
     console.error('Error exporting presentation:', error);
   }
@@ -231,6 +243,7 @@ const deletePresentation = async (key) => {
   
   try {
     await storage.deletePresentation(key);
+    await refreshPresentations();
   } catch (error) {
     console.error('Error deleting presentation:', error);
   }
@@ -299,9 +312,28 @@ const clearError = () => {
   storageError.value = null;
 };
 
+const refreshPresentations = async () => {
+  try {
+    presentations.value = await storage.getAllPresentations();
+    await storage.getStorageStats();
+  } catch (error) {
+    console.error('Error refreshing presentations:', error);
+  }
+};
+
 // Initialize
-onMounted(() => {
-  storage.getStorageStats();
+onMounted(async () => {
+  await refreshPresentations();
+  
+  // Get current presentation
+  try {
+    const currentPresentation = await storage.getCurrentPresentation();
+    if (currentPresentation) {
+      currentPresentationKey.value = currentPresentation.id;
+    }
+  } catch (error) {
+    console.error('Error getting current presentation:', error);
+  }
 });
 </script>
 
@@ -386,6 +418,17 @@ onMounted(() => {
 .stat-value {
   font-weight: 600;
   color: #111827;
+}
+
+.storage-info {
+  padding: 12px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 6px;
+  color: #0c4a6e;
+  font-size: 12px;
+  margin-bottom: 20px;
+  text-align: center;
 }
 
 .storage-warning {
