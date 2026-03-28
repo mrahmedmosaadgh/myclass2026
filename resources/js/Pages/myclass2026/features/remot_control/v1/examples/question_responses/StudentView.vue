@@ -127,7 +127,7 @@
                     {{ isConnected ? 'Connected' : 'Disconnected' }}
                   </span>
                 </div>
-                <span class="text-gray-500">{{ studentInfo?.name }}</span>
+                <span class="text-gray-500">{{ session?.studentInfo?.name }}</span>
                 <!-- Restored Session Indicator -->
                 <span v-if="wasRestored" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                   <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -297,7 +297,7 @@ export default {
         sessionCode.value = inputCode.value.toUpperCase()
         session = useQuestionSession(sessionCode.value, 'student')
         
-        // Wait for connection and auto-join
+        // Wait for connection
         await new Promise(resolve => {
           const checkConnection = () => {
             if (session.isConnected.value) {
@@ -308,6 +308,9 @@ export default {
           }
           checkConnection()
         })
+        
+        // Explicitly join the session
+        session.joinSession()
         
         answerSubmitted.value = false
         
@@ -369,12 +372,12 @@ export default {
 
     // Session persistence methods
     const saveStudentSession = () => {
-      if (sessionCode.value && studentInfo.value) {
+      if (sessionCode.value && session?.studentInfo?.value) {
         const sessionData = {
           sessionCode: sessionCode.value,
-          studentName: studentInfo.value.name,
-          isAuthenticated: studentInfo.value.isAuthenticated,
-          studentId: studentInfo.value.id,
+          studentName: session.studentInfo.value.name,
+          isAuthenticated: session.studentInfo.value.isAuthenticated,
+          studentId: session.studentInfo.value.id,
           answerSubmitted: answerSubmitted.value,
           savedAt: new Date().toISOString()
         }
