@@ -9,7 +9,7 @@ import { validateCommand, validateState, sanitizeData } from '../utils/validatio
 import { debounce, createRateLimiter } from '../utils/debounce.js'
 import { ConnectionStatus, EventType } from '../types/channel.types.js'
 import { database } from '@/firebase/init'
-import { ref as dbRef, onValue, off, set, push } from 'firebase/database'
+import { ref as dbRef, onValue, onChildAdded, off, set, push } from 'firebase/database'
 import { ToolsSwitcher } from '@/Utils/toolsSwitcher'
 
 /**
@@ -154,22 +154,16 @@ export function useRealtimeChannel(channelId, options = {}) {
         }
       }))
 
-    // Set up commands listener
+    // Set up commands listener using onChildAdded for real-time updates
     const commandsRef = dbRef(database, paths.commands)
     internal.firebaseRefs.set('commands', commandsRef)
     
-    // Note: Firebase v9 doesn't have child_added in onValue, so we'll use a different approach
-    // For now, we'll use onValue and filter for new commands
-    let lastCommandId = null
-    internal.firebaseListeners.set('commands', onValue(commandsRef, (snapshot) => {
-      const commands = snapshot.val()
-      if (commands) {
-        Object.entries(commands).forEach(([id, command]) => {
-          if (command && command.channelId === channelId && id !== lastCommandId) {
-            handleIncomingCommand(command)
-            lastCommandId = id
-          }
-        })
+    // Listen for new commands in real-time
+    internal.firebaseListeners.set('commands', onChildAdded(commandsRef, (snapshot) => {
+      const command = snapshot.val()
+      if (command && command.channelId === channelId) {
+        console.log('🔥 Received command from Firebase:', command.commandId)
+        handleIncomingCommand(command)
       }
     }))
 
