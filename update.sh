@@ -64,9 +64,16 @@ git diff --cached --quiet && echo "  ℹ️  No source changes to commit." || {
 # ── Step 4: Remote Sync (Hostinger) ──
 echo "🌐 Syncing to Hostinger..."
 ssh -p "$SSH_PORT" "$SSH_CONN" "cd $REMOTE_DIR \
+&& echo '🧹 Cleaning build submodule before update...' \
+&& cd public/build \
+&& git reset --hard \
+&& git clean -fd \
+&& cd ../.. \
+&& echo '📦 Updating main repository...' \
 && git fetch origin production \
 && (git checkout production || git checkout -b production FETCH_HEAD) \
-&& GIT_ALLOW_PROTOCOL=false git -c submodule.recurse=false reset --hard FETCH_HEAD \
+&& echo '🔄 Updating submodule...' \
+&& git submodule update --init --recursive --force \
 && (composer dump-autoload -o || true) \
 && php artisan optimize:clear \
 && php artisan optimize" || echo "  ⚠️ Remote git sync had issues, proceeding to Rsync."
