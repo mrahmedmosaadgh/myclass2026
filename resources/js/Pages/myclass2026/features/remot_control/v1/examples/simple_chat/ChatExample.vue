@@ -100,7 +100,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRealtimeChannel } from '../../core/composables/useRealtimeChannel.js'
 
 export default {
@@ -296,17 +296,22 @@ export default {
 
     // Initialize
     onMounted(async () => {
-      await channel.connect()
+      // Channel auto-connects on mount, no need to call connect()
       initializeUser()
       
       // Set up command listener
       channel.onCommand(handleCommand)
       
-      // Set up typing watcher
-      const unwatch = channel.watch(newMessage, handleTyping)
+      // Set up typing watcher using Vue's watch
+      const unwatch = watch(newMessage, handleTyping)
       
       // Initial user count
       userCount.value = 1
+      
+      // Cleanup on unmount
+      onUnmounted(() => {
+        unwatch()
+      })
     })
 
     onUnmounted(() => {
