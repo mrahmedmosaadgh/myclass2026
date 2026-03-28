@@ -1,7 +1,8 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useQuestionSession } from '../../../../../remot_control/v1/examples/question_responses/composables/useQuestionSession';
 import { useLiveQuestionStore } from '../stores/liveQuestionStore';
+import QRCodeVue from 'qrcode.vue';
 
 const props = defineProps({
   element: Object,
@@ -14,6 +15,8 @@ const liveQuestionStore = useLiveQuestionStore();
 const isInteractive = ref(false);
 const activeSession = ref(null);
 const sessionCode = ref('');
+const showQR = ref(false);
+const copySuccess = ref(false);
 
 // Initialize element data if not exists
 if (!props.element.data) {
@@ -38,6 +41,25 @@ function generateCode() {
     code += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return code;
+}
+
+
+// Copy session code to clipboard
+async function copyCode() {
+  try {
+    await navigator.clipboard.writeText(sessionCode.value);
+    copySuccess.value = true;
+    setTimeout(() => {
+      copySuccess.value = false;
+    }, 2000);
+  } catch (error) {
+    console.error('Failed to copy code:', error);
+  }
+}
+
+// Toggle QR code display
+function toggleQR() {
+  showQR.value = !showQR.value;
 }
 
 // Start live question session
@@ -71,11 +93,13 @@ function startSession() {
     }
   });
 
+  // Persist session state
   emit('update', {
     data: {
       ...props.element.data,
       sessionCode: sessionCode.value,
-      status: 'active'
+      status: 'active',
+      isInteractive: true
     }
   });
 }
@@ -92,10 +116,47 @@ function lockSession() {
   emit('update', {
     data: {
       ...props.element.data,
-      status: 'idle'
+      status: 'idle',
+      isInteractive: false
     }
   });
 }
+
+// Restore session on mount if it was active
+onMounted(() => {
+  if (props.element.data?.status === 'active' && props.element.data?.sessionCode) {
+    sessionCode.value = props.element.data.sessionCode;
+    isInteractive.value = props.element.data.isInteractive || false;
+    
+    // Restore remote control session
+    if (isInteractive.value) {
+      activeSession.value = useQuestionSession(sessionCode.value, 'teacher');
+      
+      // Re-publish question
+      const questionData = {
+        id: props.element.id,
+        title: props.element.data.questionTitle,
+        instructions: props.element.data.questionInstructions || '',
+        minLength: 1,
+        maxLength: 1000
+      };
+      
+      activeSession.value.publishQuestion(questionData);
+      
+      // Listen for student responses
+      activeSession.value.channel.onCommand((command) => {
+        if (command.type === 'submit_answer') {
+          addResponse(command.payload);
+        }
+      });
+    }
+  }
+});
+
+onUnmounted(() => {
+  // Don't close session on unmount - let it persist
+  // Session will be restored on remount
+});
 
 // Add student response
 function addResponse(response) {
@@ -182,39 +243,72 @@ function replayQuestion() {
 <template>
   <div class="live-question-wrapper" @click="emit('select')">
     <!-- Edit Mode -->
-    <div v-if="isEditMode" class="edit-container">
+    <div v-if="isEditMode" class="edit-container" @click.stop>
       <div class="edit-header">
-        <h4>📝 Live Question</h4>
+        <div class="header-content">
+          <div class="icon-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <h4>Live Question</h4>
+          </div>
+          <div class="status-badges">
+            <span v-if="element.data?.status === 'active'" class="badge active-badge">🟢 Active</span>
+            <span v-if="element.data?.status === 'graded'" class="badge graded-badge">✓ Graded</span>
+            <span v-if="hasResponses" class="badge response-badge">{{ element.data.responses.length }} responses</span>
+          </div>
+        </div>
       </div>
       
-      <div class="edit-form">
+      <div class="edit-form" @click.stop>
         <div class="form-group">
-          <label>Question:</label>
+          <label class="form-label">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            Question
+          </label>
           <input 
             :value="element.data?.questionTitle || ''"
             @input="emit('update', { data: { ...element.data, questionTitle: $event.target.value } })"
             type="text"
             class="question-input"
-            placeholder="What is your question?"
+            placeholder="Enter your question here..."
             @click.stop
+            @mousedown.stop
           />
         </div>
         
         <div class="form-group">
-          <label>Instructions (optional):</label>
+          <label class="form-label">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="8" y1="6" x2="21" y2="6"></line>
+              <line x1="8" y1="12" x2="21" y2="12"></line>
+              <line x1="8" y1="18" x2="21" y2="18"></line>
+              <line x1="3" y1="6" x2="3.01" y2="6"></line>
+              <line x1="3" y1="12" x2="3.01" y2="12"></line>
+              <line x1="3" y1="18" x2="3.01" y2="18"></line>
+            </svg>
+            Instructions (optional)
+          </label>
           <textarea 
             :value="element.data?.questionInstructions || ''"
             @input="emit('update', { data: { ...element.data, questionInstructions: $event.target.value } })"
             class="instructions-input"
-            rows="2"
-            placeholder="Additional instructions for students..."
+            rows="3"
+            placeholder="Add any additional instructions for students..."
             @click.stop
+            @mousedown.stop
           ></textarea>
         </div>
 
-        <div class="stats">
-          <span>📊 {{ hasResponses ? element.data.responses.length : 0 }} responses</span>
-          <span v-if="element.data.status === 'graded'" class="graded-badge">✓ Graded</span>
+        <div v-if="element.data?.sessionCode" class="session-info-edit">
+          <div class="info-item">
+            <span class="info-label">Session Code:</span>
+            <span class="info-value">{{ element.data.sessionCode }}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -254,17 +348,71 @@ function replayQuestion() {
           ↻ Reset
         </button>
 
-        <div v-if="isInteractive" class="session-code">
-          Code: <strong>{{ sessionCode }}</strong>
+        <div v-if="isInteractive || (element.data?.status === 'active' && element.data?.sessionCode)" class="session-code-container">
+          <div class="session-code">
+            Code: <strong>{{ sessionCode || element.data?.sessionCode }}</strong>
+          </div>
+          
+          <button @click="copyCode" class="copy-btn" :class="{ copied: copySuccess }">
+            <svg v-if="!copySuccess" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <svg v-else xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            {{ copySuccess ? 'Copied!' : 'Copy' }}
+          </button>
+          
+          <button @click="toggleQR" class="qr-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            QR
+          </button>
+        </div>
+        
+        <!-- QR Code Modal -->
+        <div v-if="showQR" class="qr-modal" @click="showQR = false">
+          <div class="qr-content" @click.stop>
+            <h3>Scan to Join</h3>
+            <div class="qr-code-wrapper">
+              <QRCodeVue
+                :value="`${window.location.origin}/remote-control/question-responses/student?code=${sessionCode || element.data?.sessionCode}`"
+                :size="200"
+                level="M"
+                render-as="svg"
+                class="qr-code"
+              />
+            </div>
+            <p class="qr-code-text">Code: <strong>{{ sessionCode || element.data?.sessionCode }}</strong></p>
+            <button @click="showQR = false" class="close-qr">Close</button>
+          </div>
         </div>
       </div>
 
       <!-- Question Display -->
       <div class="question-display">
+        <div class="question-header">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+          <span class="question-label">Question</span>
+        </div>
         <h2 class="question-title">{{ element.data?.questionTitle || 'Live Question' }}</h2>
-        <p v-if="element.data?.questionInstructions" class="question-instructions">
-          {{ element.data.questionInstructions }}
-        </p>
+        <div v-if="element.data?.questionInstructions" class="instructions-box">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          <p class="question-instructions">{{ element.data.questionInstructions }}</p>
+        </div>
       </div>
 
       <!-- Responses List -->
@@ -338,73 +486,141 @@ function replayQuestion() {
 
 /* Edit Mode */
 .edit-container {
-  padding: 20px;
+  padding: 24px;
   height: 100%;
   overflow-y: auto;
+  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
 }
 
 .edit-header {
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 2px solid #e5e7eb;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #d1fae5;
 }
 
-.edit-header h4 {
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.icon-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.icon-title h4 {
   margin: 0;
-  font-size: 16px;
-  color: #374151;
+  font-size: 18px;
+  font-weight: 600;
+  color: #065f46;
+}
+
+.status-badges {
+  display: flex;
+  gap: 8px;
+}
+
+.badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.active-badge {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.graded-badge {
+  background: #10b981;
+  color: white;
+}
+
+.response-badge {
+  background: #dbeafe;
+  color: #1e40af;
 }
 
 .edit-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
-.form-group label {
-  font-size: 12px;
+.form-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
   font-weight: 600;
-  color: #6b7280;
+  color: #374151;
+  margin-bottom: 4px;
 }
 
 .question-input,
 .instructions-input {
-  padding: 8px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 14px;
+  padding: 12px 16px;
+  border: 2px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 15px;
   font-family: inherit;
+  background: white;
+  transition: all 0.2s ease;
+  color: #111827;
+}
+
+.question-input:hover,
+.instructions-input:hover {
+  border-color: #10b981;
 }
 
 .question-input:focus,
 .instructions-input:focus {
   outline: none;
   border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
 }
 
-.stats {
+.question-input::placeholder,
+.instructions-input::placeholder {
+  color: #9ca3af;
+}
+
+.session-info-edit {
+  padding: 12px 16px;
+  background: white;
+  border: 1px solid #d1fae5;
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.info-item {
   display: flex;
-  gap: 12px;
   align-items: center;
-  font-size: 12px;
-  color: #6b7280;
-  padding: 8px;
-  background: #f9fafb;
-  border-radius: 6px;
+  gap: 8px;
 }
 
-.graded-badge {
-  background: #10b981;
-  color: white;
-  padding: 2px 8px;
-  border-radius: 4px;
+.info-label {
+  font-size: 12px;
   font-weight: 500;
+  color: #6b7280;
+}
+
+.info-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #10b981;
+  letter-spacing: 1px;
 }
 
 /* Presentation Mode */
@@ -465,8 +681,14 @@ function replayQuestion() {
   color: white;
 }
 
-.session-code {
+.session-code-container {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.session-code {
   padding: 6px 12px;
   background: white;
   border-radius: 6px;
@@ -480,25 +702,155 @@ function replayQuestion() {
   margin-left: 4px;
 }
 
-.question-display {
-  padding: 20px;
+.copy-btn,
+.qr-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-btn:hover,
+.qr-btn:hover {
   background: #f9fafb;
-  border-radius: 8px;
-  margin-bottom: 16px;
+  border-color: #10b981;
+  color: #10b981;
+}
+
+.copy-btn.copied {
+  background: #10b981;
+  color: white;
+  border-color: #10b981;
+}
+
+.qr-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(4px);
+}
+
+.qr-content {
+  background: white;
+  padding: 32px;
+  border-radius: 12px;
   text-align: center;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+  max-width: 90%;
+}
+
+.qr-content h3 {
+  margin: 0 0 20px;
+  font-size: 20px;
+  color: #111827;
+}
+
+.qr-code-wrapper {
+  display: flex;
+  justify-content: center;
+  margin: 0 auto 16px;
+  padding: 16px;
+  background: white;
+  border-radius: 8px;
+  border: 2px solid #e5e7eb;
+  width: fit-content;
+}
+
+.qr-code {
+  display: block;
+}
+
+.qr-code-text {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 16px 0;
+}
+
+.qr-code-text strong {
+  color: #10b981;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.close-qr {
+  padding: 10px 24px;
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.close-qr:hover {
+  background: #059669;
+}
+
+.question-display {
+  padding: 28px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+  border-radius: 12px;
+  margin-bottom: 20px;
+  border: 2px solid #d1fae5;
+}
+
+.question-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.question-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #059669;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .question-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #111827;
-  margin: 0 0 8px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #065f46;
+  margin: 0 0 16px;
+  line-height: 1.4;
+  text-align: left;
+}
+
+.instructions-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  background: white;
+  border-radius: 8px;
+  border-left: 3px solid #10b981;
+  margin-top: 12px;
 }
 
 .question-instructions {
-  font-size: 14px;
-  color: #6b7280;
+  font-size: 15px;
+  color: #374151;
   margin: 0;
+  line-height: 1.6;
+  text-align: left;
 }
 
 .responses-section {
