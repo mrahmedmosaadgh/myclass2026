@@ -217,10 +217,14 @@ export default {
 
     // Handle incoming commands
     const handleCommand = (command) => {
+      console.log('🔥 ChatExample received command:', command)
+      
       switch (command.type) {
         case 'new_message':
+          console.log('🔥 Processing new_message:', command.payload)
           if (command.payload) {
             messages.value.push(command.payload)
+            console.log('🔥 Messages array updated:', messages.value)
             // Keep only last 50 messages
             if (messages.value.length > 50) {
               messages.value = messages.value.slice(-50)
@@ -296,11 +300,14 @@ export default {
 
     // Initialize
     onMounted(async () => {
+      console.log('🔥 ChatExample mounting...')
       // Channel auto-connects on mount, no need to call connect()
       initializeUser()
       
       // Set up command listener
+      console.log('🔥 Setting up command listener...')
       channel.onCommand(handleCommand)
+      console.log('🔥 Command listener set up!')
       
       // Set up typing watcher using Vue's watch
       const unwatch = watch(newMessage, handleTyping)
