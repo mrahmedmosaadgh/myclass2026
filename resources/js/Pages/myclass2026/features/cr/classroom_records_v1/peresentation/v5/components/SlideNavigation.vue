@@ -158,11 +158,11 @@ function onDragEnd() {
           
           <span class="slide-number">{{ index + 1 }}</span>
           
-          <div class="slide-preview" :style="{ borderLeftColor: getSectionColor(slide.sectionId), borderLeftWidth: slide.sectionId ? '6px' : '1px' }">
-            <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="#3b82f6" stroke="#2563eb" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="18" height="14" rx="2" ry="2" fill="#bfdbfe"></rect>
-              <circle cx="8" cy="8" r="2.5" fill="#fcd34d" stroke="none"></circle>
-              <path d="M21 13l-5-5L5 21" fill="#60a5fa" stroke="none"></path>
+          <div class="slide-preview" :style="{ borderLeftColor: getSectionColor(slide.sectionId), borderLeftWidth: slide.sectionId ? '4px' : '1px' }">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="14" rx="2" ry="2"></rect>
+              <line x1="7" y1="8" x2="17" y2="8"></line>
+              <line x1="7" y1="12" x2="14" y2="12"></line>
             </svg>
           </div>
           
@@ -458,72 +458,99 @@ function onDragEnd() {
   flex-direction: column;
   align-items: center;
   cursor: pointer;
-  padding: 6px;
-  border-radius: 6px;
-  border: 2px solid transparent;
-  transition: all 0.2s;
+  padding: 10px 8px;
+  border-radius: 8px;
+  border: 1.5px solid transparent;
+  transition: all 0.15s ease;
+  background: white;
+  margin-bottom: 4px;
 }
 
 .slide-thumb:hover {
-  background: #f3f4f6;
+  background: #f9fafb;
+  border-color: #e5e7eb;
+  transform: translateX(2px);
 }
 
 .slide-thumb.active {
-  background: #e0e7ff;
-  border-color: #6366f1;
+  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+  border-color: #818cf8;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.15);
 }
 
 .slide-number {
-  font-size: 12px;
-  font-weight: bold;
-  color: #6b7280;
-  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #9ca3af;
+  margin-bottom: 6px;
+  letter-spacing: 0.5px;
+}
+
+.slide-thumb.active .slide-number {
+  color: #6366f1;
 }
 
 .slide-preview {
   width: 100px;
   height: 60px;
-  background: white;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
+  background: #fafafa;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  transition: border-width 0.2s, border-color 0.2s;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.slide-thumb:hover .slide-preview {
+  border-color: #d1d5db;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.slide-thumb.active .slide-preview {
+  border-color: #818cf8;
+  background: white;
 }
 
 .slide-section-label {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 500;
-  margin-top: 5px;
+  margin-top: 6px;
   text-align: center;
   max-width: 100%;
-  padding: 2px 6px;
-  background: white;
-  border-radius: 4px;
-  border: 1px solid #e5e7eb;
+  padding: 3px 8px;
+  background: #f3f4f6;
+  border-radius: 10px;
+  color: #6b7280;
+  letter-spacing: 0.3px;
 }
 
 .delete-btn {
   position: absolute;
-  top: -4px;
-  right: -4px;
-  background: #ef4444;
+  top: 4px;
+  right: 4px;
+  background: rgba(239, 68, 68, 0.95);
   color: white;
   border: none;
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  font-size: 14px;
-  font-weight: bold;
+  border-radius: 4px;
+  width: 18px;
+  height: 18px;
+  font-size: 12px;
+  font-weight: 500;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.2s;
-  box-shadow: 0 2px 4px rgb(0 0 0 / 0.2);
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+}
+
+.delete-btn:hover {
+  background: #dc2626;
+  transform: scale(1.1);
 }
 
 .slide-thumb:hover .delete-btn {
@@ -539,20 +566,28 @@ function onDragEnd() {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  background: #10b981;
+  gap: 8px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;
   border: none;
-  padding: 10px;
-  border-radius: 6px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
-  font-weight: bold;
-  transition: background 0.2s;
+  transition: all 0.2s ease;
   width: 100%;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
 }
 
 .add-slide-btn:hover {
-  background: #059669;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.add-slide-btn:active {
+  transform: translateY(0);
 }
 
 @media (max-width: 1024px) {
@@ -671,16 +706,17 @@ function onDragEnd() {
 
 .slide-actions {
   position: absolute;
-  top: 4px;
+  bottom: 4px;
   right: 4px;
   display: flex;
-  gap: 4px;
+  gap: 3px;
+  z-index: 10;
 }
 
 .add-between-btn {
   width: 20px;
   height: 20px;
-  background: #10b981;
+  background: rgba(16, 185, 129, 0.95);
   border: none;
   border-radius: 4px;
   color: white;
@@ -688,9 +724,14 @@ function onDragEnd() {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
   opacity: 0;
+  backdrop-filter: blur(4px);
+}
+
+.add-between-btn svg {
+  width: 12px;
+  height: 12px;
 }
 
 .slide-thumb:hover .add-between-btn {
@@ -699,7 +740,8 @@ function onDragEnd() {
 
 .add-between-btn:hover {
   background: #059669;
-  transform: scale(1.1);
+  transform: scale(1.15);
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.4);
 }
 
 /* Drag and drop visual feedback */
