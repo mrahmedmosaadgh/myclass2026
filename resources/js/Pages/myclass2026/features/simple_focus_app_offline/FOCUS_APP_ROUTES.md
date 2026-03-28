@@ -4,9 +4,6 @@
 
 ## 🚀 Quick Access Links
 
-### **Version 2 (Latest)**
-- **Main App**: https://qudratpro.com/simple-focus-app-offline/v2
-- **With Cache Busting**: https://qudratpro.com/simple-focus-app-offline/v2?refresh=true
 - **PWA Manifest**: https://qudratpro.com/simple-focus-app-offline/v2/manifest.webmanifest
 - **App Icon**: https://qudratpro.com/simple-focus-app-offline/v2/icon.svg
 

@@ -186,7 +186,7 @@
                   Time Limit: {{ currentQuestion.timeLimit }}s
                 </span>
                 <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                  {{ getQuestionTypeLabel(currentQuestion?.type) }}
+                  {{ getQuestionTypeLabel(currentQuestion?.type, currentQuestion?.questionType) }}
                 </span>
               </div>
             </div>
@@ -357,7 +357,12 @@ export default {
       console.log('Answer changed:', answerData)
     }
 
-    const getQuestionTypeLabel = (type) => {
+    const getQuestionTypeLabel = (type, questionType) => {
+      // Handle live questions specifically
+      if (questionType === 'live_question') {
+        return 'Live Question'
+      }
+      
       const labels = {
         'multiple_choice': 'Multiple Choice',
         'multi_select': 'Multiple Selection',
@@ -365,7 +370,8 @@ export default {
         'number': 'Number Answer',
         'date': 'Date Answer',
         'rating': 'Rating Scale',
-        'custom': 'Custom Type'
+        'custom': 'Custom Type',
+        'live_question': 'Live Question'
       }
       return labels[type] || 'Unknown Type'
     }

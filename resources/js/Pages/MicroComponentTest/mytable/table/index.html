@@ -219,6 +219,63 @@
             border-radius: 8px;
             margin-top: 20px;
             display: none;
+            text-align: center;
+        }
+
+        .loading-message {
+            padding: 20px;
+            background: #e0f2fe;
+            border: 1px solid #0ea5e9;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+            text-align: center;
+        }
+
+        .offline-message {
+            padding: 20px;
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+            text-align: center;
+        }
+
+        .loading-spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #e5e7eb;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .offline-indicator, .error-indicator {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .retry-btn {
+            margin-top: 16px;
+            padding: 8px 16px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .retry-btn:hover {
+            background: #2563eb;
         }
     </style>
 </head>
@@ -280,7 +337,13 @@
     // --- PWA SERVICE WORKER & INSTALL LOGIC ---
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js');
+            navigator.serviceWorker.register('sw.js')
+                .then(registration => {
+                    console.log('[SW] Service Worker registered with scope:', registration.scope);
+                })
+                .catch(error => {
+                    console.error('[SW] Service Worker registration failed:', error);
+                });
         });
     }
 
@@ -345,24 +408,103 @@
     // --- DATA & UI LOGIC ---
     async function init() {
         checkNotificationStatus();
+        
+        // Show loading state
+        showLoadingState();
 
         try {
-            const response = await fetch('full_schedule.json');
+            // Try to load from network first
+            const response = await fetch('full_schedule.json', {
+                cache: 'no-cache'
+            });
+            
             if (!response.ok) throw new Error("HTTP error " + response.status);
             
-            scheduleData = await response.json();
+            const data = await response.json();
+            scheduleData = data;
             
+            // Cache the data for offline use
+            if ('caches' in window) {
+                const cache = await caches.open('schedule-data-cache');
+                cache.put('full_schedule.json', new Response(JSON.stringify(data)));
+            }
+            
+            hideLoadingState();
             buildTable();
             updateLiveIndicator();
             setInterval(updateLiveIndicator, 1000); 
 
         } catch (error) {
-            console.error("Failed to load:", error);
-            const errorBox = document.getElementById('error-box');
-            errorBox.style.display = "block";
-            errorBox.innerHTML = `Could not load full_schedule.json.<br><br>Make sure you are using a local web server.`;
-            document.getElementById('schedule-table').style.display = "none";
+            console.error("Failed to load from network:", error);
+            
+            // Try to load from cache
+            try {
+                const cachedResponse = await caches.match('full_schedule.json');
+                if (cachedResponse) {
+                    const data = await cachedResponse.json();
+                    scheduleData = data;
+                    console.log('[App] Loaded schedule from cache');
+                    hideLoadingState();
+                    buildTable();
+                    updateLiveIndicator();
+                    setInterval(updateLiveIndicator, 1000);
+                    showOfflineWarning();
+                } else {
+                    throw new Error("No cached data available");
+                }
+            } catch (cacheError) {
+                console.error("Failed to load from cache:", cacheError);
+                showErrorState(error);
+            }
         }
+    }
+
+    function showLoadingState() {
+        const errorBox = document.getElementById('error-box');
+        errorBox.style.display = "block";
+        errorBox.innerHTML = `
+            <div class="loading-spinner"></div>
+            <p>Loading schedule data...</p>
+            <small>This may take a moment on first load.</small>
+        `;
+        errorBox.className = 'loading-message';
+    }
+
+    function hideLoadingState() {
+        const errorBox = document.getElementById('error-box');
+        errorBox.style.display = "none";
+        document.getElementById('schedule-table').style.display = "table";
+    }
+
+    function showOfflineWarning() {
+        const errorBox = document.getElementById('error-box');
+        errorBox.style.display = "block";
+        errorBox.innerHTML = `
+            <div class="offline-indicator">📡</div>
+            <p><strong>Offline Mode</strong></p>
+            <small>Using cached schedule data. Some features may be limited.</small>
+        `;
+        errorBox.className = 'offline-message';
+    }
+
+    function showErrorState(error) {
+        const errorBox = document.getElementById('error-box');
+        errorBox.style.display = "block";
+        errorBox.innerHTML = `
+            <div class="error-indicator">❌</div>
+            <p><strong>Failed to Load Schedule</strong></p>
+            <p>${error.message}</p>
+            <small>
+                <strong>Solutions:</strong><br>
+                1. Make sure you're using a local web server (not file://)<br>
+                2. Check that full_schedule.json exists<br>
+                3. Try refreshing the page<br>
+                4. Check browser console for more details
+            </small>
+            <button onclick="location.reload()" class="retry-btn">🔄 Retry</button>
+        `;
+        errorBox.className = 'error-message';
+        document.getElementById('schedule-table').style.display = "none";
     }
 
     function buildTable() {

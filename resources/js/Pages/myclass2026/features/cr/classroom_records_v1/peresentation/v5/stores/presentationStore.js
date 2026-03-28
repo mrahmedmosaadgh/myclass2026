@@ -1,8 +1,10 @@
 import { defineStore } from 'pinia';
 import { ref, computed, watch } from 'vue';
+import { useOfflineStorage } from '../composables/useOfflineStorage.js';
 
 export const usePresentationStore = defineStore('presentation', () => {
   const saveStatus = ref('saved'); // 'saved' | 'saving'
+  const offlineStorage = useOfflineStorage();
 
   const defaultSlides = [
     {

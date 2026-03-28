@@ -1,8 +1,12 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { useQuestionSession } from '../../../../../remot_control/v1/examples/question_responses/composables/useQuestionSession';
-import { useLiveQuestionStore } from '../stores/liveQuestionStore';
+import { usePresentationStore } from '../stores/presentationStore';
+import { useQuestionSession } from '../../../../../remot_control/v1/examples/question_responses/composables/useQuestionSession.js';
 import QRCodeVue from 'qrcode.vue';
+import QuestionTypeSelector from './LiveQuestion/QuestionTypeSelector.vue';
+import TextQuestion from './LiveQuestion/QuestionTypes/TextQuestion.vue';
+import MultipleChoiceQuestion from './LiveQuestion/QuestionTypes/MultipleChoiceQuestion.vue';
+import RatingQuestion from './LiveQuestion/QuestionTypes/RatingQuestion.vue';
 
 const props = defineProps({
   element: Object,
@@ -10,13 +14,23 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update', 'select']);
-const liveQuestionStore = useLiveQuestionStore();
 
 const isInteractive = ref(false);
 const activeSession = ref(null);
 const sessionCode = ref('');
 const showQR = ref(false);
 const copySuccess = ref(false);
+const joinedStudents = ref([]);
+const joinNotifications = ref([]);
+const showLeaderboard = ref(false);
+
+// Question type system
+const selectedQuestionType = ref('text');
+const questionSettings = ref({
+  timeLimit: null,
+  minScore: 0,
+  maxScore: 100
+});
 
 // Computed property for QR code URL to avoid window.location issues
 const qrCodeUrl = computed(() => {
@@ -26,12 +40,25 @@ const qrCodeUrl = computed(() => {
   return `${baseUrl}/remote-control/question-responses/student?code=${code}`;
 });
 
+// Question type component mapping
+const questionComponent = computed(() => {
+  const components = {
+    'text': TextQuestion,
+    'multiple_choice': MultipleChoiceQuestion,
+    'rating': RatingQuestion
+  }
+  return components[selectedQuestionType.value] || TextQuestion
+});
+
 // Initialize element data if not exists
 if (!props.element.data) {
   emit('update', {
     data: {
       questionTitle: '',
       questionInstructions: '',
+      questionType: 'text',
+      questionSettings: questionSettings.value,
+      questionData: {},
       responses: [],
       status: 'idle' // idle, active, graded
     }
@@ -40,6 +67,35 @@ if (!props.element.data) {
 
 const isGraded = computed(() => props.element.data?.status === 'graded');
 const hasResponses = computed(() => (props.element.data?.responses || []).length > 0);
+
+// Get all live questions from presentation and sort by best score
+const allLiveQuestions = computed(() => {
+  // This would need to be connected to presentation store
+  // For now, use current element
+  const currentQuestion = {
+    id: props.element.id,
+    title: props.element.data?.questionTitle || 'Untitled Question',
+    responses: props.element.data?.responses || [],
+    status: props.element.data?.status || 'idle',
+    bestScore: Math.max(...(props.element.data?.responses?.map(r => r.score || 0) || [0]))
+  };
+  return [currentQuestion].sort((a, b) => b.bestScore - a.bestScore);
+});
+
+// Get top responses across all questions
+const topResponses = computed(() => {
+  const allResponses = [];
+  allLiveQuestions.value.forEach(question => {
+    question.responses.forEach(response => {
+      allResponses.push({
+        ...response,
+        questionTitle: question.title,
+        questionId: question.id
+      });
+    });
+  });
+  return allResponses.sort((a, b) => (b.score || 0) - (a.score || 0)).slice(0, 10);
+});
 
 // Generate session code
 function generateCode() {
@@ -70,6 +126,58 @@ function toggleQR() {
   showQR.value = !showQR.value;
 }
 
+// Toggle leaderboard display
+function toggleLeaderboard() {
+  showLeaderboard.value = !showLeaderboard.value;
+}
+
+// Get score color based on value
+function getScoreColor(score) {
+  if (score >= 90) return '#10b981'; // green
+  if (score >= 80) return '#3b82f6'; // blue
+  if (score >= 70) return '#f59e0b'; // amber
+  if (score >= 60) return '#f97316'; // orange
+  return '#ef4444'; // red
+}
+
+// Get rank medal color
+function getRankMedal(rank) {
+  if (rank === 1) return '🥇';
+  if (rank === 2) return '🥈';
+  if (rank === 3) return '🥉';
+  return `#${rank}`;
+}
+
+// Question type handlers
+function onQuestionTypeChange(type) {
+  selectedQuestionType.value = type
+  emit('update', {
+    data: {
+      ...props.element.data,
+      questionType: type
+    }
+  })
+}
+
+function onQuestionSettingsChange(settings) {
+  questionSettings.value = settings
+  emit('update', {
+    data: {
+      ...props.element.data,
+      questionSettings: settings
+    }
+  })
+}
+
+function onQuestionDataChange(data) {
+  emit('update', {
+    data: {
+      ...props.element.data,
+      questionData: data
+    }
+  })
+}
+
 // Start live question session
 function startSession() {
   if (!props.element.data?.questionTitle || props.element.data.questionTitle === 'Enter your question...') {
@@ -88,8 +196,12 @@ function startSession() {
     id: props.element.id,
     title: props.element.data.questionTitle,
     instructions: props.element.data.questionInstructions || '',
-    minLength: 1,
-    maxLength: 1000
+    type: props.element.data.questionType || 'text',
+    timeLimit: props.element.data.questionSettings?.timeLimit,
+    minScore: props.element.data.questionSettings?.minScore,
+    maxScore: props.element.data.questionSettings?.maxScore,
+    questionData: props.element.data.questionData || {},
+    questionType: 'live_question' // Additional identifier for live questions
   };
 
   activeSession.value.publishQuestion(questionData);
@@ -132,9 +244,17 @@ function lockSession() {
 
 // Restore session on mount if it was active
 onMounted(() => {
-  if (props.element.data?.status === 'active' && props.element.data?.sessionCode) {
+  // Restore question type and settings
+  if (props.element.data?.questionType) {
+    selectedQuestionType.value = props.element.data.questionType;
+  }
+  if (props.element.data?.questionSettings) {
+    questionSettings.value = props.element.data.questionSettings;
+  }
+  
+  if (props.element.data?.sessionCode) {
     sessionCode.value = props.element.data.sessionCode;
-    isInteractive.value = props.element.data.isInteractive || false;
+    isInteractive.value = true;
     
     // Restore remote control session
     if (isInteractive.value) {
@@ -145,8 +265,12 @@ onMounted(() => {
         id: props.element.id,
         title: props.element.data.questionTitle,
         instructions: props.element.data.questionInstructions || '',
-        minLength: 1,
-        maxLength: 1000
+        type: props.element.data.questionType || 'text',
+        timeLimit: props.element.data.questionSettings?.timeLimit,
+        minScore: props.element.data.questionSettings?.minScore,
+        maxScore: props.element.data.questionSettings?.maxScore,
+        questionData: props.element.data.questionData || {},
+        questionType: 'live_question' // Additional identifier for live questions
       };
       
       activeSession.value.publishQuestion(questionData);
@@ -166,12 +290,41 @@ onUnmounted(() => {
   // Session will be restored on remount
 });
 
+// Add student join notification
+function addJoinNotification(student) {
+  const notification = {
+    id: Date.now(),
+    studentName: student.studentName || 'Anonymous Student',
+    timestamp: new Date(),
+    message: `${student.studentName || 'Anonymous Student'} joined the session`
+  };
+  
+  joinNotifications.value.unshift(notification);
+  
+  // Keep only last 10 notifications
+  if (joinNotifications.value.length > 10) {
+    joinNotifications.value = joinNotifications.value.slice(0, 10);
+  }
+  
+  // Auto-remove notification after 5 seconds
+  setTimeout(() => {
+    const index = joinNotifications.value.findIndex(n => n.id === notification.id);
+    if (index > -1) {
+      joinNotifications.value.splice(index, 1);
+    }
+  }, 5000);
+}
+
 // Add student response
 function addResponse(response) {
   const responses = props.element.data?.responses || [];
   const existingIndex = responses.findIndex(r => r.studentId === response.studentId);
   
+  // Check if this is a new student joining
   if (existingIndex === -1) {
+    // Add join notification
+    addJoinNotification(response);
+    
     responses.push({
       studentId: response.studentId,
       studentName: response.studentName,
@@ -267,17 +420,18 @@ function replayQuestion() {
           </div>
         </div>
       </div>
-      
-      <div class="edit-form" @click.stop>
+
+      <!-- Question Type Selector -->
+      <QuestionTypeSelector
+        :initial-type="element.data?.questionType"
+        :initial-settings="element.data?.questionSettings"
+        @type-change="onQuestionTypeChange"
+        @settings-change="onQuestionSettingsChange"
+      />
+
+      <div class="edit-form">
         <div class="form-group">
-          <label class="form-label">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-              <line x1="12" y1="17" x2="12.01" y2="17"></line>
-            </svg>
-            Question
-          </label>
+          <label>Question Title</label>
           <input 
             :value="element.data?.questionTitle || ''"
             @input="emit('update', { data: { ...element.data, questionTitle: $event.target.value } })"
@@ -288,19 +442,9 @@ function replayQuestion() {
             @mousedown.stop
           />
         </div>
-        
+
         <div class="form-group">
-          <label class="form-label">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="8" y1="6" x2="21" y2="6"></line>
-              <line x1="8" y1="12" x2="21" y2="12"></line>
-              <line x1="8" y1="18" x2="21" y2="18"></line>
-              <line x1="3" y1="6" x2="3.01" y2="6"></line>
-              <line x1="3" y1="12" x2="3.01" y2="12"></line>
-              <line x1="3" y1="18" x2="3.01" y2="18"></line>
-            </svg>
-            Instructions (optional)
-          </label>
+          <label>Instructions (Optional)</label>
           <textarea 
             :value="element.data?.questionInstructions || ''"
             @input="emit('update', { data: { ...element.data, questionInstructions: $event.target.value } })"
@@ -310,6 +454,23 @@ function replayQuestion() {
             @click.stop
             @mousedown.stop
           ></textarea>
+        </div>
+
+        <!-- Dynamic Question Type Component -->
+        <div class="question-type-config">
+          <h3>Question Configuration</h3>
+          <component 
+            :is="questionComponent"
+            :title="element.data?.questionTitle || ''"
+            :instructions="element.data?.questionInstructions || ''"
+            :time-limit="questionSettings.timeLimit"
+            :min-score="questionSettings.minScore"
+            :max-score="questionSettings.maxScore"
+            :is-edit-mode="true"
+            :show-answer-key="false"
+            :initial-data="element.data?.questionData"
+            @data-change="onQuestionDataChange"
+          />
         </div>
 
         <div v-if="element.data?.sessionCode" class="session-info-edit">
@@ -356,6 +517,14 @@ function replayQuestion() {
           ↻ Reset
         </button>
 
+        <button 
+          v-if="hasResponses && isGraded"
+          @click="toggleLeaderboard"
+          class="ctrl-btn leaderboard"
+        >
+          🏆 Leaderboard
+        </button>
+
         <div v-if="isInteractive || (element.data?.status === 'active' && element.data?.sessionCode)" class="session-code-container">
           <div class="session-code">
             Code: <strong>{{ sessionCode || element.data?.sessionCode }}</strong>
@@ -399,6 +568,99 @@ function replayQuestion() {
             <p class="qr-code-text">Code: <strong>{{ sessionCode || element.data?.sessionCode }}</strong></p>
             <button @click="showQR = false" class="close-qr">Close</button>
           </div>
+        </div>
+
+        <!-- Live Question Leaderboard Modal -->
+        <div v-if="showLeaderboard" class="leaderboard-modal" @click="showLeaderboard = false">
+          <div class="leaderboard-content" @click.stop>
+            <div class="leaderboard-header">
+              <h3>🏆 Live Question Leaderboard</h3>
+              <button @click="showLeaderboard = false" class="close-leaderboard">✕</button>
+            </div>
+
+            <!-- Questions Overview -->
+            <div class="questions-overview">
+              <h4>📚 Questions Performance</h4>
+              <div class="question-cards">
+                <div 
+                  v-for="(question, index) in allLiveQuestions" 
+                  :key="question.id"
+                  class="question-card"
+                  :class="{ 'current': question.id === props.element.id }"
+                >
+                  <div class="question-card-header">
+                    <span class="question-number">{{ index + 1 }}</span>
+                    <span class="question-title">{{ question.title }}</span>
+                    <span class="best-score" :style="{ color: getScoreColor(question.bestScore) }">
+                      {{ question.bestScore }}%
+                    </span>
+                  </div>
+                  <div class="question-stats">
+                    <span class="responses-count">{{ question.responses.length }} responses</span>
+                    <span class="status-badge" :class="question.status">{{ question.status }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Top Students -->
+            <div class="top-students">
+              <h4>🎯 Top Performers</h4>
+              <div class="students-list">
+                <div 
+                  v-for="(response, index) in topResponses" 
+                  :key="`${response.studentId}-${response.questionId}`"
+                  class="student-row"
+                  :class="{ 'top-3': index < 3 }"
+                >
+                  <div class="rank-display">
+                    {{ getRankMedal(index + 1) }}
+                  </div>
+                  <div class="student-info">
+                    <span class="student-name">{{ response.studentName }}</span>
+                    <span class="question-title">{{ response.questionTitle }}</span>
+                  </div>
+                  <div class="score-display" :style="{ color: getScoreColor(response.score) }">
+                    {{ response.score }}%
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Stats Summary -->
+            <div class="stats-summary">
+              <div class="stat-item">
+                <span class="stat-value">{{ allLiveQuestions.length }}</span>
+                <span class="stat-label">Questions</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-value">{{ topResponses.length }}</span>
+                <span class="stat-label">Students</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-value">{{ Math.round(topResponses.reduce((sum, r) => sum + (r.score || 0), 0) / topResponses.length) }}%</span>
+                <span class="stat-label">Avg Score</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Join Notifications -->
+      <div v-if="joinNotifications.length > 0" class="join-notifications">
+        <div 
+          v-for="notification in joinNotifications" 
+          :key="notification.id"
+          class="join-notification"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="m22 21-3-3 3-3"></path>
+            <path d="m19 18 3 3"></path>
+          </svg>
+          <span class="notification-text">{{ notification.message }}</span>
+          <span class="notification-time">just now</span>
         </div>
       </div>
 
@@ -691,6 +953,12 @@ function replayQuestion() {
   color: white;
 }
 
+.ctrl-btn.leaderboard {
+  background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+  color: white;
+  font-weight: 600;
+}
+
 .session-code-container {
   margin-left: auto;
   display: flex;
@@ -861,6 +1129,349 @@ function replayQuestion() {
   margin: 0;
   line-height: 1.6;
   text-align: left;
+}
+
+.join-notifications {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.join-notification {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #d1fae5 0%, #ecfdf5 100%);
+  border: 1px solid #10b981;
+  border-radius: 8px;
+  animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.notification-text {
+  flex: 1;
+  font-size: 14px;
+  color: #065f46;
+  font-weight: 500;
+}
+
+.notification-time {
+  font-size: 12px;
+  color: #10b981;
+  font-weight: 400;
+}
+
+/* Leaderboard Modal */
+.leaderboard-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10001;
+  backdrop-filter: blur(4px);
+}
+
+.leaderboard-content {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border-radius: 16px;
+  max-width: 900px;
+  width: 90%;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  border: 2px solid #475569;
+}
+
+.leaderboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 32px;
+  background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+  border-radius: 16px 16px 0 0;
+  color: white;
+}
+
+.leaderboard-header h3 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.close-leaderboard {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.close-leaderboard:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+/* Questions Overview */
+.questions-overview {
+  padding: 24px 32px;
+  border-bottom: 1px solid #475569;
+}
+
+.questions-overview h4 {
+  margin: 0 0 16px;
+  color: #f1f5f9;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.question-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.question-card {
+  background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+  border-radius: 12px;
+  padding: 16px;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.question-card:hover {
+  border-color: #f59e0b;
+  transform: translateY(-2px);
+}
+
+.question-card.current {
+  border-color: #10b981;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+}
+
+.question-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.question-number {
+  background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+  color: white;
+  font-weight: 700;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.question-title {
+  flex: 1;
+  color: #f1f5f9;
+  font-weight: 500;
+}
+
+.best-score {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.question-stats {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.responses-count {
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge.active {
+  background: #10b981;
+  color: white;
+}
+
+.status-badge.graded {
+  background: #3b82f6;
+  color: white;
+}
+
+.status-badge.idle {
+  background: #6b7280;
+  color: white;
+}
+
+/* Top Students */
+.top-students {
+  padding: 24px 32px;
+  border-bottom: 1px solid #475569;
+}
+
+.top-students h4 {
+  margin: 0 0 16px;
+  color: #f1f5f9;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.students-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.student-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border-radius: 8px;
+  border: 1px solid #475569;
+  transition: all 0.2s ease;
+}
+
+.student-row:hover {
+  border-color: #f59e0b;
+  transform: translateX(4px);
+}
+
+.student-row.top-3 {
+  background: linear-gradient(135deg, #f59e0b20 0%, #f9731620 100%);
+  border-color: #f59e0b;
+}
+
+.rank-display {
+  font-size: 20px;
+  font-weight: 700;
+  min-width: 40px;
+  text-align: center;
+}
+
+.student-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.student-name {
+  color: #f1f5f9;
+  font-weight: 600;
+}
+
+.question-title {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.score-display {
+  font-size: 18px;
+  font-weight: 700;
+  min-width: 50px;
+  text-align: right;
+}
+
+/* Stats Summary */
+.stats-summary {
+  padding: 24px 32px;
+  display: flex;
+  justify-content: space-around;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  border-radius: 0 0 16px 16px;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-value {
+  display: block;
+  font-size: 28px;
+  font-weight: 700;
+  color: #f59e0b;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  color: #94a3b8;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.question-type-config {
+  margin-top: 24px;
+  padding: 20px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.question-type-config h3 {
+  margin: 0 0 16px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.session-info-edit {
+  margin-top: 16px;
+  padding: 12px;
+  background: #f0f9ff;
+  border-radius: 6px;
+  border: 1px solid #bae6fd;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.info-label {
+  font-weight: 500;
+  color: #0c4a6e;
+}
+
+.info-value {
+  font-family: monospace;
+  font-weight: 600;
+  color: #075985;
 }
 
 .responses-section {

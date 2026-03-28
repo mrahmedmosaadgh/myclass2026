@@ -76,13 +76,13 @@ while true; do
   echo "║  6) Logs: Clear production laravel.log   ║"
   echo "║  ──────────────────────────────────────  ║"
   echo "║  7) Server: Cache clear + route verify   ║"
-  echo "║  8) Server: Delete remote build files    ║"
-  echo "║  ──────────────────────────────────────  ║"
-  echo "║  9) Exit                                 ║"
+  echo "║  8) Build + Deploy (build + sync)        ║"
+  echo "║  9) Server: Delete remote build files    ║"
+  echo "║  10) Exit                                ║"
   echo "╚══════════════════════════════════════════╝"
   echo ""
 
-  read -p "Choose an option (1-9): " CHOICE
+  read -p "Choose an option (1-10): " CHOICE
   echo ""
 
   case "$CHOICE" in
@@ -114,6 +114,24 @@ while true; do
       acquire_lock || continue
       run_script ./update_frontend.sh
       release_lock
+      ;;
+
+8)
+      acquire_lock || continue
+      run_script ./update_build_and_deploy.sh
+      release_lock
+      ;;
+
+    9)
+      test_ssh || continue
+      echo "🗑️  Deleting remote build files..."
+      ssh -p "$SSH_PORT" "$SSH_CONN" "cd $REMOTE_DIR/public/build && rm -rf assets/* manifest.json" || echo "⚠️  Delete failed or no files found."
+      echo "✅ Remote build files deleted."
+      ;;
+
+    10)
+      echo "Bye 👋"
+      exit 0
       ;;
 
     4)
@@ -170,13 +188,9 @@ while true; do
       fi
       ;;
 
-    9)
-      echo "Bye 👋"
-      exit 0
-      ;;
-
+    
     *)
-      echo "❌ Invalid choice. Please enter 1-9."
+      echo "❌ Invalid choice. Please enter 1-10."
       ;;
   esac
 
