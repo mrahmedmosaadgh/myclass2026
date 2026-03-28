@@ -170,9 +170,11 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useLiveQuestionStore } from '../stores/liveQuestionStore'
+import { useQuestionSession } from '../../../../../remot_control/v1/examples/question_responses/composables/useQuestionSession'
 import LiveQuestionResults from './LiveQuestionResults.vue'
 
 const store = useLiveQuestionStore()
+let activeSession = null
 
 // Form data
 const questionTitle = ref('')
@@ -228,8 +230,8 @@ async function startSession() {
   isStarting.value = true
 
   try {
-    // Create question using the composable
-    await store.setQuestion({
+    // Set question data in store
+    store.setQuestion({
       title: questionTitle.value.trim(),
       instructions: questionInstructions.value.trim(),
       timeLimit: timeLimit.value,
@@ -239,9 +241,42 @@ async function startSession() {
 
     store.setSessionCode(generatedCode.value)
 
-    // This would integrate with the remote control system
-    // For now, we'll just mark as active
+    // Initialize the remote control question session
+    activeSession = useQuestionSession(generatedCode.value, 'teacher')
+
+    // Publish the question to Firebase
+    const published = activeSession.publishQuestion(store.questionData)
+    
+    if (!published) {
+      throw new Error('Failed to publish question')
+    }
+
+    // Mark as active in store
     store.startSession()
+
+    // Listen for responses from students via the channel
+    activeSession.channel.onCommand((command) => {
+      if (command.type === 'submit_answer') {
+        console.log('Received answer:', command.payload)
+        store.addResponse({
+          studentId: command.payload.studentId,
+          studentName: command.payload.studentName,
+          isAuthenticated: command.payload.isAuthenticated || false,
+          answer: command.payload.answer,
+          timestamp: command.payload.timestamp,
+          submittedAt: new Date().toISOString()
+        })
+      }
+    })
+
+    // Update connection status based on channel connection
+    const checkConnection = () => {
+      store.setConnectionStatus(activeSession.isConnected.value)
+    }
+    checkConnection()
+    setInterval(checkConnection, 2000)
+
+    console.log('Session started successfully:', generatedCode.value)
 
   } catch (error) {
     console.error('Failed to start session:', error)
@@ -253,6 +288,12 @@ async function startSession() {
 
 function closeSession() {
   if (confirm('Are you sure you want to close this session? All responses will be kept but no new responses can be submitted.')) {
+    // Close the remote control session
+    if (activeSession) {
+      activeSession.closeSession()
+      activeSession = null
+    }
+    
     store.endSession()
     resetForm()
   }
