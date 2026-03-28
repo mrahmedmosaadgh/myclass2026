@@ -191,22 +191,24 @@ function replayQuestion() {
         <div class="form-group">
           <label>Question:</label>
           <input 
-            v-model="element.data.questionTitle"
+            :value="element.data?.questionTitle || ''"
             @input="emit('update', { data: { ...element.data, questionTitle: $event.target.value } })"
             type="text"
             class="question-input"
             placeholder="What is your question?"
+            @click.stop
           />
         </div>
         
         <div class="form-group">
           <label>Instructions (optional):</label>
           <textarea 
-            v-model="element.data.questionInstructions"
+            :value="element.data?.questionInstructions || ''"
             @input="emit('update', { data: { ...element.data, questionInstructions: $event.target.value } })"
             class="instructions-input"
             rows="2"
             placeholder="Additional instructions for students..."
+            @click.stop
           ></textarea>
         </div>
 
