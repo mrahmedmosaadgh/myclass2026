@@ -6,6 +6,10 @@
       ".read": true,
       ".write": true
     },
+    "question_sessions": {
+      ".read": true,
+      ".write": true
+    },
     "firebase_test": {
       ".read": true,
       ".write": true
@@ -68,11 +72,6 @@
       "$userId": {
         ".read": "auth != null && auth.uid == $userId",
         ".write": true
-      }
-    },
-    ".info": {
-      "connected": {
-        ".read": true
       }
     }
   }
