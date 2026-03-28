@@ -53,6 +53,161 @@ https://qudratpro.com/remote-control/examples
 2. **Students**: Join with code, answer questions in real-time
 3. **Teacher**: View live responses, export as JSON
 
+### **4. Test Session Persistence**
+
+1. **Teacher**: Start session → Refresh page → Session auto-continues ✅
+2. **Student**: Join session → Answer question → Refresh page → Choose "Rejoin" ✅
+3. **Both**: Session data persists across browser restarts (24-hour limit)
+
+---
+
+## 🔄 **Session Persistence Experience**
+
+### **Real-World Implementation**
+
+Both teacher and student sessions now persist across page reloads, providing a seamless experience even when browsers crash or pages are accidentally refreshed.
+
+### **🎓 Teacher Session Persistence**
+
+**What Happens:**
+- Teacher starts session with 6-digit code
+- Publishes questions and collects responses
+- Page refreshes accidentally
+- ✅ Session automatically restores with all data
+
+**Implementation:**
+```javascript
+// Auto-save every 5 seconds
+const saveSessionState = () => {
+  const sessionState = {
+    sessionCode: sessionCode.value,
+    currentQuestion: session?.currentQuestion.value,
+    responses: session?.responses.value || [],
+    savedAt: new Date().toISOString()
+  }
+  localStorage.setItem('question_teacher_session', JSON.stringify(sessionState))
+}
+
+// Auto-restore on page load
+const loadSessionState = () => {
+  const saved = localStorage.getItem('question_teacher_session')
+  if (saved) {
+    const sessionState = JSON.parse(saved)
+    // Check if < 24 hours old
+    if (hoursDiff < 24) {
+      sessionCode.value = sessionState.sessionCode
+      reconnectToSession(sessionState)
+    }
+  }
+}
+```
+
+**Visual Indicators:**
+- "Restoring Previous Session..." loading message
+- Purple "Restored" badge when recovered
+- "Clear Saved Session" button for manual control
+
+### **👨‍🎓 Student Session Persistence**
+
+**What Happens:**
+- Student joins session with name
+- Answers questions in real-time
+- Page refreshes or browser closes
+- ✅ "Previous Session Found" with choice to rejoin or clear
+
+**Implementation:**
+```javascript
+// Student session storage
+const saveStudentSession = () => {
+  const sessionData = {
+    sessionCode: sessionCode.value,
+    studentName: studentInfo.value.name,
+    answerSubmitted: answerSubmitted.value,
+    savedAt: new Date().toISOString()
+  }
+  localStorage.setItem('question_student_session', JSON.stringify(sessionData))
+}
+
+// Previous session detection
+const loadStudentSession = () => {
+  const saved = localStorage.getItem('question_student_session')
+  if (saved) {
+    const sessionData = JSON.parse(saved)
+    if (hoursDiff < 24) {
+      hasPreviousSession.value = true
+      previousSessionCode.value = sessionData.sessionCode
+      previousStudentName.value = sessionData.studentName
+    }
+  }
+}
+```
+
+**Student Choice UI:**
+```vue
+<!-- Previous Session Found -->
+<div class="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+  <div class="flex items-center justify-between">
+    <div>
+      <p class="text-purple-800 font-medium">Previous Session Found</p>
+      <p class="text-purple-700 text-sm">
+        Session: {{ previousSessionCode }} | Name: {{ previousStudentName }}
+      </p>
+    </div>
+    <div class="flex space-x-2">
+      <button @click="rejoinPreviousSession" class="bg-purple-600 text-white rounded-lg">
+        Rejoin
+      </button>
+      <button @click="clearPreviousSession" class="bg-gray-600 text-white rounded-lg">
+        Clear
+      </button>
+    </div>
+  </div>
+</div>
+```
+
+### **🔒 Privacy & Security Features**
+
+**24-Hour Expiration:**
+```javascript
+// Check if session is recent (within 24 hours)
+const savedTime = new Date(sessionState.savedAt)
+const now = new Date()
+const hoursDiff = (now - savedTime) / (1000 * 60 * 60)
+
+if (hoursDiff < 24) {
+  // Restore session
+} else {
+  // Auto-clear for privacy
+  localStorage.removeItem('question_teacher_session')
+}
+```
+
+**User Control:**
+- Teachers: "Clear Saved Session" button
+- Students: "Rejoin" or "Clear" options
+- Both: Manual cleanup anytime
+- Automatic cleanup on session end
+
+### **📊 Benefits Achieved**
+
+**Before Implementation:**
+- ❌ Page refresh = lost session
+- ❌ Browser crash = data loss
+- ❌ Manual rejoin required
+- ❌ Student confusion
+
+**After Implementation:**
+- ✅ Seamless session continuation
+- ✅ Automatic data recovery
+- ✅ User choice and control
+- ✅ Professional user experience
+
+**Real-World Impact:**
+- **Teachers**: Can work without fear of losing session
+- **Students**: Don't lose progress on technical issues
+- **System**: Robust against browser behavior
+- **Experience**: Production-ready reliability
+
 ---
 
 ## 🏗️ **Architecture Overview**
@@ -398,7 +553,74 @@ if (!internal.rateLimiter?.check()) {
 }
 ```
 
-### **Issue 4: Deployment Submodule Conflicts**
+### **Issue 5: Session Not Persisting on Reload**
+
+**Symptoms:**
+- Page refresh loses session data
+- Students must rejoin manually
+- Teacher session disappears on reload
+- No "Previous Session Found" message
+
+**Root Cause:** localStorage not being used for session persistence
+
+**Solution:**
+```javascript
+// ✅ Implement session persistence
+const saveSessionState = () => {
+  const sessionState = {
+    sessionCode: sessionCode.value,
+    currentQuestion: session?.currentQuestion.value,
+    responses: session?.responses.value || [],
+    savedAt: new Date().toISOString()
+  }
+  localStorage.setItem('question_teacher_session', JSON.stringify(sessionState))
+}
+
+// ✅ Load on page mount
+onMounted(() => {
+  const saved = localStorage.getItem('question_teacher_session')
+  if (saved) {
+    const sessionState = JSON.parse(saved)
+    // Check age and restore if < 24 hours
+    if (hoursDiff < 24) {
+      reconnectToSession(sessionState)
+    }
+  }
+})
+```
+
+### **Issue 6: Session Data Too Old**
+
+**Symptoms:**
+- Previous session found but fails to restore
+- "Session expired" errors
+- Old session data causing conflicts
+
+**Root Cause:** Sessions older than 24 hours should be cleared
+
+**Solution:**
+```javascript
+// ✅ Check session age before restoring
+const loadSessionState = () => {
+  const saved = localStorage.getItem('question_teacher_session')
+  if (saved) {
+    const sessionState = JSON.parse(saved)
+    const savedTime = new Date(sessionState.savedAt)
+    const now = new Date()
+    const hoursDiff = (now - savedTime) / (1000 * 60 * 60)
+    
+    if (hoursDiff < 24) {
+      // Session is recent, restore it
+      reconnectToSession(sessionState)
+    } else {
+      // Session too old, clear it
+      localStorage.removeItem('question_teacher_session')
+    }
+  }
+}
+```
+
+### **Issue 7: Multiple Tabs Conflicting**
 
 **Symptoms:**
 - Deployment says "ALL DONE" but assets don't update

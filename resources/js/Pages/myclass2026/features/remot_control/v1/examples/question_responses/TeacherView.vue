@@ -11,6 +11,20 @@
       <div v-if="!sessionCode" class="bg-white rounded-lg shadow-md p-6 mb-8">
         <h2 class="text-xl font-semibold text-gray-800 mb-4">Create New Session</h2>
         
+        <!-- Session Restoration Notice -->
+        <div v-if="isRestoring" class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div class="flex items-center">
+            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <div>
+              <p class="text-blue-800 font-medium">Restoring Previous Session...</p>
+              <p class="text-blue-700 text-sm">Reconnecting to your active session</p>
+            </div>
+          </div>
+        </div>
+        
         <div class="space-y-4">
           <!-- Session Code Display -->
           <div>
@@ -41,7 +55,7 @@
           <button
             @click="startSession"
             :disabled="!generatedCode || isStarting"
-            class="w-full py-3 px-4 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            class="w-full py-3 px-4 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors mb-2"
           >
             <span v-if="isStarting" class="flex items-center justify-center">
               <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
@@ -53,6 +67,14 @@
             <span v-else>
               Start Session
             </span>
+          </button>
+
+          <!-- Clear Saved Session Button -->
+          <button
+            @click="clearSavedSession"
+            class="w-full py-2 px-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm"
+          >
+            Clear Saved Session
           </button>
         </div>
       </div>
@@ -76,6 +98,13 @@
                   </span>
                 </div>
                 <span class="text-gray-500">{{ responseCount }} responses</span>
+                <!-- Restored Session Indicator -->
+                <span v-if="wasRestored" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                  <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                  </svg>
+                  Restored
+                </span>
               </div>
             </div>
             
@@ -318,6 +347,8 @@ export default {
     const generatedCode = ref('')
     const isStarting = ref(false)
     const isPublishing = ref(false)
+    const isRestoring = ref(false)
+    const wasRestored = ref(false)
 
     // Question form state
     const questionForm = ref({
@@ -377,6 +408,7 @@ export default {
       if (!generatedCode.value) return
       
       isStarting.value = true
+      wasRestored.value = false // Reset for new session
       
       try {
         sessionCode.value = generatedCode.value
@@ -409,6 +441,10 @@ export default {
         generatedCode.value = ''
         session = null
         resetQuestionForm()
+        
+        // Clear persisted session state
+        clearSessionState()
+        stopAutoSave()
       }
     }
 
@@ -513,9 +549,147 @@ export default {
       }
     }
 
+    // Session persistence methods
+    const saveSessionState = () => {
+      if (sessionCode.value) {
+        const sessionState = {
+          sessionCode: sessionCode.value,
+          generatedCode: generatedCode.value,
+          currentQuestion: session?.currentQuestion.value,
+          responses: session?.responses.value || [],
+          sessionStatus: session?.sessionStatus.value || 'active',
+          savedAt: new Date().toISOString()
+        }
+        localStorage.setItem('question_teacher_session', JSON.stringify(sessionState))
+      }
+    }
+
+    const loadSessionState = () => {
+      const saved = localStorage.getItem('question_teacher_session')
+      if (saved) {
+        try {
+          const sessionState = JSON.parse(saved)
+          
+          // Check if session is recent (within 24 hours)
+          const savedTime = new Date(sessionState.savedAt)
+          const now = new Date()
+          const hoursDiff = (now - savedTime) / (1000 * 60 * 60)
+          
+          if (hoursDiff < 24) {
+            sessionCode.value = sessionState.sessionCode
+            generatedCode.value = sessionState.generatedCode
+            
+            // Auto-reconnect to session
+            reconnectToSession(sessionState)
+            
+            return true
+          } else {
+            // Session too old, clear it
+            localStorage.removeItem('question_teacher_session')
+          }
+        } catch (error) {
+          console.error('Failed to load session state:', error)
+          localStorage.removeItem('question_teacher_session')
+        }
+      }
+      return false
+    }
+
+    const reconnectToSession = async (sessionState) => {
+      isStarting.value = true
+      isRestoring.value = true
+      wasRestored.value = true
+      
+      try {
+        session = useQuestionSession(sessionCode.value, 'teacher')
+        
+        // Wait for connection
+        await new Promise(resolve => {
+          const checkConnection = () => {
+            if (session.isConnected.value) {
+              resolve()
+            } else {
+              setTimeout(checkConnection, 100)
+            }
+          }
+          checkConnection()
+        })
+        
+        // Restore session data if available
+        if (sessionState.currentQuestion) {
+          // The session will automatically sync the current question from Firebase
+          // We just need to wait a bit for it to load
+          setTimeout(() => {
+            if (!session.currentQuestion.value && sessionState.currentQuestion) {
+              // If no question in Firebase, restore the saved one
+              session.publishQuestion(sessionState.currentQuestion)
+            }
+          }, 1000)
+        }
+        
+      } catch (error) {
+        console.error('Failed to reconnect to session:', error)
+        // Clear invalid session
+        localStorage.removeItem('question_teacher_session')
+        sessionCode.value = ''
+        generatedCode.value = ''
+      } finally {
+        isStarting.value = false
+        isRestoring.value = false
+      }
+    }
+
+    const clearSessionState = () => {
+      localStorage.removeItem('question_teacher_session')
+    }
+
+    const clearSavedSession = () => {
+      if (confirm('Are you sure you want to clear the saved session? This will remove any saved session data.')) {
+        clearSessionState()
+        sessionCode.value = ''
+        generatedCode.value = ''
+        session = null
+        stopAutoSave()
+        generateSessionCode()
+      }
+    }
+
+    // Auto-save session state periodically
+    let saveInterval = null
+    const startAutoSave = () => {
+      if (saveInterval) clearInterval(saveInterval)
+      saveInterval = setInterval(saveSessionState, 5000) // Save every 5 seconds
+    }
+
+    const stopAutoSave = () => {
+      if (saveInterval) {
+        clearInterval(saveInterval)
+        saveInterval = null
+      }
+    }
+
+    // Watch for session changes and save
+    watch([sessionCode, () => session?.currentQuestion.value, () => session?.responses.value], () => {
+      saveSessionState()
+    }, { deep: true })
+
     // Initialize
     onMounted(() => {
-      generateSessionCode()
+      // Try to load existing session first
+      const hasExistingSession = loadSessionState()
+      
+      if (!hasExistingSession) {
+        generateSessionCode()
+      }
+      
+      // Start auto-save
+      startAutoSave()
+    })
+
+    // Cleanup on unmount
+    onUnmounted(() => {
+      stopAutoSave()
+      saveSessionState() // Final save
     })
 
     return {
@@ -524,6 +698,8 @@ export default {
       generatedCode,
       isStarting,
       isPublishing,
+      isRestoring,
+      wasRestored,
       
       // Question form
       questionForm,
@@ -540,6 +716,7 @@ export default {
       startSession,
       endSession,
       copySessionCode,
+      clearSavedSession,
       addOption,
       removeOption,
       publishQuestion,

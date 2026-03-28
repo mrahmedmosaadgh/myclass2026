@@ -11,6 +11,52 @@
       <div v-if="!sessionCode" class="bg-white rounded-lg shadow-md p-6 mb-8">
         <h2 class="text-xl font-semibold text-gray-800 mb-4">Join Session</h2>
         
+        <!-- Session Restoration Notice -->
+        <div v-if="isRestoring" class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div class="flex items-center">
+            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <div>
+              <p class="text-blue-800 font-medium">Reconnecting to Session...</p>
+              <p class="text-blue-700 text-sm">Restoring your session data</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Previous Session Found -->
+        <div v-if="hasPreviousSession && !isRestoring" class="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-purple-800 font-medium">Previous Session Found</p>
+              <p class="text-purple-700 text-sm">Session: {{ previousSessionCode }} | Name: {{ previousStudentName }}</p>
+            </div>
+            <div class="flex space-x-2">
+              <button
+                @click="rejoinPreviousSession"
+                :disabled="isRejoining"
+                class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-sm"
+              >
+                <span v-if="isRejoining" class="flex items-center">
+                  <svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Rejoining...
+                </span>
+                <span v-else>Rejoin</span>
+              </button>
+              <button
+                @click="clearPreviousSession"
+                class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+        </div>
+        
         <div class="space-y-4">
           <!-- Session Code Input -->
           <div>
@@ -82,6 +128,13 @@
                   </span>
                 </div>
                 <span class="text-gray-500">{{ studentInfo?.name }}</span>
+                <!-- Restored Session Indicator -->
+                <span v-if="wasRestored" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                  <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                  </svg>
+                  Restored
+                </span>
               </div>
             </div>
             
@@ -195,7 +248,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import { useQuestionSession } from './composables/useQuestionSession.js'
 import AnswerInput from './components/AnswerInput.vue'
@@ -215,6 +268,12 @@ export default {
     const studentName = ref('')
     const isJoining = ref(false)
     const answerSubmitted = ref(false)
+    const isRestoring = ref(false)
+    const isRejoining = ref(false)
+    const wasRestored = ref(false)
+    const hasPreviousSession = ref(false)
+    const previousSessionCode = ref('')
+    const previousStudentName = ref('')
     
     // Session instance
     let session = null
@@ -263,6 +322,8 @@ export default {
 
     const leaveSession = () => {
       if (confirm('Are you sure you want to leave this session?')) {
+        clearStudentSession()
+        stopAutoSave()
         resetSession()
       }
     }
@@ -272,6 +333,8 @@ export default {
       inputCode.value = ''
       studentName.value = ''
       answerSubmitted.value = false
+      wasRestored.value = false
+      hasPreviousSession.value = false
       session = null
     }
 
@@ -304,8 +367,118 @@ export default {
       return labels[type] || 'Unknown Type'
     }
 
+    // Session persistence methods
+    const saveStudentSession = () => {
+      if (sessionCode.value && studentInfo.value) {
+        const sessionData = {
+          sessionCode: sessionCode.value,
+          studentName: studentInfo.value.name,
+          isAuthenticated: studentInfo.value.isAuthenticated,
+          studentId: studentInfo.value.id,
+          answerSubmitted: answerSubmitted.value,
+          savedAt: new Date().toISOString()
+        }
+        localStorage.setItem('question_student_session', JSON.stringify(sessionData))
+      }
+    }
+
+    const loadStudentSession = () => {
+      const saved = localStorage.getItem('question_student_session')
+      if (saved) {
+        try {
+          const sessionData = JSON.parse(saved)
+          
+          // Check if session is recent (within 24 hours)
+          const savedTime = new Date(sessionData.savedAt)
+          const now = new Date()
+          const hoursDiff = (now - savedTime) / (1000 * 60 * 60)
+          
+          if (hoursDiff < 24) {
+            previousSessionCode.value = sessionData.sessionCode
+            previousStudentName.value = sessionData.studentName
+            hasPreviousSession.value = true
+            return true
+          } else {
+            // Session too old, clear it
+            localStorage.removeItem('question_student_session')
+          }
+        } catch (error) {
+          console.error('Failed to load student session:', error)
+          localStorage.removeItem('question_student_session')
+        }
+      }
+      return false
+    }
+
+    const rejoinPreviousSession = async () => {
+      if (!previousSessionCode.value) return
+      
+      isRejoining.value = true
+      isRestoring.value = true
+      
+      try {
+        inputCode.value = previousSessionCode.value
+        if (!isAuthenticated.value) {
+          studentName.value = previousStudentName.value
+        }
+        
+        await joinSession()
+        wasRestored.value = true
+        hasPreviousSession.value = false
+        
+      } catch (error) {
+        console.error('Failed to rejoin session:', error)
+        alert('Failed to rejoin session. Please try again.')
+      } finally {
+        isRejoining.value = false
+        isRestoring.value = false
+      }
+    }
+
+    const clearPreviousSession = () => {
+      localStorage.removeItem('question_student_session')
+      hasPreviousSession.value = false
+      previousSessionCode.value = ''
+      previousStudentName.value = ''
+    }
+
+    const clearStudentSession = () => {
+      localStorage.removeItem('question_student_session')
+    }
+
+    // Auto-save session state periodically
+    let saveInterval = null
+    const startAutoSave = () => {
+      if (saveInterval) clearInterval(saveInterval)
+      saveInterval = setInterval(saveStudentSession, 5000) // Save every 5 seconds
+    }
+
+    const stopAutoSave = () => {
+      if (saveInterval) {
+        clearInterval(saveInterval)
+        saveInterval = null
+      }
+    }
+
+    // Watch for session changes and save
+    watch([sessionCode, answerSubmitted], () => {
+      saveStudentSession()
+    })
+
+    // Update joinSession to set wasRestored flag
+    const joinSessionWithRestore = async () => {
+      const result = await joinSession()
+      if (result && !wasRestored.value) {
+        wasRestored.value = false // Reset for new session
+      }
+      return result
+    }
+
     // Initialize student name from localStorage if guest
     onMounted(() => {
+      // Try to load previous session first
+      loadStudentSession()
+      
       if (!isAuthenticated.value) {
         const savedName = localStorage.getItem('question_session_guest_name')
         if (savedName) {
@@ -319,6 +492,15 @@ export default {
       if (codeParam && codeParam.length === 6) {
         inputCode.value = codeParam.toUpperCase()
       }
+      
+      // Start auto-save
+      startAutoSave()
+    })
+
+    // Cleanup on unmount
+    onUnmounted(() => {
+      stopAutoSave()
+      saveStudentSession() // Final save
     })
 
     return {
@@ -328,6 +510,12 @@ export default {
       studentName,
       isJoining,
       answerSubmitted,
+      isRestoring,
+      isRejoining,
+      wasRestored,
+      hasPreviousSession,
+      previousSessionCode,
+      previousStudentName,
       
       // Computed
       isAuthenticated,
@@ -346,7 +534,9 @@ export default {
       resetSession,
       handleAnswerSubmitted,
       handleAnswerChanged,
-      getQuestionTypeLabel
+      getQuestionTypeLabel,
+      rejoinPreviousSession,
+      clearPreviousSession
     }
   }
 }
