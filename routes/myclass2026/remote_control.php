@@ -53,6 +53,28 @@ Route::prefix('remote-control')->name('remote-control.')->group(function () {
         ]);
     })->name('api.channel.status');
     
+    // Question Response System Routes
+    Route::prefix('question-responses')->name('question-responses.')->group(function () {
+        
+        // Teacher route - create and manage sessions
+        Route::get('/teacher', function () {
+            return Inertia::render('myclass2026/features/remot_control/v1/examples/question_responses/TeacherView');
+        })->name('teacher');
+        
+        // Student route - join sessions and answer questions
+        Route::get('/student', function () {
+            return Inertia::render('myclass2026/features/remot_control/v1/examples/question_responses/StudentView');
+        })->name('student');
+        
+        // Direct join route with code parameter
+        Route::get('/join/{code}', function ($code) {
+            return Inertia::render('myclass2026/features/remot_control/v1/examples/question_responses/StudentView', [
+                'sessionCode' => $code
+            ]);
+        })->name('join');
+        
+    });
+    
 });
 
 // Include additional remote control route files if they exist
