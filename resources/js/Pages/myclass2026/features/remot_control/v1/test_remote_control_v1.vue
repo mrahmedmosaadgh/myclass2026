@@ -159,6 +159,19 @@
           </div>
         </div>
 
+        <!-- Chat Example Tab -->
+        <div v-if="activeTab === 'chat'" class="space-y-8">
+          <div class="bg-white rounded-lg shadow-lg p-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Real-Time Chat Example</h3>
+            <p class="text-gray-600 mb-6">
+              Demonstrates real-time messaging between multiple users/tabs using the generic remote control system.
+              Open this page in multiple tabs to see real-time synchronization.
+            </p>
+            
+            <ChatExample />
+          </div>
+        </div>
+
         <!-- API Demo Tab -->
         <div v-if="activeTab === 'api'" class="space-y-8">
           <div class="bg-white rounded-lg shadow-lg p-6">
@@ -272,6 +285,7 @@ import CommandSender from './components/CommandSender.vue'
 import ConnectionStatus from './components/ConnectionStatus.vue'
 import TestDataDisplay from './examples/simple_test/TestDataDisplay.vue'
 import TestRemoteControl from './examples/simple_test/TestRemoteControl.vue'
+import ChatExample from './examples/simple_chat/ChatExample.vue'
 
 export default {
   name: 'TestRemoteControlV1',
@@ -281,7 +295,8 @@ export default {
     CommandSender,
     ConnectionStatus,
     TestDataDisplay,
-    TestRemoteControl
+    TestRemoteControl,
+    ChatExample
   },
   setup() {
     // State
@@ -303,6 +318,7 @@ export default {
     // Tab configuration
     const tabs = [
       { id: 'simple', label: 'Simple Test' },
+      { id: 'chat', label: 'Chat Example' },
       { id: 'components', label: 'Generic Components' },
       { id: 'api', label: 'Direct API' },
       { id: 'performance', label: 'Performance' }
