@@ -53,11 +53,25 @@
           </div>
         </div>
 
+        <!-- Scoring Mode Toggle -->
+        <div v-if="hasResponses" class="scoring-toggle">
+          <button @click="toggleScoringMode" :class="['toggle-btn', { active: isScoringMode }]">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+            {{ isScoringMode ? 'Done Scoring' : 'Score Responses' }}
+          </button>
+        </div>
+
         <!-- Responses List -->
         <div class="responses-section">
           <div v-if="!hasResponses" class="empty-state">
             <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14,2 14,8 20,8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="13"></line><polyline points="10,9 9,9 8,9"></polyline>
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14,2 14,8 20,8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10,9 9,9 8,9"></polyline>
             </svg>
             <p class="empty-text">No responses yet</p>
             <p class="empty-subtext">Students will see their responses here as they submit them</p>
@@ -65,10 +79,18 @@
 
           <div v-else class="responses-list">
             <div
-              v-for="(response, index) in sortedResponses"
+              v-for="(response, index) in rankedResponses"
               :key="response.studentId + index"
-              class="response-item"
+              :class="['response-item', { 'scoring-mode': isScoringMode, 'ranked': response.rank }]"
             >
+              <!-- Rank Badge -->
+              <div v-if="response.rank" class="rank-badge" :class="`rank-${response.rank}`">
+                <span class="rank-number">{{ response.rank }}</span>
+                <span v-if="response.rank === 1" class="rank-trophy">🏆</span>
+                <span v-else-if="response.rank === 2" class="rank-trophy">🥈</span>
+                <span v-else-if="response.rank === 3" class="rank-trophy">🥉</span>
+              </div>
+
               <div class="response-header">
                 <div class="student-info">
                   <div class="student-name">
@@ -79,6 +101,26 @@
                   <div class="response-time">
                     {{ formatTime(response.timestamp) }}
                   </div>
+                </div>
+
+                <!-- Score Input -->
+                <div v-if="isScoringMode" class="score-input">
+                  <input
+                    type="number"
+                    :value="response.score"
+                    @input="updateScore(response.studentId, $event.target.value)"
+                    min="0"
+                    max="100"
+                    class="score-field"
+                    placeholder="Score"
+                  />
+                  <span class="score-label">/100</span>
+                </div>
+                
+                <!-- Score Display -->
+                <div v-else-if="response.score > 0" class="score-display">
+                  <span class="score-value">{{ response.score }}</span>
+                  <span class="score-label">pts</span>
                 </div>
               </div>
               <div class="response-content">
@@ -93,7 +135,11 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import { useLiveQuestionStore } from '../stores/liveQuestionStore'
+
+const store = useLiveQuestionStore()
+const isScoringMode = ref(false)
 
 const props = defineProps({
   responses: {
@@ -119,12 +165,19 @@ const guestCount = computed(() => {
   return props.responses.filter(r => !r.isAuthenticated).length
 })
 
-const sortedResponses = computed(() => {
-  return [...props.responses].sort((a, b) => {
-    // Sort by timestamp, newest first
-    return new Date(b.submittedAt || b.timestamp) - new Date(a.submittedAt || a.timestamp)
-  })
+const rankedResponses = computed(() => {
+  return store.getRankedResponses()
 })
+
+// Methods
+function toggleScoringMode() {
+  isScoringMode.value = !isScoringMode.value
+}
+
+function updateScore(studentId, score) {
+  const numericScore = parseInt(score) || 0
+  store.updateResponseScore(studentId, numericScore)
+}
 
 // Methods
 function formatTime(timestamp) {
@@ -438,6 +491,125 @@ function exportAsCSV(data) {
   line-height: 1.5;
   margin: 0;
   white-space: pre-wrap;
+}
+
+/* Scoring Styles */
+.scoring-toggle {
+  padding: 16px 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #f3f4f6;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  color: #374151;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toggle-btn:hover {
+  background: #e5e7eb;
+}
+
+.toggle-btn.active {
+  background: #10b981;
+  color: white;
+  border-color: #059669;
+}
+
+.rank-badge {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.rank-1 {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+}
+
+.rank-2 {
+  background: linear-gradient(135deg, #d1d5db, #9ca3af);
+}
+
+.rank-3 {
+  background: linear-gradient(135deg, #f87171, #dc2626);
+}
+
+.rank-number {
+  font-size: 16px;
+}
+
+.rank-trophy {
+  font-size: 12px;
+  margin-left: 2px;
+}
+
+.score-input {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.score-field {
+  width: 60px;
+  padding: 6px 8px;
+  border: 2px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  transition: border-color 0.2s;
+}
+
+.score-field:focus {
+  outline: none;
+  border-color: #10b981;
+}
+
+.score-display {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background: #f0fdf4;
+  border: 2px solid #10b981;
+  border-radius: 6px;
+}
+
+.score-value {
+  font-weight: 600;
+  color: #059669;
+  font-size: 14px;
+}
+
+.score-label {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.response-item.scoring-mode {
+  padding-left: 50px;
+}
+
+.response-item.ranked {
+  border-left: 4px solid #10b981;
+  background: #f0fdf4;
 }
 
 @media (max-width: 640px) {

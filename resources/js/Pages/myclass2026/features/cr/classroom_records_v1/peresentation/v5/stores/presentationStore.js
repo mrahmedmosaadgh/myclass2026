@@ -157,6 +157,31 @@ export const usePresentationStore = defineStore('presentation', () => {
     }
   }
 
+  function addSlideAtIndex(index) {
+    const newSlide = {
+      id: 'slide-' + Date.now() + Math.random().toString(36).substr(2, 5),
+      elements: [],
+      sectionId: currentSlide.value?.sectionId
+    };
+    slides.value.splice(index, 0, newSlide);
+    currentSlideIndex.value = index;
+  }
+
+  function moveSlide(fromIndex, toIndex) {
+    if (fromIndex === toIndex) return;
+    const [movedSlide] = slides.value.splice(fromIndex, 1);
+    slides.value.splice(toIndex, 0, movedSlide);
+    
+    // Update current slide index if needed
+    if (currentSlideIndex.value === fromIndex) {
+      currentSlideIndex.value = toIndex;
+    } else if (fromIndex < currentSlideIndex.value && toIndex >= currentSlideIndex.value) {
+      currentSlideIndex.value--;
+    } else if (fromIndex > currentSlideIndex.value && toIndex <= currentSlideIndex.value) {
+      currentSlideIndex.value++;
+    }
+  }
+
   function addElement(elementDetails) {
     if (!currentSlide.value) return;
     currentSlide.value.elements.push({
@@ -219,6 +244,8 @@ export const usePresentationStore = defineStore('presentation', () => {
     duplicateElement,
     addSlide,
     addSlideToPhase,
+    addSlideAtIndex,
+    moveSlide,
     selectSlide,
     selectSlideById,
     deleteSlide,

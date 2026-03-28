@@ -1,4 +1,5 @@
 <script setup>
+import { ref, computed } from 'vue';
 import { usePresentationStore } from '../stores/presentationStore';
 import { useUIStore } from '../stores/uiStore';
 import { useSectionStore } from '../stores/sectionStore';
@@ -7,6 +8,10 @@ import SectionManager from './SectionManager.vue';
 const presentation = usePresentationStore();
 const ui = useUIStore();
 const sectionStore = useSectionStore();
+
+// Reorder mode state
+const isReorderMode = ref(false);
+const draggedSlideIndex = ref(null);
 
 function getSectionColor(sectionId) {
   const sec = sectionStore.sections.find(s => s.id === sectionId);
@@ -35,6 +40,44 @@ function ignorePhases() {
   presentation.usePhases = false;
   presentation.hasInitializedPhases = true;
 }
+
+// Slide management functions
+function toggleReorderMode() {
+  isReorderMode.value = !isReorderMode.value;
+  if (!isReorderMode.value) {
+    draggedSlideIndex.value = null;
+  }
+}
+
+function addSlideBetween(index) {
+  presentation.addSlideAtIndex(index + 1);
+}
+
+function onDragStart(event, slideIndex) {
+  if (!isReorderMode.value) return;
+  draggedSlideIndex.value = slideIndex;
+  event.dataTransfer.effectAllowed = 'move';
+}
+
+function onDragOver(event) {
+  if (!isReorderMode.value) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'move';
+}
+
+function onDrop(event, targetIndex) {
+  if (!isReorderMode.value || draggedSlideIndex.value === null) return;
+  event.preventDefault();
+  
+  if (draggedSlideIndex.value !== targetIndex) {
+    presentation.moveSlide(draggedSlideIndex.value, targetIndex);
+  }
+  draggedSlideIndex.value = null;
+}
+
+function onDragEnd() {
+  draggedSlideIndex.value = null;
+}
 </script>
 
 <template>
@@ -52,7 +95,24 @@ function ignorePhases() {
       </div>
     </div>
 
-    <div class="slide-nav" :class="{ 'present-mode': !ui.isEditMode }">
+    <!-- Slide Management Controls -->
+    <div v-if="ui.isEditMode" class="slide-management">
+      <button 
+        @click="toggleReorderMode" 
+        :class="['reorder-toggle', { active: isReorderMode }]"
+        :title="isReorderMode ? 'Exit reorder mode' : 'Enable slide reordering'"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12h18m-9-9v18"></path>
+        </svg>
+        {{ isReorderMode ? 'Done' : 'Reorder' }}
+      </button>
+      <div v-if="isReorderMode" class="reorder-hint">
+        Drag slides to reorder
+      </div>
+    </div>
+
+    <div class="slide-nav" :class="{ 'present-mode': !ui.isEditMode, 'reorder-mode': isReorderMode }">
       
       <!-- Standard Mode (No Phases) -->
       <template v-if="!presentation.usePhases">
@@ -77,9 +137,25 @@ function ignorePhases() {
           v-for="(slide, index) in presentation.slides" 
           :key="slide.id"
           class="slide-thumb"
-          :class="{ active: presentation.currentSlideIndex === index }"
-          @click="presentation.selectSlide(index)"
+          :class="{ 
+            active: presentation.currentSlideIndex === index,
+            'dragging': draggedSlideIndex === index,
+            'reorderable': isReorderMode
+          }"
+          @click="!isReorderMode && presentation.selectSlide(index)"
+          :draggable="isReorderMode"
+          @dragstart="onDragStart($event, index)"
+          @dragover="onDragOver"
+          @drop="onDrop($event, index)"
+          @dragend="onDragEnd"
         >
+          <!-- Drag Handle (visible in reorder mode) -->
+          <div v-if="isReorderMode" class="drag-handle">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12h18m-9-9v18"></path>
+            </svg>
+          </div>
+          
           <span class="slide-number">{{ index + 1 }}</span>
           
           <div class="slide-preview" :style="{ borderLeftColor: getSectionColor(slide.sectionId), borderLeftWidth: slide.sectionId ? '6px' : '1px' }">
@@ -94,14 +170,30 @@ function ignorePhases() {
             {{ getSectionName(slide.sectionId) }}
           </div>
 
-          <button 
-            v-if="ui.isEditMode && presentation.slides.length > 1" 
-            class="delete-btn" 
-            @click.stop="presentation.deleteSlide(index)" 
-            title="Delete Slide"
-          >
-            &times;
-          </button>
+          <div class="slide-actions">
+            <!-- Add Slide Between Button -->
+            <button 
+              v-if="ui.isEditMode && !isReorderMode" 
+              class="add-between-btn" 
+              @click.stop="addSlideBetween(index)"
+              title="Add slide after this one"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </button>
+            
+            <!-- Delete Button -->
+            <button 
+              v-if="ui.isEditMode && presentation.slides.length > 1 && !isReorderMode" 
+              class="delete-btn" 
+              @click.stop="presentation.deleteSlide(index)" 
+              title="Delete Slide"
+            >
+              &times;
+            </button>
+          </div>
         </div>
       </div>
       
@@ -497,5 +589,126 @@ function ignorePhases() {
     margin-left: auto;
     flex-shrink: 0;
   }
+}
+
+/* Slide Management Styles */
+.slide-management {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding: 8px;
+  background: #f3f4f6;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.reorder-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.reorder-toggle:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.reorder-toggle.active {
+  background: #10b981;
+  color: white;
+  border-color: #10b981;
+}
+
+.reorder-hint {
+  font-size: 11px;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.slide-nav.reorder-mode {
+  background: #fef3c7;
+  border-color: #f59e0b;
+}
+
+.slide-thumb.reorderable {
+  cursor: grab;
+  user-select: none;
+}
+
+.slide-thumb.reorderable:active {
+  cursor: grabbing;
+}
+
+.slide-thumb.dragging {
+  opacity: 0.5;
+  transform: scale(0.95);
+}
+
+.drag-handle {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  padding: 2px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 4px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.slide-thumb.reorderable:hover .drag-handle {
+  opacity: 1;
+}
+
+.slide-actions {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  gap: 4px;
+}
+
+.add-between-btn {
+  width: 20px;
+  height: 20px;
+  background: #10b981;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  transition: all 0.2s;
+  opacity: 0;
+}
+
+.slide-thumb:hover .add-between-btn {
+  opacity: 1;
+}
+
+.add-between-btn:hover {
+  background: #059669;
+  transform: scale(1.1);
+}
+
+/* Drag and drop visual feedback */
+.slide-thumb[draggable="true"]:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.slide-thumb[draggable="true"]:hover .slide-preview {
+  border-color: #f59e0b;
 }
 </style>

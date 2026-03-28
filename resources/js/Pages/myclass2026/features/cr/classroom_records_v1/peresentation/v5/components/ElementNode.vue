@@ -11,6 +11,7 @@ import EditableMath from './EditableMath.vue';
 import InteractiveMCQ from './InteractiveMCQ.vue';
 import InteractiveGroupMCQ from './InteractiveGroupMCQ.vue';
 import LeaderboardSlide from './LeaderboardSlide.vue';
+import LiveQuestionSlideElement from './LiveQuestionSlideElement.vue';
 
 const props = defineProps({
   element: Object
@@ -161,6 +162,15 @@ function handleClick() {
     <!-- LEADERBOARD NATIVE COMPONENT -->
     <LeaderboardSlide
       v-else-if="element.type === 'leaderboard'"
+      :element="element"
+      :isEditMode="ui.isEditMode"
+      @update="(changes) => update(changes)"
+      @select="if(ui.isEditMode) { ui.selectElement(element.id); showContextMenu = false; }"
+    />
+
+    <!-- LIVE QUESTION ELEMENT -->
+    <LiveQuestionSlideElement
+      v-else-if="element.type === 'live-question'"
       :element="element"
       :isEditMode="ui.isEditMode"
       @update="(changes) => update(changes)"

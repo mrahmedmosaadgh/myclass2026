@@ -41,6 +41,29 @@ function addLeaderboard() {
   presentation.addElement(lbBlock);
 }
 
+function addLiveQuestion() {
+  const lqBlock = {
+    id: 'el-' + Date.now() + Math.random().toString(36).substr(2, 5),
+    type: 'live-question',
+    x: 50,
+    y: 50,
+    width: 800,
+    height: 400,
+    zIndex: presentation.slides[presentation.currentSlideIndex].elements.length + 1,
+    visibilityOption: 'always-visible',
+    isVisible: true,
+    data: {
+      questionTitle: 'Enter your question here...',
+      questionInstructions: 'Provide your answer below',
+      timeLimit: null,
+      sessionCode: null,
+      isActive: false,
+      responses: []
+    }
+  };
+  presentation.addElement(lqBlock);
+}
+
 function triggerImageUpload() {
   if (fileInput.value) {
     fileInput.value.click();

@@ -49,11 +49,43 @@ export const useLiveQuestionStore = defineStore('liveQuestion', () => {
     const existingIndex = responses.value.findIndex(r => r.studentId === response.studentId)
     if (existingIndex >= 0) {
       // Update existing response
-      responses.value[existingIndex] = response
+      responses.value[existingIndex] = { ...response, score: responses.value[existingIndex].score || 0 }
     } else {
-      // Add new response
-      responses.value.push(response)
+      // Add new response with default score
+      responses.value.push({ ...response, score: 0 })
     }
+  }
+
+  function updateResponseScore(studentId, score) {
+    const response = responses.value.find(r => r.studentId === studentId)
+    if (response) {
+      response.score = score
+      updateRankings()
+    }
+  }
+
+  function updateRankings() {
+    // Sort responses by score (descending)
+    const sorted = [...responses.value].sort((a, b) => b.score - a.score)
+    
+    // Calculate ranks with ties
+    let currentRank = 1
+    sorted.forEach((response, index) => {
+      if (index > 0 && sorted[index - 1].score > response.score) {
+        currentRank = index + 1
+      }
+      response.rank = currentRank
+    })
+  }
+
+  function getRankedResponses() {
+    return [...responses.value].sort((a, b) => {
+      if (a.rank === b.rank) {
+        // If same rank, sort by name alphabetically
+        return a.studentName.localeCompare(b.studentName)
+      }
+      return a.rank - b.rank
+    })
   }
 
   function clearResponses() {
@@ -114,6 +146,9 @@ export const useLiveQuestionStore = defineStore('liveQuestion', () => {
     endSession,
     clearSession,
     toggleResults,
-    setConnectionStatus
+    setConnectionStatus,
+    updateResponseScore,
+    updateRankings,
+    getRankedResponses
   }
 })
