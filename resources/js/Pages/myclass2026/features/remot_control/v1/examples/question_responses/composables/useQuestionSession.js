@@ -87,6 +87,9 @@ export function useQuestionSession(sessionCode, userRole = 'student') {
     channel.sendCommand({
       type: 'publish_question',
       data: question
+    }, {
+      priority: 'high',
+      requiresAck: true
     })
 
     currentQuestion.value = question
@@ -218,6 +221,9 @@ export function useQuestionSession(sessionCode, userRole = 'student') {
     channel.sendCommand({
       type: 'submit_answer',
       data: response
+    }, {
+      priority: 'high',
+      requiresAck: true
     })
 
     return true

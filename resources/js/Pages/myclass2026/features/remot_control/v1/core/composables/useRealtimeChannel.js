@@ -24,6 +24,8 @@ import { ToolsSwitcher } from '@/Utils/toolsSwitcher'
  * @param {number} [options.retryDelay=1000] - Base retry delay
  * @param {boolean} [options.validateCommands=true] - Enable command validation
  * @param {boolean} [options.logEvents=false] - Enable event logging
+ * @param {number} [options.rateLimitMaxCalls=50] - Maximum rate limit calls per window
+ * @param {number} [options.rateLimitWindowMs=1000] - Rate limit time window in ms
  * @returns {Object} Channel API and reactive state
  */
 export function useRealtimeChannel(channelId, options = {}) {
@@ -36,6 +38,8 @@ export function useRealtimeChannel(channelId, options = {}) {
     retryDelay: 1000,
     validateCommands: true,
     logEvents: false,
+    rateLimitMaxCalls: 50,
+    rateLimitWindowMs: 1000,
     ...options
   }
 
@@ -87,8 +91,8 @@ export function useRealtimeChannel(channelId, options = {}) {
         pendingCommands.value = cachedCommands
       }
 
-      // Initialize rate limiter
-      internal.rateLimiter = createRateLimiter(10, 1000) // 10 calls per second
+      // Initialize rate limiter - using configurable values
+      internal.rateLimiter = createRateLimiter(config.rateLimitMaxCalls, config.rateLimitWindowMs)
 
       // Create debounced state update function
       internal.debouncedUpdateState = debounce((newState) => {
@@ -348,8 +352,36 @@ export function useRealtimeChannel(channelId, options = {}) {
    * @param {Object} [metadata={}] - Additional metadata
    */
   const sendCommand = async (type, payload, metadata = {}) => {
+    // Check rate limit with better handling
     if (!internal.rateLimiter?.check()) {
-      console.warn('Rate limit exceeded, command dropped')
+      const remaining = internal.rateLimiter?.remaining() || 0
+      const nextAvailable = internal.rateLimiter?.nextAvailable() || 0
+      
+      console.warn(`Rate limit exceeded, command dropped. Remaining: ${remaining}, Next available in: ${nextAvailable}ms`)
+      
+      // For high-priority commands, queue them instead of dropping
+      if (metadata.priority === 'high') {
+        console.log('High-priority command queued despite rate limit')
+        // Add to pending commands queue
+        const command = {
+          commandId: generateId(),
+          channelId,
+          type,
+          payload: sanitizeData(payload),
+          metadata: {
+            timestamp: new Date().toISOString(),
+            senderId: internal.userId,
+            priority: 'high',
+            requiresAck: metadata.requiresAck || false,
+            retryCount: 0,
+            rateLimited: true,
+            ...metadata
+          }
+        }
+        pendingCommands.value.push(command)
+        return true
+      }
+      
       return false
     }
 
