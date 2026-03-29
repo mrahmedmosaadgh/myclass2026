@@ -765,6 +765,7 @@ onUnmounted(() => {
   flex: 1;
   transition: filter 0.3s ease;
   min-height: calc(100vh - 140px); /* Account for header and bottom nav */
+  padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
 }
 
 .app-main.with-menu {
@@ -783,7 +784,7 @@ onUnmounted(() => {
   backdrop-filter: blur(10px);
   display: flex;
   justify-content: space-around;
-  padding: 0.5rem 0;
+  padding: 0.5rem 0 calc(0.5rem + env(safe-area-inset-bottom, 0px));
   z-index: 50;
 }
 
@@ -852,7 +853,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px));
 }
 
 .modal-content {
@@ -1061,7 +1062,28 @@ onUnmounted(() => {
   .bottom-nav {
     padding: 0.375rem 0;
   }
-  
+
+  .app-main {
+    padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .bottom-nav {
+    padding: 0.375rem 0 calc(0.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .modal-overlay,
+  .modal-overlay.large {
+    align-items: flex-end;
+    padding: 0.75rem 0.75rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .modal-content,
+  .modal-content.large {
+    max-height: calc(100vh - 1.5rem - env(safe-area-inset-bottom, 0px));
+    width: 100%;
+    margin-bottom: 0;
+  }
+
   .nav-btn {
     min-width: 50px;
     padding: 0.375rem;

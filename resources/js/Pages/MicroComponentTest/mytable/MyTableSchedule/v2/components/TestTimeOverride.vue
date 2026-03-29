@@ -40,10 +40,13 @@
         <span class="field-label">Time</span>
         <input
           class="field-input"
-          type="time"
-          step="60"
+          :type="useManualTimeInput ? 'text' : 'time'"
+          :step="useManualTimeInput ? undefined : '60'"
+          :inputmode="useManualTimeInput ? 'numeric' : undefined"
+          :placeholder="useManualTimeInput ? 'HH:MM' : undefined"
           :value="timeValue"
-          @input="updateTimeValue($event.target.value)"
+          @input="handleTimeInput($event.target.value)"
+          @blur="handleTimeBlur($event.target.value)"
         />
       </label>
     </div>
@@ -51,6 +54,8 @@
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue';
+
 const props = defineProps({
   enabled: { type: Boolean, default: false },
   dayIndex: { type: Number, default: 0 },
@@ -58,6 +63,8 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:enabled', 'update:dayIndex', 'update:timeValue']);
+
+const useManualTimeInput = ref(false);
 
 const dayOptions = [
   { value: 0, label: 'Sunday / D1' },
@@ -81,9 +88,49 @@ const updateTimeValue = (value) => {
   emit('update:timeValue', value || '09:00');
 };
 
+const normalizeTimeValue = (value) => {
+  const trimmed = String(value || '').trim();
+  const match = trimmed.match(/^(\d{1,2}):(\d{2})$/);
+
+  if (!match) {
+    return null;
+  }
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+
+  if (Number.isNaN(hours) || Number.isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+    return null;
+  }
+
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+};
+
+const handleTimeInput = (value) => {
+  if (!useManualTimeInput.value) {
+    updateTimeValue(value);
+    return;
+  }
+
+  emit('update:timeValue', value);
+};
+
+const handleTimeBlur = (value) => {
+  if (!useManualTimeInput.value) {
+    return;
+  }
+
+  const normalized = normalizeTimeValue(value);
+  updateTimeValue(normalized || '09:00');
+};
+
 const resetToRealtime = () => {
   emit('update:enabled', false);
 };
+
+onMounted(() => {
+  useManualTimeInput.value = window.matchMedia('(pointer: coarse)').matches || window.innerWidth <= 640;
+});
 </script>
 
 <style scoped>
