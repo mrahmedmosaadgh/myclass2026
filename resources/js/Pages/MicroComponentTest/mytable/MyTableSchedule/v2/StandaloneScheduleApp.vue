@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" :href="manifestHref">
-    <link rel="icon" href="/my-schedule-app/icon.svg" type="image/svg+xml">
+    <link rel="icon" href="/my-fly-schedule-app/icon.svg" type="image/svg+xml">
   </Head>
 
   <div class="standalone-schedule-app">
@@ -67,8 +67,8 @@ async function registerServiceWorker() {
 
   try {
     serviceWorkerStatus.value = 'registering';
-    const registration = await navigator.serviceWorker.register('/my-schedule-app-v2-sw.js', {
-      scope: '/my-schedule-app/v2'
+    const registration = await navigator.serviceWorker.register('/my-fly-schedule-app-v2-sw.js', {
+      scope: '/my-fly-schedule-app/v2'
     });
     serviceWorkerStatus.value = registration.active ? 'ready' : 'registered';
   } catch (error) {
