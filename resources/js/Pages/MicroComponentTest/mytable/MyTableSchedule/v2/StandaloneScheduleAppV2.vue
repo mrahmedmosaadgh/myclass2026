@@ -356,6 +356,17 @@ const registerServiceWorker = async () => {
 
   try {
     serviceWorkerStatus.value = 'registering';
+    
+    // First, unregister any existing service workers to avoid conflicts
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    for (const registration of registrations) {
+      if (registration.scope.includes('/my-schedule-app/')) {
+        await registration.unregister();
+        console.log('[SW] Unregistered existing service worker:', registration.scope);
+      }
+    }
+    
+    // Now register the new service worker
     const registration = await navigator.serviceWorker.register('/my-schedule-app-v2-sw.js', {
       scope: '/my-schedule-app/v2'
     });

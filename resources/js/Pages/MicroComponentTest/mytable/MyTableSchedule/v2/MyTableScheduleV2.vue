@@ -444,15 +444,26 @@ const sendNotification = (title, bodyText) => {
 onMounted(() => {
   // Register Service Worker for PWA functionality
   if ('serviceWorker' in navigator && window.location.pathname.startsWith('/my-schedule-app/v2')) {
-    navigator.serviceWorker.register('/my-schedule-app-v2-sw.js', {
-      scope: '/my-schedule-app/v2'
-    })
-      .then((registration) => {
-        console.log('[SW] Service Worker registered:', registration);
-      })
-      .catch((error) => {
-        console.error('[SW] Service Worker registration failed:', error);
+    // First, unregister any existing service workers to avoid conflicts
+    navigator.serviceWorker.getRegistrations().then(registrations => {
+      registrations.forEach(registration => {
+        if (registration.scope.includes('/my-schedule-app/')) {
+          registration.unregister();
+          console.log('[SW] Unregistered existing service worker:', registration.scope);
+        }
       });
+    }).then(() => {
+      // Now register the new service worker
+      navigator.serviceWorker.register('/my-schedule-app-v2-sw.js', {
+        scope: '/my-schedule-app/v2'
+      })
+        .then((registration) => {
+          console.log('[SW] Service Worker registered:', registration);
+        })
+        .catch((error) => {
+          console.error('[SW] Service Worker registration failed:', error);
+        });
+    });
   }
 
   // Setup PWA install prompt
