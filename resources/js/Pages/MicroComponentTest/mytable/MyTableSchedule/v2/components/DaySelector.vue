@@ -1,0 +1,309 @@
+<template>
+  <div class="day-selector">
+    <div class="selector-label">Day:</div>
+    <div class="day-tabs-container" ref="dayTabsContainer">
+      <div class="day-tabs" :class="{ 'has-custom': hasCustomDays }">
+        <button
+          v-for="day in days"
+          :key="day.id"
+          @click="selectDay(day.id)"
+          :class="['day-tab', { 
+            active: modelValue === day.id,
+            'is-today': day.isToday,
+            'has-custom-timing': day.hasCustomTiming
+          }]"
+          :aria-label="`Select ${day.label}`"
+          :aria-pressed="modelValue === day.id"
+        >
+          <span class="day-short">{{ day.short }}</span>
+          <span v-if="day.isToday" class="today-indicator">●</span>
+          <span v-if="day.hasCustomTiming" class="custom-indicator" title="Custom timing">⚙</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted, nextTick } from 'vue';
+
+const props = defineProps({
+  modelValue: { type: String, default: 'd1' },
+  stage: { type: String, default: 'prim' }
+});
+
+const emit = defineEmits(['update:modelValue', 'day-change']);
+
+const dayTabsContainer = ref(null);
+
+// Generate days based on current week
+const days = computed(() => {
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const today = new Date().getDay(); // 0 = Sunday
+  
+  return [
+    { id: 'd1', label: 'Day 1', short: 'D1', dayIndex: 0, isToday: today === 0, hasCustomTiming: false },
+    { id: 'd2', label: 'Day 2', short: 'D2', dayIndex: 1, isToday: today === 1, hasCustomTiming: false },
+    { id: 'd3', label: 'Day 3', short: 'D3', dayIndex: 2, isToday: today === 2, hasCustomTiming: false },
+    { id: 'd4', label: 'Day 4', short: 'D4', dayIndex: 3, isToday: today === 3, hasCustomTiming: false },
+    { id: 'd5', label: 'Day 5', short: 'D5', dayIndex: 4, isToday: today === 4, hasCustomTiming: false },
+    { id: 'd6', label: 'Day 6', short: 'D6', dayIndex: 5, isToday: today === 5, hasCustomTiming: false }
+  ];
+});
+
+const hasCustomDays = computed(() => {
+  return days.value.some(day => day.hasCustomTiming);
+});
+
+const selectDay = (dayId) => {
+  emit('update:modelValue', dayId);
+  emit('day-change', dayId);
+  
+  // Haptic feedback on mobile
+  if (navigator.vibrate) {
+    navigator.vibrate(50);
+  }
+  
+  // Scroll selected day into view if needed
+  scrollToSelectedDay();
+};
+
+const scrollToSelectedDay = async () => {
+  await nextTick();
+  const container = dayTabsContainer.value;
+  if (!container) return;
+  
+  const selectedTab = container.querySelector('.day-tab.active');
+  if (selectedTab) {
+    const containerRect = container.getBoundingClientRect();
+    const tabRect = selectedTab.getBoundingClientRect();
+    
+    // Check if selected tab is partially out of view
+    if (tabRect.left < containerRect.left || tabRect.right > containerRect.right) {
+      selectedTab.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center'
+      });
+    }
+  }
+};
+
+// Initialize and scroll to today/selected day
+onMounted(() => {
+  // Auto-select today if no value is provided
+  if (!props.modelValue) {
+    const todayDay = days.value.find(day => day.isToday);
+    if (todayDay) {
+      selectDay(todayDay.id);
+    }
+  } else {
+    scrollToSelectedDay();
+  }
+});
+</script>
+
+<style scoped>
+.day-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  background: #f8fafc;
+  border-radius: 12px;
+  min-width: 0;
+  flex: 2;
+}
+
+.selector-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.day-tabs-container {
+  position: relative;
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.day-tabs-container::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+.day-tabs {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  min-width: min-content;
+}
+
+.day-tabs.has-custom {
+  padding-bottom: 0.5rem;
+}
+
+.day-tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  min-width: 50px;
+  height: 44px;
+  padding: 0.5rem 0.75rem;
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.day-tab:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.day-tab.active {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-color: #10b981;
+  color: white;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.day-tab.is-today:not(.active) {
+  border-color: #10b981;
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.day-tab.has-custom-timing:not(.active) {
+  border-color: #f59e0b;
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.day-short {
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.today-indicator {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 0.5rem;
+  color: #10b981;
+  animation: pulse-green 2s infinite;
+}
+
+.day-tab.active .today-indicator {
+  color: white;
+}
+
+@keyframes pulse-green {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.custom-indicator {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  font-size: 0.6rem;
+  opacity: 0.7;
+}
+
+.day-tab.active .custom-indicator {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Mobile optimizations */
+@media (max-width: 480px) {
+  .day-selector {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    padding: 0.5rem;
+  }
+  
+  .selector-label {
+    align-self: flex-start;
+    margin-bottom: 0.25rem;
+  }
+  
+  .day-tabs {
+    gap: 0.25rem;
+  }
+  
+  .day-tab {
+    min-width: 45px;
+    height: 40px;
+    padding: 0.375rem 0.5rem;
+  }
+  
+  .day-short {
+    font-size: 0.75rem;
+  }
+  
+  .today-indicator {
+    font-size: 0.4rem;
+  }
+  
+  .custom-indicator {
+    font-size: 0.5rem;
+  }
+}
+
+/* Touch feedback */
+.day-tab:active {
+  transform: scale(0.95);
+}
+
+/* Focus styles for accessibility */
+.day-tab:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+}
+
+/* Scroll hint */
+.day-tabs-container::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 20px;
+  background: linear-gradient(to right, transparent, rgba(248, 250, 252, 0.9));
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.day-tabs-container.scrolling::after {
+  opacity: 1;
+}
+
+/* Compact mode for very small screens */
+@media (max-width: 320px) {
+  .day-tab {
+    min-width: 40px;
+    height: 36px;
+    padding: 0.25rem 0.375rem;
+  }
+  
+  .day-short {
+    font-size: 0.65rem;
+  }
+}
+</style>

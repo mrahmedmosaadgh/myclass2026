@@ -4,7 +4,7 @@
  */
 
 // Cache version - increment to force cache refresh
-const CACHE_VERSION = 'v1.2.2';
+const CACHE_VERSION = 'v1.2.3';
 const CACHE_NAME = `offline-cache-${CACHE_VERSION}`;
 const OFFLINE_URL = '/presentation-offline.html';
 
@@ -25,6 +25,11 @@ const CACHE_URLS = [
   '/my-schedule-app',
   '/my-schedule-app/manifest.webmanifest',
   '/my-schedule-app/icon.svg',
+  '/my-schedule-app/v2',
+  '/my-schedule-app/v2/manifest.webmanifest',
+  '/my-schedule-app/v2/icon.svg',
+  '/my-schedule-app/v2/data/master_timetable_data.json',
+  '/my-schedule-app/v2/data/stage_day_timings.json',
   // Force cache refresh for focus app assets
   '/build/assets/app.css',
   '/build/assets/app.js',

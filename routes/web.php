@@ -288,7 +288,117 @@ SVG;
     return response($svg, 200)->header('Content-Type', 'image/svg+xml');
 })->name('schedule.app.icon');
 
+// Schedule App V2 Routes
+Route::get('/my-schedule-app/v2', function () {
+    return Inertia::render('MicroComponentTest/mytable/MyTableSchedule/v2/StandaloneScheduleAppV2');
+})->name('schedule.app.v2');
 
+Route::get('/my-schedule-app/v2/manifest.webmanifest', function () {
+    $manifest = [
+        'name' => 'My Schedule App V2',
+        'short_name' => 'Schedule V2',
+        'description' => 'Mobile-first schedule app with multiple view modes, school timetable, and offline capabilities.',
+        'id' => 'https://qudratpro.com/my-schedule-app/v2',
+        'start_url' => 'https://qudratpro.com/my-schedule-app/v2',
+        'scope' => 'https://qudratpro.com/my-schedule-app/v2',
+        'display' => 'standalone',
+        'background_color' => '#0f172a',
+        'theme_color' => '#1e293b',
+        'orientation' => 'portrait-primary',
+        'categories' => ['productivity', 'education', 'utilities'],
+        'icons' => [
+            [
+                'src' => '/my-schedule-app/v2/icon.svg',
+                'sizes' => 'any',
+                'type' => 'image/svg+xml',
+                'purpose' => 'any maskable',
+            ],
+        ],
+        'shortcuts' => [
+            [
+                'name' => 'Open Schedule V2',
+                'short_name' => 'Schedule V2',
+                'description' => 'View your schedule with mobile-optimized views',
+                'url' => 'https://qudratpro.com/my-schedule-app/v2',
+                'icons' => [
+                    [
+                        'src' => '/my-schedule-app/v2/icon.svg',
+                        'sizes' => 'any',
+                        'type' => 'image/svg+xml',
+                    ],
+                ],
+            ],
+            [
+                'name' => 'School Timetable',
+                'short_name' => 'School',
+                'description' => 'View complete school timetable',
+                'url' => 'https://qudratpro.com/my-schedule-app/v2#master',
+                'icons' => [
+                    [
+                        'src' => '/my-schedule-app/v2/icon.svg',
+                        'sizes' => 'any',
+                        'type' => 'image/svg+xml',
+                    ],
+                ],
+            ],
+        ],
+    ];
+
+    return response(json_encode($manifest, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), 200)
+        ->header('Content-Type', 'application/manifest+json');
+})->name('schedule.app.v2.manifest');
+
+Route::get('/my-schedule-app/v2/icon.svg', function () {
+    $svg = <<<'SVG'
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="My Schedule V2">
+  <rect width="512" height="512" rx="96" fill="#1e293b"/>
+  <rect x="36" y="36" width="440" height="440" rx="72" fill="none" stroke="#3b82f6" stroke-width="12"/>
+  
+  <!-- Mobile phone frame -->
+  <rect x="140" y="80" width="232" height="352" rx="24" fill="none" stroke="#60a5fa" stroke-width="8"/>
+  <rect x="150" y="90" width="212" height="332" rx="16" fill="#0f172a"/>
+  
+  <!-- Schedule grid inside phone -->
+  <rect x="160" y="110" width="192" height="252" rx="4" fill="none" stroke="#3b82f6" stroke-width="4"/>
+  <line x1="160" y1="140" x2="352" y2="140" stroke="#3b82f6" stroke-width="2"/>
+  <line x1="160" y1="170" x2="352" y2="170" stroke="#3b82f6" stroke-width="2"/>
+  <line x1="160" y1="200" x2="352" y2="200" stroke="#3b82f6" stroke-width="2"/>
+  <line x1="160" y1="230" x2="352" y2="230" stroke="#3b82f6" stroke-width="2"/>
+  <line x1="160" y1="260" x2="352" y2="260" stroke="#3b82f6" stroke-width="2"/>
+  <line x1="160" y1="290" x2="352" y2="290" stroke="#3b82f6" stroke-width="2"/>
+  <line x1="160" y1="320" x2="352" y2="320" stroke="#3b82f6" stroke-width="2"/>
+  
+  <!-- Vertical lines -->
+  <line x1="200" y1="110" x2="200" y2="362" stroke="#3b82f6" stroke-width="2"/>
+  <line x1="240" y1="110" x2="240" y2="362" stroke="#3b82f6" stroke-width="2"/>
+  <line x1="280" y1="110" x2="280" y2="362" stroke="#3b82f6" stroke-width="2"/>
+  <line x1="320" y1="110" x2="320" y2="362" stroke="#3b82f6" stroke-width="2"/>
+  
+  <!-- View mode indicators -->
+  <circle cx="180" cy="130" r="4" fill="#60a5fa"/>
+  <circle cx="220" cy="130" r="4" fill="#60a5fa"/>
+  <circle cx="260" cy="130" r="4" fill="#60a5fa"/>
+  <circle cx="300" cy="130" r="4" fill="#60a5fa"/>
+  <circle cx="340" cy="130" r="4" fill="#60a5fa"/>
+  
+  <!-- Status indicators -->
+  <circle cx="256" cy="380" r="8" fill="#10b981"/>
+  <rect x="180" y="440" width="152" height="8" rx="4" fill="#475569"/>
+  
+  <!-- Floating elements -->
+  <circle cx="400" cy="120" r="24" fill="#3b82f6" opacity="0.8"/>
+  <circle cx="420" cy="140" r="16" fill="#10b981" opacity="0.8"/>
+  <circle cx="110" cy="160" r="20" fill="#f59e0b" opacity="0.8"/>
+  
+  <!-- Notification bell -->
+  <path d="M380 80 L380 68 Q380 56 392 56 Q404 56 404 68 L404 80" fill="none" stroke="#f59e0b" stroke-width="4" stroke-linecap="round"/>
+  <path d="M368 80 Q368 96 380 104 L380 108 Q380 112 386 112 Q392 112 398 112 Q404 112 404 108 L404 104 Q416 96 416 80 Z" fill="#f59e0b"/>
+  <circle cx="392" cy="116" r="3" fill="#f59e0b"/>
+</svg>
+SVG;
+
+    return response($svg, 200)->header('Content-Type', 'image/svg+xml');
+})->name('schedule.app.v2.icon');
 
     // Offline System Test Route
     Route::get('/offline-test', function () {
