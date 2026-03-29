@@ -98,12 +98,69 @@
     <!-- Import Section -->
     <div class="section">
       <h4 class="section-title">📥 Import Data</h4>
+
+      <div class="paste-import-panel">
+        <div class="paste-header-row">
+          <div>
+            <h5 class="paste-title">Paste Data Directly</h5>
+            <p class="paste-subtitle">Choose what the pasted JSON is for, then import it with validation.</p>
+          </div>
+        </div>
+
+        <div class="import-target-grid">
+          <button
+            v-for="target in importTargets"
+            :key="target.id"
+            type="button"
+            class="target-card"
+            :class="{ active: pasteTarget === target.id }"
+            @click="pasteTarget = target.id"
+          >
+            <span class="target-title">{{ target.label }}</span>
+            <span class="target-desc">{{ target.description }}</span>
+            <span class="target-example">{{ target.example }}</span>
+          </button>
+        </div>
+
+        <label class="input-label" for="paste-json-input">Paste JSON</label>
+        <textarea
+          id="paste-json-input"
+          v-model="pastedJson"
+          class="paste-textarea"
+          placeholder='Paste valid JSON here, for example: { "schedule": [], "timings": [] }'
+          spellcheck="false"
+        ></textarea>
+        <small class="input-hint">Available options: personal schedule, school timetable, timing only, and app settings.</small>
+
+        <div v-if="pasteValidationMessage" class="paste-validation" :class="{ error: pasteValidationState === 'error', success: pasteValidationState === 'success' }">
+          {{ pasteValidationMessage }}
+        </div>
+
+        <div class="paste-actions">
+          <button
+            type="button"
+            class="browse-btn secondary"
+            @click="validatePastedJson"
+          >
+            Validate Paste
+          </button>
+          <button
+            type="button"
+            class="import-btn"
+            :disabled="isImporting || !pasteTarget || !pastedJson.trim()"
+            @click="importPastedData"
+          >
+            <span v-if="!isImporting">Paste & Import</span>
+            <span v-else>Importing... {{ importProgress }}%</span>
+          </button>
+        </div>
+      </div>
       
       <div class="import-area" :class="{ 'drag-over': isDragOver }" @drop="handleDrop" @dragover.prevent @dragleave="isDragOver = false" @dragenter.prevent="isDragOver = true">
         <div class="import-content">
           <div class="import-icon">📁</div>
           <p class="import-text">Drop JSON files here or click to browse</p>
-          <p class="import-hint">Supports: personal_schedule, school_timetable, app_settings</p>
+          <p class="import-hint">Supports: personal_schedule, school_timetable, stage_day_timings, app_settings</p>
           
           <input
             ref="fileInput"
@@ -203,7 +260,9 @@ const {
   exportSchoolTimetable,
   exportAllData,
   exportAppSettings,
-  importFromFile
+  importFromFile,
+  importFromText,
+  importTargets
 } = useDataImportExport();
 
 // Local state
@@ -213,6 +272,10 @@ const exportResults = ref([]);
 const importResults = ref([]);
 const isDragOver = ref(false);
 const fileInput = ref(null);
+const pasteTarget = ref('personal_schedule');
+const pastedJson = ref('');
+const pasteValidationMessage = ref('');
+const pasteValidationState = ref('');
 
 const openFilePicker = () => {
   fileInput.value?.click();
@@ -299,6 +362,56 @@ const importSelectedFiles = async () => {
   }
   
   selectedFiles.value = [];
+};
+
+const validatePastedJson = async () => {
+  pasteValidationMessage.value = '';
+  pasteValidationState.value = '';
+
+  if (!pasteTarget.value) {
+    pasteValidationState.value = 'error';
+    pasteValidationMessage.value = 'Choose what this pasted data is for first.';
+    return;
+  }
+
+  if (!pastedJson.value.trim()) {
+    pasteValidationState.value = 'error';
+    pasteValidationMessage.value = 'Paste JSON data before validating.';
+    return;
+  }
+
+  const result = await importFromText(pastedJson.value, pasteTarget.value, { validateOnly: true });
+  if (result.success) {
+    pasteValidationState.value = 'success';
+    pasteValidationMessage.value = `Valid ${importTargets.find(target => target.id === pasteTarget.value)?.label || 'data'} JSON. Ready to import.`;
+  } else {
+    pasteValidationState.value = 'error';
+    pasteValidationMessage.value = result.error;
+  }
+};
+
+const importPastedData = async () => {
+  importResults.value = [];
+  pasteValidationMessage.value = '';
+  pasteValidationState.value = '';
+
+  const result = await importFromText(pastedJson.value, pasteTarget.value);
+  importResults.value.push({
+    filename: `Pasted ${pasteTarget.value}`,
+    success: result.success,
+    message: result.message || result.error
+  });
+
+  if (result.success) {
+    pasteValidationState.value = 'success';
+    pasteValidationMessage.value = result.message || 'Pasted JSON imported successfully.';
+    emit('notification', 'Import Success', result.message || 'Pasted JSON imported successfully');
+    pastedJson.value = '';
+  } else {
+    pasteValidationState.value = 'error';
+    pasteValidationMessage.value = result.error || 'Import failed';
+    emit('notification', 'Import Failed', result.error || 'Import failed');
+  }
 };
 
 const clearAllData = () => {
@@ -508,6 +621,130 @@ const formatFileSize = (bytes) => {
   text-align: center;
   transition: all 0.3s ease;
   cursor: pointer;
+  background: #f8fafc;
+}
+
+.paste-import-panel {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  border: 1px solid #dbe3ef;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.paste-header-row {
+  margin-bottom: 1rem;
+}
+
+.paste-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.paste-subtitle {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.import-target-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.target-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  padding: 0.9rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.target-card.active {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.target-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.target-desc {
+  font-size: 0.78rem;
+  color: #475569;
+}
+
+.target-example {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.paste-textarea {
+  width: 100%;
+  min-height: 180px;
+  padding: 0.85rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #1e293b;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.paste-textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.paste-validation {
+  margin-top: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+.paste-validation.error {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.paste-validation.success {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+
+.paste-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.browse-btn.secondary {
+  background: #ffffff;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+
+.browse-btn.secondary:hover {
   background: #f8fafc;
 }
 
@@ -752,6 +989,14 @@ const formatFileSize = (bytes) => {
 @media (max-width: 640px) {
   .data-manager {
     padding: 1rem;
+  }
+
+  .import-target-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .paste-actions {
+    flex-direction: column;
   }
   
   .export-buttons {

@@ -157,3 +157,46 @@ This document collects practical ideas to improve the standalone Schedule App V2
 3. Add teacher search/filter
 4. Add timing preset templates
 5. Add print-friendly mode
+
+## Recent Implementation Summary
+
+- **Mobile reachability fixes completed**
+  Updated V2 mobile behavior so bottom actions and modal controls are easier to reach on phones.
+  - added safer bottom spacing and safe-area padding in the standalone shell
+  - improved modal bottom spacing on small screens
+  - replaced the phone test-time native picker path with a simpler manual `HH:MM` entry fallback on touch devices
+
+- **Shared admin timing bar added**
+  A shared top admin timing control was added so the admin can quickly see and change the active context.
+  - shows current date/time, selected day, and selected stage
+  - includes quick day/stage switching and a `Today` action
+  - day click can open timing editing directly
+
+- **Persistent admin stage/day selection added**
+  Admin selection now survives reloads and is shared across views.
+  - selected stage and selected day are stored locally
+  - Cards, Table, List, and School views now follow the shared selection better
+  - school timing resolution is driven from the shared parent-level state
+
+- **Shared timing editing flow added**
+  The timing manager now works as part of the shared admin flow.
+  - supports opening timing editing for the selected day
+  - supports stage-level "same for all days" timing editing
+  - timing overrides remain stored in local storage and update all relevant views
+
+- **Import improvements completed**
+  Data Manager import was expanded to make admin import easier from mobile and desktop.
+  - added direct paste JSON import
+  - admin must first choose what the data is for:
+    - personal schedule
+    - school timetable
+    - timing only
+    - app settings
+  - added per-target validation before applying imported data
+  - validation can run without mutating saved data
+  - paste/import UI was made more mobile-friendly
+
+- **Teacher/admin access improvements already in place**
+  Earlier work also added teacher-specific access support and admin sharing helpers.
+  - teacher-specific links can be copied/shared from the school timetable
+  - teacher-only access hides the school-wide mode and derives personal schedule data from the master timetable
