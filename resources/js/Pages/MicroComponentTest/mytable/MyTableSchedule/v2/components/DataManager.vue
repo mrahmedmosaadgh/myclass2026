@@ -23,6 +23,77 @@
           <small class="input-hint">Used in filename: datatype_namecode_timestamp.json</small>
         </div>
 
+        <div class="smart-panel">
+          <div class="smart-panel-header">
+            <h5 class="smart-panel-title">Smart Export Builder</h5>
+            <p class="smart-panel-subtitle">Choose the data type, preview JSON, then copy or download it.</p>
+          </div>
+
+          <div class="smart-type-grid">
+            <button
+              v-for="option in exportTargetOptions"
+              :key="option.id"
+              type="button"
+              class="target-card"
+              :class="{ active: smartExportTarget === option.id }"
+              @click="smartExportTarget = option.id"
+            >
+              <span class="target-title">{{ option.label }}</span>
+              <span class="target-desc">{{ option.description }}</span>
+            </button>
+          </div>
+
+          <div v-if="smartExportTarget === 'stage_day_timings'" class="timing-scope-panel">
+            <label class="input-label">Timing Scope</label>
+            <div class="scope-chip-row">
+              <button
+                v-for="scope in timingScopeOptions"
+                :key="scope.id"
+                type="button"
+                class="scope-chip"
+                :class="{ active: timingExportScope === scope.id }"
+                @click="timingExportScope = scope.id"
+              >
+                {{ scope.label }}
+              </button>
+            </div>
+
+            <div v-if="timingExportScope === 'stage_default' || timingExportScope === 'stage_day'" class="inline-form-grid">
+              <div>
+                <label class="input-label">Stage</label>
+                <select v-model="timingExportStage" class="select-field">
+                  <option v-for="stage in stageOptions" :key="stage" :value="stage">{{ stage }}</option>
+                </select>
+              </div>
+
+              <div v-if="timingExportScope === 'stage_day'">
+                <label class="input-label">Day</label>
+                <select v-model="timingExportDay" class="select-field">
+                  <option v-for="day in dayOptions" :key="day" :value="day">{{ day }}</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="smart-actions">
+            <button type="button" class="browse-btn secondary" @click="prepareSmartExport">Build JSON</button>
+            <button type="button" class="browse-btn secondary" :disabled="!smartExportPreview" @click="copySmartExport">Copy</button>
+            <button type="button" class="import-btn" :disabled="!smartExportPrepared" @click="downloadSmartExport">Download</button>
+          </div>
+
+          <div v-if="smartExportMessage" class="paste-validation" :class="{ error: smartExportState === 'error', success: smartExportState === 'success' }">
+            {{ smartExportMessage }}
+          </div>
+
+          <div v-if="smartExportPreview" class="json-preview-panel">
+            <div class="json-preview-header">
+              <span class="files-title">Export Preview</span>
+              <span class="preview-filename">{{ smartExportFilename }}</span>
+            </div>
+            <pre class="json-preview">{{ smartExportPreview }}</pre>
+          </div>
+        </div>
+
         <!-- Export Buttons -->
         <div class="export-buttons">
           <button
@@ -103,7 +174,7 @@
         <div class="paste-header-row">
           <div>
             <h5 class="paste-title">Paste Data Directly</h5>
-            <p class="paste-subtitle">Choose what the pasted JSON is for, then import it with validation.</p>
+            <p class="paste-subtitle">Choose what the pasted JSON is for, preview it, validate it, then accept and update.</p>
           </div>
         </div>
 
@@ -140,6 +211,20 @@
           <button
             type="button"
             class="browse-btn secondary"
+            @click="pasteFromClipboard"
+          >
+            Paste
+          </button>
+          <button
+            type="button"
+            class="browse-btn secondary"
+            @click="previewPastedJson"
+          >
+            View Data
+          </button>
+          <button
+            type="button"
+            class="browse-btn secondary"
             @click="validatePastedJson"
           >
             Validate Paste
@@ -147,12 +232,20 @@
           <button
             type="button"
             class="import-btn"
-            :disabled="isImporting || !pasteTarget || !pastedJson.trim()"
-            @click="importPastedData"
+            :disabled="isImporting || !pasteTarget || !pastedJson.trim() || !pastedJsonValidated"
+            @click="acceptPastedData"
           >
-            <span v-if="!isImporting">Paste & Import</span>
-            <span v-else>Importing... {{ importProgress }}%</span>
+            <span v-if="!isImporting">Accept & Update</span>
+            <span v-else>Updating... {{ importProgress }}%</span>
           </button>
+        </div>
+
+        <div v-if="pastedPreview" class="json-preview-panel import-preview-panel">
+          <div class="json-preview-header">
+            <span class="files-title">Import Preview</span>
+            <span class="preview-filename">{{ pasteTarget }}</span>
+          </div>
+          <pre class="json-preview">{{ pastedPreview }}</pre>
         </div>
       </div>
       
@@ -245,7 +338,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { useDataImportExport } from '../composables/useDataImportExport.js';
 
 const emit = defineEmits(['notification']);
@@ -260,9 +353,13 @@ const {
   exportSchoolTimetable,
   exportAllData,
   exportAppSettings,
+  buildExportPayload,
+  downloadExportPayload,
   importFromFile,
   importFromText,
-  importTargets
+  importTargets,
+  stageOptions,
+  dayOptions
 } = useDataImportExport();
 
 // Local state
@@ -274,11 +371,89 @@ const isDragOver = ref(false);
 const fileInput = ref(null);
 const pasteTarget = ref('personal_schedule');
 const pastedJson = ref('');
+const pastedPreview = ref('');
+const pastedJsonValidated = ref(false);
 const pasteValidationMessage = ref('');
 const pasteValidationState = ref('');
+const exportTargetOptions = [
+  { id: 'personal_schedule', label: 'Personal', description: 'Personal schedule and timings' },
+  { id: 'school_timetable', label: 'School', description: 'School stages and timetable' },
+  { id: 'stage_day_timings', label: 'Timing', description: 'Global or scoped timing data' },
+  { id: 'app_settings', label: 'Settings', description: 'Saved app settings' }
+];
+const timingScopeOptions = [
+  { id: 'same_for_all', label: 'Same For All' },
+  { id: 'stage_default', label: 'Stage Default' },
+  { id: 'stage_day', label: 'Stage + Day' },
+  { id: 'full_config', label: 'Full List' }
+];
+const smartExportTarget = ref('stage_day_timings');
+const timingExportScope = ref('full_config');
+const timingExportStage = ref('prim');
+const timingExportDay = ref('d1');
+const smartExportPrepared = ref(null);
+const smartExportPreview = ref('');
+const smartExportFilename = ref('');
+const smartExportMessage = ref('');
+const smartExportState = ref('');
 
 const openFilePicker = () => {
   fileInput.value?.click();
+};
+
+const prepareSmartExport = async () => {
+  smartExportMessage.value = '';
+  smartExportState.value = '';
+
+  const result = await buildExportPayload(smartExportTarget.value, {
+    namecode: namecode.value,
+    timingScope: timingExportScope.value,
+    stage: timingExportStage.value,
+    day: timingExportDay.value
+  });
+
+  if (result.success) {
+    smartExportPrepared.value = result;
+    smartExportPreview.value = result.jsonString;
+    smartExportFilename.value = result.filename;
+    smartExportState.value = 'success';
+    smartExportMessage.value = `Ready: ${result.filename}`;
+  } else {
+    smartExportPrepared.value = null;
+    smartExportPreview.value = '';
+    smartExportFilename.value = '';
+    smartExportState.value = 'error';
+    smartExportMessage.value = result.error;
+  }
+};
+
+const copySmartExport = async () => {
+  if (!smartExportPreview.value) {
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(smartExportPreview.value);
+    smartExportState.value = 'success';
+    smartExportMessage.value = 'Export JSON copied.';
+    emit('notification', 'Copied', 'Export JSON copied to clipboard');
+  } catch (error) {
+    smartExportState.value = 'error';
+    smartExportMessage.value = 'Failed to copy export JSON.';
+  }
+};
+
+const downloadSmartExport = () => {
+  try {
+    const size = downloadExportPayload(smartExportPrepared.value);
+    exportResults.value = [{
+      filename: smartExportPrepared.value.filename,
+      size
+    }];
+    emit('notification', 'Export Complete', `${smartExportPrepared.value.filename} downloaded successfully`);
+  } catch (error) {
+    emit('notification', 'Export Failed', error.message);
+  }
 };
 
 // Methods
@@ -364,9 +539,48 @@ const importSelectedFiles = async () => {
   selectedFiles.value = [];
 };
 
+const pasteFromClipboard = async () => {
+  try {
+    const clipboardText = await navigator.clipboard.readText();
+    pastedJson.value = clipboardText;
+    pastedPreview.value = '';
+    pastedJsonValidated.value = false;
+    pasteValidationMessage.value = 'Clipboard text pasted. View or validate it.';
+    pasteValidationState.value = 'success';
+  } catch (error) {
+    pasteValidationState.value = 'error';
+    pasteValidationMessage.value = 'Could not read clipboard.';
+  }
+};
+
+const previewPastedJson = () => {
+  pasteValidationMessage.value = '';
+  pasteValidationState.value = '';
+  pastedJsonValidated.value = false;
+
+  if (!pastedJson.value.trim()) {
+    pasteValidationState.value = 'error';
+    pasteValidationMessage.value = 'Paste JSON data first.';
+    pastedPreview.value = '';
+    return;
+  }
+
+  try {
+    const parsed = JSON.parse(pastedJson.value);
+    pastedPreview.value = JSON.stringify(parsed, null, 2);
+    pasteValidationState.value = 'success';
+    pasteValidationMessage.value = 'JSON preview ready. Now validate before update.';
+  } catch (error) {
+    pastedPreview.value = '';
+    pasteValidationState.value = 'error';
+    pasteValidationMessage.value = 'Invalid JSON format.';
+  }
+};
+
 const validatePastedJson = async () => {
   pasteValidationMessage.value = '';
   pasteValidationState.value = '';
+  pastedJsonValidated.value = false;
 
   if (!pasteTarget.value) {
     pasteValidationState.value = 'error';
@@ -380,17 +594,23 @@ const validatePastedJson = async () => {
     return;
   }
 
+  previewPastedJson();
+  if (!pastedPreview.value) {
+    return;
+  }
+
   const result = await importFromText(pastedJson.value, pasteTarget.value, { validateOnly: true });
   if (result.success) {
     pasteValidationState.value = 'success';
     pasteValidationMessage.value = `Valid ${importTargets.find(target => target.id === pasteTarget.value)?.label || 'data'} JSON. Ready to import.`;
+    pastedJsonValidated.value = true;
   } else {
     pasteValidationState.value = 'error';
     pasteValidationMessage.value = result.error;
   }
 };
 
-const importPastedData = async () => {
+const acceptPastedData = async () => {
   importResults.value = [];
   pasteValidationMessage.value = '';
   pasteValidationState.value = '';
@@ -407,12 +627,26 @@ const importPastedData = async () => {
     pasteValidationMessage.value = result.message || 'Pasted JSON imported successfully.';
     emit('notification', 'Import Success', result.message || 'Pasted JSON imported successfully');
     pastedJson.value = '';
+    pastedPreview.value = '';
+    pastedJsonValidated.value = false;
   } else {
     pasteValidationState.value = 'error';
     pasteValidationMessage.value = result.error || 'Import failed';
     emit('notification', 'Import Failed', result.error || 'Import failed');
   }
 };
+
+watch([smartExportTarget, timingExportScope, timingExportStage, timingExportDay, namecode], () => {
+  smartExportPrepared.value = null;
+  smartExportPreview.value = '';
+  smartExportFilename.value = '';
+  smartExportMessage.value = '';
+  smartExportState.value = '';
+});
+
+watch([pasteTarget, pastedJson], () => {
+  pastedJsonValidated.value = false;
+});
 
 const clearAllData = () => {
   if (confirm('Are you sure you want to clear all local data? This action cannot be undone.')) {
@@ -527,6 +761,123 @@ const formatFileSize = (bytes) => {
   font-size: 0.75rem;
   color: #475569;
   margin-top: 0.25rem;
+}
+
+.smart-panel {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  border: 1px solid #dbe3ef;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.smart-panel-header {
+  margin-bottom: 1rem;
+}
+
+.smart-panel-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.smart-panel-subtitle {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.smart-type-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.timing-scope-panel {
+  margin-bottom: 1rem;
+}
+
+.scope-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.scope-chip {
+  padding: 0.55rem 0.8rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #fff;
+  color: #334155;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.scope-chip.active {
+  border-color: #2563eb;
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.inline-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+}
+
+.select-field {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  background: white;
+}
+
+.smart-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.json-preview-panel {
+  margin-top: 1rem;
+  padding: 0.85rem;
+  border: 1px solid #dbe3ef;
+  border-radius: 12px;
+  background: #0f172a;
+}
+
+.import-preview-panel {
+  background: #111827;
+}
+
+.json-preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.preview-filename {
+  font-size: 0.75rem;
+  color: #cbd5e1;
+  word-break: break-all;
+}
+
+.json-preview {
+  margin: 0;
+  max-height: 260px;
+  overflow: auto;
+  color: #e2e8f0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .export-buttons {
@@ -997,6 +1348,14 @@ const formatFileSize = (bytes) => {
 
   .paste-actions {
     flex-direction: column;
+  }
+
+  .smart-actions {
+    flex-direction: column;
+  }
+
+  .smart-type-grid {
+    grid-template-columns: 1fr;
   }
   
   .export-buttons {

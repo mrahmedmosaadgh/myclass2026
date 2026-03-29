@@ -9,6 +9,8 @@ export function useDataImportExport() {
   const isExporting = ref(false);
   const importProgress = ref(0);
   const exportProgress = ref(0);
+  const stageOptions = ['prim', 'middle', 'sec'];
+  const dayOptions = ['d1', 'd2', 'd3', 'd4', 'd5', 'd6'];
   const importTargets = [
     {
       id: 'personal_schedule',
@@ -37,6 +39,65 @@ export function useDataImportExport() {
   ];
 
   const clone = (value) => JSON.parse(JSON.stringify(value));
+
+  const createBaseTimingConfig = () => clone(stageDayTimingsData);
+
+  const normalizeTimingConfig = (value) => {
+    const base = createBaseTimingConfig();
+    const source = isPlainObject(value) ? value : {};
+
+    if (Array.isArray(source.default)) {
+      base.default = clone(source.default);
+    }
+
+    Object.entries(source.overrides || {}).forEach(([stageKey, stageValue]) => {
+      if (!base.overrides[stageKey]) {
+        base.overrides[stageKey] = { default: null, days: { d1: null, d2: null, d3: null, d4: null, d5: null, d6: null } };
+      }
+
+      if (Array.isArray(stageValue?.default)) {
+        base.overrides[stageKey].default = clone(stageValue.default);
+      }
+
+      Object.entries(stageValue?.days || {}).forEach(([dayKey, dayValue]) => {
+        base.overrides[stageKey].days[dayKey] = Array.isArray(dayValue) ? clone(dayValue) : dayValue;
+      });
+    });
+
+    return base;
+  };
+
+  const loadStoredJSON = (key, fallback = null) => {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch (error) {
+      return fallback;
+    }
+  };
+
+  const getCurrentTimingConfig = () => {
+    return normalizeTimingConfig(loadStoredJSON('school-timings-v2', createBaseTimingConfig()));
+  };
+
+  const getCurrentPersonalData = () => {
+    return {
+      schedule: loadStoredJSON('imported-personal-schedule', clone(personalScheduleData)),
+      timings: loadStoredJSON('imported-personal-timings', clone(personalTimingData))
+    };
+  };
+
+  const getCurrentSchoolData = () => {
+    const importedSchool = loadStoredJSON('imported-school-timetable', null);
+    const timingConfig = getCurrentTimingConfig();
+
+    return {
+      stages: importedSchool?.stages || clone(masterTimetableData.stages),
+      defaultTimings: timingConfig.default,
+      customTimings: timingConfig,
+      overrides: timingConfig.overrides
+    };
+  };
 
   const isPlainObject = (value) => {
     return !!value && typeof value === 'object' && !Array.isArray(value);
@@ -118,6 +179,55 @@ export function useDataImportExport() {
   };
 
   const validateTimingConfigPayload = (jsonData) => {
+    if (jsonData?.type === 'stage_day_timings' && isPlainObject(jsonData.data) && typeof jsonData.data.mode === 'string') {
+      const mode = jsonData.data.mode;
+
+      if (mode === 'full_config') {
+        return validateTimingConfigPayload(jsonData.data.config);
+      }
+
+      if (mode === 'same_for_all') {
+        validateTimingSlots(jsonData.data.default, 'same for all timings');
+        return {
+          mode,
+          default: jsonData.data.default
+        };
+      }
+
+      if (mode === 'stage_default') {
+        if (!stageOptions.includes(jsonData.data.stage)) {
+          throw new Error('Invalid timing stage.');
+        }
+
+        validateTimingSlots(jsonData.data.default, `${jsonData.data.stage} default timings`);
+        return {
+          mode,
+          stage: jsonData.data.stage,
+          default: jsonData.data.default
+        };
+      }
+
+      if (mode === 'stage_day') {
+        if (!stageOptions.includes(jsonData.data.stage)) {
+          throw new Error('Invalid timing stage.');
+        }
+
+        if (!dayOptions.includes(jsonData.data.day)) {
+          throw new Error('Invalid timing day.');
+        }
+
+        validateTimingSlots(jsonData.data.slots, `${jsonData.data.stage} ${jsonData.data.day} timings`);
+        return {
+          mode,
+          stage: jsonData.data.stage,
+          day: jsonData.data.day,
+          slots: jsonData.data.slots
+        };
+      }
+
+      throw new Error('Invalid timing import mode.');
+    }
+
     const data = jsonData?.type === 'stage_day_timings'
       ? jsonData.data
       : jsonData?.default || jsonData?.overrides
@@ -157,6 +267,7 @@ export function useDataImportExport() {
     });
 
     return {
+      mode: 'full_config',
       default: data.default,
       overrides: data.overrides
     };
@@ -214,8 +325,228 @@ export function useDataImportExport() {
   };
 
   const applyTimingPayload = (payload) => {
-    localStorage.setItem('school-timings-v2', JSON.stringify(payload));
-    return payload;
+    const current = getCurrentTimingConfig();
+
+    if (payload.mode === 'same_for_all') {
+      current.default = clone(payload.default);
+      localStorage.setItem('school-timings-v2', JSON.stringify(current));
+      return current;
+    }
+
+    if (payload.mode === 'stage_default') {
+      current.overrides[payload.stage].default = clone(payload.default);
+      localStorage.setItem('school-timings-v2', JSON.stringify(current));
+      return current;
+    }
+
+    if (payload.mode === 'stage_day') {
+      current.overrides[payload.stage].days[payload.day] = clone(payload.slots);
+      localStorage.setItem('school-timings-v2', JSON.stringify(current));
+      return current;
+    }
+
+    const normalized = normalizeTimingConfig(payload);
+    localStorage.setItem('school-timings-v2', JSON.stringify(normalized));
+    return normalized;
+  };
+
+  const buildExportPayload = async (target, options = {}) => {
+    const { namecode = '', timingScope = 'full_config', stage = 'prim', day = 'd1' } = options;
+
+    isExporting.value = true;
+    exportProgress.value = 15;
+
+    try {
+      let exportData = null;
+      let filenameType = target;
+
+      if (target === 'personal_schedule') {
+        const personalData = getCurrentPersonalData();
+        const viewPreferences = {
+          viewMode: localStorage.getItem('schedule-app-view-mode'),
+          isShowingAllDays: localStorage.getItem('schedule-show-all-days'),
+          notifications: localStorage.getItem('notifications-enabled'),
+          customSettings: localStorage.getItem('schedule-custom-settings')
+        };
+
+        exportData = {
+          type: 'personal_schedule',
+          version: '2.0',
+          timestamp: new Date().toISOString(),
+          namecode: namecode || 'user',
+          data: {
+            schedule: personalData.schedule,
+            timings: personalData.timings,
+            preferences: viewPreferences
+          },
+          metadata: {
+            totalDays: personalData.schedule?.length || 0,
+            totalPeriods: personalData.timings?.length || 0,
+            exportedAt: new Date().toISOString(),
+            appVersion: 'Schedule App V2'
+          }
+        };
+      }
+
+      if (target === 'school_timetable') {
+        const schoolData = getCurrentSchoolData();
+        exportData = {
+          type: 'school_timetable',
+          version: '2.0',
+          timestamp: new Date().toISOString(),
+          namecode: namecode || 'school',
+          data: {
+            stages: schoolData.stages,
+            defaultTimings: schoolData.defaultTimings,
+            customTimings: schoolData.customTimings,
+            overrides: schoolData.overrides
+          },
+          metadata: {
+            totalStages: Object.keys(schoolData.stages || {}).length,
+            totalTeachers: countTotalTeachers(schoolData.stages),
+            totalDays: countTotalDays(schoolData.stages),
+            exportedAt: new Date().toISOString(),
+            appVersion: 'Schedule App V2'
+          }
+        };
+      }
+
+      if (target === 'app_settings') {
+        exportData = {
+          type: 'app_settings',
+          version: '2.0',
+          timestamp: new Date().toISOString(),
+          namecode: namecode || 'settings',
+          data: {
+            viewMode: localStorage.getItem('schedule-app-view-mode'),
+            notifications: Notification.permission,
+            customTimings: localStorage.getItem('school-timings-v2'),
+            userPreferences: {
+              theme: localStorage.getItem('app-theme'),
+              language: localStorage.getItem('app-language'),
+              autoSync: localStorage.getItem('auto-sync-enabled')
+            }
+          },
+          metadata: {
+            exportedAt: new Date().toISOString(),
+            appVersion: 'Schedule App V2'
+          }
+        };
+      }
+
+      if (target === 'stage_day_timings') {
+        const timingConfig = getCurrentTimingConfig();
+        filenameType = `timing_${timingScope}`;
+
+        if (timingScope === 'same_for_all') {
+          exportData = {
+            type: 'stage_day_timings',
+            version: '2.0',
+            timestamp: new Date().toISOString(),
+            namecode: namecode || 'timing',
+            data: {
+              mode: 'same_for_all',
+              default: timingConfig.default
+            },
+            metadata: {
+              scope: 'same_for_all',
+              exportedAt: new Date().toISOString(),
+              appVersion: 'Schedule App V2'
+            }
+          };
+        }
+
+        if (timingScope === 'stage_default') {
+          exportData = {
+            type: 'stage_day_timings',
+            version: '2.0',
+            timestamp: new Date().toISOString(),
+            namecode: namecode || `${stage}_default`,
+            data: {
+              mode: 'stage_default',
+              stage,
+              default: timingConfig.overrides[stage]?.default || timingConfig.default
+            },
+            metadata: {
+              scope: 'stage_default',
+              stage,
+              exportedAt: new Date().toISOString(),
+              appVersion: 'Schedule App V2'
+            }
+          };
+        }
+
+        if (timingScope === 'stage_day') {
+          exportData = {
+            type: 'stage_day_timings',
+            version: '2.0',
+            timestamp: new Date().toISOString(),
+            namecode: namecode || `${stage}_${day}`,
+            data: {
+              mode: 'stage_day',
+              stage,
+              day,
+              slots: timingConfig.overrides[stage]?.days?.[day] || timingConfig.overrides[stage]?.default || timingConfig.default
+            },
+            metadata: {
+              scope: 'stage_day',
+              stage,
+              day,
+              exportedAt: new Date().toISOString(),
+              appVersion: 'Schedule App V2'
+            }
+          };
+        }
+
+        if (timingScope === 'full_config' || !exportData) {
+          exportData = {
+            type: 'stage_day_timings',
+            version: '2.0',
+            timestamp: new Date().toISOString(),
+            namecode: namecode || 'timing_full',
+            data: {
+              mode: 'full_config',
+              config: timingConfig
+            },
+            metadata: {
+              scope: 'full_config',
+              exportedAt: new Date().toISOString(),
+              appVersion: 'Schedule App V2'
+            }
+          };
+        }
+      }
+
+      if (!exportData) {
+        throw new Error('Unsupported export target.');
+      }
+
+      exportProgress.value = 100;
+
+      const filename = generateFilename(filenameType, namecode);
+      const jsonString = JSON.stringify(exportData, null, 2);
+
+      return {
+        success: true,
+        filename,
+        data: exportData,
+        jsonString,
+        size: new Blob([jsonString], { type: 'application/json' }).size
+      };
+    } catch (error) {
+      return { success: false, error: error.message };
+    } finally {
+      isExporting.value = false;
+      exportProgress.value = 0;
+    }
+  };
+
+  const downloadExportPayload = (prepared) => {
+    if (!prepared?.data || !prepared?.filename) {
+      throw new Error('Nothing to download.');
+    }
+
+    return downloadJSON(prepared.data, prepared.filename);
   };
 
   const applySettingsPayload = (payload) => {
@@ -313,50 +644,12 @@ export function useDataImportExport() {
   // Export personal schedule data
   const exportPersonalSchedule = async (namecode = '') => {
     try {
-      isExporting.value = true;
-      exportProgress.value = 0;
-
-      const scheduleData = clone(personalScheduleData);
-      const timingData = clone(personalTimingData);
-
-      exportProgress.value = 25;
-
-      // Load view preferences from localStorage
-      const viewPreferences = {
-        viewMode: localStorage.getItem('schedule-app-view-mode'),
-        isShowingAllDays: localStorage.getItem('schedule-show-all-days'),
-        notifications: localStorage.getItem('notifications-enabled'),
-        customSettings: localStorage.getItem('schedule-custom-settings')
-      };
-
-      exportProgress.value = 50;
-
-      const exportData = {
-        type: 'personal_schedule',
-        version: '2.0',
-        timestamp: new Date().toISOString(),
-        namecode: namecode || 'user',
-        data: {
-          schedule: scheduleData,
-          timings: timingData,
-          preferences: viewPreferences
-        },
-        metadata: {
-          totalDays: scheduleData?.length || 0,
-          totalPeriods: timingData?.length || 0,
-          exportedAt: new Date().toISOString(),
-          appVersion: 'Schedule App V2'
-        }
-      };
-
-      exportProgress.value = 75;
-
-      // Download file
-      const filename = generateFilename('personal_schedule', namecode);
-      const size = downloadJSON(exportData, filename);
-
-      exportProgress.value = 100;
-      return { success: true, filename, data: exportData, size };
+      const prepared = await buildExportPayload('personal_schedule', { namecode });
+      if (!prepared.success) {
+        throw new Error(prepared.error);
+      }
+      const size = downloadExportPayload(prepared);
+      return { success: true, filename: prepared.filename, data: prepared.data, size };
 
     } catch (error) {
       console.error('Export failed:', error);
@@ -370,49 +663,12 @@ export function useDataImportExport() {
   // Export school timetable data
   const exportSchoolTimetable = async (namecode = '') => {
     try {
-      isExporting.value = true;
-      exportProgress.value = 0;
-
-      const schoolData = clone(masterTimetableData);
-
-      exportProgress.value = 25;
-
-      const timingData = clone(stageDayTimingsData);
-
-      exportProgress.value = 50;
-
-      // Load custom timing overrides from localStorage
-      const customTimings = localStorage.getItem('school-timings-v2');
-      const parsedCustomTimings = customTimings ? JSON.parse(customTimings) : null;
-
-      exportProgress.value = 75;
-
-      const exportData = {
-        type: 'school_timetable',
-        version: '2.0',
-        timestamp: new Date().toISOString(),
-        namecode: namecode || 'school',
-        data: {
-          stages: schoolData.stages,
-          defaultTimings: timingData.default,
-          customTimings: parsedCustomTimings,
-          overrides: timingData.overrides
-        },
-        metadata: {
-          totalStages: Object.keys(schoolData.stages || {}).length,
-          totalTeachers: countTotalTeachers(schoolData.stages),
-          totalDays: countTotalDays(schoolData.stages),
-          exportedAt: new Date().toISOString(),
-          appVersion: 'Schedule App V2'
-        }
-      };
-
-      // Download file
-      const filename = generateFilename('school_timetable', namecode);
-      const size = downloadJSON(exportData, filename);
-
-      exportProgress.value = 100;
-      return { success: true, filename, data: exportData, size };
+      const prepared = await buildExportPayload('school_timetable', { namecode });
+      if (!prepared.success) {
+        throw new Error(prepared.error);
+      }
+      const size = downloadExportPayload(prepared);
+      return { success: true, filename: prepared.filename, data: prepared.data, size };
 
     } catch (error) {
       console.error('Export failed:', error);
@@ -467,31 +723,12 @@ export function useDataImportExport() {
   // Export app settings
   const exportAppSettings = async (namecode = '') => {
     try {
-      const settingsData = {
-        type: 'app_settings',
-        version: '2.0',
-        timestamp: new Date().toISOString(),
-        namecode: namecode || 'settings',
-        data: {
-          viewMode: localStorage.getItem('schedule-app-view-mode'),
-          notifications: Notification.permission,
-          customTimings: localStorage.getItem('school-timings-v2'),
-          userPreferences: {
-            theme: localStorage.getItem('app-theme'),
-            language: localStorage.getItem('app-language'),
-            autoSync: localStorage.getItem('auto-sync-enabled')
-          }
-        },
-        metadata: {
-          exportedAt: new Date().toISOString(),
-          appVersion: 'Schedule App V2'
-        }
-      };
-
-      const filename = generateFilename('app_settings', namecode);
-      const size = downloadJSON(settingsData, filename);
-
-      return { success: true, filename, data: settingsData, size };
+      const prepared = await buildExportPayload('app_settings', { namecode });
+      if (!prepared.success) {
+        throw new Error(prepared.error);
+      }
+      const size = downloadExportPayload(prepared);
+      return { success: true, filename: prepared.filename, data: prepared.data, size };
     } catch (error) {
       return { success: false, error: error.message };
     }
@@ -645,6 +882,8 @@ export function useDataImportExport() {
     exportSchoolTimetable,
     exportAllData,
     exportAppSettings,
+    buildExportPayload,
+    downloadExportPayload,
     
     // Import functions
     importPersonalSchedule,
@@ -654,6 +893,8 @@ export function useDataImportExport() {
     importFromFile,
     importFromText,
     importTargets,
+    stageOptions,
+    dayOptions,
     
     // Utilities
     generateFilename,
