@@ -117,7 +117,8 @@ const props = defineProps({
   timeSlots: { type: Array, required: true },
   isShowingAllDays: { type: Boolean, default: true },
   currentDayIndex: { type: Number, required: true },
-  currentTotalSecs: { type: Number, required: true }
+  currentTotalSecs: { type: Number, required: true },
+  currentTimeDisplay: { type: String, default: '00:00:00' }
 });
 
 const emit = defineEmits(['play-alert', 'notify', 'active-period-update', 'view-mode-change']);
@@ -210,12 +211,7 @@ const updateZoom = () => {
 
 // Update live time and current period
 const updateLiveInfo = () => {
-  const now = new Date();
-  currentTimeDisplay.value = now.toLocaleTimeString([], { 
-    hour: '2-digit', 
-    minute: '2-digit', 
-    second: '2-digit' 
-  });
+  currentTimeDisplay.value = props.currentTimeDisplay || '00:00:00';
   
   // Update current period info
   const currentDayData = props.scheduleData.find(d => d.dayIndex === props.currentDayIndex);
@@ -283,6 +279,7 @@ onMounted(() => {
 
 // Watch for changes
 watch(() => props.currentTotalSecs, updateLiveInfo);
+watch(() => props.currentTimeDisplay, updateLiveInfo);
 </script>
 
 <style scoped>
@@ -327,7 +324,7 @@ watch(() => props.currentTotalSecs, updateLiveInfo);
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   font-weight: 600;
-  color: #64748b;
+  color: #334155;
   cursor: pointer;
   transition: all 0.3s ease;
 }
@@ -444,7 +441,7 @@ watch(() => props.currentTotalSecs, updateLiveInfo);
 
 .period-time {
   font-size: 0.65rem;
-  opacity: 0.8;
+  color: rgba(255, 255, 255, 0.92);
 }
 
 .day-row.current-day {

@@ -143,7 +143,7 @@ const saveChanges = () => {
 .close-btn {
   font-size: 1.5rem;
   line-height: 1;
-  color: #9ca3af;
+  color: #334155;
   background: none;
   border: none;
   cursor: pointer;
@@ -198,7 +198,13 @@ const saveChanges = () => {
   border-radius: 6px;
   font-size: 0.875rem;
   background: white;
+  color: #1e293b;
   transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-input::placeholder {
+  color: #64748b;
+  opacity: 1;
 }
 
 .form-input:focus {

@@ -2,7 +2,7 @@
   <div class="view-mode-switcher">
     <div class="switcher-container">
       <button
-        v-for="mode in viewModes"
+        v-for="mode in visibleViewModes()"
         :key="mode.id"
         @click="selectMode(mode.id)"
         :class="['mode-btn', { active: currentMode === mode.id }]"
@@ -19,7 +19,11 @@
 import { ref, watch } from 'vue';
 
 const props = defineProps({
-  defaultMode: { type: String, default: 'card' }
+  defaultMode: { type: String, default: 'card' },
+  availableModes: {
+    type: Array,
+    default: () => ['card', 'table', 'list', 'master']
+  }
 });
 
 const emit = defineEmits(['mode-change']);
@@ -31,27 +35,40 @@ const viewModes = [
   { id: 'master', icon: '🏫', label: 'School' }
 ];
 
+const visibleViewModes = () => viewModes.filter(mode => props.availableModes.includes(mode.id));
+
 const currentMode = ref(props.defaultMode);
 
 // Load saved preference from localStorage
 const loadSavedMode = () => {
   const saved = localStorage.getItem('schedule-app-view-mode');
-  if (saved && viewModes.find(m => m.id === saved)) {
+  if (saved && visibleViewModes().find(m => m.id === saved)) {
     currentMode.value = saved;
   }
 };
 
 const selectMode = (modeId) => {
+  if (!visibleViewModes().find(mode => mode.id === modeId)) {
+    return;
+  }
+
   currentMode.value = modeId;
   localStorage.setItem('schedule-app-view-mode', modeId);
   emit('mode-change', modeId);
 };
 
 watch(() => props.defaultMode, (newMode) => {
-  if (newMode && viewModes.find(m => m.id === newMode)) {
+  if (newMode && visibleViewModes().find(m => m.id === newMode)) {
     currentMode.value = newMode;
   }
 });
+
+watch(() => props.availableModes, (newModes) => {
+  if (!newModes.includes(currentMode.value)) {
+    currentMode.value = newModes[0] || 'card';
+    emit('mode-change', currentMode.value);
+  }
+}, { deep: true });
 
 // Initialize on mount
 loadSavedMode();

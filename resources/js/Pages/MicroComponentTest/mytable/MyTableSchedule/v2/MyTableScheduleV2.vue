@@ -3,7 +3,14 @@
     <!-- View Mode Switcher -->
     <ViewModeSwitcher 
       :default-mode="currentViewMode"
+      :available-modes="availableModes"
       @mode-change="handleViewModeChange"
+    />
+
+    <TestTimeOverride
+      v-model:enabled="testTimeEnabled"
+      v-model:dayIndex="testDayIndex"
+      v-model:timeValue="testTimeValue"
     />
 
     <!-- Dynamic View Component -->
@@ -27,15 +34,17 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import ViewModeSwitcher from './components/ViewModeSwitcher.vue';
 import CardView from './components/CardView.vue';
 import TableView from './components/TableView.vue';
 import ListView from './components/ListView.vue';
 import MasterTimetableView from './components/MasterTimetableView.vue';
 import ScheduleTimingManager from './components/ScheduleTimingManager.vue';
+import TestTimeOverride from './components/TestTimeOverride.vue';
 import scheduleTimingData from './schedule_timing.json';
 import scheduleItemsData from './schedule_data.json';
+import masterTimetableData from './data/master_timetable_data.json';
 
 // State
 const scheduleData = ref([]);
@@ -49,9 +58,18 @@ const currentTimeDisplay = ref('00:00:00');
 const showNotifyBtn = ref(false);
 const activePeriodInfo = ref(null);
 const showTimingManager = ref(false);
+const testTimeEnabled = ref(false);
+const testDayIndex = ref(0);
+const testTimeValue = ref('09:00');
+const teacherAccessConfig = ref(null);
 
 let timerInterval = null;
 let alertSound = null;
+
+const getSecondsFromTimeValue = (timeValue) => {
+  const [hours = 0, minutes = 0] = timeValue.split(':').map(Number);
+  return (hours * 3600) + (minutes * 60);
+};
 
 // View Components Mapping
 const viewComponents = {
@@ -61,17 +79,72 @@ const viewComponents = {
   master: MasterTimetableView
 };
 
+const dayIdToMeta = {
+  d1: { day: 'Sunday', dayIndex: 0 },
+  d2: { day: 'Monday', dayIndex: 1 },
+  d3: { day: 'Tuesday', dayIndex: 2 },
+  d4: { day: 'Wednesday', dayIndex: 3 },
+  d5: { day: 'Thursday', dayIndex: 4 },
+  d6: { day: 'Friday', dayIndex: 5 }
+};
+
+const teacherScheduleData = computed(() => {
+  if (!teacherAccessConfig.value) {
+    return scheduleData.value;
+  }
+
+  const { teacherId, stage } = teacherAccessConfig.value;
+  const stageData = masterTimetableData?.stages?.[stage];
+  if (!stageData?.days) {
+    return [];
+  }
+
+  return Object.entries(stageData.days).map(([dayId, dayData]) => {
+    const teacher = dayData.teachers.find(item => item.id === teacherId);
+    const assignments = teacher?.assignments?.[dayId] || {};
+    const dayMeta = dayIdToMeta[dayId] || { day: dayId.toUpperCase(), dayIndex: 0 };
+
+    return {
+      day: dayMeta.day,
+      dayIndex: dayMeta.dayIndex,
+      classes: timeSlots.value
+        .filter(slot => slot.type !== 'break' && slot.type !== 'activity')
+        .map(slot => {
+          const assignment = assignments[String(slot.id)] || assignments[slot.id] || null;
+          return {
+            p: slot.id,
+            sub: assignment ? `${assignment.class} · ${assignment.subject}` : ''
+          };
+        })
+    };
+  });
+});
+
+const availableModes = computed(() => {
+  return teacherAccessConfig.value
+    ? ['card', 'table', 'list']
+    : ['card', 'table', 'list', 'master'];
+});
+
 // Computed Properties
 const currentViewComponent = computed(() => {
+  if (teacherAccessConfig.value && currentViewMode.value === 'master') {
+    return CardView;
+  }
+
   return viewComponents[currentViewMode.value] || CardView;
 });
 
 const currentViewProps = computed(() => {
   const baseProps = {
-    scheduleData: scheduleData.value,
+    scheduleData: teacherScheduleData.value,
     timeSlots: timeSlots.value,
     currentDayIndex: currentDayIndex.value,
-    currentTotalSecs: currentTotalSecs.value
+    currentTotalSecs: currentTotalSecs.value,
+    currentTimeDisplay: currentTimeDisplay.value,
+    isTestTimeEnabled: testTimeEnabled.value,
+    teacherAccessMode: !!teacherAccessConfig.value,
+    teacherAccessName: teacherAccessConfig.value?.teacherName || ''
   };
 
   // Add view-specific props
@@ -87,6 +160,11 @@ const currentViewProps = computed(() => {
 
 // Methods
 const handleViewModeChange = (mode) => {
+  if (teacherAccessConfig.value && mode === 'master') {
+    currentViewMode.value = 'card';
+    return;
+  }
+
   currentViewMode.value = mode;
   
   // Haptic feedback on mobile
@@ -101,6 +179,13 @@ const toggleViewMode = () => {
 };
 
 const updateLiveIndicator = () => {
+  if (testTimeEnabled.value) {
+    currentDayIndex.value = Number(testDayIndex.value);
+    currentTotalSecs.value = getSecondsFromTimeValue(testTimeValue.value);
+    currentTimeDisplay.value = `${testTimeValue.value}:00`;
+    return;
+  }
+
   const now = new Date();
   
   // Calculate current day index (0-based, Sunday = 0)
@@ -199,7 +284,41 @@ onMounted(() => {
     console.error(err);
   }
 
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const teacherId = params.get('teacherId');
+    const stage = params.get('stage');
+    const teacherName = params.get('teacherName');
+
+    if (teacherId && stage && masterTimetableData?.stages?.[stage]) {
+      teacherAccessConfig.value = {
+        teacherId,
+        stage,
+        teacherName: teacherName || 'Teacher'
+      };
+
+      if (currentViewMode.value === 'master') {
+        currentViewMode.value = 'card';
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to parse teacher access params', e);
+  }
+
   checkNotificationStatus();
+
+  const savedTestTimeConfig = localStorage.getItem('schedule-v2-test-time');
+  if (savedTestTimeConfig) {
+    try {
+      const parsed = JSON.parse(savedTestTimeConfig);
+      testTimeEnabled.value = !!parsed.enabled;
+      testDayIndex.value = Number(parsed.dayIndex ?? 0);
+      testTimeValue.value = parsed.timeValue || '09:00';
+    } catch (e) {
+      console.warn('Failed to restore test time config', e);
+    }
+  }
+
   updateLiveIndicator();
   
   // Start timer to update time every second
@@ -208,6 +327,16 @@ onMounted(() => {
 
 onUnmounted(() => {
   if (timerInterval) clearInterval(timerInterval);
+});
+
+watch([testTimeEnabled, testDayIndex, testTimeValue], () => {
+  localStorage.setItem('schedule-v2-test-time', JSON.stringify({
+    enabled: testTimeEnabled.value,
+    dayIndex: testDayIndex.value,
+    timeValue: testTimeValue.value
+  }));
+
+  updateLiveIndicator();
 });
 </script>
 

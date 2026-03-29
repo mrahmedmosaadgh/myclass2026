@@ -90,7 +90,27 @@
               <!-- Teacher Name Column -->
               <td class="teacher-cell">
                 <div class="teacher-info">
-                  <span class="teacher-name">{{ teacher.name }}</span>
+                  <div class="teacher-name-row">
+                    <span class="teacher-name">{{ teacher.name }}</span>
+                    <div class="teacher-link-actions">
+                      <button
+                        @click.stop="copyTeacherLink(teacher)"
+                        class="teacher-link-btn"
+                        title="Copy teacher link"
+                        aria-label="Copy teacher link"
+                      >
+                        🔗
+                      </button>
+                      <button
+                        @click.stop="shareTeacherLink(teacher)"
+                        class="teacher-link-btn"
+                        title="Share teacher link"
+                        aria-label="Share teacher link"
+                      >
+                        📤
+                      </button>
+                    </div>
+                  </div>
                   <div class="teacher-stats">
                     <span class="busy-count">{{ getBusyPeriodsCount(teacher) }}</span>
                     <span class="free-count">{{ getFreePeriodsCount(teacher) }}</span>
@@ -115,14 +135,14 @@
                     <span class="subject-name">{{ getAssignment(period, teacher).subject }}</span>
                   </div>
                   <div v-else class="free-indicator">
-                    <span class="free-text">Free</span>
+                    <span class="free-icon" aria-label="Free period" title="Free period">◌</span>
                   </div>
                 </div>
 
                 <!-- Current Period Progress -->
                 <div v-if="isCurrentPeriod(period, teacher)" class="cell-progress">
-                  <div class="progress-fill" :style="{ height: `${currentPeriodProgress}%` }"></div>
-                  <div class="progress-line" :style="{ top: `${currentPeriodProgress}%` }"></div>
+                  <div class="progress-fill" :style="{ height: `${activePeriodProgress}%` }"></div>
+                  <div class="progress-line" :style="{ top: `${activePeriodProgress}%` }"></div>
                 </div>
               </td>
             </tr>
@@ -194,11 +214,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import StageSelector from './StageSelector.vue';
 import DaySelector from './DaySelector.vue';
 import StageDayTimingManager from './StageDayTimingManager.vue';
 import { useSchoolTimetable } from '../composables/useSchoolTimetable.js';
+
+const props = defineProps({
+  currentDayIndex: { type: Number, default: 0 },
+  currentTotalSecs: { type: Number, default: 0 },
+  isTestTimeEnabled: { type: Boolean, default: false }
+});
 
 const emit = defineEmits(['play-alert', 'notify']);
 
@@ -226,6 +252,26 @@ const {
 const nowTick = ref(Date.now());
 let progressInterval = null;
 
+const activePeriodProgress = computed(() => {
+  const currentTotalMinutes = Math.floor(props.currentTotalSecs / 60);
+  const currentTotalSeconds = props.currentTotalSecs;
+
+  for (const period of resolvedPeriods.value) {
+    const startParts = period.start.split(':').map(Number);
+    const endParts = period.end.split(':').map(Number);
+    const startSeconds = ((startParts[0] * 60) + startParts[1]) * 60;
+    const endSeconds = ((endParts[0] * 60) + endParts[1]) * 60;
+
+    if (currentTotalMinutes >= (startParts[0] * 60 + startParts[1]) && currentTotalSeconds < endSeconds) {
+      const duration = endSeconds - startSeconds;
+      const elapsed = currentTotalSeconds - startSeconds;
+      return Math.max(0, Math.min(100, (elapsed / duration) * 100));
+    }
+  }
+
+  return 0;
+});
+
 // Computed properties
 const getStageLabel = (stage) => {
   const labels = {
@@ -246,6 +292,11 @@ const getDayLabel = (day) => {
     d6: 'Day 6'
   };
   return labels[day] || day;
+};
+
+const dayIndexToId = (dayIndex) => {
+  const mapping = ['d1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd1'];
+  return mapping[dayIndex] || 'd1';
 };
 
 // Methods
@@ -290,8 +341,7 @@ const isCurrentPeriod = (period, teacher) => {
     return false;
   }
 
-  const now = new Date();
-  const currentTotalMinutes = (now.getHours() * 60) + now.getMinutes();
+  const currentTotalMinutes = Math.floor(props.currentTotalSecs / 60);
   const startParts = period.start.split(':').map(Number);
   const endParts = period.end.split(':').map(Number);
   const startMinutes = (startParts[0] * 60) + startParts[1];
@@ -330,6 +380,52 @@ const handleCellClick = (period, teacher) => {
   if (navigator.vibrate) {
     navigator.vibrate(50);
   }
+};
+
+const buildTeacherLink = (teacher) => {
+  const url = new URL(window.location.href);
+  url.searchParams.set('teacherId', teacher.id);
+  url.searchParams.set('stage', selectedStage.value);
+  url.searchParams.set('teacherName', teacher.name);
+  return url.toString();
+};
+
+const copyTeacherLink = async (teacher) => {
+  const link = buildTeacherLink(teacher);
+
+  try {
+    await navigator.clipboard.writeText(link);
+    emit('notify', 'Link Copied', `Teacher link copied for ${teacher.name}`);
+  } catch (error) {
+    const input = document.createElement('input');
+    input.value = link;
+    document.body.appendChild(input);
+    input.select();
+    document.execCommand('copy');
+    document.body.removeChild(input);
+    emit('notify', 'Link Copied', `Teacher link copied for ${teacher.name}`);
+  }
+};
+
+const shareTeacherLink = async (teacher) => {
+  const link = buildTeacherLink(teacher);
+
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: `${teacher.name} Schedule`,
+        text: `${teacher.name} teacher schedule link`,
+        url: link
+      });
+      return;
+    } catch (error) {
+      if (error?.name === 'AbortError') {
+        return;
+      }
+    }
+  }
+
+  await copyTeacherLink(teacher);
 };
 
 const closeCellDetail = () => {
@@ -373,6 +469,7 @@ const downloadFile = (content, filename, mimeType) => {
 
 // Lifecycle
 onMounted(() => {
+  selectedDay.value = dayIndexToId(props.currentDayIndex);
   loadTimingsFromStorage();
   loadData();
 
@@ -390,6 +487,12 @@ onUnmounted(() => {
 // Watch for stage/day changes
 watch([selectedStage, selectedDay], () => {
   loadData();
+});
+
+watch(() => props.currentDayIndex, (newDayIndex) => {
+  if (props.isTestTimeEnabled) {
+    selectedDay.value = dayIndexToId(newDayIndex);
+  }
 });
 </script>
 
@@ -625,9 +728,44 @@ watch([selectedStage, selectedDay], () => {
   gap: 0.25rem;
 }
 
+.teacher-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
 .teacher-name {
   font-weight: 700;
   color: #1e293b;
+}
+
+.teacher-link-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.teacher-link-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #475569;
+  cursor: pointer;
+  font-size: 0.85rem;
+  min-width: 28px;
+  min-height: 28px;
+}
+
+.teacher-link-btn:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
 }
 
 .teacher-stats {
@@ -697,6 +835,23 @@ watch([selectedStage, selectedDay], () => {
   color: #475569;
   font-size: 0.75rem;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.free-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  border: 1.5px solid #cbd5e1;
+  color: #94a3b8;
+  font-size: 0.7rem;
+  line-height: 1;
+  background: rgba(255, 255, 255, 0.7);
 }
 
 /* Cell type colors */

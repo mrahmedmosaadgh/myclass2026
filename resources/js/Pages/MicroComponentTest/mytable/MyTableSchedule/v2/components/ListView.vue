@@ -182,7 +182,8 @@ const props = defineProps({
   scheduleData: { type: Array, required: true },
   timeSlots: { type: Array, required: true },
   currentDayIndex: { type: Number, required: true },
-  currentTotalSecs: { type: Number, required: true }
+  currentTotalSecs: { type: Number, required: true },
+  currentTimeDisplay: { type: String, default: '00:00:00' }
 });
 
 const emit = defineEmits(['play-alert', 'notify', 'active-period-update']);
@@ -335,12 +336,7 @@ const scrollToCurrentPeriod = () => {
 };
 
 const updateCurrentPeriod = () => {
-  const now = new Date();
-  currentTimeDisplay.value = now.toLocaleTimeString([], { 
-    hour: '2-digit', 
-    minute: '2-digit', 
-    second: '2-digit' 
-  });
+  currentTimeDisplay.value = props.currentTimeDisplay || '00:00:00';
   
   // Find current period
   const dayData = props.scheduleData.find(d => d.dayIndex === props.currentDayIndex);
@@ -417,6 +413,7 @@ watch(() => props.currentDayIndex, (newDayIndex) => {
 });
 
 watch(() => props.currentTotalSecs, updateCurrentPeriod);
+watch(() => props.currentTimeDisplay, updateCurrentPeriod);
 </script>
 
 <style scoped>
@@ -501,7 +498,7 @@ watch(() => props.currentTotalSecs, updateCurrentPeriod);
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   font-weight: 600;
-  color: #64748b;
+  color: #334155;
   cursor: pointer;
   transition: all 0.3s ease;
   min-width: 60px;
@@ -593,7 +590,7 @@ watch(() => props.currentTotalSecs, updateCurrentPeriod);
 
 .period-time {
   font-size: 0.875rem;
-  opacity: 0.9;
+  color: rgba(255, 255, 255, 0.96);
   margin: 0 0 0.5rem 0;
 }
 
@@ -680,7 +677,7 @@ watch(() => props.currentTotalSecs, updateCurrentPeriod);
 
 .period-duration {
   font-size: 0.65rem;
-  color: #64748b;
+  color: #475569;
 }
 
 .period-info {
@@ -746,7 +743,7 @@ watch(() => props.currentTotalSecs, updateCurrentPeriod);
 
 .nafs-indicator {
   font-size: 0.75rem;
-  color: #64748b;
+  color: #475569;
   font-weight: 500;
 }
 

@@ -105,7 +105,9 @@ const props = defineProps({
   scheduleData: { type: Array, required: true },
   timeSlots: { type: Array, required: true },
   currentDayIndex: { type: Number, required: true },
-  currentTotalSecs: { type: Number, required: true }
+  currentTotalSecs: { type: Number, required: true },
+  currentTimeDisplay: { type: String, default: '00:00:00' },
+  isTestTimeEnabled: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(['play-alert', 'notify', 'active-period-update']);
@@ -119,8 +121,7 @@ const currentCardIndex = ref(0);
 
 // Computed properties
 const todayIndex = computed(() => {
-  const now = new Date();
-  return now.getDay();
+  return props.currentDayIndex;
 });
 
 const currentDayName = computed(() => {
@@ -129,9 +130,13 @@ const currentDayName = computed(() => {
 });
 
 const currentDateDisplay = computed(() => {
+  if (props.isTestTimeEnabled) {
+    return `Test ${props.currentTimeDisplay}`;
+  }
+
   const now = new Date();
-  return now.toLocaleDateString('en-US', { 
-    month: 'short', 
+  return now.toLocaleDateString('en-US', {
+    month: 'short',
     day: 'numeric',
     weekday: 'short'
   });
@@ -311,12 +316,12 @@ onMounted(() => {
 
 .current-date {
   font-size: 0.875rem;
-  color: #64748b;
+  color: #475569;
 }
 
 .swipe-hint {
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: #475569;
   background: #f1f5f9;
   padding: 0.25rem 0.75rem;
   border-radius: 12px;
@@ -367,7 +372,7 @@ onMounted(() => {
 
 .period-count {
   font-size: 0.875rem;
-  color: #64748b;
+  color: #475569;
   background: #f1f5f9;
   padding: 0.25rem 0.75rem;
   border-radius: 8px;
@@ -415,7 +420,7 @@ onMounted(() => {
 
 .time-range {
   font-size: 0.75rem;
-  color: #64748b;
+  color: #475569;
 }
 
 .period-content {
@@ -438,7 +443,7 @@ onMounted(() => {
 
 .nafs-indicator {
   font-size: 0.75rem;
-  color: #64748b;
+  color: #475569;
   display: block;
   margin-top: 0.25rem;
 }
@@ -473,7 +478,7 @@ onMounted(() => {
 
 .type-indicator {
   font-size: 1.5rem;
-  opacity: 0.7;
+  opacity: 0.9;
 }
 
 /* Period type colors */

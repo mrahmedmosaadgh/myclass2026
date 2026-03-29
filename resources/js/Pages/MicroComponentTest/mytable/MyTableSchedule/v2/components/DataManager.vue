@@ -363,7 +363,7 @@ const formatFileSize = (bytes) => {
 }
 
 .manager-subtitle {
-  color: #64748b;
+  color: #475569;
   font-size: 0.875rem;
   margin: 0;
 }
@@ -412,7 +412,7 @@ const formatFileSize = (bytes) => {
 .input-hint {
   display: block;
   font-size: 0.75rem;
-  color: #64748b;
+  color: #475569;
   margin-top: 0.25rem;
 }
 
@@ -498,7 +498,7 @@ const formatFileSize = (bytes) => {
 
 .btn-desc {
   font-size: 0.75rem;
-  color: #64748b;
+  color: #475569;
 }
 
 .import-area {
@@ -526,7 +526,7 @@ const formatFileSize = (bytes) => {
 
 .import-icon {
   font-size: 3rem;
-  opacity: 0.5;
+  opacity: 0.85;
 }
 
 .import-text {
@@ -537,7 +537,7 @@ const formatFileSize = (bytes) => {
 
 .import-hint {
   font-size: 0.875rem;
-  color: #64748b;
+  color: #475569;
   margin: 0;
 }
 
@@ -599,7 +599,7 @@ const formatFileSize = (bytes) => {
 
 .file-size {
   font-size: 0.75rem;
-  color: #64748b;
+  color: #475569;
 }
 
 .remove-btn {
@@ -660,7 +660,7 @@ const formatFileSize = (bytes) => {
 
 .progress-text {
   font-size: 0.875rem;
-  color: #64748b;
+  color: #475569;
   text-align: center;
   margin: 0;
 }
@@ -709,7 +709,7 @@ const formatFileSize = (bytes) => {
 .result-size,
 .result-message {
   font-size: 0.75rem;
-  color: #64748b;
+  color: #475569;
 }
 
 .quick-actions {

@@ -596,7 +596,7 @@ onMounted(() => {
 }
 
 .sheet-subtitle {
-  color: #64748b;
+  color: #475569;
   font-size: 0.875rem;
   margin: 0;
 }
@@ -605,7 +605,7 @@ onMounted(() => {
   background: none;
   border: none;
   font-size: 1.5rem;
-  color: #64748b;
+  color: #334155;
   cursor: pointer;
   padding: 0.25rem;
   width: 32px;
@@ -638,7 +638,7 @@ onMounted(() => {
   border-bottom: 2px solid transparent;
   cursor: pointer;
   font-weight: 600;
-  color: #64748b;
+  color: #334155;
   transition: all 0.3s ease;
 }
 
@@ -658,6 +658,7 @@ onMounted(() => {
 
 .mode-label {
   font-size: 0.875rem;
+  color: inherit;
 }
 
 .mode-content {
@@ -678,7 +679,7 @@ onMounted(() => {
 }
 
 .mode-description p {
-  color: #64748b;
+  color: #475569;
   font-size: 0.875rem;
   margin: 0;
 }
@@ -708,6 +709,7 @@ onMounted(() => {
   border-radius: 8px;
   font-size: 0.875rem;
   background: white;
+  color: #1e293b;
 }
 
 .timing-list {
@@ -737,6 +739,8 @@ onMounted(() => {
   border: 1px solid #d1d5db;
   border-radius: 6px;
   font-size: 0.875rem;
+  color: #1e293b;
+  background: #ffffff;
 }
 
 .period-type-select {
@@ -745,6 +749,7 @@ onMounted(() => {
   border-radius: 6px;
   font-size: 0.875rem;
   background: white;
+  color: #1e293b;
 }
 
 .time-inputs {
@@ -759,11 +764,13 @@ onMounted(() => {
   border-radius: 6px;
   font-size: 0.875rem;
   width: 80px;
+  color: #1e293b;
+  background: #ffffff;
 }
 
 .time-separator {
   font-weight: 600;
-  color: #64748b;
+  color: #475569;
 }
 
 .period-actions {
@@ -830,7 +837,7 @@ onMounted(() => {
 
 .reset-btn {
   background: #f1f5f9;
-  color: #64748b;
+  color: #334155;
   border: 1px solid #e2e8f0;
 }
 
@@ -873,8 +880,21 @@ onMounted(() => {
 
 .cancel-btn {
   background: white;
-  color: #64748b;
+  color: #334155;
   border: 1px solid #e2e8f0;
+}
+
+.period-title-input::placeholder,
+.time-input::placeholder {
+  color: #64748b;
+  opacity: 1;
+}
+
+.stage-select:disabled,
+.day-select:disabled,
+.action-btn:disabled,
+.save-btn:disabled {
+  color: #475569;
 }
 
 .cancel-btn:hover {
