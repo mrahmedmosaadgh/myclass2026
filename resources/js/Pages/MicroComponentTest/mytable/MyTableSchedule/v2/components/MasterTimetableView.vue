@@ -406,6 +406,7 @@ watch([selectedStage, selectedDay], () => {
   background: white;
   border-bottom: 1px solid #e2e8f0;
   flex-wrap: wrap;
+  align-items: flex-start;
 }
 
 .loading-state,
@@ -481,7 +482,7 @@ watch([selectedStage, selectedDay], () => {
 
 .period-count {
   font-size: 0.875rem;
-  color: #64748b;
+  color: #475569;
   background: #f1f5f9;
   padding: 0.25rem 0.75rem;
   border-radius: 12px;
@@ -491,6 +492,7 @@ watch([selectedStage, selectedDay], () => {
 .header-actions {
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .action-btn {
@@ -499,12 +501,13 @@ watch([selectedStage, selectedDay], () => {
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   font-weight: 600;
-  color: #64748b;
+  color: #334155;
   cursor: pointer;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  white-space: nowrap;
 }
 
 .action-btn:hover {
@@ -589,7 +592,7 @@ watch([selectedStage, selectedDay], () => {
 
 .period-time {
   font-size: 0.65rem;
-  opacity: 0.8;
+  color: rgba(255, 255, 255, 0.92);
 }
 
 .teacher-row {
@@ -686,14 +689,14 @@ watch([selectedStage, selectedDay], () => {
 
 .subject-name {
   font-size: 0.65rem;
-  color: #64748b;
+  color: #475569;
   font-weight: 500;
 }
 
 .free-indicator {
-  color: #94a3b8;
+  color: #475569;
   font-size: 0.75rem;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 /* Cell type colors */
@@ -883,6 +886,15 @@ watch([selectedStage, selectedDay], () => {
     flex-direction: column;
     align-items: flex-start;
   }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  .action-btn {
+    flex: 1 1 140px;
+    justify-content: center;
+  }
   
   .period-cell {
     min-width: 80px;
@@ -919,6 +931,25 @@ watch([selectedStage, selectedDay], () => {
 }
 
 @media (max-width: 480px) {
+  .selectors-header {
+    gap: 0.5rem;
+    padding: 0.5rem;
+  }
+
+  .table-title {
+    font-size: 1.25rem;
+  }
+
+  .period-count {
+    font-size: 0.8rem;
+  }
+
+  .action-btn {
+    flex: 1 1 calc(50% - 0.25rem);
+    padding: 0.625rem 0.75rem;
+    font-size: 0.85rem;
+  }
+
   .class-name {
     font-size: 0.65rem;
   }

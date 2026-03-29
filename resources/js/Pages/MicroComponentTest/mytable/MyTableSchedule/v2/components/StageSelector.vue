@@ -53,12 +53,13 @@ const selectStage = (stageId) => {
   border-radius: 12px;
   min-width: 0;
   flex: 1;
+  overflow: hidden;
 }
 
 .selector-label {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #64748b;
+  color: #475569;
   white-space: nowrap;
 }
 
@@ -67,6 +68,13 @@ const selectStage = (stageId) => {
   gap: 0.5rem;
   flex: 1;
   min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.stage-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .stage-tab {
@@ -82,9 +90,10 @@ const selectStage = (stageId) => {
   transition: all 0.3s ease;
   font-family: 'Segoe UI', system-ui, sans-serif;
   font-weight: 600;
-  color: #64748b;
+  color: #334155;
   min-width: 0;
   flex: 1;
+  overflow: hidden;
 }
 
 .stage-tab:hover {
@@ -92,6 +101,7 @@ const selectStage = (stageId) => {
   border-color: #cbd5e1;
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  color: #1e293b;
 }
 
 .stage-tab.active {
@@ -111,6 +121,9 @@ const selectStage = (stageId) => {
   font-weight: 600;
   line-height: 1;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: inherit;
 }
 
 /* Mobile optimizations */
@@ -132,17 +145,37 @@ const selectStage = (stageId) => {
   }
   
   .stage-tab {
-    padding: 0.625rem 0.75rem;
-    flex-direction: column;
-    gap: 0.25rem;
+    min-width: 78px;
+    padding: 0.625rem 0.625rem;
+    gap: 0.375rem;
   }
   
   .stage-icon {
-    font-size: 1rem;
+    font-size: 0.9rem;
+    flex-shrink: 0;
   }
   
   .stage-label {
     font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .stage-selector {
+    gap: 0.5rem;
+  }
+
+  .stage-tab {
+    min-width: 64px;
+    padding: 0.625rem 0.5rem;
+  }
+
+  .stage-icon {
+    display: none;
+  }
+
+  .stage-label {
+    font-size: 0.72rem;
   }
 }
 

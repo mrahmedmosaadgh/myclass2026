@@ -12,6 +12,7 @@ use App\Http\Controllers\PageViewController;  // Add page view controller import
 use App\Http\Controllers\ScheduleAdminNewController;
 use App\Http\Controllers\ScheduleTimingController;
 use App\Http\Controllers\SchoolBrandingController;
+use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Controllers\MyClass2026\Cr\ClassroomRecordsPageController;
 use App\Models\User;
 use App\Notifications\WebPushNotification;
@@ -251,7 +252,7 @@ Route::get('/my-schedule-app/manifest.webmanifest', function () {
 
     return response(json_encode($manifest, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), 200)
         ->header('Content-Type', 'application/manifest+json');
-})->name('schedule.app.manifest');
+})->withoutMiddleware([HandleInertiaRequests::class])->name('schedule.app.manifest');
 
 Route::get('/my-schedule-app/icon.svg', function () {
     $svg = <<<'SVG'
@@ -286,7 +287,7 @@ Route::get('/my-schedule-app/icon.svg', function () {
 SVG;
 
     return response($svg, 200)->header('Content-Type', 'image/svg+xml');
-})->name('schedule.app.icon');
+})->withoutMiddleware([HandleInertiaRequests::class])->name('schedule.app.icon');
 
 // Schedule App V2 Routes
 Route::get('/my-schedule-app/v2', function () {
@@ -346,7 +347,7 @@ Route::get('/my-schedule-app/v2/manifest.webmanifest', function () {
 
     return response(json_encode($manifest, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), 200)
         ->header('Content-Type', 'application/manifest+json');
-})->name('schedule.app.v2.manifest');
+})->withoutMiddleware([HandleInertiaRequests::class])->name('schedule.app.v2.manifest');
 
 Route::get('/my-schedule-app/v2/icon.svg', function () {
     $svg = <<<'SVG'
@@ -398,7 +399,7 @@ Route::get('/my-schedule-app/v2/icon.svg', function () {
 SVG;
 
     return response($svg, 200)->header('Content-Type', 'image/svg+xml');
-})->name('schedule.app.v2.icon');
+})->withoutMiddleware([HandleInertiaRequests::class])->name('schedule.app.v2.icon');
 
     // Offline System Test Route
     Route::get('/offline-test', function () {

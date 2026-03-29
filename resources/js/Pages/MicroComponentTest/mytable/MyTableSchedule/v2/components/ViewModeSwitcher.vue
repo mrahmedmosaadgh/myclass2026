@@ -90,12 +90,14 @@ loadSavedMode();
   cursor: pointer;
   transition: all 0.3s ease;
   font-family: 'Segoe UI', system-ui, sans-serif;
+  color: #475569;
 }
 
 .mode-btn:hover {
   background: #f8fafc;
   border-color: #cbd5e1;
   transform: translateY(-1px);
+  color: #334155;
 }
 
 .mode-btn.active {
@@ -116,6 +118,7 @@ loadSavedMode();
   line-height: 1;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  color: inherit;
 }
 
 /* Mobile optimizations */

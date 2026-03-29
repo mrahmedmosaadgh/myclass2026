@@ -492,8 +492,7 @@ onUnmounted(() => {
 
 /* Header Styles */
 .app-header {
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 100;
   background: rgba(15, 23, 42, 0.95);
   border-bottom: 1px solid rgba(59, 130, 246, 0.3);
@@ -509,14 +508,14 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem;
+  padding: 0.75rem 1rem;
   gap: 1rem;
 }
 
 .brand-section {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.625rem;
   flex: 1;
   min-width: 0;
 }
@@ -525,8 +524,8 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   background: rgba(59, 130, 246, 0.2);
   border: 1px solid rgba(59, 130, 246, 0.3);
   border-radius: 8px;
@@ -552,7 +551,7 @@ onUnmounted(() => {
 }
 
 .app-title {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: #60a5fa;
   margin: 0;
@@ -564,7 +563,7 @@ onUnmounted(() => {
 }
 
 .app-subtitle {
-  font-size: 0.65rem;
+  font-size: 0.58rem;
   color: #94a3b8;
   margin: 0.125rem 0 0 0;
   letter-spacing: 0.1em;
@@ -577,23 +576,23 @@ onUnmounted(() => {
 .status-section {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
   flex-shrink: 0;
 }
 
 .status-indicators {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.375rem;
 }
 
 .status-badge {
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.375rem 0.75rem;
+  padding: 0.3rem 0.55rem;
   border-radius: 6px;
-  font-size: 0.65rem;
+  font-size: 0.58rem;
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -630,13 +629,13 @@ onUnmounted(() => {
 }
 
 .install-btn {
-  padding: 0.5rem 1rem;
+  padding: 0.45rem 0.8rem;
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   color: white;
   border: none;
   border-radius: 8px;
   font-weight: 600;
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
@@ -649,12 +648,12 @@ onUnmounted(() => {
 }
 
 .installed-badge {
-  padding: 0.375rem 0.75rem;
+  padding: 0.3rem 0.55rem;
   background: rgba(34, 197, 94, 0.2);
   color: #4ade80;
   border: 1px solid rgba(74, 222, 128, 0.4);
   border-radius: 6px;
-  font-size: 0.65rem;
+  font-size: 0.58rem;
   font-weight: 600;
   letter-spacing: 0.05em;
   white-space: nowrap;
@@ -1015,15 +1014,43 @@ onUnmounted(() => {
 /* Mobile Optimizations */
 @media (max-width: 480px) {
   .header-content {
-    padding: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .brand-section {
+    gap: 0.5rem;
+  }
+
+  .menu-btn {
+    width: 36px;
+    height: 36px;
   }
   
   .app-title {
-    font-size: 1.125rem;
+    font-size: 0.95rem;
   }
   
   .app-subtitle {
-    font-size: 0.6rem;
+    display: none;
+  }
+
+  .status-section {
+    gap: 0.35rem;
+  }
+
+  .status-badge {
+    padding: 0.22rem 0.45rem;
+    font-size: 0.52rem;
+  }
+
+  .status-icon {
+    font-size: 0.62rem;
+  }
+
+  .online-indicator,
+  .offline-indicator {
+    font-size: 0.62rem;
   }
   
   .slide-menu {
