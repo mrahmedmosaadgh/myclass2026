@@ -108,20 +108,22 @@ onMounted(() => {
 .day-selector {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem;
-  background: #f8fafc;
-  border-radius: 12px;
+  gap: 0.55rem;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
   min-width: 0;
   flex: 2;
   overflow: hidden;
 }
 
 .selector-label {
-  font-size: 0.875rem;
+  font-size: 0.74rem;
   font-weight: 600;
   color: #475569;
   white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .day-tabs-container {
@@ -139,14 +141,14 @@ onMounted(() => {
 
 .day-tabs {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.35rem;
   padding: 0.25rem 0;
   min-width: min-content;
   align-items: center;
 }
 
 .day-tabs.has-custom {
-  padding-bottom: 0.5rem;
+  padding-bottom: 0.25rem;
 }
 
 .day-tab {
@@ -156,13 +158,13 @@ onMounted(() => {
   justify-content: center;
   gap: 0.25rem;
   min-width: 50px;
-  height: 44px;
-  padding: 0.5rem 0.75rem;
+  height: 40px;
+  padding: 0.45rem 0.65rem;
   background: white;
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   font-family: 'Segoe UI', system-ui, sans-serif;
   font-weight: 600;
   color: #334155;
@@ -174,16 +176,13 @@ onMounted(() => {
 .day-tab:hover {
   background: #f8fafc;
   border-color: #cbd5e1;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   color: #1e293b;
 }
 
 .day-tab.active {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  border-color: #10b981;
-  color: white;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  background: #ecfdf5;
+  border-color: #86efac;
+  color: #047857;
 }
 
 .day-tab.is-today:not(.active) {
@@ -193,13 +192,13 @@ onMounted(() => {
 }
 
 .day-tab.has-custom-timing:not(.active) {
-  border-color: #f59e0b;
-  background: #fffbeb;
-  color: #d97706;
+  border-color: #fcd34d;
+  background: #fffdf5;
+  color: #b45309;
 }
 
 .day-short {
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 700;
   line-height: 1;
   color: inherit;
@@ -227,8 +226,8 @@ onMounted(() => {
   position: absolute;
   bottom: 2px;
   right: 2px;
-  font-size: 0.6rem;
-  opacity: 0.7;
+  font-size: 0.55rem;
+  opacity: 0.55;
 }
 
 .day-tab.active .custom-indicator {
@@ -240,13 +239,12 @@ onMounted(() => {
   .day-selector {
     flex-direction: column;
     align-items: stretch;
-    gap: 0.5rem;
-    padding: 0.5rem;
+    gap: 0.35rem;
   }
   
   .selector-label {
     align-self: flex-start;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.1rem;
   }
   
   .day-tabs {
@@ -255,8 +253,8 @@ onMounted(() => {
   
   .day-tab {
     min-width: 48px;
-    height: 40px;
-    padding: 0.375rem 0.5rem;
+    height: 38px;
+    padding: 0.35rem 0.45rem;
   }
   
   .day-short {

@@ -47,25 +47,27 @@ const selectStage = (stageId) => {
 .stage-selector {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem;
-  background: #f8fafc;
-  border-radius: 12px;
+  gap: 0.55rem;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
   min-width: 0;
   flex: 1;
   overflow: hidden;
 }
 
 .selector-label {
-  font-size: 0.875rem;
+  font-size: 0.74rem;
   font-weight: 600;
   color: #475569;
   white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .stage-tabs {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.35rem;
   flex: 1;
   min-width: 0;
   overflow-x: auto;
@@ -81,13 +83,13 @@ const selectStage = (stageId) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
+  gap: 0.35rem;
+  padding: 0.65rem 0.85rem;
   background: white;
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   font-family: 'Segoe UI', system-ui, sans-serif;
   font-weight: 600;
   color: #334155;
@@ -99,25 +101,22 @@ const selectStage = (stageId) => {
 .stage-tab:hover {
   background: #f8fafc;
   border-color: #cbd5e1;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   color: #1e293b;
 }
 
 .stage-tab.active {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  border-color: #3b82f6;
-  color: white;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
 }
 
 .stage-icon {
-  font-size: 1.125rem;
+  font-size: 0.95rem;
   line-height: 1;
 }
 
 .stage-label {
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 600;
   line-height: 1;
   white-space: nowrap;
@@ -131,13 +130,12 @@ const selectStage = (stageId) => {
   .stage-selector {
     flex-direction: column;
     align-items: stretch;
-    gap: 0.5rem;
-    padding: 0.5rem;
+    gap: 0.35rem;
   }
   
   .selector-label {
     align-self: flex-start;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.1rem;
   }
   
   .stage-tabs {
@@ -146,7 +144,7 @@ const selectStage = (stageId) => {
   
   .stage-tab {
     min-width: 78px;
-    padding: 0.625rem 0.625rem;
+    padding: 0.55rem 0.55rem;
     gap: 0.375rem;
   }
   

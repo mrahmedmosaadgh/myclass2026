@@ -135,30 +135,30 @@ onMounted(() => {
 
 <style scoped>
 .test-time-override {
-  margin: 0.75rem 0;
-  padding: 0.75rem 1rem;
+  margin: 0.6rem 0;
+  padding: 0.65rem 0.85rem;
   background: #ffffff;
   border: 1px solid #dbe3ef;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 1px 6px rgba(15, 23, 42, 0.05);
 }
 
 .test-time-override.active {
   border-color: #3b82f6;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  background: #f8fbff;
 }
 
 .override-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.55rem;
 }
 
 .toggle-row {
   display: inline-flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.6rem;
   cursor: pointer;
   min-width: 0;
 }
@@ -171,8 +171,8 @@ onMounted(() => {
 
 .toggle-slider {
   position: relative;
-  width: 44px;
-  height: 24px;
+  width: 40px;
+  height: 22px;
   border-radius: 9999px;
   background: #cbd5e1;
   transition: background 0.2s ease;
@@ -184,8 +184,8 @@ onMounted(() => {
   position: absolute;
   top: 3px;
   left: 3px;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: #ffffff;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.25);
@@ -197,22 +197,22 @@ onMounted(() => {
 }
 
 .toggle-input:checked + .toggle-slider::after {
-  transform: translateX(20px);
+  transform: translateX(18px);
 }
 
 .toggle-label {
-  font-size: 0.9rem;
+  font-size: 0.84rem;
   font-weight: 700;
   color: #1e293b;
 }
 
 .reset-btn {
-  padding: 0.45rem 0.75rem;
+  padding: 0.4rem 0.65rem;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
   background: #f8fafc;
   color: #334155;
-  font-size: 0.8rem;
+  font-size: 0.76rem;
   font-weight: 600;
   cursor: pointer;
 }
@@ -220,8 +220,8 @@ onMounted(() => {
 .override-controls {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
-  margin-top: 0.75rem;
+  gap: 0.65rem;
+  margin-top: 0.65rem;
 }
 
 .field-group {
@@ -232,25 +232,27 @@ onMounted(() => {
 }
 
 .field-label {
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 600;
   color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .field-input {
   width: 100%;
-  min-height: 42px;
-  padding: 0.65rem 0.75rem;
+  min-height: 40px;
+  padding: 0.6rem 0.7rem;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
   background: #ffffff;
   color: #1e293b;
-  font-size: 0.9rem;
+  font-size: 0.84rem;
 }
 
 @media (max-width: 520px) {
   .test-time-override {
-    padding: 0.65rem 0.75rem;
+    padding: 0.6rem 0.7rem;
   }
 
   .override-header {
@@ -263,7 +265,7 @@ onMounted(() => {
   }
 
   .toggle-label {
-    font-size: 0.82rem;
+    font-size: 0.78rem;
   }
 
   .reset-btn {
