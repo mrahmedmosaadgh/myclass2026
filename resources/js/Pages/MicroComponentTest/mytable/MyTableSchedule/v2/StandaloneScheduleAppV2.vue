@@ -7,8 +7,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="manifest" :href="manifestHref">
-    <link rel="icon" href="/my-schedule-app/v2/icon.svg" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="/my-schedule-app/v2/icon.svg">
+    <link rel="icon" href="/my-fly-schedule-app/v2/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/my-fly-schedule-app/v2/icon.svg">
   </Head>
 
   <div class="standalone-schedule-app-v2">
@@ -237,7 +237,7 @@ let scrollTimeout = null;
 
 const { exportAllData } = useDataImportExport();
 
-const manifestHref = computed(() => '/my-schedule-app/v2/manifest.webmanifest');
+const manifestHref = computed(() => '/my-fly-schedule-app/v2/manifest.webmanifest');
 
 // Bottom navigation items
 const bottomNavItems = [
@@ -360,15 +360,15 @@ const registerServiceWorker = async () => {
     // First, unregister any existing service workers to avoid conflicts
     const registrations = await navigator.serviceWorker.getRegistrations();
     for (const registration of registrations) {
-      if (registration.scope.includes('/my-schedule-app/')) {
+      if (registration.scope.includes('/my-schedule-app/') || registration.scope.includes('/my-fly-schedule-app/')) {
         await registration.unregister();
         console.log('[SW] Unregistered existing service worker:', registration.scope);
       }
     }
     
     // Now register the new service worker
-    const registration = await navigator.serviceWorker.register('/my-schedule-app-v2-sw.js', {
-      scope: '/my-schedule-app/v2'
+    const registration = await navigator.serviceWorker.register('/my-fly-schedule-app-v2-sw.js', {
+      scope: '/my-fly-schedule-app/v2'
     });
     serviceWorkerStatus.value = registration.active ? 'ready' : 'registered';
   } catch (error) {
@@ -430,7 +430,7 @@ const requestNotificationPermission = () => {
         showNotifyBtn.value = false;
         new Notification("Notifications Enabled", {
           body: "You will receive schedule notifications!",
-          icon: "/my-schedule-app/v2/icon.svg"
+          icon: "/my-fly-schedule-app/v2/icon.svg"
         });
       }
     });
@@ -441,7 +441,7 @@ const handleNotification = (title, body) => {
   if ("Notification" in window && Notification.permission === "granted") {
     new Notification(title, {
       body: body,
-      icon: "/my-schedule-app/v2/icon.svg",
+      icon: "/my-fly-schedule-app/v2/icon.svg",
       vibrate: [200, 100, 200]
     });
   }

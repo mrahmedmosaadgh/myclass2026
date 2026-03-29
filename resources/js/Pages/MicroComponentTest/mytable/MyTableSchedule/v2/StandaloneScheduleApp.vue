@@ -57,7 +57,7 @@ const canInstall = ref(false);
 const isInstalled = ref(false);
 let deferredPrompt = null;
 
-const manifestHref = computed(() => '/my-schedule-app/manifest.webmanifest');
+const manifestHref = computed(() => '/my-fly-schedule-app/manifest.webmanifest');
 
 async function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) {

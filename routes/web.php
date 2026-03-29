@@ -290,18 +290,18 @@ SVG;
 })->withoutMiddleware([HandleInertiaRequests::class])->name('schedule.app.icon');
 
 // Schedule App V2 Routes
-Route::get('/my-schedule-app/v2', function () {
+Route::get('/my-fly-schedule-app/v2', function () {
     return Inertia::render('MicroComponentTest/mytable/MyTableSchedule/v2/StandaloneScheduleAppV2');
 })->withoutMiddleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->name('schedule.app.v2');
 
-Route::get('/my-schedule-app/v2/manifest.webmanifest', function () {
+Route::get('/my-fly-schedule-app/v2/manifest.webmanifest', function () {
     $manifest = [
         'name' => 'My Schedule App V2',
         'short_name' => 'Schedule V2',
         'description' => 'Mobile-first schedule app with multiple view modes, school timetable, and offline capabilities.',
-        'id' => '/my-schedule-app/v2',
-        'start_url' => '/my-schedule-app/v2',
-        'scope' => '/my-schedule-app/v2',
+        'id' => '/my-fly-schedule-app/v2',
+        'start_url' => '/my-fly-schedule-app/v2',
+        'scope' => '/my-fly-schedule-app/v2',
         'display' => 'standalone',
         'background_color' => '#0f172a',
         'theme_color' => '#1e293b',
@@ -309,7 +309,7 @@ Route::get('/my-schedule-app/v2/manifest.webmanifest', function () {
         'categories' => ['productivity', 'education', 'utilities'],
         'icons' => [
             [
-                'src' => '/my-schedule-app/v2/icon.svg',
+                'src' => '/my-fly-schedule-app/v2/icon.svg',
                 'sizes' => 'any',
                 'type' => 'image/svg+xml',
                 'purpose' => 'any maskable',
@@ -320,10 +320,10 @@ Route::get('/my-schedule-app/v2/manifest.webmanifest', function () {
                 'name' => 'Open Schedule V2',
                 'short_name' => 'Schedule V2',
                 'description' => 'View your schedule with mobile-optimized views',
-                'url' => '/my-schedule-app/v2',
+                'url' => '/my-fly-schedule-app/v2',
                 'icons' => [
                     [
-                        'src' => '/my-schedule-app/v2/icon.svg',
+                        'src' => '/my-fly-schedule-app/v2/icon.svg',
                         'sizes' => 'any',
                         'type' => 'image/svg+xml',
                     ],
@@ -333,10 +333,10 @@ Route::get('/my-schedule-app/v2/manifest.webmanifest', function () {
                 'name' => 'School Timetable',
                 'short_name' => 'School',
                 'description' => 'View complete school timetable',
-                'url' => '/my-schedule-app/v2#master',
+                'url' => '/my-fly-schedule-app/v2#master',
                 'icons' => [
                     [
-                        'src' => '/my-schedule-app/v2/icon.svg',
+                        'src' => '/my-fly-schedule-app/v2/icon.svg',
                         'sizes' => 'any',
                         'type' => 'image/svg+xml',
                     ],
@@ -349,7 +349,7 @@ Route::get('/my-schedule-app/v2/manifest.webmanifest', function () {
         ->header('Content-Type', 'application/manifest+json');
 })->withoutMiddleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', HandleInertiaRequests::class])->name('schedule.app.v2.manifest');
 
-Route::get('/my-schedule-app/v2/icon.svg', function () {
+Route::get('/my-fly-schedule-app/v2/icon.svg', function () {
     $svg = <<<'SVG'
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="My Schedule V2">
   <rect width="512" height="512" rx="96" fill="#1e293b"/>
@@ -401,24 +401,24 @@ SVG;
     return response($svg, 200)->header('Content-Type', 'image/svg+xml');
 })->withoutMiddleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', HandleInertiaRequests::class])->name('schedule.app.v2.icon');
 
-Route::get('/my-schedule-app/v2/sw.js', function () {
+Route::get('/my-fly-schedule-app/v2/sw.js', function () {
     $serviceWorkerPath = public_path('my-schedule-app/v2/sw.js');
 
     abort_unless(file_exists($serviceWorkerPath), 404);
 
     return response(file_get_contents($serviceWorkerPath), 200)
         ->header('Content-Type', 'application/javascript')
-        ->header('Service-Worker-Allowed', '/my-schedule-app/v2');
+        ->header('Service-Worker-Allowed', '/my-fly-schedule-app/v2');
 })->withoutMiddleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', HandleInertiaRequests::class])->name('schedule.app.v2.service-worker');
 
-Route::get('/my-schedule-app-v2-sw.js', function () {
+Route::get('/my-fly-schedule-app-v2-sw.js', function () {
     $serviceWorkerPath = public_path('my-schedule-app/v2/sw.js');
 
     abort_unless(file_exists($serviceWorkerPath), 404);
 
     return response(file_get_contents($serviceWorkerPath), 200)
         ->header('Content-Type', 'application/javascript')
-        ->header('Service-Worker-Allowed', '/my-schedule-app/v2');
+        ->header('Service-Worker-Allowed', '/my-fly-schedule-app/v2');
 })->withoutMiddleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', HandleInertiaRequests::class])->name('schedule.app.v2.service-worker.alias');
 
     // Offline System Test Route

@@ -1,8 +1,8 @@
-const CACHE_NAME = 'schedule-v2-1.0.0';
+const CACHE_NAME = 'fly-schedule-v2-1.0.0';
 const APP_SHELL = [
-  '/my-schedule-app/v2',
-  '/my-schedule-app/v2/manifest.json',
-  '/my-schedule-app/v2/notification1.mp3'
+  '/my-fly-schedule-app/v2',
+  '/my-fly-schedule-app/v2/manifest.webmanifest',
+  '/my-fly-schedule-app/v2/notification1.mp3'
 ];
 
 // Install event: cache app shell
@@ -49,7 +49,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
 
   // Only handle same-origin requests for the schedule app
-  if (!url.pathname.startsWith('/my-schedule-app/v2')) {
+  if (!url.pathname.startsWith('/my-fly-schedule-app/v2')) {
     return;
   }
 
@@ -92,7 +92,7 @@ self.addEventListener('fetch', (event) => {
             // If network fails and it's a navigation request, serve the app shell
             if (request.mode === 'navigate') {
               console.log('[SW] Network failed, serving app shell');
-              return caches.match('/my-schedule-app/v2');
+              return caches.match('/my-fly-schedule-app/v2');
             }
           });
       })
@@ -118,6 +118,6 @@ self.addEventListener('notificationclick', (event) => {
 
   // Open the app to the relevant view
   event.waitUntil(
-    clients.openWindow('/my-schedule-app/v2')
+    clients.openWindow('/my-fly-schedule-app/v2')
   );
 });
