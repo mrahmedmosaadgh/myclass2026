@@ -421,6 +421,11 @@ Route::get('/my-fly-schedule-app-v2-sw.js', function () {
         ->header('Service-Worker-Allowed', '/my-fly-schedule-app/v2');
 })->withoutMiddleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', HandleInertiaRequests::class])->name('schedule.app.v2.service-worker.alias');
 
+// Offline Storage Demo Route
+Route::get('/my-fly-schedule-app/v2/offline-storage-demo', function () {
+    return Inertia::render('MicroComponentTest/mytable/MyTableSchedule/v2/components/OfflineStorageDemo');
+})->withoutMiddleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->name('schedule.app.v2.offline-demo');
+
     // Offline System Test Route
     Route::get('/offline-test', function () {
         return Inertia::render('OfflineTest');
