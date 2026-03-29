@@ -206,6 +206,88 @@ Route::get('/ct', function () {
     return Inertia::render('MicroComponentTest/Index');
 })->name('ct');
 
+// Standalone Schedule App (Installable PWA)
+Route::get('/my-schedule-app', function () {
+    return Inertia::render('MicroComponentTest/mytable/MyTableSchedule/StandaloneScheduleApp');
+})->name('schedule.app.standalone');
+
+Route::get('/my-schedule-app/manifest.webmanifest', function () {
+    $manifest = [
+        'name' => 'My Schedule App',
+        'short_name' => 'Schedule',
+        'description' => 'Offline-first schedule app with live tracking and notifications.',
+        'id' => '/my-schedule-app',
+        'start_url' => '/my-schedule-app',
+        'scope' => '/my-schedule-app',
+        'display' => 'standalone',
+        'background_color' => '#0f172a',
+        'theme_color' => '#1e293b',
+        'orientation' => 'portrait-primary',
+        'categories' => ['productivity', 'education', 'utilities'],
+        'icons' => [
+            [
+                'src' => '/my-schedule-app/icon.svg',
+                'sizes' => 'any',
+                'type' => 'image/svg+xml',
+                'purpose' => 'any maskable',
+            ],
+        ],
+        'shortcuts' => [
+            [
+                'name' => 'Open Schedule',
+                'short_name' => 'Schedule',
+                'description' => 'View your class schedule',
+                'url' => '/my-schedule-app',
+                'icons' => [
+                    [
+                        'src' => '/my-schedule-app/icon.svg',
+                        'sizes' => 'any',
+                        'type' => 'image/svg+xml',
+                    ],
+                ],
+            ],
+        ],
+    ];
+
+    return response(json_encode($manifest, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), 200)
+        ->header('Content-Type', 'application/manifest+json');
+})->name('schedule.app.manifest');
+
+Route::get('/my-schedule-app/icon.svg', function () {
+    $svg = <<<'SVG'
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="My Schedule">
+  <rect width="512" height="512" rx="96" fill="#1e293b"/>
+  <rect x="36" y="36" width="440" height="440" rx="72" fill="none" stroke="#3b82f6" stroke-width="12"/>
+  
+  <!-- Calendar grid -->
+  <rect x="80" y="120" width="352" height="280" rx="8" fill="none" stroke="#60a5fa" stroke-width="8"/>
+  <line x1="80" y1="160" x2="432" y2="160" stroke="#60a5fa" stroke-width="8"/>
+  
+  <!-- Grid cells -->
+  <line x1="168" y1="160" x2="168" y2="400" stroke="#60a5fa" stroke-width="4" opacity="0.5"/>
+  <line x1="256" y1="160" x2="256" y2="400" stroke="#60a5fa" stroke-width="4" opacity="0.5"/>
+  <line x1="344" y1="160" x2="344" y2="400" stroke="#60a5fa" stroke-width="4" opacity="0.5"/>
+  
+  <line x1="80" y1="220" x2="432" y2="220" stroke="#60a5fa" stroke-width="4" opacity="0.5"/>
+  <line x1="80" y1="280" x2="432" y2="280" stroke="#60a5fa" stroke-width="4" opacity="0.5"/>
+  <line x1="80" y1="340" x2="432" y2="340" stroke="#60a5fa" stroke-width="4" opacity="0.5"/>
+  
+  <!-- Clock icon -->
+  <circle cx="400" cy="100" r="36" fill="#3b82f6"/>
+  <circle cx="400" cy="100" r="24" fill="none" stroke="#0f172a" stroke-width="4"/>
+  <line x1="400" y1="100" x2="400" y2="88" stroke="#0f172a" stroke-width="4" stroke-linecap="round"/>
+  <line x1="400" y1="100" x2="410" y2="100" stroke="#0f172a" stroke-width="4" stroke-linecap="round"/>
+  
+  <!-- Notification bell -->
+  <path d="M112 80 L112 68 Q112 56 124 56 Q136 56 136 68 L136 80" fill="none" stroke="#f59e0b" stroke-width="6" stroke-linecap="round"/>
+  <path d="M100 80 Q100 96 112 104 L112 108 Q112 112 118 112 Q124 112 130 112 Q136 112 136 108 L136 104 Q148 96 148 80 Z" fill="#f59e0b"/>
+  <circle cx="124" cy="116" r="4" fill="#f59e0b"/>
+</svg>
+SVG;
+
+    return response($svg, 200)->header('Content-Type', 'image/svg+xml');
+})->name('schedule.app.icon');
+
 
 
     // Offline System Test Route

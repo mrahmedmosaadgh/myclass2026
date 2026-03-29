@@ -4,7 +4,7 @@
  */
 
 // Cache version - increment to force cache refresh
-const CACHE_VERSION = 'v1.2.1';
+const CACHE_VERSION = 'v1.2.2';
 const CACHE_NAME = `offline-cache-${CACHE_VERSION}`;
 const OFFLINE_URL = '/presentation-offline.html';
 
@@ -22,6 +22,9 @@ const CACHE_URLS = [
   '/simple-focus-app-offline/v2',
   '/simple-focus-app-offline/v2/manifest.webmanifest',
   '/simple-focus-app-offline/v2/icon.svg',
+  '/my-schedule-app',
+  '/my-schedule-app/manifest.webmanifest',
+  '/my-schedule-app/icon.svg',
   // Force cache refresh for focus app assets
   '/build/assets/app.css',
   '/build/assets/app.js',
