@@ -118,7 +118,8 @@ const props = defineProps({
   isShowingAllDays: { type: Boolean, default: true },
   currentDayIndex: { type: Number, required: true },
   currentTotalSecs: { type: Number, required: true },
-  currentTimeDisplay: { type: String, default: '00:00:00' }
+  currentTimeDisplay: { type: String, default: '00:00:00' },
+  selectedDay: { type: String, default: 'd1' }
 });
 
 const emit = defineEmits(['play-alert', 'notify', 'active-period-update', 'view-mode-change']);
@@ -132,12 +133,17 @@ const currentTimeDisplay = ref('00:00:00');
 const activePeriodInfo = ref(null);
 const periodProgress = ref(0);
 
+const selectedDayIndex = computed(() => {
+  const map = { d1: 0, d2: 1, d3: 2, d4: 3, d5: 4, d6: 5 };
+  return map[props.selectedDay] ?? props.currentDayIndex;
+});
+
 // Computed properties
 const filteredSchedule = computed(() => {
   if (props.isShowingAllDays) return props.scheduleData;
   
-  let activeDay = props.currentDayIndex;
-  if (activeDay > 4) activeDay = 0;
+  let activeDay = selectedDayIndex.value;
+  if (activeDay > 5) activeDay = 0;
   return props.scheduleData.filter(day => day.dayIndex === activeDay);
 });
 

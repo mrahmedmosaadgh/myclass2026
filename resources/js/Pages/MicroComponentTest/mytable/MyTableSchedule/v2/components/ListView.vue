@@ -183,13 +183,14 @@ const props = defineProps({
   timeSlots: { type: Array, required: true },
   currentDayIndex: { type: Number, required: true },
   currentTotalSecs: { type: Number, required: true },
-  currentTimeDisplay: { type: String, default: '00:00:00' }
+  currentTimeDisplay: { type: String, default: '00:00:00' },
+  selectedDay: { type: String, default: 'd1' }
 });
 
 const emit = defineEmits(['play-alert', 'notify', 'active-period-update']);
 
 // State
-const selectedDayIndex = ref(props.currentDayIndex);
+const selectedDayIndex = ref({ d1: 0, d2: 1, d3: 2, d4: 3, d5: 4, d6: 5 }[props.selectedDay] ?? props.currentDayIndex);
 const currentTimeDisplay = ref('00:00:00');
 const currentPeriod = ref(null);
 const currentPeriodProgress = ref(0);
@@ -204,6 +205,11 @@ const notificationOptions = [
   { label: '15 min before', value: 15 },
   { label: '30 min before', value: 30 }
 ];
+
+const selectedDayPropIndex = computed(() => {
+  const map = { d1: 0, d2: 1, d3: 2, d4: 3, d5: 4, d6: 5 };
+  return map[props.selectedDay] ?? props.currentDayIndex;
+});
 
 // Computed properties
 const currentDayName = computed(() => {
@@ -408,8 +414,11 @@ onMounted(() => {
 });
 
 // Watch for day changes
-watch(() => props.currentDayIndex, (newDayIndex) => {
-  selectedDayIndex.value = newDayIndex;
+watch(() => props.selectedDay, () => {
+  selectedDayIndex.value = selectedDayPropIndex.value;
+  periodsList.value.forEach(period => {
+    period.expanded = false;
+  });
 });
 
 watch(() => props.currentTotalSecs, updateCurrentPeriod);

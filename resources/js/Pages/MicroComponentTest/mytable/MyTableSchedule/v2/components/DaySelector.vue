@@ -29,7 +29,9 @@ import { ref, computed, onMounted, nextTick } from 'vue';
 
 const props = defineProps({
   modelValue: { type: String, default: 'd1' },
-  stage: { type: String, default: 'prim' }
+  stage: { type: String, default: 'prim' },
+  todayDayId: { type: String, default: 'd1' },
+  customTimingDays: { type: Array, default: () => [] }
 });
 
 const emit = defineEmits(['update:modelValue', 'day-change']);
@@ -38,16 +40,15 @@ const dayTabsContainer = ref(null);
 
 // Generate days based on current week
 const days = computed(() => {
-  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const today = new Date().getDay(); // 0 = Sunday
-  
+  const customDays = new Set(props.customTimingDays || []);
+
   return [
-    { id: 'd1', label: 'Day 1', short: 'D1', dayIndex: 0, isToday: today === 0, hasCustomTiming: false },
-    { id: 'd2', label: 'Day 2', short: 'D2', dayIndex: 1, isToday: today === 1, hasCustomTiming: false },
-    { id: 'd3', label: 'Day 3', short: 'D3', dayIndex: 2, isToday: today === 2, hasCustomTiming: false },
-    { id: 'd4', label: 'Day 4', short: 'D4', dayIndex: 3, isToday: today === 3, hasCustomTiming: false },
-    { id: 'd5', label: 'Day 5', short: 'D5', dayIndex: 4, isToday: today === 4, hasCustomTiming: false },
-    { id: 'd6', label: 'Day 6', short: 'D6', dayIndex: 5, isToday: today === 5, hasCustomTiming: false }
+    { id: 'd1', label: 'Day 1', short: 'D1', dayIndex: 0, isToday: props.todayDayId === 'd1', hasCustomTiming: customDays.has('d1') },
+    { id: 'd2', label: 'Day 2', short: 'D2', dayIndex: 1, isToday: props.todayDayId === 'd2', hasCustomTiming: customDays.has('d2') },
+    { id: 'd3', label: 'Day 3', short: 'D3', dayIndex: 2, isToday: props.todayDayId === 'd3', hasCustomTiming: customDays.has('d3') },
+    { id: 'd4', label: 'Day 4', short: 'D4', dayIndex: 3, isToday: props.todayDayId === 'd4', hasCustomTiming: customDays.has('d4') },
+    { id: 'd5', label: 'Day 5', short: 'D5', dayIndex: 4, isToday: props.todayDayId === 'd5', hasCustomTiming: customDays.has('d5') },
+    { id: 'd6', label: 'Day 6', short: 'D6', dayIndex: 5, isToday: props.todayDayId === 'd6', hasCustomTiming: customDays.has('d6') }
   ];
 });
 

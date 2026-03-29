@@ -7,6 +7,21 @@
       @mode-change="handleViewModeChange"
     />
 
+    <AdminTimingBar
+      v-if="!teacherAccessConfig"
+      :selected-stage="selectedStage"
+      :selected-day="selectedDay"
+      :today-day-id="todayDayId"
+      :current-date-label="adminDateTimeLabel"
+      :custom-timing-days="customTimingDaysForSelectedStage"
+      @update:stage="handleAdminStageChange"
+      @update:day="handleAdminDayChange"
+      @day-click="openTimingManagerForDay"
+      @open-timing="openTimingManagerForDay"
+      @open-timing-all="openTimingManagerForAllDays"
+      @go-today="goToToday"
+    />
+
     <TestTimeOverride
       v-model:enabled="testTimeEnabled"
       v-model:dayIndex="testDayIndex"
@@ -21,13 +36,18 @@
       @notify="sendNotification"
       @active-period-update="handleActivePeriodUpdate"
       @view-mode-change="toggleViewMode"
+      @update:selected-stage="handleAdminStageChange"
+      @update:selected-day="handleAdminDayChange"
+      @timings-update="handleSharedTimingsUpdate"
     />
 
     <!-- Timing Manager Modal -->
-    <ScheduleTimingManager
+    <StageDayTimingManager
       v-if="showTimingManager"
-      v-model="timeSlots"
-      @update:modelValue="handleTimingsUpdate"
+      v-model="timingsConfig"
+      :stage="timingManagerStage"
+      :day="timingManagerDay"
+      @update:modelValue="handleSharedTimingsUpdate"
       @close="showTimingManager = false"
     />
   </div>
@@ -36,15 +56,17 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import ViewModeSwitcher from './components/ViewModeSwitcher.vue';
+import AdminTimingBar from './components/AdminTimingBar.vue';
 import CardView from './components/CardView.vue';
 import TableView from './components/TableView.vue';
 import ListView from './components/ListView.vue';
 import MasterTimetableView from './components/MasterTimetableView.vue';
-import ScheduleTimingManager from './components/ScheduleTimingManager.vue';
+import StageDayTimingManager from './components/StageDayTimingManager.vue';
 import TestTimeOverride from './components/TestTimeOverride.vue';
 import scheduleTimingData from './schedule_timing.json';
 import scheduleItemsData from './schedule_data.json';
 import masterTimetableData from './data/master_timetable_data.json';
+import stageDayTimingsData from './data/stage_day_timings.json';
 
 // State
 const scheduleData = ref([]);
@@ -62,6 +84,14 @@ const testTimeEnabled = ref(false);
 const testDayIndex = ref(0);
 const testTimeValue = ref('09:00');
 const teacherAccessConfig = ref(null);
+const selectedStage = ref('prim');
+const selectedDay = ref('d1');
+const timingManagerStage = ref('prim');
+const timingManagerDay = ref('d1');
+const timingsConfig = ref({
+  default: [],
+  overrides: {}
+});
 
 let timerInterval = null;
 let alertSound = null;
@@ -69,6 +99,25 @@ let alertSound = null;
 const getSecondsFromTimeValue = (timeValue) => {
   const [hours = 0, minutes = 0] = timeValue.split(':').map(Number);
   return (hours * 3600) + (minutes * 60);
+};
+
+const cloneValue = (value) => JSON.parse(JSON.stringify(value));
+
+const normalizeSlots = (slots) => {
+  return (slots || []).map(slot => {
+    const startParts = slot.start.split(':').map(Number);
+    const endParts = slot.end.split(':').map(Number);
+    return {
+      ...slot,
+      startMin: startParts[0] * 60 + startParts[1],
+      endMin: endParts[0] * 60 + endParts[1]
+    };
+  });
+};
+
+const dayIndexToId = (dayIndex) => {
+  const mapping = ['d1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd1'];
+  return mapping[dayIndex] || 'd1';
 };
 
 // View Components Mapping
@@ -87,6 +136,67 @@ const dayIdToMeta = {
   d5: { day: 'Thursday', dayIndex: 4 },
   d6: { day: 'Friday', dayIndex: 5 }
 };
+
+const stageLabelMap = {
+  prim: 'Primary',
+  middle: 'Middle',
+  sec: 'Secondary'
+};
+
+const dayLabelMap = {
+  d1: 'Day 1',
+  d2: 'Day 2',
+  d3: 'Day 3',
+  d4: 'Day 4',
+  d5: 'Day 5',
+  d6: 'Day 6'
+};
+
+const todayDayId = computed(() => dayIndexToId(currentDayIndex.value));
+
+const resolvedTimeSlots = computed(() => {
+  const config = timingsConfig.value;
+  const stageOverride = config?.overrides?.[selectedStage.value];
+
+  if (stageOverride?.days?.[selectedDay.value]) {
+    return normalizeSlots(stageOverride.days[selectedDay.value]);
+  }
+
+  if (stageOverride?.default) {
+    return normalizeSlots(stageOverride.default);
+  }
+
+  if (config?.default?.length) {
+    return normalizeSlots(config.default);
+  }
+
+  return normalizeSlots(scheduleTimingData);
+});
+
+const customTimingDaysForSelectedStage = computed(() => {
+  const stageOverride = timingsConfig.value?.overrides?.[selectedStage.value]?.days || {};
+  return Object.entries(stageOverride)
+    .filter(([, value]) => Array.isArray(value) && value.length > 0)
+    .map(([dayId]) => dayId);
+});
+
+const adminDateTimeLabel = computed(() => {
+  const dayMeta = dayIdToMeta[selectedDay.value];
+  const stageLabel = stageLabelMap[selectedStage.value] || selectedStage.value;
+
+  if (testTimeEnabled.value) {
+    return `${dayMeta?.day || dayLabelMap[selectedDay.value]} • ${currentTimeDisplay.value} • ${stageLabel}`;
+  }
+
+  const now = new Date();
+  const dateText = now.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric'
+  });
+
+  return `${dateText} • ${currentTimeDisplay.value} • ${dayMeta?.day || dayLabelMap[selectedDay.value]} • ${stageLabel}`;
+});
 
 const teacherScheduleData = computed(() => {
   if (!teacherAccessConfig.value) {
@@ -107,7 +217,7 @@ const teacherScheduleData = computed(() => {
     return {
       day: dayMeta.day,
       dayIndex: dayMeta.dayIndex,
-      classes: timeSlots.value
+      classes: resolvedTimeSlots.value
         .filter(slot => slot.type !== 'break' && slot.type !== 'activity')
         .map(slot => {
           const assignment = assignments[String(slot.id)] || assignments[slot.id] || null;
@@ -138,13 +248,18 @@ const currentViewComponent = computed(() => {
 const currentViewProps = computed(() => {
   const baseProps = {
     scheduleData: teacherScheduleData.value,
-    timeSlots: timeSlots.value,
+    timeSlots: resolvedTimeSlots.value,
     currentDayIndex: currentDayIndex.value,
     currentTotalSecs: currentTotalSecs.value,
     currentTimeDisplay: currentTimeDisplay.value,
     isTestTimeEnabled: testTimeEnabled.value,
     teacherAccessMode: !!teacherAccessConfig.value,
-    teacherAccessName: teacherAccessConfig.value?.teacherName || ''
+    teacherAccessName: teacherAccessConfig.value?.teacherName || '',
+    selectedStage: selectedStage.value,
+    selectedDay: selectedDay.value,
+    todayDayId: todayDayId.value,
+    timingsData: timingsConfig.value,
+    customTimingDays: customTimingDaysForSelectedStage.value
   };
 
   // Add view-specific props
@@ -202,15 +317,37 @@ const handleActivePeriodUpdate = (info) => {
 };
 
 const handleTimingsUpdate = (newSlots) => {
-  timeSlots.value = newSlots.map(slot => {
-    const startParts = slot.start.split(':').map(Number);
-    const endParts = slot.end.split(':').map(Number);
-    return {
-      ...slot,
-      startMin: startParts[0] * 60 + startParts[1],
-      endMin: endParts[0] * 60 + endParts[1]
-    };
-  });
+  timeSlots.value = normalizeSlots(newSlots);
+};
+
+const handleSharedTimingsUpdate = (newTimings) => {
+  timingsConfig.value = cloneValue(newTimings);
+  handleTimingsUpdate(resolvedTimeSlots.value);
+};
+
+const handleAdminStageChange = (stage) => {
+  selectedStage.value = stage;
+};
+
+const handleAdminDayChange = (day) => {
+  selectedDay.value = day;
+};
+
+const openTimingManagerForDay = (day) => {
+  timingManagerStage.value = selectedStage.value;
+  timingManagerDay.value = day || selectedDay.value;
+  selectedDay.value = timingManagerDay.value;
+  showTimingManager.value = true;
+};
+
+const openTimingManagerForAllDays = () => {
+  timingManagerStage.value = selectedStage.value;
+  timingManagerDay.value = '';
+  showTimingManager.value = true;
+};
+
+const goToToday = () => {
+  selectedDay.value = todayDayId.value;
 };
 
 // --- Notifications & Audio ---
@@ -269,16 +406,8 @@ onMounted(() => {
   // Load Data
   try {
     scheduleData.value = scheduleItemsData;
-    // Process time slots to have start/end in minutes from start of day
-    timeSlots.value = scheduleTimingData.map(slot => {
-      const startParts = slot.start.split(':').map(Number);
-      const endParts = slot.end.split(':').map(Number);
-      return {
-        ...slot,
-        startMin: startParts[0] * 60 + startParts[1],
-        endMin: endParts[0] * 60 + endParts[1]
-      };
-    });
+    timingsConfig.value = cloneValue(stageDayTimingsData);
+    timeSlots.value = normalizeSlots(scheduleTimingData);
   } catch (err) {
     error.value = "Failed to load schedule data.";
     console.error(err);
@@ -296,6 +425,7 @@ onMounted(() => {
         stage,
         teacherName: teacherName || 'Teacher'
       };
+      selectedStage.value = stage;
 
       if (currentViewMode.value === 'master') {
         currentViewMode.value = 'card';
@@ -319,6 +449,35 @@ onMounted(() => {
     }
   }
 
+  const savedAdminSelection = localStorage.getItem('schedule-v2-admin-selection');
+  if (savedAdminSelection) {
+    try {
+      const parsed = JSON.parse(savedAdminSelection);
+      selectedStage.value = parsed.stage || selectedStage.value;
+      selectedDay.value = parsed.day || selectedDay.value;
+    } catch (e) {
+      console.warn('Failed to restore admin selection', e);
+    }
+  } else {
+    selectedDay.value = dayIndexToId(new Date().getDay());
+  }
+
+  const savedTimings = localStorage.getItem('school-timings-v2');
+  if (savedTimings) {
+    try {
+      const parsed = JSON.parse(savedTimings);
+      timingsConfig.value = {
+        default: parsed.default || timingsConfig.value.default,
+        overrides: {
+          ...(timingsConfig.value.overrides || {}),
+          ...(parsed.overrides || {})
+        }
+      };
+    } catch (e) {
+      console.warn('Failed to restore shared timings', e);
+    }
+  }
+
   updateLiveIndicator();
   
   // Start timer to update time every second
@@ -338,6 +497,18 @@ watch([testTimeEnabled, testDayIndex, testTimeValue], () => {
 
   updateLiveIndicator();
 });
+
+watch([selectedStage, selectedDay], () => {
+  localStorage.setItem('schedule-v2-admin-selection', JSON.stringify({
+    stage: selectedStage.value,
+    day: selectedDay.value
+  }));
+});
+
+watch(timingsConfig, (newValue) => {
+  localStorage.setItem('school-timings-v2', JSON.stringify(newValue));
+  handleTimingsUpdate(resolvedTimeSlots.value);
+}, { deep: true });
 </script>
 
 <style scoped>

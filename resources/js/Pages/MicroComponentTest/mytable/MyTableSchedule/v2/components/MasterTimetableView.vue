@@ -223,10 +223,13 @@ import { useSchoolTimetable } from '../composables/useSchoolTimetable.js';
 const props = defineProps({
   currentDayIndex: { type: Number, default: 0 },
   currentTotalSecs: { type: Number, default: 0 },
-  isTestTimeEnabled: { type: Boolean, default: false }
+  isTestTimeEnabled: { type: Boolean, default: false },
+  selectedStage: { type: String, default: 'prim' },
+  selectedDay: { type: String, default: 'd1' },
+  timingsData: { type: Object, default: () => null }
 });
 
-const emit = defineEmits(['play-alert', 'notify']);
+const emit = defineEmits(['play-alert', 'notify', 'update:selected-stage', 'update:selected-day', 'timings-update']);
 
 // Component state
 const selectedStage = ref('prim');
@@ -302,14 +305,17 @@ const dayIndexToId = (dayIndex) => {
 // Methods
 const handleStageChange = (newStage) => {
   selectedStage.value = newStage;
+  emit('update:selected-stage', newStage);
 };
 
 const handleDayChange = (newDay) => {
   selectedDay.value = newDay;
+  emit('update:selected-day', newDay);
 };
 
 const handleTimingUpdate = (newTimings) => {
   timings.value = newTimings;
+  emit('timings-update', newTimings);
   emit('notify', 'Timing Updated', `${getStageLabel(selectedStage.value)} timing has been updated`);
 };
 
@@ -469,8 +475,15 @@ const downloadFile = (content, filename, mimeType) => {
 
 // Lifecycle
 onMounted(() => {
-  selectedDay.value = dayIndexToId(props.currentDayIndex);
-  loadTimingsFromStorage();
+  selectedStage.value = props.selectedStage || selectedStage.value;
+  selectedDay.value = props.selectedDay || dayIndexToId(props.currentDayIndex);
+
+  if (props.timingsData) {
+    timings.value = JSON.parse(JSON.stringify(props.timingsData));
+  } else {
+    loadTimingsFromStorage();
+  }
+
   loadData();
 
   progressInterval = window.setInterval(() => {
@@ -488,6 +501,24 @@ onUnmounted(() => {
 watch([selectedStage, selectedDay], () => {
   loadData();
 });
+
+watch(() => props.selectedStage, (newStage) => {
+  if (newStage && newStage !== selectedStage.value) {
+    selectedStage.value = newStage;
+  }
+});
+
+watch(() => props.selectedDay, (newDay) => {
+  if (newDay && newDay !== selectedDay.value) {
+    selectedDay.value = newDay;
+  }
+});
+
+watch(() => props.timingsData, (newTimings) => {
+  if (newTimings) {
+    timings.value = JSON.parse(JSON.stringify(newTimings));
+  }
+}, { deep: true });
 
 watch(() => props.currentDayIndex, (newDayIndex) => {
   if (props.isTestTimeEnabled) {

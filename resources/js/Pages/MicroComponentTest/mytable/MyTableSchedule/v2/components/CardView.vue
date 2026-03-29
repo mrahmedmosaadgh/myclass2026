@@ -82,14 +82,14 @@
         v-for="(dayData, index) in scheduleData"
         :key="dayData.dayIndex"
         class="dot"
-        :class="{ active: dayData.dayIndex === currentDayIndex }"
+        :class="{ active: dayData.dayIndex === selectedDayIndex }"
         @click="scrollToDay(index)"
       />
     </div>
 
     <!-- Quick jump to today -->
     <button
-      v-if="currentDayIndex !== todayIndex"
+      v-if="selectedDayIndex !== todayIndex"
       @click="scrollToToday"
       class="today-btn"
     >
@@ -99,7 +99,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 
 const props = defineProps({
   scheduleData: { type: Array, required: true },
@@ -107,7 +107,8 @@ const props = defineProps({
   currentDayIndex: { type: Number, required: true },
   currentTotalSecs: { type: Number, required: true },
   currentTimeDisplay: { type: String, default: '00:00:00' },
-  isTestTimeEnabled: { type: Boolean, default: false }
+  isTestTimeEnabled: { type: Boolean, default: false },
+  selectedDay: { type: String, default: 'd1' }
 });
 
 const emit = defineEmits(['play-alert', 'notify', 'active-period-update']);
@@ -124,8 +125,13 @@ const todayIndex = computed(() => {
   return props.currentDayIndex;
 });
 
+const selectedDayIndex = computed(() => {
+  const map = { d1: 0, d2: 1, d3: 2, d4: 3, d5: 4, d6: 5 };
+  return map[props.selectedDay] ?? props.currentDayIndex;
+});
+
 const currentDayName = computed(() => {
-  const dayData = props.scheduleData.find(d => d.dayIndex === props.currentDayIndex);
+  const dayData = props.scheduleData.find(d => d.dayIndex === selectedDayIndex.value);
   return dayData?.day || 'Today';
 });
 
@@ -274,15 +280,21 @@ const updateCurrentPeriod = () => {
 
 // Initialize
 onMounted(() => {
-  // Start with current day
-  const todayCardIndex = props.scheduleData.findIndex(d => d.dayIndex === todayIndex.value);
-  if (todayCardIndex !== -1) {
-    scrollToDay(todayCardIndex);
+  const initialCardIndex = props.scheduleData.findIndex(d => d.dayIndex === selectedDayIndex.value);
+  if (initialCardIndex !== -1) {
+    scrollToDay(initialCardIndex);
   }
   
   // Update period progress every second
   const interval = setInterval(updateCurrentPeriod, 1000);
   onUnmounted(() => clearInterval(interval));
+});
+
+watch(() => props.selectedDay, () => {
+  const targetIndex = props.scheduleData.findIndex(d => d.dayIndex === selectedDayIndex.value);
+  if (targetIndex !== -1 && targetIndex !== currentCardIndex.value) {
+    scrollToDay(targetIndex);
+  }
 });
 </script>
 
