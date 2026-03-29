@@ -1,5 +1,19 @@
 <template>
   <div class="schedule-app-v2">
+    <!-- PWA Install Banner -->
+    <div v-if="showInstallBanner" class="pwa-install-banner">
+      <div class="install-banner-content">
+        <div class="install-banner-info">
+          <div class="install-banner-title">Install Schedule V2</div>
+          <div class="install-banner-desc">Add to home screen for quick access</div>
+        </div>
+        <div class="install-banner-actions">
+          <button @click="dismissInstallBanner" class="install-btn dismiss">Not now</button>
+          <button @click="installPWA" class="install-btn primary">Install</button>
+        </div>
+      </div>
+    </div>
+
     <!-- View Mode Switcher -->
     <ViewModeSwitcher 
       :default-mode="currentViewMode"
@@ -92,6 +106,10 @@ const timingsConfig = ref({
   default: [],
   overrides: {}
 });
+
+// PWA Install State
+const showInstallBanner = ref(false);
+const deferredPrompt = ref(null);
 
 let timerInterval = null;
 let alertSound = null;
@@ -350,6 +368,35 @@ const goToToday = () => {
   selectedDay.value = todayDayId.value;
 };
 
+// --- PWA Install Methods ---
+const installPWA = async () => {
+  if (!deferredPrompt.value) {
+    console.log('[PWA] No install prompt available');
+    return;
+  }
+
+  try {
+    deferredPrompt.value.prompt();
+    const { outcome } = await deferredPrompt.value.userChoice;
+    
+    if (outcome === 'accepted') {
+      console.log('[PWA] User accepted the install prompt');
+    } else {
+      console.log('[PWA] User dismissed the install prompt');
+    }
+    
+    deferredPrompt.value = null;
+    showInstallBanner.value = false;
+  } catch (error) {
+    console.error('[PWA] Error during install:', error);
+  }
+};
+
+const dismissInstallBanner = () => {
+  showInstallBanner.value = false;
+  deferredPrompt.value = null;
+};
+
 // --- Notifications & Audio ---
 const checkNotificationStatus = () => {
   if ("Notification" in window) {
@@ -395,6 +442,34 @@ const sendNotification = (title, bodyText) => {
 
 // Initialize Data & Handlers
 onMounted(() => {
+  // Register Service Worker for PWA functionality
+  if ('serviceWorker' in navigator && window.location.pathname.startsWith('/my-schedule-app/v2')) {
+    navigator.serviceWorker.register('/my-schedule-app/v2/sw.js')
+      .then((registration) => {
+        console.log('[SW] Service Worker registered:', registration);
+      })
+      .catch((error) => {
+        console.error('[SW] Service Worker registration failed:', error);
+      });
+  }
+
+  // Setup PWA install prompt
+  const handleBeforeInstallPrompt = (e) => {
+    e.preventDefault();
+    deferredPrompt.value = e;
+    showInstallBanner.value = true;
+    console.log('[PWA] Install prompt ready');
+  };
+
+  window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+  // Handle app installed event
+  window.addEventListener('appinstalled', () => {
+    console.log('[PWA] App was installed');
+    deferredPrompt.value = null;
+    showInstallBanner.value = false;
+  });
+
   // Setup audio
   try {
     // using absolute path for demo/test purposes based on original PWA
@@ -510,6 +585,108 @@ watch(timingsConfig, (newValue) => {
   handleTimingsUpdate(resolvedTimeSlots.value);
 }, { deep: true });
 </script>
+
+<style scoped>
+.schedule-app-v2 {
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+/* PWA Install Banner */
+.pwa-install-banner {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+}
+
+.install-banner-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  max-width: 100%;
+}
+
+.install-banner-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.install-banner-title {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.install-banner-desc {
+  font-size: 0.875rem;
+  opacity: 0.9;
+  line-height: 1.3;
+}
+
+.install-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.install-btn {
+  padding: 0.5rem 0.875rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  white-space: nowrap;
+}
+
+.install-btn.dismiss {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.install-btn.dismiss:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.install-btn.primary {
+  background: white;
+  color: #2563eb;
+}
+
+.install-btn.primary:hover {
+  background: #f8fafc;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+@media (max-width: 640px) {
+  .install-banner-content {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+  }
+
+  .install-banner-actions {
+    justify-content: space-between;
+  }
+
+  .install-btn {
+    flex: 1;
+    padding: 0.625rem 1rem;
+  }
+}
+</style>
 
 <style scoped>
 .schedule-app-v2 {
