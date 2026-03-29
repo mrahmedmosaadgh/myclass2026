@@ -292,16 +292,16 @@ SVG;
 // Schedule App V2 Routes
 Route::get('/my-schedule-app/v2', function () {
     return Inertia::render('MicroComponentTest/mytable/MyTableSchedule/v2/StandaloneScheduleAppV2');
-})->name('schedule.app.v2');
+})->withoutMiddleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->name('schedule.app.v2');
 
 Route::get('/my-schedule-app/v2/manifest.webmanifest', function () {
     $manifest = [
         'name' => 'My Schedule App V2',
         'short_name' => 'Schedule V2',
         'description' => 'Mobile-first schedule app with multiple view modes, school timetable, and offline capabilities.',
-        'id' => 'https://qudratpro.com/my-schedule-app/v2',
-        'start_url' => 'https://qudratpro.com/my-schedule-app/v2',
-        'scope' => 'https://qudratpro.com/my-schedule-app/v2',
+        'id' => '/my-schedule-app/v2',
+        'start_url' => '/my-schedule-app/v2',
+        'scope' => '/my-schedule-app/v2',
         'display' => 'standalone',
         'background_color' => '#0f172a',
         'theme_color' => '#1e293b',
@@ -320,7 +320,7 @@ Route::get('/my-schedule-app/v2/manifest.webmanifest', function () {
                 'name' => 'Open Schedule V2',
                 'short_name' => 'Schedule V2',
                 'description' => 'View your schedule with mobile-optimized views',
-                'url' => 'https://qudratpro.com/my-schedule-app/v2',
+                'url' => '/my-schedule-app/v2',
                 'icons' => [
                     [
                         'src' => '/my-schedule-app/v2/icon.svg',
@@ -333,7 +333,7 @@ Route::get('/my-schedule-app/v2/manifest.webmanifest', function () {
                 'name' => 'School Timetable',
                 'short_name' => 'School',
                 'description' => 'View complete school timetable',
-                'url' => 'https://qudratpro.com/my-schedule-app/v2#master',
+                'url' => '/my-schedule-app/v2#master',
                 'icons' => [
                     [
                         'src' => '/my-schedule-app/v2/icon.svg',
@@ -347,7 +347,7 @@ Route::get('/my-schedule-app/v2/manifest.webmanifest', function () {
 
     return response(json_encode($manifest, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), 200)
         ->header('Content-Type', 'application/manifest+json');
-})->withoutMiddleware([HandleInertiaRequests::class])->name('schedule.app.v2.manifest');
+})->withoutMiddleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', HandleInertiaRequests::class])->name('schedule.app.v2.manifest');
 
 Route::get('/my-schedule-app/v2/icon.svg', function () {
     $svg = <<<'SVG'
@@ -399,7 +399,17 @@ Route::get('/my-schedule-app/v2/icon.svg', function () {
 SVG;
 
     return response($svg, 200)->header('Content-Type', 'image/svg+xml');
-})->withoutMiddleware([HandleInertiaRequests::class])->name('schedule.app.v2.icon');
+})->withoutMiddleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', HandleInertiaRequests::class])->name('schedule.app.v2.icon');
+
+Route::get('/my-schedule-app/v2/sw.js', function () {
+    $serviceWorkerPath = public_path('my-schedule-app/v2/sw.js');
+
+    abort_unless(file_exists($serviceWorkerPath), 404);
+
+    return response(file_get_contents($serviceWorkerPath), 200)
+        ->header('Content-Type', 'application/javascript')
+        ->header('Service-Worker-Allowed', '/my-schedule-app/v2');
+})->withoutMiddleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', HandleInertiaRequests::class])->name('schedule.app.v2.service-worker');
 
     // Offline System Test Route
     Route::get('/offline-test', function () {
