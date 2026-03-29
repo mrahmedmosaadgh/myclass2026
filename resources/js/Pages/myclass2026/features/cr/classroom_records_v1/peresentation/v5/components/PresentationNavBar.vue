@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { usePresentationStore } from '../stores/presentationStore';
 import { useUIStore } from '../stores/uiStore';
 
@@ -12,6 +12,27 @@ const progress = computed(() => (currentSlideNumber.value / totalSlides.value) *
 
 const canGoPrevious = computed(() => presentation.currentSlideIndex > 0);
 const canGoNext = computed(() => presentation.currentSlideIndex < totalSlides.value - 1);
+
+// Title editing state
+const isEditingTitle = ref(false);
+const titleInput = ref('');
+
+function startEditingTitle() {
+  titleInput.value = presentation.title;
+  isEditingTitle.value = true;
+}
+
+function saveTitle() {
+  if (titleInput.value.trim()) {
+    presentation.title = titleInput.value.trim();
+  }
+  isEditingTitle.value = false;
+}
+
+function cancelEditTitle() {
+  titleInput.value = presentation.title;
+  isEditingTitle.value = false;
+}
 
 function goToPrevious() {
   if (canGoPrevious.value) {
@@ -60,12 +81,35 @@ function toggleMode() {
     <div class="nav-content">
       <!-- Left: Title & Details -->
       <div class="title-section">
-        <h1 class="presentation-title">{{ presentation.title }}</h1>
+        <div v-if="!isEditingTitle" class="title-display" @click="startEditingTitle">
+          <h1 class="presentation-title">{{ presentation.title }}</h1>
+          <div class="edit-hint">✏️ Click to edit</div>
+        </div>
+        <div v-else class="title-edit">
+          <input 
+            v-model="titleInput" 
+            @keyup.enter="saveTitle"
+            @keyup.escape="cancelEditTitle"
+            @blur="saveTitle"
+            class="title-input"
+            ref="titleInputRef"
+            placeholder="Enter presentation title"
+          />
+          <div class="title-edit-actions">
+            <button @click="saveTitle" class="btn-save">✓</button>
+            <button @click="cancelEditTitle" class="btn-cancel">✕</button>
+          </div>
+        </div>
         <p class="presentation-subtitle">Minimal, working reference implementation according to plan</p>
       </div>
 
       <!-- Right: Controls -->
       <div class="controls-section">
+        <!-- Distribution Button -->
+        <button @click="ui.showDistributionModal = true" class="btn-distribution" title="Distribution Settings">
+          📤 Share/Export
+        </button>
+
         <!-- Mode Toggle -->
         <div class="mode-toggle">
           <label class="switch">
@@ -152,6 +196,77 @@ function toggleMode() {
   min-width: 0;
 }
 
+.title-display {
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.title-display:hover .edit-hint {
+  opacity: 1;
+}
+
+.edit-hint {
+  font-size: 0.688rem;
+  color: #6b7280;
+  opacity: 0;
+  transition: opacity 0.2s;
+  margin-top: 2px;
+}
+
+.title-edit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.title-input {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+  border: 2px solid #3b82f6;
+  border-radius: 6px;
+  padding: 4px 8px;
+  background: white;
+  outline: none;
+  flex: 1;
+  min-width: 200px;
+}
+
+.title-edit-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.btn-save, .btn-cancel {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.btn-save {
+  background: #10b981;
+  color: white;
+}
+
+.btn-save:hover {
+  background: #059669;
+}
+
+.btn-cancel {
+  background: #ef4444;
+  color: white;
+}
+
+.btn-cancel:hover {
+  background: #dc2626;
+}
+
 .presentation-title {
   font-size: 1.25rem;
   font-weight: 700;
@@ -179,6 +294,29 @@ function toggleMode() {
   align-items: center;
   gap: 16px;
   flex-shrink: 0;
+}
+
+/* Distribution Button */
+.btn-distribution {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: #8b5cf6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-distribution:hover {
+  background: #7c3aed;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(139, 92, 246, 0.2);
 }
 
 /* Mode Toggle */

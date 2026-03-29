@@ -7,6 +7,7 @@ export const useUIStore = defineStore('ui', () => {
   const isSectionManagerOpen = ref(false);
   const isAIPasteDialogOpen = ref(false);
   const isGroupQuizGeneratorOpen = ref(false);
+  const showDistributionModal = ref(false);
   const lastPointer = ref({ x: 150, y: 150 });
   const pasteOffset = ref(0);
   const zoomLevel = ref(100); // Zoom percentage (50-200)
@@ -61,6 +62,7 @@ export const useUIStore = defineStore('ui', () => {
     isSectionManagerOpen,
     isAIPasteDialogOpen,
     isGroupQuizGeneratorOpen,
+    showDistributionModal,
     lastPointer,
     pasteOffset,
     zoomLevel,

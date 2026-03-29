@@ -14,6 +14,7 @@ import GroupQuizGenerator from './components/GroupQuizGenerator.vue';
 import LeaderboardOverlay from './components/LeaderboardOverlay.vue';
 import FloatingAnalytics from './components/FloatingAnalytics.vue';
 import LiveQuestionPanel from './components/LiveQuestionPanel.vue';
+import DistributionModal from './components/DistributionModal.vue';
 
 const presentation = usePresentationStore();
 const ui = useUIStore();
@@ -82,6 +83,7 @@ onUnmounted(() => {
     <GroupQuizGenerator />
     <LeaderboardOverlay />
     <LiveQuestionPanel />
+    <DistributionModal />
 
     <!-- Presentation Mode Floating HUD -->
     <div v-if="!ui.isEditMode" class="presentation-hud">
