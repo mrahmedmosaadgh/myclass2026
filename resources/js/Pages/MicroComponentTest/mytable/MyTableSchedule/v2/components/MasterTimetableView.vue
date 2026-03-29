@@ -55,6 +55,54 @@
         </div>
       </div>
 
+      <div class="filters-panel">
+        <div class="filters-grid">
+          <div class="filter-field wide">
+            <label class="filter-label">Teacher</label>
+            <input v-model="filters.teacher" type="text" class="filter-input" placeholder="Search teacher" />
+          </div>
+          <div class="filter-field wide">
+            <label class="filter-label">Class</label>
+            <input v-model="filters.className" type="text" class="filter-input" placeholder="Search class" />
+          </div>
+          <div class="filter-field wide">
+            <label class="filter-label">Subject</label>
+            <input v-model="filters.subject" type="text" class="filter-input" placeholder="Search subject" />
+          </div>
+          <div class="filter-field">
+            <label class="filter-label">Period</label>
+            <select v-model="filters.periodId" class="filter-select">
+              <option value="">All periods</option>
+              <option v-for="period in resolvedPeriods" :key="period.id" :value="String(period.id)">
+                {{ period.title }}
+              </option>
+            </select>
+          </div>
+          <div class="filter-field">
+            <label class="filter-label">Status</label>
+            <select v-model="filters.availability" class="filter-select">
+              <option value="">All</option>
+              <option value="busy">Not Free</option>
+              <option value="free">Free</option>
+            </select>
+          </div>
+          <div class="filter-field">
+            <label class="filter-label">Display</label>
+            <select v-model="filterDisplayMode" class="filter-select">
+              <option value="focus">Show selected only</option>
+              <option value="dim">Show all, dim others</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="filters-summary-row">
+          <span class="filter-summary">
+            {{ filteredTeachers.length }} matched teacher<span v-if="filteredTeachers.length !== 1">s</span>
+          </span>
+          <button type="button" class="clear-filters-btn" @click="clearFilters">Clear filters</button>
+        </div>
+      </div>
+
       <!-- Responsive Table -->
       <div class="table-wrapper" ref="tableWrapper">
         <table class="master-table">
@@ -63,10 +111,11 @@
             <tr>
               <th class="teacher-header">Teacher</th>
               <th
-                v-for="period in resolvedPeriods"
+                v-for="period in visiblePeriods"
                 :key="period.id"
                 class="period-header"
                 :class="{
+                  'header-dimmed': shouldDimPeriod(period),
                   'break-header': period.type === 'break',
                   'activity-header': period.type === 'activity'
                 }"
@@ -82,13 +131,13 @@
           <!-- Teacher Rows -->
           <tbody class="table-body">
             <tr
-              v-for="teacher in teachers"
+              v-for="teacher in displayedTeachers"
               :key="teacher.id"
               class="teacher-row"
-              :class="{ 'has-current-period': hasCurrentPeriod(teacher) }"
+              :class="{ 'has-current-period': hasCurrentPeriod(teacher), 'row-dimmed': shouldDimTeacher(teacher) }"
             >
               <!-- Teacher Name Column -->
-              <td class="teacher-cell">
+              <td class="teacher-cell" :class="{ 'teacher-cell-dimmed': shouldDimTeacher(teacher) }">
                 <div class="teacher-info">
                   <div class="teacher-name-row">
                     <span class="teacher-name">{{ teacher.name }}</span>
@@ -120,12 +169,15 @@
 
               <!-- Period Cells -->
               <td
-                v-for="period in resolvedPeriods"
+                v-for="period in visiblePeriods"
                 :key="period.id"
                 class="period-cell"
                 :class="[
                   getCellClass(period, teacher),
-                  { 'is-current-period': isCurrentPeriod(period, teacher) }
+                  {
+                    'is-current-period': isCurrentPeriod(period, teacher),
+                    'cell-dimmed': shouldDimCell(period, teacher)
+                  }
                 ]"
                 @click="handleCellClick(period, teacher)"
               >
@@ -155,7 +207,7 @@
         <div class="footer-stats">
           <div class="stat-item">
             <span class="stat-label">Total Teachers:</span>
-            <span class="stat-value">{{ teachers.length }}</span>
+            <span class="stat-value">{{ displayedTeachers.length }}</span>
           </div>
           <div class="stat-item">
             <span class="stat-label">Busy Now:</span>
@@ -238,6 +290,14 @@ const showTimingManager = ref(false);
 const showCellDetail = ref(false);
 const selectedTeacher = ref(null);
 const selectedPeriod = ref(null);
+const filters = ref({
+  teacher: '',
+  className: '',
+  subject: '',
+  periodId: '',
+  availability: ''
+});
+const filterDisplayMode = ref('focus');
 
 // Use composable for data management
 const {
@@ -275,6 +335,80 @@ const activePeriodProgress = computed(() => {
   return 0;
 });
 
+const normalizedFilters = computed(() => ({
+  teacher: filters.value.teacher.trim().toLowerCase(),
+  className: filters.value.className.trim().toLowerCase(),
+  subject: filters.value.subject.trim().toLowerCase(),
+  periodId: filters.value.periodId ? String(filters.value.periodId) : '',
+  availability: filters.value.availability
+}));
+
+const hasActiveFilters = computed(() => {
+  const current = normalizedFilters.value;
+  return !!(current.teacher || current.className || current.subject || current.periodId || current.availability);
+});
+
+const periodMatchesFilter = (period) => {
+  const current = normalizedFilters.value;
+  if (!current.periodId) return true;
+  return String(period.id) === current.periodId;
+};
+
+const teacherMatchesBaseFilter = (teacher) => {
+  const current = normalizedFilters.value;
+  if (!current.teacher) return true;
+  return teacher.name?.toLowerCase().includes(current.teacher);
+};
+
+const assignmentMatchesFilter = (assignment) => {
+  const current = normalizedFilters.value;
+  const classMatches = !current.className || assignment?.class?.toLowerCase().includes(current.className);
+  const subjectMatches = !current.subject || assignment?.subject?.toLowerCase().includes(current.subject);
+  return classMatches && subjectMatches;
+};
+
+const availabilityMatchesFilter = (assignment) => {
+  const current = normalizedFilters.value;
+  if (!current.availability) return true;
+  if (current.availability === 'free') return !assignment;
+  if (current.availability === 'busy') return !!assignment;
+  return true;
+};
+
+const isCellMatch = (period, teacher) => {
+  const assignment = getAssignment(period, teacher);
+  return teacherMatchesBaseFilter(teacher)
+    && periodMatchesFilter(period)
+    && availabilityMatchesFilter(assignment)
+    && assignmentMatchesFilter(assignment);
+};
+
+const teacherHasAnyMatch = (teacher) => {
+  if (!hasActiveFilters.value) return true;
+  return resolvedPeriods.value.some(period => isCellMatch(period, teacher));
+};
+
+const filteredTeachers = computed(() => {
+  return teachers.value.filter(teacher => teacherHasAnyMatch(teacher));
+});
+
+const displayedTeachers = computed(() => {
+  if (!hasActiveFilters.value || filterDisplayMode.value === 'dim') {
+    return teachers.value;
+  }
+  return filteredTeachers.value;
+});
+
+const visiblePeriods = computed(() => {
+  if (!hasActiveFilters.value) return resolvedPeriods.value;
+  if (filterDisplayMode.value === 'dim') return resolvedPeriods.value;
+  const current = normalizedFilters.value;
+  if (current.periodId) {
+    return resolvedPeriods.value.filter(period => String(period.id) === current.periodId);
+  }
+  return resolvedPeriods.value;
+});
+
 // Computed properties
 const getStageLabel = (stage) => {
   const labels = {
@@ -283,6 +417,29 @@ const getStageLabel = (stage) => {
     sec: 'Secondary'
   };
   return labels[stage] || stage;
+};
+
+const shouldDimTeacher = (teacher) => {
+  return hasActiveFilters.value && filterDisplayMode.value === 'dim' && !teacherHasAnyMatch(teacher);
+};
+
+const shouldDimPeriod = (period) => {
+  return hasActiveFilters.value && filterDisplayMode.value === 'dim' && !periodMatchesFilter(period);
+};
+
+const shouldDimCell = (period, teacher) => {
+  return hasActiveFilters.value && filterDisplayMode.value === 'dim' && !isCellMatch(period, teacher);
+};
+
+const clearFilters = () => {
+  filters.value = {
+    teacher: '',
+    className: '',
+    subject: '',
+    periodId: '',
+    availability: ''
+  };
+  filterDisplayMode.value = 'focus';
 };
 
 const getDayLabel = (day) => {
@@ -370,11 +527,11 @@ const getFreePeriodsCount = (teacher) => {
 };
 
 const getCurrentBusyCount = () => {
-  return teachers.value.filter(teacher => hasCurrentPeriod(teacher)).length;
+  return displayedTeachers.value.filter(teacher => hasCurrentPeriod(teacher)).length;
 };
 
 const getCurrentFreeCount = () => {
-  return teachers.value.length - getCurrentBusyCount();
+  return displayedTeachers.value.length - getCurrentBusyCount();
 };
 
 const handleCellClick = (period, teacher) => {
@@ -448,10 +605,10 @@ const exportTable = () => {
 };
 
 const generateCSV = () => {
-  const headers = ['Teacher', ...resolvedPeriods.value.map(p => p.title)];
-  const rows = teachers.value.map(teacher => {
+  const headers = ['Teacher', ...visiblePeriods.value.map(p => p.title)];
+  const rows = displayedTeachers.value.map(teacher => {
     const teacherData = [teacher.name];
-    resolvedPeriods.value.forEach(period => {
+    visiblePeriods.value.forEach(period => {
       const assignment = getAssignment(period, teacher);
       teacherData.push(assignment ? `${assignment.class} · ${assignment.subject}` : 'Free');
     });
@@ -594,6 +751,67 @@ watch(() => props.currentDayIndex, (newDayIndex) => {
   padding: 1rem;
 }
 
+.filters-panel {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+}
+
+.filter-field.wide {
+  grid-column: span 2;
+}
+
+.filter-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.filter-input,
+.filter-select {
+  width: 100%;
+  padding: 0.7rem 0.75rem;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 0.85rem;
+  color: #1e293b;
+}
+
+.filters-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.9rem;
+}
+
+.filter-summary {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.clear-filters-btn {
+  padding: 0.55rem 0.85rem;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .table-header {
   display: flex;
   justify-content: space-between;
@@ -694,6 +912,10 @@ watch(() => props.currentDayIndex, (newDayIndex) => {
   min-width: 150px;
 }
 
+.teacher-cell-dimmed {
+  background: #f8fafc;
+}
+
 .period-header {
   padding: 0.75rem 0.5rem;
   background: #64748b;
@@ -739,6 +961,10 @@ watch(() => props.currentDayIndex, (newDayIndex) => {
 
 .teacher-row.has-current-period {
   background: #fef2f2;
+}
+
+.row-dimmed {
+  opacity: 0.45;
 }
 
 .teacher-cell {
@@ -834,6 +1060,15 @@ watch(() => props.currentDayIndex, (newDayIndex) => {
   background: #f8fafc;
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.cell-dimmed {
+  opacity: 0.22;
+  filter: grayscale(0.9);
+}
+
+.header-dimmed {
+  opacity: 0.45;
 }
 
 .cell-content {
@@ -1073,6 +1308,19 @@ watch(() => props.currentDayIndex, (newDayIndex) => {
     align-items: flex-start;
   }
 
+  .filters-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .filter-field.wide {
+    grid-column: span 2;
+  }
+
+  .filters-summary-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
   .header-actions {
     width: 100%;
   }
@@ -1120,6 +1368,14 @@ watch(() => props.currentDayIndex, (newDayIndex) => {
   .selectors-header {
     gap: 0.5rem;
     padding: 0.5rem;
+  }
+
+  .filters-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-field.wide {
+    grid-column: span 1;
   }
 
   .table-title {
