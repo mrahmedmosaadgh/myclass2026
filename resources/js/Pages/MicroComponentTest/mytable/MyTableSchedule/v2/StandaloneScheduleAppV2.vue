@@ -356,7 +356,9 @@ const registerServiceWorker = async () => {
 
   try {
     serviceWorkerStatus.value = 'registering';
-    const registration = await navigator.serviceWorker.register('/sw.js');
+    const registration = await navigator.serviceWorker.register('/my-schedule-app-v2-sw.js', {
+      scope: '/my-schedule-app/v2'
+    });
     serviceWorkerStatus.value = registration.active ? 'ready' : 'registered';
   } catch (error) {
     console.error('Failed to register service worker:', error);

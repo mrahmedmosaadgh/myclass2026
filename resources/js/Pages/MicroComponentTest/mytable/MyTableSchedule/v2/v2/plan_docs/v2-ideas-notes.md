@@ -200,3 +200,46 @@ This document collects practical ideas to improve the standalone Schedule App V2
   Earlier work also added teacher-specific access support and admin sharing helpers.
   - teacher-specific links can be copied/shared from the school timetable
   - teacher-only access hides the school-wide mode and derives personal schedule data from the master timetable
+
+- **School table filters and display modes added**
+  The school timetable view now supports powerful filtering and two display modes.
+  - filters by teacher, class, subject, period, and availability (free/busy)
+  - two display modes:
+    - focus: show only matching rows/cells
+    - dim: show all data, but dim non-matching entries to light gray
+  - mobile-friendly filter UI with clear/reset actions
+  - filter state affects CSV export and busy/free counts
+
+- **Simplified top controls and timing actions**
+  The admin timing bar and related controls were simplified for a cleaner, less noisy UI.
+  - replaced large timing buttons with compact icon-only actions (👁️ view, ⚙️ edit)
+  - flattened stage/day selector styling and reduced visual weight
+  - made test-time override more compact and quieter
+  - improved mobile spacing and hierarchy
+
+- **PWA installability completed**
+  The V2 app is now installable as a Progressive Web App.
+  - added Web App Manifest with app metadata, icons, and shortcuts
+  - added service worker for offline caching and app shell
+  - added install banner with Install/Not now actions
+  - supports standalone launch and offline fallback
+  - manifest and service worker served via Laravel routes for public access
+
+- **Public access enabled**
+  The V2 app and its PWA assets are now publicly accessible with no auth required.
+  - removed auth middleware from `/my-schedule-app/v2` route
+  - exposed manifest, icon, and service worker routes publicly
+  - added safe service worker alias route to avoid static file blocking
+  - updated client registration to use the public alias with correct scope
+  - manifest URLs use relative paths for better installability
+
+## Suggested Next Priorities (updated)
+
+1. Add conflict detection in school timetable
+2. Add import preview + overwrite confirmation
+3. Add teacher search/filter (basic filters are done, consider advanced search)
+4. Add timing preset templates
+5. Add print-friendly mode
+6. Expand PWA features (background sync, push notifications for reminders)
+7. Add offline status indicators and sync status
+8. Consider role-based access splits (admin/teacher/viewer)

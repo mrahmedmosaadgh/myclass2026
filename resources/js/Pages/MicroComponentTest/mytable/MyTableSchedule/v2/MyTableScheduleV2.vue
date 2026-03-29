@@ -444,7 +444,9 @@ const sendNotification = (title, bodyText) => {
 onMounted(() => {
   // Register Service Worker for PWA functionality
   if ('serviceWorker' in navigator && window.location.pathname.startsWith('/my-schedule-app/v2')) {
-    navigator.serviceWorker.register('/my-schedule-app/v2/sw.js')
+    navigator.serviceWorker.register('/my-schedule-app-v2-sw.js', {
+      scope: '/my-schedule-app/v2'
+    })
       .then((registration) => {
         console.log('[SW] Service Worker registered:', registration);
       })

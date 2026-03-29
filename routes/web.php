@@ -411,6 +411,16 @@ Route::get('/my-schedule-app/v2/sw.js', function () {
         ->header('Service-Worker-Allowed', '/my-schedule-app/v2');
 })->withoutMiddleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', HandleInertiaRequests::class])->name('schedule.app.v2.service-worker');
 
+Route::get('/my-schedule-app-v2-sw.js', function () {
+    $serviceWorkerPath = public_path('my-schedule-app/v2/sw.js');
+
+    abort_unless(file_exists($serviceWorkerPath), 404);
+
+    return response(file_get_contents($serviceWorkerPath), 200)
+        ->header('Content-Type', 'application/javascript')
+        ->header('Service-Worker-Allowed', '/my-schedule-app/v2');
+})->withoutMiddleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', HandleInertiaRequests::class])->name('schedule.app.v2.service-worker.alias');
+
     // Offline System Test Route
     Route::get('/offline-test', function () {
         return Inertia::render('OfflineTest');
