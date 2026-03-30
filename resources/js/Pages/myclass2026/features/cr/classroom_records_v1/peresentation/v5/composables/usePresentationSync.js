@@ -57,11 +57,13 @@ export function usePresentationSync() {
   const syncPresentationToServer = async (presentation) => {
     try {
       syncStatus.value = 'syncing';
+      const categoryId = presentation.crPresentationCategoryId ?? presentation.categoryId ?? null;
       
       const payload = {
         title: presentation.title,
         description: presentation.description || '',
-        category_id: presentation.categoryId || null,
+        category_id: categoryId,
+        cr_presentation_category_id: categoryId,
         slides: presentation.slides,
         current_slide_index: presentation.currentSlideIndex || 0,
         use_phases: presentation.usePhases || false,
@@ -134,7 +136,8 @@ export function usePresentationSync() {
           currentSlideIndex: serverPresentation.current_slide_index,
           usePhases: serverPresentation.use_phases,
           hasInitializedPhases: serverPresentation.has_initialized_phases,
-          categoryId: serverPresentation.category_id,
+          categoryId: serverPresentation.cr_presentation_category_id ?? serverPresentation.category_id,
+          crPresentationCategoryId: serverPresentation.cr_presentation_category_id ?? serverPresentation.category_id,
           serverId: serverPresentation.id,
           slug: serverPresentation.slug,
           syncedAt: new Date().toISOString(),

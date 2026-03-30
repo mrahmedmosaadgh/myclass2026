@@ -16,7 +16,7 @@ class PresentationCategoryController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = Auth::user();
-        $query = CrPresentationCategory::with(['presentations' => function ($query) use ($user) {
+        $query = CrPresentationCategory::with(['crPresentations' => function ($query) use ($user) {
             if ($user) {
                 $query->forUser($user->id);
             }
@@ -120,7 +120,7 @@ class PresentationCategoryController extends Controller
             ], 404);
         }
 
-        $category->load(['presentations' => function ($query) use ($user) {
+        $category->load(['crPresentations' => function ($query) use ($user) {
             $query->forUser($user->id)->latest();
         }, 'parent', 'children']);
 
@@ -188,7 +188,7 @@ class PresentationCategoryController extends Controller
         }
 
         // Check if category has presentations
-        if ($category->presentations()->count() > 0) {
+        if ($category->crPresentations()->count() > 0) {
             return response()->json([
                 'success' => false,
                 'message' => 'Cannot delete category with existing presentations'
@@ -222,7 +222,7 @@ class PresentationCategoryController extends Controller
 
         $categories = CrPresentationCategory::active()
             ->forSchool($schoolId)
-            ->withCount(['presentations' => function ($query) use ($user) {
+            ->withCount(['crPresentations' => function ($query) use ($user) {
                 $query->forUser($user->id);
             }])
             ->ordered()
@@ -230,15 +230,15 @@ class PresentationCategoryController extends Controller
 
         $stats = [
             'total_categories' => $categories->count(),
-            'categories_with_presentations' => $categories->where('presentations_count', '>', 0)->count(),
-            'total_presentations' => $categories->sum('presentations_count'),
+            'categories_with_presentations' => $categories->where('cr_presentations_count', '>', 0)->count(),
+            'total_presentations' => $categories->sum('cr_presentations_count'),
             'categories' => $categories->map(function ($category) {
                 return [
                     'id' => $category->id,
                     'name' => $category->name,
                     'color' => $category->color,
                     'icon' => $category->icon,
-                    'presentation_count' => $category->presentations_count,
+                    'presentation_count' => $category->cr_presentations_count,
                     'is_system' => $category->is_system
                 ];
             })
@@ -266,7 +266,7 @@ class PresentationCategoryController extends Controller
                 'color' => $category->color,
                 'icon' => $category->icon,
                 'is_system' => $category->is_system,
-                'presentation_count' => $category->presentations_count ?? count($category->presentations),
+                'presentation_count' => $category->cr_presentations_count ?? count($category->crPresentations),
                 'children' => $this->buildChildrenTree($category, $categories)
             ];
         })->toArray();
@@ -288,7 +288,7 @@ class PresentationCategoryController extends Controller
                 'color' => $child->color,
                 'icon' => $child->icon,
                 'is_system' => $child->is_system,
-                'presentation_count' => $child->presentations_count ?? count($child->presentations),
+                'presentation_count' => $child->cr_presentations_count ?? count($child->crPresentations),
                 'children' => $this->buildChildrenTree($child, $allCategories)
             ];
         })->toArray();

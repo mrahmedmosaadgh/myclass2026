@@ -26,7 +26,8 @@ class PresentationStoreRequest extends FormRequest
         return [
             'title' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
-            'category_id' => 'nullable|exists:presentation_categories,id',
+            'category_id' => 'nullable|exists:cr_presentation_categories,id',
+            'cr_presentation_category_id' => 'nullable|exists:cr_presentation_categories,id',
             'classroom_id' => 'nullable|exists:classrooms,id',
             'slides' => 'nullable|array',
             'slides.*.id' => 'required|string|max:255',
@@ -54,6 +55,7 @@ class PresentationStoreRequest extends FormRequest
             'title.max' => 'Presentation title cannot exceed 255 characters',
             'description.max' => 'Description cannot exceed 1000 characters',
             'category_id.exists' => 'Selected category does not exist',
+            'cr_presentation_category_id.exists' => 'Selected category does not exist',
             'classroom_id.exists' => 'Selected classroom does not exist',
             'slides.*.id.required' => 'Each slide must have an ID',
             'slides.*.elements.*.id.required' => 'Each element must have an ID',

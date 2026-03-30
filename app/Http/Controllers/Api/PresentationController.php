@@ -3,15 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Presentation;
-use App\Models\PresentationCategory;
+use App\Models\CrPresentation;
 use App\Http\Requests\Api\PresentationStoreRequest;
 use App\Http\Requests\Api\PresentationUpdateRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class PresentationController extends Controller
 {
@@ -21,7 +19,7 @@ class PresentationController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = Auth::user();
-        $query = Presentation::with(['category', 'user']);
+        $query = CrPresentation::with(['category', 'user']);
 
         // Filter by user
         if ($request->has('user_id') && $request->user_id != 'all') {
@@ -36,8 +34,9 @@ class PresentationController extends Controller
         }
 
         // Filter by category
-        if ($request->has('category_id') && $request->category_id) {
-            $query->inCategory($request->category_id);
+        $categoryId = $request->get('cr_presentation_category_id') ?? $request->get('category_id');
+        if ($categoryId) {
+            $query->inCategory($categoryId);
         }
 
         // Filter by status
@@ -93,15 +92,17 @@ class PresentationController extends Controller
             $user = Auth::user();
             $data = $request->validated();
             $slides = $data['slides'] ?? [];
+            $categoryId = $data['cr_presentation_category_id'] ?? $data['category_id'] ?? null;
 
             // Create presentation record first
-            $presentation = Presentation::create([
+            $presentation = CrPresentation::create([
                 'title' => $data['title'],
                 'description' => $data['description'] ?? null,
-                'category_id' => $data['category_id'] ?? null,
+                'cr_presentation_category_id' => $categoryId,
                 'user_id' => $user->id,
                 'school_id' => $user->school_id,
                 'classroom_id' => $data['classroom_id'] ?? null,
+                'slides' => $slides,
                 'current_slide_index' => $data['current_slide_index'] ?? 0,
                 'use_phases' => $data['use_phases'] ?? false,
                 'has_initialized_phases' => $data['has_initialized_phases'] ?? false,
@@ -114,14 +115,6 @@ class PresentationController extends Controller
                 'is_public' => $data['is_public'] ?? false,
                 'is_template' => $data['is_template'] ?? false,
             ]);
-
-            // Save slides to file storage
-            if (!empty($slides)) {
-                $presentation->saveSlidesToFile($slides);
-            }
-
-            // Create initial backup
-            $presentation->createBackup('initial');
 
             DB::commit();
 
@@ -148,7 +141,7 @@ class PresentationController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Presentation $presentation): JsonResponse
+    public function show(CrPresentation $presentation): JsonResponse
     {
         $user = Auth::user();
 
@@ -160,25 +153,18 @@ class PresentationController extends Controller
             ], 403);
         }
 
-        $presentation->load(['category', 'user', 'backups' => function ($query) {
-            $query->latest()->take(5);
-        }]);
-
-        // Load slides from file storage
-        $slides = $presentation->loadSlidesFromFile();
-        $presentationData = $presentation->toArray();
-        $presentationData['slides'] = $slides;
+        $presentation->load(['category', 'user']);
 
         return response()->json([
             'success' => true,
-            'data' => $presentationData
+            'data' => $presentation
         ]);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(PresentationUpdateRequest $request, Presentation $presentation): JsonResponse
+    public function update(PresentationUpdateRequest $request, CrPresentation $presentation): JsonResponse
     {
         $user = Auth::user();
 
@@ -194,14 +180,14 @@ class PresentationController extends Controller
             DB::beginTransaction();
 
             $data = $request->validated();
-            $oldSlides = $presentation->loadSlidesFromFile();
             $newSlides = $data['slides'] ?? null;
+            $categoryId = $data['cr_presentation_category_id'] ?? $data['category_id'] ?? $presentation->cr_presentation_category_id;
 
             // Update presentation metadata
-            $presentation->update([
+            $updatePayload = [
                 'title' => $data['title'],
                 'description' => $data['description'] ?? $presentation->description,
-                'category_id' => $data['category_id'] ?? $presentation->category_id,
+                'cr_presentation_category_id' => $categoryId,
                 'classroom_id' => $data['classroom_id'] ?? $presentation->classroom_id,
                 'current_slide_index' => $data['current_slide_index'] ?? $presentation->current_slide_index,
                 'use_phases' => $data['use_phases'] ?? $presentation->use_phases,
@@ -210,22 +196,17 @@ class PresentationController extends Controller
                 'is_public' => $data['is_public'] ?? $presentation->is_public,
                 'is_template' => $data['is_template'] ?? $presentation->is_template,
                 'metadata' => array_merge($presentation->metadata ?? [], [
-                    'slide_count' => $newSlides ? count($newSlides) : count($oldSlides),
+                    'slide_count' => is_array($newSlides) ? count($newSlides) : count($presentation->slides ?? []),
                     'last_updated_from' => 'api',
                     'updated_at' => now()->toISOString()
                 ])
-            ]);
+            ];
 
-            // Update slides file if provided
             if ($newSlides !== null) {
-                $presentation->saveSlidesToFile($newSlides);
-                
-                // Create backup if slides changed significantly
-                $slidesChanged = json_encode($oldSlides) !== json_encode($newSlides);
-                if ($slidesChanged || $request->has('create_backup')) {
-                    $presentation->createBackup($request->get('backup_reason', 'auto'));
-                }
+                $updatePayload['slides'] = $newSlides;
             }
+
+            $presentation->update($updatePayload);
 
             DB::commit();
 
@@ -251,7 +232,7 @@ class PresentationController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Presentation $presentation): JsonResponse
+    public function destroy(CrPresentation $presentation): JsonResponse
     {
         $user = Auth::user();
 
@@ -265,12 +246,6 @@ class PresentationController extends Controller
 
         try {
             DB::beginTransaction();
-
-            // Create backup before deletion
-            $presentation->createBackup('before_delete');
-
-            // Delete slides file
-            $presentation->deleteSlidesFile();
 
             // Soft delete
             $presentation->delete();
@@ -296,7 +271,7 @@ class PresentationController extends Controller
     /**
      * Duplicate a presentation
      */
-    public function duplicate(Presentation $presentation): JsonResponse
+    public function duplicate(CrPresentation $presentation): JsonResponse
     {
         $user = Auth::user();
 
@@ -314,7 +289,7 @@ class PresentationController extends Controller
             $newPresentation = $presentation->replicate([
                 'title',
                 'description',
-                'category_id',
+                'cr_presentation_category_id',
                 'slides',
                 'current_slide_index',
                 'use_phases',
@@ -337,7 +312,6 @@ class PresentationController extends Controller
             ]);
 
             $newPresentation->save();
-            $newPresentation->createBackup('duplicate');
 
             DB::commit();
 
@@ -369,16 +343,16 @@ class PresentationController extends Controller
         $schoolId = $user->school_id;
 
         $stats = [
-            'total_presentations' => Presentation::forUser($user->id)->count(),
-            'published_presentations' => Presentation::forUser($user->id)->published()->count(),
-            'draft_presentations' => Presentation::forUser($user->id)->draft()->count(),
+            'total_presentations' => CrPresentation::forUser($user->id)->count(),
+            'published_presentations' => CrPresentation::forUser($user->id)->published()->count(),
+            'draft_presentations' => CrPresentation::forUser($user->id)->draft()->count(),
             'total_size' => 0,
             'categories' => [],
             'recent_activity' => []
         ];
 
         // Calculate total size
-        $presentations = Presentation::forUser($user->id)->get(['slides', 'metadata']);
+        $presentations = CrPresentation::forUser($user->id)->get(['slides', 'metadata']);
         foreach ($presentations as $presentation) {
             $stats['total_size'] += strlen(json_encode([
                 'slides' => $presentation->slides,
@@ -387,20 +361,20 @@ class PresentationController extends Controller
         }
 
         // Category breakdown
-        $categoryStats = Presentation::forUser($user->id)
-            ->join('presentation_categories', 'presentations.category_id', '=', 'presentation_categories.id')
-            ->selectRaw('presentation_categories.name, presentation_categories.color, COUNT(*) as count')
-            ->groupBy('presentation_categories.id', 'presentation_categories.name', 'presentation_categories.color')
+        $categoryStats = CrPresentation::forUser($user->id)
+            ->join('cr_presentation_categories', 'cr_presentations.cr_presentation_category_id', '=', 'cr_presentation_categories.id')
+            ->selectRaw('cr_presentation_categories.name, cr_presentation_categories.color, COUNT(*) as count')
+            ->groupBy('cr_presentation_categories.id', 'cr_presentation_categories.name', 'cr_presentation_categories.color')
             ->get();
 
         $stats['categories'] = $categoryStats->toArray();
 
         // Recent activity
-        $recentPresentations = Presentation::forUser($user->id)
+        $recentPresentations = CrPresentation::forUser($user->id)
             ->with('category')
             ->orderBy('updated_at', 'desc')
             ->take(5)
-            ->get(['id', 'title', 'updated_at', 'status', 'category_id']);
+            ->get(['id', 'title', 'updated_at', 'status', 'cr_presentation_category_id']);
 
         $stats['recent_activity'] = $recentPresentations->toArray();
 
@@ -435,11 +409,11 @@ class PresentationController extends Controller
             ]);
         }
 
-        $presentations = Presentation::forUser($user->id)
+        $presentations = CrPresentation::forUser($user->id)
             ->search($query)
             ->with(['category', 'user'])
             ->limit($limit)
-            ->get(['id', 'title', 'description', 'slug', 'category_id', 'user_id', 'updated_at', 'status']);
+            ->get(['id', 'title', 'description', 'slug', 'cr_presentation_category_id', 'user_id', 'updated_at', 'status']);
 
         return response()->json([
             'success' => true,

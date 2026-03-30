@@ -90,7 +90,12 @@ class CrPresentationCategory extends Model
 
     public function presentations()
     {
-        return $this->hasMany(Presentation::class);
+        return $this->hasMany(Presentation::class, 'category_id');
+    }
+
+    public function crPresentations()
+    {
+        return $this->hasMany(CrPresentation::class, 'cr_presentation_category_id');
     }
 
     public function school()
