@@ -17,6 +17,7 @@ import FloatingAnalytics from './components/FloatingAnalytics.vue';
 import LiveQuestionPanel from './components/LiveQuestionPanel.vue';
 import DistributionModal from './components/DistributionModal.vue';
 import DrawingToolbar from './components/drawing/DrawingToolbar.vue';
+import LiveQuestionOverlay from './components/LiveQuestionOverlay.vue';
 import { useDrawingStore } from './stores/drawingStore';
 
 const presentation = usePresentationStore();
