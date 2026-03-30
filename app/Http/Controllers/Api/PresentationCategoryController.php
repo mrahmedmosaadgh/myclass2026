@@ -17,13 +17,15 @@ class PresentationCategoryController extends Controller
     {
         $user = Auth::user();
         $query = CrPresentationCategory::with(['presentations' => function ($query) use ($user) {
-            $query->forUser($user->id);
+            if ($user) {
+                $query->forUser($user->id);
+            }
         }]);
 
         // Filter by school
         if ($request->has('school_id')) {
             $query->forSchool($request->school_id);
-        } elseif ($user->school_id) {
+        } elseif ($user && $user->school_id) {
             $query->forSchool($user->school_id);
         }
 
