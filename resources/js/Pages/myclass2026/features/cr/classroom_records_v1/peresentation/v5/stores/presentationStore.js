@@ -53,22 +53,21 @@ export const usePresentationStore = defineStore('presentation', () => {
     try {
       const currentPresentation = await indexedDBStorage.getCurrentPresentation();
       if (currentPresentation) {
-        initialData = {
-          title: currentPresentation.title,
-          description: currentPresentation.description || '',
-          usePhases: currentPresentation.usePhases,
-          hasInitializedPhases: currentPresentation.hasInitializedPhases,
-          slides: currentPresentation.slides,
-          currentSlideIndex: currentPresentation.currentSlideIndex || 0
-        };
+        title.value = currentPresentation.title || 'Untitled Presentation';
+        description.value = typeof currentPresentation.description === 'string'
+          ? currentPresentation.description
+          : String(currentPresentation.description || '');
+        usePhases.value = !!currentPresentation.usePhases;
+        hasInitializedPhases.value = !!currentPresentation.hasInitializedPhases;
+        slides.value = Array.isArray(currentPresentation.slides)
+          ? currentPresentation.slides
+          : JSON.parse(JSON.stringify(defaultSlides));
+        currentSlideIndex.value = currentPresentation.currentSlideIndex || 0;
       }
     } catch (e) {
       console.warn('Failed to load presentation from IndexedDB, using defaults.', e);
     }
   };
-
-  // Load asynchronously (non-blocking)
-  loadCurrentPresentation();
 
   const title = ref(initialData.title);
   const description = ref(initialData.description);
@@ -76,6 +75,9 @@ export const usePresentationStore = defineStore('presentation', () => {
   const hasInitializedPhases = ref(initialData.hasInitializedPhases);
   const slides = ref(initialData.slides);
   const currentSlideIndex = ref(initialData.currentSlideIndex || 0);
+
+  // Load asynchronously (non-blocking)
+  loadCurrentPresentation();
 
   let saveTimeout = null;
   let currentPresentationKey = null;
@@ -114,7 +116,7 @@ export const usePresentationStore = defineStore('presentation', () => {
     }, 600);
   }
 
-  watch([title, usePhases, slides, currentSlideIndex], () => {
+  watch([title, description, usePhases, slides, currentSlideIndex], () => {
     triggerAutoSave();
   }, { deep: true });
 
@@ -125,6 +127,7 @@ export const usePresentationStore = defineStore('presentation', () => {
     }
     
     title.value = 'Untitled Presentation';
+    description.value = '';
     usePhases.value = false;
     hasInitializedPhases.value = false;
     slides.value = JSON.parse(JSON.stringify(defaultSlides));
@@ -294,6 +297,7 @@ export const usePresentationStore = defineStore('presentation', () => {
     try {
       const payload = {
         title: name,
+        description: typeof description.value === 'string' ? description.value : String(description.value || ''),
         usePhases: usePhases.value,
         hasInitializedPhases: hasInitializedPhases.value,
         slides: slides.value,

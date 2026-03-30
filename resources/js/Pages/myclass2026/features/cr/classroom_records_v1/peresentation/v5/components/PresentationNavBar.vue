@@ -44,6 +44,7 @@ function startEditingDescription() {
   isEditingDescription.value = true;
   nextTick(() => {
     if (descriptionEditor.value) {
+      descriptionEditor.value.innerHTML = typeof descriptionContent.value === 'string' ? descriptionContent.value : String(descriptionContent.value || '');
       descriptionEditor.value.focus();
     }
   });

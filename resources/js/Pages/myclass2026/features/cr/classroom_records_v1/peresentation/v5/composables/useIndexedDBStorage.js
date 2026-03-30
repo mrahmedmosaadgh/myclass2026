@@ -46,6 +46,9 @@ export function useIndexedDBStorage() {
     try {
       const presentationData = {
         title: name,
+        description: typeof presentation.description === 'string'
+          ? presentation.description
+          : String(presentation.description || ''),
         slides: presentation.slides || [],
         currentSlideIndex: presentation.currentSlideIndex || 0,
         usePhases: presentation.usePhases || false,

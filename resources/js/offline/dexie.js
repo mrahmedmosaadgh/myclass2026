@@ -449,6 +449,9 @@ class EducationDB extends Dexie {
       const presentation = {
         id: existing?.id || `pres_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
         title: presentationData.title,
+        description: typeof presentationData.description === 'string'
+          ? presentationData.description
+          : String(presentationData.description || ''),
         slides: presentationData.slides || [],
         current_slide_index: presentationData.currentSlideIndex || 0,
         use_phases: presentationData.usePhases || false,
@@ -496,6 +499,7 @@ class EducationDB extends Dexie {
       return {
         id: presentation.id,
         title: presentation.title,
+        description: presentation.description,
         slides: presentation.slides,
         currentSlideIndex: presentation.current_slide_index,
         usePhases: presentation.use_phases,
@@ -519,6 +523,7 @@ class EducationDB extends Dexie {
       return presentations.map(p => ({
         id: p.id,
         title: p.title,
+        description: p.description || '',
         size: p.metadata?.size || 0,
         slideCount: p.metadata?.slideCount || 0,
         createdAt: p.created_at,
