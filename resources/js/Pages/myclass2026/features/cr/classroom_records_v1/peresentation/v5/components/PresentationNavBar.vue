@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, nextTick } from 'vue';
+import { computed, ref } from 'vue';
 import { usePresentationStore } from '../stores/presentationStore';
 import { useUIStore } from '../stores/uiStore';
 
@@ -17,11 +17,6 @@ const canGoNext = computed(() => presentation.currentSlideIndex < totalSlides.va
 const isEditingTitle = ref(false);
 const titleInput = ref('');
 
-// Description editing state
-const isEditingDescription = ref(false);
-const descriptionContent = ref('');
-const descriptionEditor = ref(null);
-
 function startEditingTitle() {
   titleInput.value = presentation.title;
   isEditingTitle.value = true;
@@ -37,63 +32,6 @@ function saveTitle() {
 function cancelEditTitle() {
   titleInput.value = presentation.title;
   isEditingTitle.value = false;
-}
-
-function startEditingDescription() {
-  descriptionContent.value = presentation.description || '';
-  isEditingDescription.value = true;
-  nextTick(() => {
-    if (descriptionEditor.value) {
-      descriptionEditor.value.innerHTML = typeof descriptionContent.value === 'string' ? descriptionContent.value : String(descriptionContent.value || '');
-      descriptionEditor.value.focus();
-    }
-  });
-}
-
-function updateDescription(event) {
-  descriptionContent.value = typeof event.target.innerHTML === 'string' ? event.target.innerHTML : String(event.target.innerHTML || '');
-}
-
-function saveDescription() {
-  presentation.description = typeof descriptionContent.value === 'string' ? descriptionContent.value : String(descriptionContent.value || '');
-  isEditingDescription.value = false;
-}
-
-function cancelEditDescription() {
-  descriptionContent.value = presentation.description || '';
-  isEditingDescription.value = false;
-}
-
-// Math rendering function
-function renderMath() {
-  if (window.katex) {
-    const mathElements = descriptionEditor.value?.querySelectorAll('.math-render');
-    mathElements?.forEach(element => {
-      try {
-        const mathText = element.textContent;
-        window.katex.render(mathText, element, {
-          throwOnError: false,
-          displayMode: element.classList.contains('display-mode')
-        });
-      } catch (error) {
-        console.warn('Math rendering error:', error);
-      }
-    });
-  }
-}
-
-// Markdown rendering function
-function renderMarkdown() {
-  if (window.marked) {
-    let content = descriptionContent.value;
-    // Convert markdown to HTML
-    content = window.marked(content);
-    // Update editor content
-    if (descriptionEditor.value) {
-      descriptionEditor.value.innerHTML = content;
-      renderMath();
-    }
-  }
 }
 
 function goToPrevious() {
@@ -163,69 +101,6 @@ function toggleMode() {
           </div>
         </div>
         <p class="presentation-subtitle">Minimal, working reference implementation according to plan</p>
-        
-        <!-- Rich Content Description Area -->
-        <div class="description-section">
-          <div v-if="!isEditingDescription && !presentation.description" 
-               class="description-placeholder" 
-               @click="startEditingDescription">
-            <div class="placeholder-content">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-                <line x1="16" y1="13" x2="8" y2="13"></line>
-                <line x1="16" y1="17" x2="8" y2="17"></line>
-                <polyline points="10 9 9 9 8 9"></polyline>
-              </svg>
-              <span>Add description, notes, math formulas, or rich content...</span>
-            </div>
-          </div>
-          
-          <div v-else-if="!isEditingDescription && presentation.description" 
-               class="description-display" 
-               @click="startEditingDescription"
-               v-html="presentation.description">
-          </div>
-          
-          <div v-else class="description-edit">
-            <div class="description-editor-wrapper">
-              <div 
-                ref="descriptionEditor"
-                contenteditable="true"
-                @input="updateDescription"
-                @blur="saveDescription"
-                @keyup.escape="cancelEditDescription"
-                class="description-editor"
-                placeholder="Add description, notes, math formulas (use $...$ for inline math, $$...$$ for display math), markdown, or HTML content..."
-              ></div>
-              <div class="description-toolbar">
-                <button @click="renderMarkdown" class="toolbar-btn" title="Render Markdown">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                  </svg>
-                  MD
-                </button>
-                <button @click="renderMath" class="toolbar-btn" title="Render Math">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M19 5h-7l-3 14H4"></path>
-                    <path d="M14 10h5"></path>
-                    <path d="M14 14h5"></path>
-                  </svg>
-                  ∑
-                </button>
-                <button @click="saveDescription" class="toolbar-btn btn-save" title="Save">
-                  ✓
-                </button>
-                <button @click="cancelEditDescription" class="toolbar-btn btn-cancel" title="Cancel">
-                  ✕
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
       <!-- Right: Controls -->
@@ -279,52 +154,46 @@ function toggleMode() {
             title="Go to Last Slide"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="7 17 12 12 7 7"></polyline>
               <polyline points="13 17 18 12 13 7"></polyline>
+              <polyline points="7 17 12 12 7 7"></polyline>
             </svg>
           </button>
         </div>
 
-        <!-- Distribution Button -->
-        <button @click="ui.showDistributionModal = true" class="btn-distribution" title="Distribution Settings">
-          📤 Share/Export
-        </button>
-
-        <!-- Mode Toggle -->
-        <div class="mode-toggle">
-          <label class="switch">
-            <input type="checkbox" v-model="ui.isEditMode" @change="ui.clearSelection">
-            <span class="slider round"></span>
-          </label>
-          <span class="mode-label">{{ ui.isEditMode ? 'Edit Mode (Build)' : 'Present Mode (View)' }}</span>
-        </div>
-
-        <!-- Zoom Controls -->
-        <div class="zoom-controls">
-          <button @click="ui.zoomOut" :disabled="ui.zoomLevel <= 50" class="zoom-btn" title="Zoom Out (Ctrl/Cmd -)">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-          </button>
-          
-          <button @click="ui.resetZoom" class="zoom-display" title="Reset to 100% (Ctrl/Cmd 0)">
-            {{ ui.zoomLevel }}%
-          </button>
-          
-          <button @click="ui.zoomIn" :disabled="ui.zoomLevel >= 200" class="zoom-btn" title="Zoom In (Ctrl/Cmd +)">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-          </button>
-        </div>
-
-        <!-- Slide Phase Label -->
-        <div class="slide-phase">
-          <span class="phase-label">SLIDE PHASE:</span>
-          <div class="phase-indicator">
-            <div class="phase-bar"></div>
+        <!-- Edit Mode Controls -->
+        <div v-else class="edit-controls">
+          <div class="mode-indicator">
+            <span class="mode-dot edit-mode"></span>
+            <span class="mode-text">Edit Mode</span>
           </div>
+        </div>
+
+        <!-- Common Controls -->
+        <div class="common-controls">
+          <button 
+            @click="toggleMode" 
+            class="control-btn mode-toggle"
+            :title="ui.isEditMode ? 'Switch to Present Mode' : 'Switch to Edit Mode'"
+          >
+            <svg v-if="ui.isEditMode" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+          </button>
+          
+          <button 
+            @click="toggleFullscreen" 
+            class="control-btn"
+            title="Toggle Fullscreen (F)"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+            </svg>
+          </button>
         </div>
       </div>
     </div>
@@ -337,40 +206,39 @@ function toggleMode() {
   top: 0;
   left: 0;
   right: 0;
-  z-index: 9999;
-  background: white;
-  border-bottom: 1px solid #e5e7eb;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(229, 231, 235, 0.5);
+  padding: 16px 24px;
+  z-index: 1000;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-/* Progress Bar */
 .progress-bar-container {
   position: absolute;
-  bottom: 0;
+  top: 0;
   left: 0;
   right: 0;
   height: 3px;
-  background: #e5e7eb;
+  background: rgba(229, 231, 235, 0.5);
   overflow: hidden;
 }
 
 .progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
   transition: width 0.3s ease;
+  border-radius: 0 0 2px 2px;
 }
 
-/* Main Content */
 .nav-content {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 8px 24px;
-  gap: 24px;
-  min-height: 60px;
+  align-items: center;
+  max-width: 100%;
+  margin: 0 auto;
 }
 
-/* Title Section */
 .title-section {
   flex: 1;
   min-width: 0;
@@ -378,20 +246,44 @@ function toggleMode() {
 
 .title-display {
   cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background-color 0.2s;
   position: relative;
-  transition: all 0.2s;
+}
+
+.title-display:hover {
+  background: rgba(59, 130, 246, 0.05);
 }
 
 .title-display:hover .edit-hint {
   opacity: 1;
 }
 
+.presentation-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .edit-hint {
-  font-size: 0.688rem;
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  font-size: 0.75rem;
   color: #6b7280;
   opacity: 0;
   transition: opacity 0.2s;
-  margin-top: 2px;
+  background: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .title-edit {
@@ -401,16 +293,19 @@ function toggleMode() {
 }
 
 .title-input {
+  flex: 1;
   font-size: 1.25rem;
-  font-weight: 700;
+  font-weight: 600;
   color: #111827;
   border: 2px solid #3b82f6;
   border-radius: 6px;
   padding: 4px 8px;
   background: white;
   outline: none;
-  flex: 1;
-  min-width: 200px;
+}
+
+.title-input:focus {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .title-edit-actions {
@@ -419,12 +314,11 @@ function toggleMode() {
 }
 
 .btn-save, .btn-cancel {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 12px;
   font-weight: 600;
   transition: all 0.2s;
 }
@@ -447,17 +341,6 @@ function toggleMode() {
   background: #dc2626;
 }
 
-.presentation-title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #111827;
-  margin: 0;
-  line-height: 1.3;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .presentation-subtitle {
   font-size: 0.75rem;
   color: #6b7280;
@@ -468,223 +351,16 @@ function toggleMode() {
   white-space: nowrap;
 }
 
-/* Description Section */
-.description-section {
-  margin-top: 8px;
-  position: relative;
-}
-
-.description-placeholder {
-  cursor: pointer;
-  border: 2px dashed #d1d5db;
-  border-radius: 8px;
-  padding: 16px;
-  background: #f9fafb;
-  transition: all 0.2s;
-  min-height: 80px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.description-placeholder:hover {
-  border-color: #6366f1;
-  background: #f0f9ff;
-}
-
-.placeholder-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  color: #9ca3af;
-  font-size: 0.875rem;
-  text-align: center;
-}
-
-.description-display {
-  cursor: pointer;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 12px 16px;
-  background: white;
-  min-height: 60px;
-  max-height: 200px;
-  overflow-y: auto;
-  transition: all 0.2s;
-  line-height: 1.5;
-}
-
-.description-display:hover {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-}
-
-.description-edit {
-  border: 2px solid #3b82f6;
-  border-radius: 8px;
-  background: white;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.description-editor-wrapper {
-  position: relative;
-}
-
-.description-editor {
-  min-height: 120px;
-  max-height: 300px;
-  padding: 16px;
-  font-size: 0.875rem;
-  line-height: 1.6;
-  color: #374151;
-  overflow-y: auto;
-  outline: none;
-  border: none;
-  background: transparent;
-}
-
-.description-editor:empty:before {
-  content: attr(placeholder);
-  color: #9ca3af;
-  font-style: italic;
-}
-
-.description-editor:focus {
-  outline: none;
-}
-
-.description-toolbar {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  display: flex;
-  gap: 4px;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  padding: 4px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.toolbar-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  color: #6b7280;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 600;
-  transition: all 0.2s;
-}
-
-.toolbar-btn:hover {
-  background: #f3f4f6;
-  color: #374151;
-}
-
-.toolbar-btn.btn-save {
-  background: #10b981;
-  color: white;
-}
-
-.toolbar-btn.btn-save:hover {
-  background: #059669;
-}
-
-.toolbar-btn.btn-cancel {
-  background: #ef4444;
-  color: white;
-}
-
-.toolbar-btn.btn-cancel:hover {
-  background: #dc2626;
-}
-
-/* Math rendering styles */
-.math-render {
-  font-family: 'KaTeX_Main', 'Times New Roman', serif;
-}
-
-.math-render.display-mode {
-  display: block;
-  text-align: center;
-  margin: 16px 0;
-}
-
-/* Markdown rendering styles */
-.description-display h1, .description-display h2, .description-display h3,
-.description-display h4, .description-display h5, .description-display h6 {
-  margin: 16px 0 8px 0;
-  font-weight: 600;
-  color: #111827;
-}
-
-.description-display h1 { font-size: 1.5rem; }
-.description-display h2 { font-size: 1.25rem; }
-.description-display h3 { font-size: 1.125rem; }
-
-.description-display p {
-  margin: 8px 0;
-}
-
-.description-display ul, .description-display ol {
-  margin: 8px 0;
-  padding-left: 24px;
-}
-
-.description-display li {
-  margin: 4px 0;
-}
-
-.description-display code {
-  background: #f3f4f6;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-family: 'Monaco', 'Menlo', monospace;
-  font-size: 0.875rem;
-  color: #ef4444;
-}
-
-.description-display pre {
-  background: #1f2937;
-  color: #f9fafb;
-  padding: 12px;
-  border-radius: 6px;
-  overflow-x: auto;
-  margin: 8px 0;
-}
-
-.description-display blockquote {
-  border-left: 4px solid #6366f1;
-  padding-left: 16px;
-  margin: 8px 0;
-  font-style: italic;
-  color: #6b7280;
-}
-
-/* Controls Section */
 .controls-section {
   display: flex;
   align-items: center;
   gap: 16px;
-  flex-shrink: 0;
 }
 
-/* Navigation Controls */
 .navigation-controls {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 6px;
 }
 
 .nav-btn {
@@ -693,337 +369,153 @@ function toggleMode() {
   justify-content: center;
   width: 36px;
   height: 36px;
-  background: white;
   border: 1px solid #d1d5db;
   border-radius: 6px;
+  background: white;
+  color: #6b7280;
   cursor: pointer;
-  color: #374151;
   transition: all 0.2s;
 }
 
 .nav-btn:hover:not(:disabled) {
-  background: #3b82f6;
-  border-color: #3b82f6;
-  color: white;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2);
-}
-
-.nav-btn:active:not(:disabled) {
-  transform: translateY(0);
+  background: #f9fafb;
+  border-color: #9ca3af;
+  color: #374151;
 }
 
 .nav-btn:disabled {
-  opacity: 0.3;
+  opacity: 0.5;
   cursor: not-allowed;
-  background: #f9fafb;
-  color: #9ca3af;
 }
 
 .slide-counter {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 0 12px;
-  font-weight: 600;
-  font-size: 0.875rem;
-  color: #374151;
+  padding: 6px 12px;
   background: white;
   border: 1px solid #d1d5db;
   border-radius: 6px;
+  font-weight: 600;
   min-width: 60px;
   justify-content: center;
 }
 
 .current-slide {
   color: #3b82f6;
-  font-weight: 700;
+  font-size: 0.875rem;
 }
 
 .slide-separator {
   color: #9ca3af;
-  font-weight: 400;
+  margin: 0 4px;
+  font-size: 0.75rem;
 }
 
 .total-slides {
   color: #6b7280;
-  font-weight: 500;
+  font-size: 0.875rem;
 }
 
-/* Distribution Button */
-.btn-distribution {
-  display: inline-flex;
+.edit-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mode-indicator {
+  display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 12px;
-  background: #8b5cf6;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
+  padding: 6px 12px;
+  background: #f0f9ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 20px;
 }
 
-.btn-distribution:hover {
-  background: #7c3aed;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 6px rgba(139, 92, 246, 0.2);
-}
-
-/* Mode Toggle */
-.mode-toggle {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.mode-label {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #374151;
-  white-space: nowrap;
-}
-
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 44px;
-  height: 24px;
-  flex-shrink: 0;
-}
-
-.switch input { 
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #10b981;
-  transition: .3s;
-}
-
-.switch input:checked + .slider {
-  background-color: #6366f1;
-}
-
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 18px;
-  width: 18px;
-  left: 3px;
-  bottom: 3px;
-  background-color: white;
-  transition: .3s;
-}
-
-.switch input:checked + .slider:before {
-  transform: translateX(20px);
-}
-
-.slider.round {
-  border-radius: 24px;
-}
-
-.slider.round:before {
+.mode-dot {
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
+  background: #3b82f6;
+  animation: pulse 2s infinite;
 }
 
-/* Zoom Controls */
-.zoom-controls {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  padding: 3px;
-}
-
-.zoom-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  background: transparent;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  color: #374151;
-  transition: all 0.2s;
-}
-
-.zoom-btn:hover:not(:disabled) {
-  background: #e5e7eb;
-  color: #111827;
-}
-
-.zoom-btn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-.zoom-display {
-  min-width: 50px;
-  height: 28px;
-  background: transparent;
-  border: none;
+.mode-text {
+  font-size: 0.75rem;
   font-weight: 600;
-  font-size: 0.813rem;
-  color: #111827;
-  cursor: pointer;
-  border-radius: 4px;
-  transition: all 0.2s;
-  text-align: center;
+  color: #1e40af;
 }
 
-.zoom-display:hover {
-  background: #e5e7eb;
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
-/* Slide Phase */
-.slide-phase {
+.common-controls {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.phase-label {
-  font-size: 0.688rem;
-  font-weight: 600;
+.control-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
   color: #6b7280;
-  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.phase-indicator {
-  width: 120px;
-  height: 6px;
-  background: #e5e7eb;
-  border-radius: 3px;
-  overflow: hidden;
+.control-btn:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+  color: #374151;
 }
 
-.phase-bar {
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
-  transition: width 0.3s ease;
+.mode-toggle {
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  border-color: transparent;
+  color: white;
+}
+
+.mode-toggle:hover {
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 /* Responsive */
-@media (max-width: 1024px) {
+@media (max-width: 768px) {
+  .presentation-nav-bar {
+    padding: 12px 16px;
+  }
+  
   .nav-content {
-    padding: 8px 16px;
-    gap: 16px;
-  }
-
-  .presentation-title {
-    font-size: 1.125rem;
-  }
-
-  .presentation-subtitle {
-    font-size: 0.688rem;
-  }
-
-  .controls-section {
+    flex-direction: column;
     gap: 12px;
   }
-
-  .navigation-controls {
-    gap: 6px;
-    padding: 4px;
+  
+  .title-section {
+    width: 100%;
   }
-
+  
+  .controls-section {
+    width: 100%;
+    justify-content: center;
+  }
+  
   .nav-btn {
     width: 32px;
     height: 32px;
   }
-
+  
   .slide-counter {
-    font-size: 0.813rem;
-    padding: 0 8px;
-    min-width: 50px;
-  }
-
-  .mode-label {
-    display: none;
-  }
-
-  .slide-phase {
-    display: none;
-  }
-}
-
-@media (max-width: 640px) {
-  .nav-content {
-    padding: 6px 12px;
-    gap: 12px;
-    min-height: 50px;
-  }
-
-  .presentation-title {
-    font-size: 1rem;
-  }
-
-  .presentation-subtitle {
-    display: none;
-  }
-
-  .controls-section {
-    gap: 8px;
-  }
-
-  .navigation-controls {
-    gap: 4px;
-    padding: 3px;
-  }
-
-  .nav-btn {
-    width: 28px;
-    height: 28px;
-  }
-
-  .nav-btn svg {
-    width: 16px;
-    height: 16px;
-  }
-
-  .slide-counter {
-    font-size: 0.75rem;
-    padding: 0 6px;
-    min-width: 45px;
-  }
-
-  .zoom-controls {
-    gap: 2px;
-    padding: 2px;
-  }
-
-  .zoom-btn {
-    width: 24px;
-    height: 24px;
-  }
-
-  .zoom-display {
-    min-width: 45px;
-    height: 24px;
-    font-size: 0.75rem;
-  }
-
-  .btn-distribution {
-    padding: 6px 8px;
-    font-size: 0.75rem;
+    font-size: 0.875rem;
   }
 }
 </style>

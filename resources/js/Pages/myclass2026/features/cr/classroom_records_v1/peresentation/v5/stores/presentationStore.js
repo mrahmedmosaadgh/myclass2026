@@ -52,6 +52,7 @@ export const usePresentationStore = defineStore('presentation', () => {
   const loadCurrentPresentation = async () => {
     try {
       const currentPresentation = await indexedDBStorage.getCurrentPresentation();
+      
       if (currentPresentation) {
         title.value = currentPresentation.title || 'Untitled Presentation';
         description.value = typeof currentPresentation.description === 'string'
@@ -104,6 +105,13 @@ export const usePresentationStore = defineStore('presentation', () => {
             createBackup: false
           });
           currentPresentationKey = result.id;
+          
+          // IMPORTANT: Set current presentation metadata for reload
+          await indexedDBStorage.db.offline_metadata.put({
+            key: 'current_presentation',
+            value: result.id,
+            updated_at: new Date().toISOString()
+          });
         } else {
           console.warn('IndexedDB not available, auto-save disabled');
         }
@@ -135,7 +143,16 @@ export const usePresentationStore = defineStore('presentation', () => {
   }
 
   const currentSlide = computed(() => {
-    return slides.value[currentSlideIndex.value];
+    if (!slides.value || slides.value.length === 0) {
+      return {
+        id: 'default-slide',
+        elements: []
+      };
+    }
+    return slides.value[currentSlideIndex.value] || {
+      id: 'default-slide',
+      elements: []
+    };
   });
 
   function addSlide() {
@@ -269,6 +286,7 @@ export const usePresentationStore = defineStore('presentation', () => {
   }
 
   function updateElement({ id, changes }) {
+    if (!currentSlide.value || !currentSlide.value.elements) return;
     const el = currentSlide.value.elements.find(e => e.id === id);
     if (!el) return;
     Object.assign(el, changes);
@@ -289,6 +307,15 @@ export const usePresentationStore = defineStore('presentation', () => {
       usePhases.value = !!data.usePhases;
       hasInitializedPhases.value = true;
       currentSlideIndex.value = 0;
+      
+      // If this presentation has an ID, set it as current
+      if (data.id && indexedDBStorage.isStorageAvailable()) {
+        indexedDBStorage.db.offline_metadata.put({
+          key: 'current_presentation',
+          value: data.id,
+          updated_at: new Date().toISOString()
+        }).catch(err => console.warn('Failed to set current presentation metadata:', err));
+      }
     }
   }
 
@@ -312,6 +339,14 @@ export const usePresentationStore = defineStore('presentation', () => {
       });
 
       currentPresentationKey = result.id;
+      
+      // IMPORTANT: Set current presentation metadata for reload
+      await indexedDBStorage.db.offline_metadata.put({
+        key: 'current_presentation',
+        value: result.id,
+        updated_at: new Date().toISOString()
+      });
+      
       saveStatus.value = 'saved';
       return result;
     } catch (error) {
@@ -367,6 +402,14 @@ export const usePresentationStore = defineStore('presentation', () => {
       });
 
       currentPresentationKey = result.id;
+      
+      // IMPORTANT: Set current presentation metadata for reload
+      await indexedDBStorage.db.offline_metadata.put({
+        key: 'current_presentation',
+        value: result.id,
+        updated_at: new Date().toISOString()
+      });
+      
       saveStatus.value = 'saved';
       
       return result;
