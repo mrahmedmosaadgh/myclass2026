@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, nextTick } from 'vue';
 import { usePresentationStore } from '../stores/presentationStore';
 import { useUIStore } from '../stores/uiStore';
 
@@ -17,6 +17,11 @@ const canGoNext = computed(() => presentation.currentSlideIndex < totalSlides.va
 const isEditingTitle = ref(false);
 const titleInput = ref('');
 
+// Description editing state
+const isEditingDescription = ref(false);
+const descriptionContent = ref('');
+const descriptionEditor = ref(null);
+
 function startEditingTitle() {
   titleInput.value = presentation.title;
   isEditingTitle.value = true;
@@ -32,6 +37,62 @@ function saveTitle() {
 function cancelEditTitle() {
   titleInput.value = presentation.title;
   isEditingTitle.value = false;
+}
+
+function startEditingDescription() {
+  descriptionContent.value = presentation.description || '';
+  isEditingDescription.value = true;
+  nextTick(() => {
+    if (descriptionEditor.value) {
+      descriptionEditor.value.focus();
+    }
+  });
+}
+
+function updateDescription(event) {
+  descriptionContent.value = typeof event.target.innerHTML === 'string' ? event.target.innerHTML : String(event.target.innerHTML || '');
+}
+
+function saveDescription() {
+  presentation.description = typeof descriptionContent.value === 'string' ? descriptionContent.value : String(descriptionContent.value || '');
+  isEditingDescription.value = false;
+}
+
+function cancelEditDescription() {
+  descriptionContent.value = presentation.description || '';
+  isEditingDescription.value = false;
+}
+
+// Math rendering function
+function renderMath() {
+  if (window.katex) {
+    const mathElements = descriptionEditor.value?.querySelectorAll('.math-render');
+    mathElements?.forEach(element => {
+      try {
+        const mathText = element.textContent;
+        window.katex.render(mathText, element, {
+          throwOnError: false,
+          displayMode: element.classList.contains('display-mode')
+        });
+      } catch (error) {
+        console.warn('Math rendering error:', error);
+      }
+    });
+  }
+}
+
+// Markdown rendering function
+function renderMarkdown() {
+  if (window.marked) {
+    let content = descriptionContent.value;
+    // Convert markdown to HTML
+    content = window.marked(content);
+    // Update editor content
+    if (descriptionEditor.value) {
+      descriptionEditor.value.innerHTML = content;
+      renderMath();
+    }
+  }
 }
 
 function goToPrevious() {
@@ -101,6 +162,69 @@ function toggleMode() {
           </div>
         </div>
         <p class="presentation-subtitle">Minimal, working reference implementation according to plan</p>
+        
+        <!-- Rich Content Description Area -->
+        <div class="description-section">
+          <div v-if="!isEditingDescription && !presentation.description" 
+               class="description-placeholder" 
+               @click="startEditingDescription">
+            <div class="placeholder-content">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+              <span>Add description, notes, math formulas, or rich content...</span>
+            </div>
+          </div>
+          
+          <div v-else-if="!isEditingDescription && presentation.description" 
+               class="description-display" 
+               @click="startEditingDescription"
+               v-html="presentation.description">
+          </div>
+          
+          <div v-else class="description-edit">
+            <div class="description-editor-wrapper">
+              <div 
+                ref="descriptionEditor"
+                contenteditable="true"
+                @input="updateDescription"
+                @blur="saveDescription"
+                @keyup.escape="cancelEditDescription"
+                class="description-editor"
+                placeholder="Add description, notes, math formulas (use $...$ for inline math, $$...$$ for display math), markdown, or HTML content..."
+              ></div>
+              <div class="description-toolbar">
+                <button @click="renderMarkdown" class="toolbar-btn" title="Render Markdown">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                  </svg>
+                  MD
+                </button>
+                <button @click="renderMath" class="toolbar-btn" title="Render Math">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 5h-7l-3 14H4"></path>
+                    <path d="M14 10h5"></path>
+                    <path d="M14 14h5"></path>
+                  </svg>
+                  ∑
+                </button>
+                <button @click="saveDescription" class="toolbar-btn btn-save" title="Save">
+                  ✓
+                </button>
+                <button @click="cancelEditDescription" class="toolbar-btn btn-cancel" title="Cancel">
+                  ✕
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Right: Controls -->
@@ -281,11 +405,211 @@ function toggleMode() {
 .presentation-subtitle {
   font-size: 0.75rem;
   color: #6b7280;
-  margin: 2px 0 0 0;
+  margin: 2px 0 8px 0;
   line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Description Section */
+.description-section {
+  margin-top: 8px;
+  position: relative;
+}
+
+.description-placeholder {
+  cursor: pointer;
+  border: 2px dashed #d1d5db;
+  border-radius: 8px;
+  padding: 16px;
+  background: #f9fafb;
+  transition: all 0.2s;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.description-placeholder:hover {
+  border-color: #6366f1;
+  background: #f0f9ff;
+}
+
+.placeholder-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: #9ca3af;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.description-display {
+  cursor: pointer;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px 16px;
+  background: white;
+  min-height: 60px;
+  max-height: 200px;
+  overflow-y: auto;
+  transition: all 0.2s;
+  line-height: 1.5;
+}
+
+.description-display:hover {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.description-edit {
+  border: 2px solid #3b82f6;
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.description-editor-wrapper {
+  position: relative;
+}
+
+.description-editor {
+  min-height: 120px;
+  max-height: 300px;
+  padding: 16px;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: #374151;
+  overflow-y: auto;
+  outline: none;
+  border: none;
+  background: transparent;
+}
+
+.description-editor:empty:before {
+  content: attr(placeholder);
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.description-editor:focus {
+  outline: none;
+}
+
+.description-toolbar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.toolbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.toolbar-btn:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.toolbar-btn.btn-save {
+  background: #10b981;
+  color: white;
+}
+
+.toolbar-btn.btn-save:hover {
+  background: #059669;
+}
+
+.toolbar-btn.btn-cancel {
+  background: #ef4444;
+  color: white;
+}
+
+.toolbar-btn.btn-cancel:hover {
+  background: #dc2626;
+}
+
+/* Math rendering styles */
+.math-render {
+  font-family: 'KaTeX_Main', 'Times New Roman', serif;
+}
+
+.math-render.display-mode {
+  display: block;
+  text-align: center;
+  margin: 16px 0;
+}
+
+/* Markdown rendering styles */
+.description-display h1, .description-display h2, .description-display h3,
+.description-display h4, .description-display h5, .description-display h6 {
+  margin: 16px 0 8px 0;
+  font-weight: 600;
+  color: #111827;
+}
+
+.description-display h1 { font-size: 1.5rem; }
+.description-display h2 { font-size: 1.25rem; }
+.description-display h3 { font-size: 1.125rem; }
+
+.description-display p {
+  margin: 8px 0;
+}
+
+.description-display ul, .description-display ol {
+  margin: 8px 0;
+  padding-left: 24px;
+}
+
+.description-display li {
+  margin: 4px 0;
+}
+
+.description-display code {
+  background: #f3f4f6;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-size: 0.875rem;
+  color: #ef4444;
+}
+
+.description-display pre {
+  background: #1f2937;
+  color: #f9fafb;
+  padding: 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 8px 0;
+}
+
+.description-display blockquote {
+  border-left: 4px solid #6366f1;
+  padding-left: 16px;
+  margin: 8px 0;
+  font-style: italic;
+  color: #6b7280;
 }
 
 /* Controls Section */

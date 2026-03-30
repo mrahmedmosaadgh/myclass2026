@@ -195,22 +195,22 @@ export function usePresentationSync() {
   // Load categories from server
   const loadCategoriesFromServer = async () => {
     try {
-      const result = await apiRequest('categories');
+      const result = await apiRequest('cr-presentation-categories');
       
       if (result.success) {
         // Save categories to IndexedDB metadata
         await indexedDBStorage.db.offline_metadata.put({
-          key: 'presentation_categories',
+          key: 'cr_presentation_categories',
           value: JSON.stringify(result.data),
           updated_at: new Date().toISOString()
-        }, 'presentation_categories');
+        }, 'cr_presentation_categories');
         
         return result.data;
       } else {
-        throw new Error(result.message || 'Failed to load categories');
+        throw new Error(result.message || 'Failed to load CR presentation categories');
       }
     } catch (error) {
-      console.error('Error loading categories from server:', error);
+      console.error('Error loading CR presentation categories from server:', error);
       throw error;
     }
   };
@@ -227,12 +227,12 @@ export function usePresentationSync() {
     
     // Fallback to cached categories
     try {
-      const cached = await indexedDBStorage.db.offline_metadata.get('presentation_categories');
+      const cached = await indexedDBStorage.db.offline_metadata.get('cr_presentation_categories');
       if (cached && cached.value) {
         return JSON.parse(cached.value);
       }
     } catch (error) {
-      console.error('Error loading cached categories:', error);
+      console.error('Error loading cached CR presentation categories:', error);
     }
     
     // Return default categories if nothing available

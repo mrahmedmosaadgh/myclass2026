@@ -7,9 +7,16 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Str;
 
-class PresentationCategory extends Model
+class CrPresentationCategory extends Model
 {
     use HasFactory, SoftDeletes;
+
+    /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $table = 'cr_presentation_categories';
 
     protected $fillable = [
         'name',
@@ -71,12 +78,12 @@ class PresentationCategory extends Model
     // Relationships
     public function parent()
     {
-        return $this->belongsTo(PresentationCategory::class, 'parent_id');
+        return $this->belongsTo(CrPresentationCategory::class, 'parent_id');
     }
 
     public function children()
     {
-        return $this->hasMany(PresentationCategory::class, 'parent_id')
+        return $this->hasMany(CrPresentationCategory::class, 'parent_id')
             ->orderBy('sort_order')
             ->orderBy('name');
     }

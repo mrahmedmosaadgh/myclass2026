@@ -41,6 +41,7 @@ export const usePresentationStore = defineStore('presentation', () => {
 
   let initialData = {
     title: 'Untitled Presentation',
+    description: '',
     usePhases: false,
     hasInitializedPhases: false,
     slides: JSON.parse(JSON.stringify(defaultSlides)),
@@ -54,6 +55,7 @@ export const usePresentationStore = defineStore('presentation', () => {
       if (currentPresentation) {
         initialData = {
           title: currentPresentation.title,
+          description: currentPresentation.description || '',
           usePhases: currentPresentation.usePhases,
           hasInitializedPhases: currentPresentation.hasInitializedPhases,
           slides: currentPresentation.slides,
@@ -69,6 +71,7 @@ export const usePresentationStore = defineStore('presentation', () => {
   loadCurrentPresentation();
 
   const title = ref(initialData.title);
+  const description = ref(initialData.description);
   const usePhases = ref(initialData.usePhases);
   const hasInitializedPhases = ref(initialData.hasInitializedPhases);
   const slides = ref(initialData.slides);
@@ -84,9 +87,10 @@ export const usePresentationStore = defineStore('presentation', () => {
       try {
         const payload = {
           title: title.value,
+          description: typeof description.value === 'string' ? description.value : String(description.value || ''),
           usePhases: usePhases.value,
           hasInitializedPhases: hasInitializedPhases.value,
-          slides: slides.value,
+          slides: JSON.parse(JSON.stringify(slides.value)), // Deep clone to avoid circular references
           currentSlideIndex: currentSlideIndex.value,
           lastSaved: new Date().toISOString()
         };
@@ -271,12 +275,14 @@ export const usePresentationStore = defineStore('presentation', () => {
     if (Array.isArray(data)) {
       slides.value = data;
       title.value = 'Imported Presentation';
+      description.value = '';
       usePhases.value = false;
       hasInitializedPhases.value = true;
       currentSlideIndex.value = 0;
     } else if (data && data.slides && Array.isArray(data.slides)) {
       slides.value = data.slides;
       title.value = data.title || 'Imported Presentation';
+      description.value = data.description || '';
       usePhases.value = !!data.usePhases;
       hasInitializedPhases.value = true;
       currentSlideIndex.value = 0;
@@ -315,9 +321,10 @@ export const usePresentationStore = defineStore('presentation', () => {
     try {
       const payload = {
         title: title.value,
+        description: typeof description.value === 'string' ? description.value : String(description.value || ''),
         usePhases: usePhases.value,
         hasInitializedPhases: hasInitializedPhases.value,
-        slides: slides.value,
+        slides: JSON.parse(JSON.stringify(slides.value)), // Deep clone to avoid circular references
         currentSlideIndex: currentSlideIndex.value,
         lastSaved: new Date().toISOString()
       };
@@ -339,7 +346,8 @@ export const usePresentationStore = defineStore('presentation', () => {
       
       const presentationData = {
         title: title.value,
-        slides: slides.value,
+        description: typeof description.value === 'string' ? description.value : String(description.value || ''),
+        slides: JSON.parse(JSON.stringify(slides.value)), // Deep clone to avoid circular references
         currentSlideIndex: currentSlideIndex.value,
         usePhases: usePhases.value,
         hasInitializedPhases: hasInitializedPhases.value,
@@ -367,6 +375,7 @@ export const usePresentationStore = defineStore('presentation', () => {
 
   return {
     title,
+    description,
     usePhases,
     hasInitializedPhases,
     slides,

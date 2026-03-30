@@ -70,19 +70,20 @@ while true; do
   echo "║  1) Deploy: Full (build + push + sync)   ║"
   echo "║  2) Deploy: Backend Only                 ║"
   echo "║  3) Deploy: Frontend Only (after build)  ║"
-  echo "║  4) Deploy: Full + Cache Clear           ║"
+  echo "║  4) Build + Deploy Frontend (build + sync)║"
+  echo "║  5) Deploy: Full + Cache Clear           ║"
   echo "║  ──────────────────────────────────────  ║"
-  echo "║  5) Logs: Show production laravel.log    ║"
-  echo "║  6) Logs: Clear production laravel.log   ║"
+  echo "║  6) Logs: Show production laravel.log    ║"
+  echo "║  7) Logs: Clear production laravel.log   ║"
   echo "║  ──────────────────────────────────────  ║"
-  echo "║  7) Server: Cache clear + route verify   ║"
-  echo "║  8) Build + Deploy (build + sync)        ║"
-  echo "║  9) Server: Delete remote build files    ║"
-  echo "║  10) Exit                                ║"
+  echo "║  8) Server: Cache clear + route verify   ║"
+  echo "║  9) Build + Deploy (build + sync)        ║"
+  echo "║  10) Server: Delete remote build files    ║"
+  echo "║  11) Exit                                ║"
   echo "╚══════════════════════════════════════════╝"
   echo ""
 
-  read -p "Choose an option (1-10): " CHOICE
+  read -p "Choose an option (1-11): " CHOICE
   echo ""
 
   case "$CHOICE" in
@@ -116,31 +117,19 @@ while true; do
       release_lock
       ;;
 
-8)
+    4)
       acquire_lock || continue
       run_script ./update_build_and_deploy.sh
       release_lock
       ;;
 
-    9)
-      test_ssh || continue
-      echo "🗑️  Deleting remote build files..."
-      ssh -p "$SSH_PORT" "$SSH_CONN" "cd $REMOTE_DIR/public/build && rm -rf assets/* manifest.json" || echo "⚠️  Delete failed or no files found."
-      echo "✅ Remote build files deleted."
-      ;;
-
-    10)
-      echo "Bye 👋"
-      exit 0
-      ;;
-
-    4)
+    5)
       acquire_lock || continue
       run_script ./update_production_hostinger_with_cache_clear.sh
       release_lock
       ;;
 
-    5)
+    6)
       read -p "How many lines? (default 120): " LINES
       LINES=${LINES:-120}
       test_ssh || continue
@@ -149,7 +138,7 @@ while true; do
         echo "⚠️  Could not read log file. It may not exist yet."
       ;;
 
-    6)
+    7)
       read -p "⚠️  This will EMPTY laravel.log on production. Continue? (y/N): " CONFIRM
       if [ "$CONFIRM" = "y" ] || [ "$CONFIRM" = "Y" ]; then
         test_ssh || continue
@@ -160,7 +149,7 @@ while true; do
       fi
       ;;
 
-    7)
+    8)
       test_ssh || continue
       acquire_lock || continue
       echo "🌐 Running remote cache clear + route verify on Hostinger..."
@@ -173,24 +162,27 @@ while true; do
       release_lock
       ;;
 
-    8)
-      read -p "⚠️  This will DELETE all build assets on Hostinger. Continue? (y/N): " CONFIRM
-      if [ "$CONFIRM" = "y" ] || [ "$CONFIRM" = "Y" ]; then
-        test_ssh || continue
-        acquire_lock || continue
-        ssh -p "$SSH_PORT" "$SSH_CONN" "cd $REMOTE_DIR \
-  && rm -rf public/build/assets \
-  && rm -f public/build/manifest.json"
-        echo "✅ Remote build files deleted."
-        release_lock
-      else
-        echo "Cancelled."
-      fi
+    9)
+      acquire_lock || continue
+      run_script ./update_build_and_deploy.sh
+      release_lock
+      ;;
+
+    10)
+      test_ssh || continue
+      echo "🗑️  Deleting remote build files..."
+      ssh -p "$SSH_PORT" "$SSH_CONN" "cd $REMOTE_DIR/public/build && rm -rf assets/* manifest.json" || echo "⚠️  Delete failed or no files found."
+      echo "✅ Remote build files deleted."
+      ;;
+
+    11)
+      echo "Bye 👋"
+      exit 0
       ;;
 
     
     *)
-      echo "❌ Invalid choice. Please enter 1-10."
+      echo "❌ Invalid choice. Please enter 1-11."
       ;;
   esac
 

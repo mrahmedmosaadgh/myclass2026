@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\PresentationCategory;
+use App\Models\CrPresentationCategory;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -16,7 +16,7 @@ class PresentationCategoryController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = Auth::user();
-        $query = PresentationCategory::with(['presentations' => function ($query) use ($user) {
+        $query = CrPresentationCategory::with(['presentations' => function ($query) use ($user) {
             $query->forUser($user->id);
         }]);
 
@@ -71,12 +71,12 @@ class PresentationCategoryController extends Controller
             'description' => 'nullable|string',
             'color' => 'nullable|string|max:7',
             'icon' => 'nullable|string|max:50',
-            'parent_id' => 'nullable|exists:presentation_categories,id',
+            'parent_id' => 'nullable|exists:cr_presentation_categories,id',
             'school_id' => 'nullable|exists:schools,id'
         ]);
 
         try {
-            $category = PresentationCategory::create([
+            $category = CrPresentationCategory::create([
                 'name' => $validated['name'],
                 'description' => $validated['description'] ?? null,
                 'color' => $validated['color'] ?? '#6b7280',
@@ -106,7 +106,7 @@ class PresentationCategoryController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(PresentationCategory $category): JsonResponse
+    public function show(CrPresentationCategory $category): JsonResponse
     {
         $user = Auth::user();
 
@@ -131,7 +131,7 @@ class PresentationCategoryController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, PresentationCategory $category): JsonResponse
+    public function update(Request $request, CrPresentationCategory $category): JsonResponse
     {
         $user = Auth::user();
 
@@ -148,7 +148,7 @@ class PresentationCategoryController extends Controller
             'description' => 'nullable|string',
             'color' => 'nullable|string|max:7',
             'icon' => 'nullable|string|max:50',
-            'parent_id' => 'nullable|exists:presentation_categories,id',
+            'parent_id' => 'nullable|exists:cr_presentation_categories,id',
             'is_active' => 'boolean'
         ]);
 
@@ -173,7 +173,7 @@ class PresentationCategoryController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(PresentationCategory $category): JsonResponse
+    public function destroy(CrPresentationCategory $category): JsonResponse
     {
         $user = Auth::user();
 
@@ -218,7 +218,7 @@ class PresentationCategoryController extends Controller
         $user = Auth::user();
         $schoolId = $user->school_id;
 
-        $categories = PresentationCategory::active()
+        $categories = CrPresentationCategory::active()
             ->forSchool($schoolId)
             ->withCount(['presentations' => function ($query) use ($user) {
                 $query->forUser($user->id);

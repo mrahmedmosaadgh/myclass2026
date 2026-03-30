@@ -14,8 +14,8 @@ use App\Http\Controllers\Api\PresentationCategoryController;
 |
 */
 
-// Presentation Categories
-Route::prefix('categories')->group(function () {
+// CR Presentation Categories
+Route::prefix('cr-presentation-categories')->group(function () {
     Route::get('/', [PresentationCategoryController::class, 'index']);
     Route::post('/', [PresentationCategoryController::class, 'store']);
     Route::get('/stats', [PresentationCategoryController::class, 'stats']);
@@ -37,8 +37,8 @@ Route::prefix('presentations')->group(function () {
 });
 
 // Aliases for cleaner URLs
-Route::get('/categories', [PresentationCategoryController::class, 'index']);
-Route::get('/categories/stats', [PresentationCategoryController::class, 'stats']);
+Route::get('/cr-presentation-categories', [PresentationCategoryController::class, 'index']);
+Route::get('/cr-presentation-categories/stats', [PresentationCategoryController::class, 'stats']);
 Route::get('/presentations', [PresentationController::class, 'index']);
 Route::get('/presentations/stats', [PresentationController::class, 'stats']);
 Route::get('/presentations/search', [PresentationController::class, 'search']);
