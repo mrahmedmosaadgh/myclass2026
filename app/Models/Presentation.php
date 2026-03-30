@@ -86,7 +86,7 @@ class Presentation extends Model
 
     public function category()
     {
-        return $this->belongsTo(PresentationCategory::class);
+        return $this->belongsTo(CrPresentationCategory::class);
     }
 
     public function school()
