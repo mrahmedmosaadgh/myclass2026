@@ -8,6 +8,7 @@ import EditorCanvas from './components/EditorCanvas.vue';
 import Toolbar from './components/Toolbar.vue';
 import SlideNavigationBar from './components/SlideNavigationBar.vue';
 import PresentationNavBar from './components/PresentationNavBar.vue';
+import DescriptionEditor from './components/DescriptionEditor.vue';
 import AIPasteDialog from './components/AIPasteDialog.vue';
 import GroupSetupModal from './components/GroupSetupModal.vue';
 import GroupQuizGenerator from './components/GroupQuizGenerator.vue';
@@ -65,7 +66,20 @@ onUnmounted(() => {
     <!-- Fixed Top Navigation Bar (Always Visible) -->
     <PresentationNavBar />
     
-    <div v-if="ui.isEditMode" style="max-width: 1000px; margin: 0 auto;">
+    <!-- Rich Content Description Area (Above Toolbar) -->
+    <div v-if="ui.isEditMode" class="description-container" style="max-width: 1000px; margin: 10px auto 0 auto;">
+      <DescriptionEditor 
+        v-model="presentation.description"
+        placeholder="Add description, notes, math formulas, or rich content..."
+        :show-present-mode-toggle="true"
+        :show-in-present-mode="presentation.showDescriptionInPresentMode"
+        @save="(value) => presentation.description = value"
+        @toggle-present-mode="presentation.toggleDescriptionInPresentMode"
+        @clear="presentation.clearDescription"
+      />
+    </div>
+    
+    <div v-if="ui.isEditMode" style="max-width: 1000px; margin: 10px auto 0 auto;">
       <Toolbar />
     </div>
 
@@ -166,5 +180,10 @@ onUnmounted(() => {
   transform: scale(1.1) translateY(-5px);
   box-shadow: 0 20px 25px -5px rgba(0,0,0,0.15);
   border-color: #fde68a;
+}
+
+/* Description Container */
+.description-container {
+  padding-top: 20px; /* Reduced space for fixed navbar */
 }
 </style>

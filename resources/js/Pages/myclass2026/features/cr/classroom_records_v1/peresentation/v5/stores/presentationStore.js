@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
 import { useIndexedDBStorage } from '../composables/useIndexedDBStorage.js';
 
 export const usePresentationStore = defineStore('presentation', () => {
@@ -42,6 +42,7 @@ export const usePresentationStore = defineStore('presentation', () => {
   let initialData = {
     title: 'Untitled Presentation',
     description: '',
+    showDescriptionInPresentMode: true,
     usePhases: false,
     hasInitializedPhases: false,
     slides: JSON.parse(JSON.stringify(defaultSlides)),
@@ -58,6 +59,7 @@ export const usePresentationStore = defineStore('presentation', () => {
         description.value = typeof currentPresentation.description === 'string'
           ? currentPresentation.description
           : String(currentPresentation.description || '');
+        showDescriptionInPresentMode.value = currentPresentation.showDescriptionInPresentMode !== false; // Default to true
         usePhases.value = !!currentPresentation.usePhases;
         hasInitializedPhases.value = !!currentPresentation.hasInitializedPhases;
         slides.value = Array.isArray(currentPresentation.slides)
@@ -72,6 +74,7 @@ export const usePresentationStore = defineStore('presentation', () => {
 
   const title = ref(initialData.title);
   const description = ref(initialData.description);
+  const showDescriptionInPresentMode = ref(initialData.showDescriptionInPresentMode);
   const usePhases = ref(initialData.usePhases);
   const hasInitializedPhases = ref(initialData.hasInitializedPhases);
   const slides = ref(initialData.slides);
@@ -91,6 +94,7 @@ export const usePresentationStore = defineStore('presentation', () => {
         const payload = {
           title: title.value,
           description: typeof description.value === 'string' ? description.value : String(description.value || ''),
+          showDescriptionInPresentMode: showDescriptionInPresentMode.value,
           usePhases: usePhases.value,
           hasInitializedPhases: hasInitializedPhases.value,
           slides: JSON.parse(JSON.stringify(slides.value)), // Deep clone to avoid circular references
@@ -164,6 +168,13 @@ export const usePresentationStore = defineStore('presentation', () => {
     };
     slides.value.push(newSlide);
     currentSlideIndex.value = slides.value.length - 1;
+    
+    // Scroll to top when adding new slide
+    nextTick(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      const mainContainer = document.querySelector('.v5-container') || document.body;
+      mainContainer.scrollTop = 0;
+    });
   }
 
   function addSlideToPhase(sectionId) {
@@ -185,7 +196,15 @@ export const usePresentationStore = defineStore('presentation', () => {
 
   function selectSlideById(id) {
     const idx = slides.value.findIndex(s => s.id === id);
-    if (idx !== -1) currentSlideIndex.value = idx;
+    if (idx !== -1) {
+      currentSlideIndex.value = idx;
+      // Scroll to top when selecting slide by ID
+      nextTick(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        const mainContainer = document.querySelector('.v5-container') || document.body;
+        mainContainer.scrollTop = 0;
+      });
+    }
   }
 
   function deleteSlideById(id) {
@@ -202,6 +221,13 @@ export const usePresentationStore = defineStore('presentation', () => {
   function selectSlide(index) {
     if (index >= 0 && index < slides.value.length) {
       currentSlideIndex.value = index;
+      // Scroll to top when changing slides
+      nextTick(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        // Also scroll the main container if needed
+        const mainContainer = document.querySelector('.v5-container') || document.body;
+        mainContainer.scrollTop = 0;
+      });
     }
   }
 
@@ -221,6 +247,13 @@ export const usePresentationStore = defineStore('presentation', () => {
     };
     slides.value.splice(index, 0, newSlide);
     currentSlideIndex.value = index;
+    
+    // Scroll to top when adding slide at specific index
+    nextTick(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      const mainContainer = document.querySelector('.v5-container') || document.body;
+      mainContainer.scrollTop = 0;
+    });
   }
 
   function moveSlide(fromIndex, toIndex) {
@@ -420,9 +453,25 @@ export const usePresentationStore = defineStore('presentation', () => {
     }
   }
 
+  function toggleDescriptionInPresentMode() {
+    showDescriptionInPresentMode.value = !showDescriptionInPresentMode.value;
+    triggerAutoSave(); // Auto-save when toggled
+  }
+
+  function clearTitle() {
+    title.value = '';
+    triggerAutoSave();
+  }
+
+  function clearDescription() {
+    description.value = '';
+    triggerAutoSave();
+  }
+
   return {
     title,
     description,
+    showDescriptionInPresentMode,
     usePhases,
     hasInitializedPhases,
     slides,
@@ -451,6 +500,10 @@ export const usePresentationStore = defineStore('presentation', () => {
     exportCurrentPresentation,
     getStorageInfo,
     saveCurrentPresentation,
+    // Description and title controls
+    toggleDescriptionInPresentMode,
+    clearTitle,
+    clearDescription,
     // Storage access
     indexedDBStorage
   };

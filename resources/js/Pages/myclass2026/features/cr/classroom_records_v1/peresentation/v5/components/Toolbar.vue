@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { usePaste } from '../composables/usePaste';
 import { usePresentationStore } from '../stores/presentationStore';

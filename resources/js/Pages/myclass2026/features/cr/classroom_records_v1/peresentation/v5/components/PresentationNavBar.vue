@@ -34,6 +34,10 @@ function cancelEditTitle() {
   isEditingTitle.value = false;
 }
 
+function clearTitle() {
+  presentation.clearTitle();
+}
+
 function goToPrevious() {
   if (canGoPrevious.value) {
     presentation.selectSlide(presentation.currentSlideIndex - 1);
@@ -83,7 +87,16 @@ function toggleMode() {
       <div class="title-section">
         <div v-if="!isEditingTitle" class="title-display" @click="startEditingTitle">
           <h1 class="presentation-title">{{ presentation.title }}</h1>
-          <div class="edit-hint">✏️ Click to edit</div>
+          <div class="title-actions">
+            <div class="edit-hint">✏️ Click to edit</div>
+            <button v-if="presentation.title" @click.stop="clearTitle" class="clear-title-btn" title="Clear title">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 6h18"></path>
+                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+              </svg>
+            </button>
+          </div>
         </div>
         <div v-else class="title-edit">
           <input 
@@ -100,6 +113,12 @@ function toggleMode() {
             <button @click="cancelEditTitle" class="btn-cancel">✕</button>
           </div>
         </div>
+        
+        <!-- Description in Present Mode -->
+        <div v-if="!ui.isEditMode && presentation.description && presentation.showDescriptionInPresentMode" class="description-display-present">
+          <div class="description-content" v-html="presentation.description"></div>
+        </div>
+        
         <p class="presentation-subtitle">Minimal, working reference implementation according to plan</p>
       </div>
 
@@ -487,6 +506,79 @@ function toggleMode() {
   background: linear-gradient(135deg, #2563eb, #7c3aed);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* Description Display in Present Mode */
+.description-display-present {
+  margin-top: 8px;
+  max-width: 800px;
+}
+
+.description-content {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #374151;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(229, 231, 235, 0.8);
+  border-radius: 8px;
+  padding: 12px 16px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+/* Improved title display for better visibility */
+.presentation-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  line-height: 1.2;
+  max-width: 800px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.title-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.edit-hint {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.title-display:hover .edit-hint {
+  opacity: 1;
+}
+
+.clear-title-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: all 0.2s;
+  opacity: 0;
+}
+
+.title-display:hover .clear-title-btn {
+  opacity: 1;
+}
+
+.clear-title-btn:hover {
+  background: #fef2f2;
+  color: #dc2626;
 }
 
 /* Responsive */
