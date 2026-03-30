@@ -240,8 +240,7 @@ onUnmounted(() => {
 
 .editor-layout {
   display: flex;
-  gap: 20px;
-  max-width: 1160px;
+  gap: 10px;
   margin: 0 auto;
   align-items: flex-start;
   justify-content: center;
@@ -249,7 +248,7 @@ onUnmounted(() => {
 
 @media (max-width: 1024px) {
   .v5-container {
-    padding-top: 80px; /* Space for fixed navigation bar */
+    padding-top: 10px; /* Space for fixed navigation bar */
     padding-left: 1rem;
     padding-right: 1rem;
     padding-bottom: 1rem;

@@ -67,78 +67,91 @@ const groupedTools = computed(() => ([
 </script>
 
 <template>
-  <div class="drawing-toolbar" :class="{ open: drawingStore.isToolbarOpen }">
-    <div class="toolbar-header">
-      <div>
-        <h3>Annotation Tools</h3>
-        <p>Overlay notes stay per slide and auto-save offline.</p>
-      </div>
-      <button class="close-btn" @click="toggleToolbar">⨯</button>
-    </div>
-
-    <div class="toolbar-section">
-      <div class="mode-toggle">
-        <span>Drawing Mode</span>
-        <label class="switch">
-          <input type="checkbox" :checked="drawingStore.isDrawingMode" @change="toggleDrawingMode" />
-          <span class="slider"></span>
-        </label>
-      </div>
-    </div>
-
-    <div class="toolbar-section tools">
-      <template v-for="group in groupedTools" :key="group.title">
-        <p class="section-label">{{ group.title }}</p>
-        <div class="tool-grid">
-          <ToolButton
-            v-for="tool in group.tools"
-            :key="tool"
-            :label="tool"
-            :active="drawingStore.activeTool === tool"
-            @click="setTool(tool)"
-          />
+  <Teleport to="body">
+    <div class="drawing-toolbar-wrapper">
+      <div class="drawing-toolbar" :class="{ open: drawingStore.isToolbarOpen }">
+        <div class="toolbar-header">
+          <div>
+            <h3>Annotation Tools</h3>
+            <p>Overlay notes stay per slide and auto-save offline.</p>
+          </div>
+          <button class="close-btn" @click="toggleToolbar">⨯</button>
         </div>
-      </template>
-    </div>
 
-    <div class="toolbar-section">
-      <p class="section-label">Colors</p>
-      <div class="color-palette">
-        <button
-          v-for="color in palette"
-          :key="color"
-          class="color-dot"
-          :style="{ backgroundColor: color, borderColor: drawingStore.strokeColor === color ? '#0f172a' : 'transparent' }"
-          @click="handleColorPick(color)"
-        ></button>
-        <input type="color" class="color-picker" :value="drawingStore.strokeColor" @input="(event) => handleColorPick(event.target.value)" />
+        <div class="toolbar-section">
+          <div class="mode-toggle">
+            <span>Drawing Mode</span>
+            <label class="switch">
+              <input type="checkbox" :checked="drawingStore.isDrawingMode" @change="toggleDrawingMode" />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="toolbar-section tools">
+          <template v-for="group in groupedTools" :key="group.title">
+            <p class="section-label">{{ group.title }}</p>
+            <div class="tool-grid">
+              <ToolButton
+                v-for="tool in group.tools"
+                :key="tool"
+                :label="tool"
+                :active="drawingStore.activeTool === tool"
+                @click="setTool(tool)"
+              />
+            </div>
+          </template>
+        </div>
+
+        <div class="toolbar-section">
+          <p class="section-label">Colors</p>
+          <div class="color-palette">
+            <button
+              v-for="color in palette"
+              :key="color"
+              class="color-dot"
+              :style="{ backgroundColor: color, borderColor: drawingStore.strokeColor === color ? '#0f172a' : 'transparent' }"
+              @click="handleColorPick(color)"
+            ></button>
+            <input type="color" class="color-picker" :value="drawingStore.strokeColor" @input="(event) => handleColorPick(event.target.value)" />
+          </div>
+        </div>
+
+        <div class="toolbar-section sliders">
+          <label>
+            Brush Size
+            <input type="range" min="1" max="48" v-model="brushSize" @input="handleBrushSizeInput" />
+            <span>{{ brushSize }} px</span>
+          </label>
+          <label v-if="drawingStore.activeTool !== 'highlighter'">
+            Opacity
+            <input type="range" min="5" max="100" step="5" v-model="opacity" @input="handleOpacityInput" />
+            <span>{{ opacity }}%</span>
+          </label>
+          <label v-else>
+            Highlighter Opacity
+            <input type="range" min="5" max="100" step="5" v-model="highlighterOpacity" @input="handleHighlighterOpacity" />
+            <span>{{ highlighterOpacity }}%</span>
+          </label>
+        </div>
+
+        <div class="toolbar-section actions">
+          <ToolButton label="Undo" :disabled="!canUndo" @click="undo" />
+          <ToolButton label="Redo" :disabled="!canRedo" @click="redo" />
+          <ToolButton label="Clear Slide" @click="handleClear" />
+        </div>
       </div>
-    </div>
 
-    <div class="toolbar-section sliders">
-      <label>
-        Brush Size
-        <input type="range" min="1" max="48" v-model="brushSize" @input="handleBrushSizeInput" />
-        <span>{{ brushSize }} px</span>
-      </label>
-      <label v-if="drawingStore.activeTool !== 'highlighter'">
-        Opacity
-        <input type="range" min="5" max="100" step="5" v-model="opacity" @input="handleOpacityInput" />
-        <span>{{ opacity }}%</span>
-      </label>
-      <label v-else>
-        Highlighter Opacity
-        <input type="range" min="5" max="100" step="5" v-model="highlighterOpacity" @input="handleHighlighterOpacity" />
-        <span>{{ highlighterOpacity }}%</span>
-      </label>
+      <button
+        v-if="!drawingStore.isToolbarOpen"
+        class="drawing-toolbar-handle"
+        @click="toggleToolbar(true)"
+        title="Show Annotation Tools"
+      >
+        ✏️ Annotations
+      </button>
     </div>
-
-    <div class="toolbar-section actions">
-      <ToolButton label="Undo" :disabled="!canUndo" @click="undo" />
-      <ToolButton label="Redo" :disabled="!canRedo" @click="redo" />
-      <ToolButton label="Clear Slide" @click="handleClear" />
-    </div>
-  </div>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -309,10 +322,31 @@ input:checked + .slider:before {
   transform: translateX(20px);
 }
 
+.drawing-toolbar-handle {
+  position: fixed;
+  top: 120px;
+  right: 12px;
+  background: #0f172a;
+  color: white;
+  border: none;
+  border-radius: 999px 0 0 999px;
+  padding: 10px 14px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.35);
+  z-index: 4001;
+  cursor: pointer;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
 @media (max-width: 768px) {
   .drawing-toolbar {
     width: calc(100% - 32px);
     right: 16px;
+  }
+  .drawing-toolbar-handle {
+    top: auto;
+    bottom: 140px;
+    right: 8px;
   }
 }
 </style>
