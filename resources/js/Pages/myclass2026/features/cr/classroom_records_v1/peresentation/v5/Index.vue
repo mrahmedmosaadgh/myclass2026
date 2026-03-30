@@ -311,7 +311,7 @@ onUnmounted(() => {
   margin: 0 auto;
   padding: 0 20px;
   z-index: 40; /* Below navigation bar (z-index: 50) but above content */
-  background: rgba(255, 255, 255, 0.95);
+ 
   backdrop-filter: blur(10px);
 }
 
