@@ -79,11 +79,13 @@ while true; do
   echo "║  8) Server: Cache clear + route verify   ║"
   echo "║  9) Build + Deploy (build + sync)        ║"
   echo "║  10) Server: Delete remote build files    ║"
-  echo "║  11) Exit                                ║"
+  echo "║  ──────────────────────────────────────  ║"
+  echo "║  11) Database: Run migrations on Hostinger ║"
+  echo "║  12) Exit                               ║"
   echo "╚══════════════════════════════════════════╝"
   echo ""
 
-  read -p "Choose an option (1-11): " CHOICE
+  read -p "Choose an option (1-12): " CHOICE
   echo ""
 
   case "$CHOICE" in
@@ -176,13 +178,29 @@ while true; do
       ;;
 
     11)
+      echo "🗄️  Running Laravel migrations on Hostinger..."
+      test_ssh || continue
+      echo "⚠️  This will run migrations on production database."
+      read -p "Continue? (y/N): " CONFIRM
+      if [ "$CONFIRM" = "y" ] || [ "$CONFIRM" = "Y" ]; then
+        echo "🔄 Running migrations..."
+        ssh -p "$SSH_PORT" "$SSH_CONN" "cd $REMOTE_DIR \
+          && php artisan migrate --force \
+          && echo '✅ Migrations completed successfully!' \
+          || echo '❌ Migration failed. Check logs for details.'"
+      else
+        echo "Cancelled."
+      fi
+      ;;
+
+    12)
       echo "Bye 👋"
       exit 0
       ;;
 
     
     *)
-      echo "❌ Invalid choice. Please enter 1-11."
+      echo "❌ Invalid choice. Please enter 1-12."
       ;;
   esac
 

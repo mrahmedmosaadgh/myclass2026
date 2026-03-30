@@ -400,7 +400,7 @@ function onDragEnd() {
 }
 
 .slide-nav.present-mode {
-  opacity: 0.15;
+  opacity: 0;
 }
 
 .slide-nav.present-mode:hover {

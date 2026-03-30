@@ -229,6 +229,61 @@ function toggleMode() {
 
       <!-- Right: Controls -->
       <div class="controls-section">
+        <!-- Navigation Controls (Present Mode) -->
+        <div v-if="!ui.isEditMode" class="navigation-controls">
+          <button 
+            @click="goToFirst" 
+            :disabled="!canGoPrevious"
+            class="nav-btn"
+            title="Go to First Slide"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="11 17 6 12 11 7"></polyline>
+              <polyline points="17 17 12 12 17 7"></polyline>
+            </svg>
+          </button>
+          
+          <button 
+            @click="goToPrevious" 
+            :disabled="!canGoPrevious"
+            class="nav-btn"
+            title="Previous Slide (←)"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
+          
+          <div class="slide-counter">
+            <span class="current-slide">{{ currentSlideNumber }}</span>
+            <span class="slide-separator">/</span>
+            <span class="total-slides">{{ totalSlides }}</span>
+          </div>
+          
+          <button 
+            @click="goToNext" 
+            :disabled="!canGoNext"
+            class="nav-btn"
+            title="Next Slide (→)"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
+          
+          <button 
+            @click="goToLast" 
+            :disabled="!canGoNext"
+            class="nav-btn"
+            title="Go to Last Slide"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="7 17 12 12 7 7"></polyline>
+              <polyline points="13 17 18 12 13 7"></polyline>
+            </svg>
+          </button>
+        </div>
+
         <!-- Distribution Button -->
         <button @click="ui.showDistributionModal = true" class="btn-distribution" title="Distribution Settings">
           📤 Share/Export
@@ -620,6 +675,80 @@ function toggleMode() {
   flex-shrink: 0;
 }
 
+/* Navigation Controls */
+.navigation-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 6px;
+}
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #374151;
+  transition: all 0.2s;
+}
+
+.nav-btn:hover:not(:disabled) {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2);
+}
+
+.nav-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  background: #f9fafb;
+  color: #9ca3af;
+}
+
+.slide-counter {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 12px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #374151;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  min-width: 60px;
+  justify-content: center;
+}
+
+.current-slide {
+  color: #3b82f6;
+  font-weight: 700;
+}
+
+.slide-separator {
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+.total-slides {
+  color: #6b7280;
+  font-weight: 500;
+}
+
 /* Distribution Button */
 .btn-distribution {
   display: inline-flex;
@@ -810,6 +939,22 @@ function toggleMode() {
     gap: 12px;
   }
 
+  .navigation-controls {
+    gap: 6px;
+    padding: 4px;
+  }
+
+  .nav-btn {
+    width: 32px;
+    height: 32px;
+  }
+
+  .slide-counter {
+    font-size: 0.813rem;
+    padding: 0 8px;
+    min-width: 50px;
+  }
+
   .mode-label {
     display: none;
   }
@@ -834,6 +979,31 @@ function toggleMode() {
     display: none;
   }
 
+  .controls-section {
+    gap: 8px;
+  }
+
+  .navigation-controls {
+    gap: 4px;
+    padding: 3px;
+  }
+
+  .nav-btn {
+    width: 28px;
+    height: 28px;
+  }
+
+  .nav-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .slide-counter {
+    font-size: 0.75rem;
+    padding: 0 6px;
+    min-width: 45px;
+  }
+
   .zoom-controls {
     gap: 2px;
     padding: 2px;
@@ -847,6 +1017,11 @@ function toggleMode() {
   .zoom-display {
     min-width: 45px;
     height: 24px;
+    font-size: 0.75rem;
+  }
+
+  .btn-distribution {
+    padding: 6px 8px;
     font-size: 0.75rem;
   }
 }

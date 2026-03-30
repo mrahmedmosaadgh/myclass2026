@@ -24,6 +24,7 @@ function handleCanvasMousedown(e) {
     <div
       class="canvas"
       :style="{ 
+        width: ui.isEditMode ? '1000px' : '100%',
         height: (presentation.currentSlide?.height || 600) + 'px',
         transform: `scale(${ui.zoomLevel / 100})`,
         transformOrigin: 'top center'
@@ -74,7 +75,7 @@ function handleCanvasMousedown(e) {
   background-size: 10px 10px;
   border-radius: 8px;
   overflow: hidden;
-  transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .extend-height-btn {
