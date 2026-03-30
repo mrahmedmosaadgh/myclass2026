@@ -39,7 +39,7 @@ export const useDrawingStore = defineStore('presentation-drawing', () => {
   const presentation = usePresentationStore();
 
   const isDrawingMode = ref(false);
-  const isToolbarOpen = ref(false);
+  const isToolbarOpen = ref(true);
   const activeTool = ref('pen');
   const strokeColor = ref('#0f172a');
   const brushSize = ref(4);
@@ -116,6 +116,9 @@ export const useDrawingStore = defineStore('presentation-drawing', () => {
   function toggleDrawingMode(forceValue = null) {
     const next = typeof forceValue === 'boolean' ? forceValue : !isDrawingMode.value;
     isDrawingMode.value = next;
+    if (next) {
+      isToolbarOpen.value = true;
+    }
     if (!next) {
       laserPointerActive.value = false;
     }
