@@ -384,6 +384,7 @@ function handleClick() {
   user-select: none;
   background-color: transparent;
   transition: outline 0.1s ease-in-out;
+    cursor: pointer;
 }
 
 .element-node.edit-mode {

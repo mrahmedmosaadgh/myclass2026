@@ -2,12 +2,44 @@ import { defineStore } from 'pinia';
 import { ref, computed, watch, nextTick } from 'vue';
 import { useIndexedDBStorage } from '../composables/useIndexedDBStorage.js';
 
+const DEFAULT_SLIDE_HEIGHT = 600;
+
+function generateSlideId() {
+  return 'slide-' + Date.now() + Math.random().toString(36).substring(2, 9);
+}
+
+function defaultDrawingsMeta() {
+  return {
+    lastModified: null,
+    lastSavedAt: null,
+    version: 1
+  };
+}
+
+function normalizeSlide(slide = {}) {
+  const normalized = { ...slide };
+  normalized.id = normalized.id || generateSlideId();
+  normalized.elements = Array.isArray(normalized.elements) ? normalized.elements : [];
+  normalized.drawings = Array.isArray(normalized.drawings) ? normalized.drawings : [];
+  normalized.drawingsMeta = normalized.drawingsMeta && typeof normalized.drawingsMeta === 'object'
+    ? { ...defaultDrawingsMeta(), ...normalized.drawingsMeta }
+    : defaultDrawingsMeta();
+  normalized.height = typeof normalized.height === 'number' ? normalized.height : DEFAULT_SLIDE_HEIGHT;
+  return normalized;
+}
+
+function createSlide(overrides = {}) {
+  return normalizeSlide({
+    ...overrides
+  });
+}
+
 export const usePresentationStore = defineStore('presentation', () => {
   const saveStatus = ref('saved'); // 'saved' | 'saving'
   const indexedDBStorage = useIndexedDBStorage();
 
   const defaultSlides = [
-    {
+    createSlide({
       id: 'slide-1',
       elements: [
         {
@@ -36,7 +68,7 @@ export const usePresentationStore = defineStore('presentation', () => {
           hiddenOpacity: 0.05
         }
       ]
-    }
+    })
   ];
 
   let initialData = {
@@ -45,7 +77,7 @@ export const usePresentationStore = defineStore('presentation', () => {
     showDescriptionInPresentMode: true,
     usePhases: false,
     hasInitializedPhases: false,
-    slides: JSON.parse(JSON.stringify(defaultSlides)),
+    slides: JSON.parse(JSON.stringify(defaultSlides)).map(normalizeSlide),
     currentSlideIndex: 0
   };
 
@@ -59,12 +91,12 @@ export const usePresentationStore = defineStore('presentation', () => {
         description.value = typeof currentPresentation.description === 'string'
           ? currentPresentation.description
           : String(currentPresentation.description || '');
-        showDescriptionInPresentMode.value = currentPresentation.showDescriptionInPresentMode !== false; // Default to true
+        showDescriptionInPresentMode.value = currentPresentation.showDescriptionInPresentMode !== undefined ? currentPresentation.showDescriptionInPresentMode : true; // Default to true
         usePhases.value = !!currentPresentation.usePhases;
         hasInitializedPhases.value = !!currentPresentation.hasInitializedPhases;
         slides.value = Array.isArray(currentPresentation.slides)
-          ? currentPresentation.slides
-          : JSON.parse(JSON.stringify(defaultSlides));
+          ? currentPresentation.slides.map(normalizeSlide)
+          : JSON.parse(JSON.stringify(defaultSlides)).map(normalizeSlide);
         currentSlideIndex.value = currentPresentation.currentSlideIndex || 0;
       }
     } catch (e) {
@@ -142,7 +174,7 @@ export const usePresentationStore = defineStore('presentation', () => {
     description.value = '';
     usePhases.value = false;
     hasInitializedPhases.value = false;
-    slides.value = JSON.parse(JSON.stringify(defaultSlides));
+    slides.value = JSON.parse(JSON.stringify(defaultSlides)).map(normalizeSlide);
     currentSlideIndex.value = 0;
   }
 
@@ -161,11 +193,9 @@ export const usePresentationStore = defineStore('presentation', () => {
 
   function addSlide() {
     const currentSectionId = currentSlide.value?.sectionId || undefined;
-    const newSlide = {
-      id: 'slide-' + Date.now() + Math.random().toString(36).substring(2, 9),
-      sectionId: currentSectionId,
-      elements: []
-    };
+    const newSlide = createSlide({
+      sectionId: currentSectionId
+    });
     slides.value.push(newSlide);
     currentSlideIndex.value = slides.value.length - 1;
     
@@ -178,11 +208,9 @@ export const usePresentationStore = defineStore('presentation', () => {
   }
 
   function addSlideToPhase(sectionId) {
-    const newSlide = {
-      id: 'slide-' + Date.now() + Math.random().toString(36).substring(2, 9),
-      sectionId: sectionId,
-      elements: []
-    };
+    const newSlide = createSlide({
+      sectionId: sectionId
+    });
     let insertIndex = slides.value.length;
     for (let i = slides.value.length - 1; i >= 0; i--) {
       if (slides.value[i].sectionId === sectionId) {
@@ -240,11 +268,9 @@ export const usePresentationStore = defineStore('presentation', () => {
   }
 
   function addSlideAtIndex(index) {
-    const newSlide = {
-      id: 'slide-' + Date.now() + Math.random().toString(36).substr(2, 5),
-      elements: [],
+    const newSlide = createSlide({
       sectionId: currentSlide.value?.sectionId
-    };
+    });
     slides.value.splice(index, 0, newSlide);
     currentSlideIndex.value = index;
     
@@ -282,11 +308,9 @@ export const usePresentationStore = defineStore('presentation', () => {
   }
 
   function addSlideAt(index) {
-    const newSlide = {
-      id: 'slide-' + Date.now() + Math.random().toString(36).substr(2, 5),
-      elements: [],
+    const newSlide = createSlide({
       sectionId: currentSlide.value?.sectionId
-    };
+    });
     slides.value.splice(index, 0, newSlide);
     currentSlideIndex.value = index;
   }
@@ -327,14 +351,14 @@ export const usePresentationStore = defineStore('presentation', () => {
 
   function loadPresentation(data) {
     if (Array.isArray(data)) {
-      slides.value = data;
+      slides.value = data.map(normalizeSlide);
       title.value = 'Imported Presentation';
       description.value = '';
       usePhases.value = false;
       hasInitializedPhases.value = true;
       currentSlideIndex.value = 0;
     } else if (data && data.slides && Array.isArray(data.slides)) {
-      slides.value = data.slides;
+      slides.value = data.slides.map(normalizeSlide);
       title.value = data.title || 'Imported Presentation';
       description.value = data.description || '';
       usePhases.value = !!data.usePhases;
@@ -350,6 +374,27 @@ export const usePresentationStore = defineStore('presentation', () => {
         }).catch(err => console.warn('Failed to set current presentation metadata:', err));
       }
     }
+  }
+
+  function updateSlideDrawings(slideId, drawings = []) {
+    const slide = slides.value.find(s => s.id === slideId);
+    if (!slide) return;
+    slide.drawings = Array.isArray(drawings) ? drawings : [];
+    slide.drawingsMeta = {
+      ...defaultDrawingsMeta(),
+      ...slide.drawingsMeta,
+      lastModified: new Date().toISOString()
+    };
+  }
+
+  function updateSlideDrawingsMeta(slideId, meta = {}) {
+    const slide = slides.value.find(s => s.id === slideId);
+    if (!slide) return;
+    slide.drawingsMeta = {
+      ...defaultDrawingsMeta(),
+      ...slide.drawingsMeta,
+      ...meta
+    };
   }
 
   // Enhanced save methods
@@ -504,6 +549,8 @@ export const usePresentationStore = defineStore('presentation', () => {
     toggleDescriptionInPresentMode,
     clearTitle,
     clearDescription,
+    updateSlideDrawings,
+    updateSlideDrawingsMeta,
     // Storage access
     indexedDBStorage
   };

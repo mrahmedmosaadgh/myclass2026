@@ -85,7 +85,10 @@ function toggleMode() {
     <div class="nav-content">
       <!-- Left: Title & Details -->
       <div class="title-section">
-        <div v-if="!isEditingTitle" class="title-display" @click="startEditingTitle">
+        <div v-if="!isEditingTitle && !ui.isEditMode" class="title-display">
+          <h1 class="presentation-title">{{ presentation.title }}</h1>
+        </div>
+        <div v-else-if="!isEditingTitle && ui.isEditMode" class="title-display" @click="startEditingTitle">
           <h1 class="presentation-title">{{ presentation.title }}</h1>
           <div class="title-actions">
             <div class="edit-hint">✏️ Click to edit</div>
@@ -114,12 +117,7 @@ function toggleMode() {
           </div>
         </div>
         
-        <!-- Description in Present Mode -->
-        <div v-if="!ui.isEditMode && presentation.description && presentation.showDescriptionInPresentMode" class="description-display-present">
-          <div class="description-content" v-html="presentation.description"></div>
-        </div>
-        
-        <p class="presentation-subtitle">Minimal, working reference implementation according to plan</p>
+        <!-- <p class="presentation-s÷ubtitle">Minimal, working reference implementation according to plan</p> -->
       </div>
 
       <!-- Right: Controls -->
@@ -206,13 +204,14 @@ function toggleMode() {
           
           <button 
             @click="toggleFullscreen" 
-            class="control-btn"
+            class="control-btn  "
             title="Toggle Fullscreen (F)"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
             </svg>
           </button>
+          <div class="px-12"></div>
         </div>
       </div>
     </div>

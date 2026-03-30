@@ -2,6 +2,7 @@
 import { usePresentationStore } from '../stores/presentationStore';
 import { useUIStore } from '../stores/uiStore';
 import ElementNode from './ElementNode.vue';
+import DrawingCanvasOverlay from './drawing/DrawingCanvasOverlay.vue';
 
 const presentation = usePresentationStore();
 const ui = useUIStore();
@@ -17,17 +18,32 @@ function handleCanvasMousedown(e) {
   capturePointer(e);
   ui.clearSelection();
 }
+
+function calculateWrapperHeight() {
+  const baseHeight = presentation.currentSlide?.height || 600;
+  const baseWidth = ui.isEditMode ? 1000 : window.innerWidth;
+  const zoomFactor = ui.zoomLevel / 100;
+  
+  // Calculate the scaled dimensions
+  const scaledHeight = baseHeight * zoomFactor;
+  const scaledWidth = baseWidth * zoomFactor;
+  
+  // Return the maximum of scaled dimensions to ensure proper scrolling space
+  return Math.max(scaledHeight, window.innerHeight * 0.8);
+}
 </script>
 
 <template>
-  <div class="canvas-wrapper">
+  <div class="canvas-wrapper" :class="{ 'present-mode': !ui.isEditMode }" :style="{ height: calculateWrapperHeight() + 'px' }">
     <div
       class="canvas"
+      :class="{ 'present-mode-canvas': !ui.isEditMode }"
       :style="{ 
         width: ui.isEditMode ? '1000px' : '100%',
         height: (presentation.currentSlide?.height || 600) + 'px',
         transform: `scale(${ui.zoomLevel / 100})`,
-        transformOrigin: 'top center'
+        transformOrigin: 'top left',
+        backgroundColor: 'white' // White background for slide
       }"
       @mousedown.self="handleCanvasMousedown"
     >
@@ -36,6 +52,8 @@ function handleCanvasMousedown(e) {
         :key="el.id"
         :element="el"
       />
+
+      <DrawingCanvasOverlay />
     </div>
 
     <!-- Dynamic Height Extension UI -->
@@ -56,7 +74,9 @@ function handleCanvasMousedown(e) {
 .canvas-wrapper {
   width: 100%;
   max-width: 100vw;
-  overflow: auto;
+  min-width: 100vw;
+  overflow-x: auto;
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   border-radius: 8px;
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
@@ -76,6 +96,13 @@ function handleCanvasMousedown(e) {
   border-radius: 8px;
   overflow: hidden;
   transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Hide grid in present mode for cleaner white background */
+.present-mode-canvas {
+  background-image: none !important;
+  border: none !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
 }
 
 .extend-height-btn {
