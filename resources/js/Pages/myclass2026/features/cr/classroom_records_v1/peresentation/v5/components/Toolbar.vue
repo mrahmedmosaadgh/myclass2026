@@ -18,6 +18,8 @@ const isSaving = ref(false);
 const showAddElementDropdown = ref(false);
 const showInteractiveDropdown = ref(false);
 const showAIUtilitiesDropdown = ref(false);
+const showShareLinkModal = ref(false);
+const isCopyingLink = ref(false);
 
 const saveStatusIcon = computed(() => {
   if (isSaving.value) return '⏳';
@@ -32,6 +34,28 @@ const saveStatusText = computed(() => {
   if (presentation.saveStatus === 'error') return 'Error';
   return 'Saved';
 });
+
+const studentJoinUrl = computed(() => {
+  if (!gameStore.accessCode) return '';
+  const baseUrl = window.location.origin;
+  return `${baseUrl}/classroom-records/presentation/remote/student?code=${gameStore.accessCode}`;
+});
+
+function generateSessionCode() {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // No I, O, 0, 1 to avoid confusion
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+function ensureAccessCode() {
+  if (!gameStore.accessCode) {
+    gameStore.accessCode = generateSessionCode();
+    gameStore.sessionStatus = 'waiting';
+  }
+}
 
 async function savePresentation() {
   isSaving.value = true;
@@ -238,6 +262,35 @@ function confirmReset() {
   }
 }
 
+function openShareLinkModal() {
+  ensureAccessCode();
+  showShareLinkModal.value = true;
+}
+
+async function copyShareLink() {
+  isCopyingLink.value = true;
+  try {
+    await navigator.clipboard.writeText(studentJoinUrl.value);
+    // Show success feedback
+    const originalText = event.target.innerText;
+    event.target.innerText = '✓ Copied!';
+    setTimeout(() => {
+      event.target.innerText = originalText;
+    }, 2000);
+  } catch (err) {
+    console.error('Failed to copy link:', err);
+    // Fallback for older browsers
+    const textArea = document.createElement('textarea');
+    textArea.value = studentJoinUrl.value;
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+  } finally {
+    isCopyingLink.value = false;
+  }
+}
+
 function handleClickOutside(event) {
   if (!event.target.closest('.add-element-dropdown')) {
     showAddElementDropdown.value = false;
@@ -421,6 +474,16 @@ onUnmounted(() => {
     
     <div class="divider"></div>
 
+    <!-- Share Link Button -->
+    <button @click="openShareLinkModal" class="share-btn" title="Share Presentation with Students">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+        <polyline points="16 6 12 2 8 6"></polyline>
+        <line x1="12" y1="2" x2="12" y2="15"></line>
+      </svg>
+      Share
+    </button>
+
     <div class="save-status" :title="presentation.saveStatus === 'saved' ? 'All changes saved locally' : 'Saving...'">
       <div class="status-indicator" :class="presentation.saveStatus"></div>
       <span class="status-text">{{ presentation.saveStatus === 'saved' ? 'Saved' : 'Saving...' }}</span>
@@ -441,6 +504,53 @@ onUnmounted(() => {
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
       Reset
     </button>
+  </div>
+
+  <!-- Share Link Modal -->
+  <div v-if="showShareLinkModal" class="share-modal-overlay" @click.self="showShareLinkModal = false">
+    <div class="share-modal">
+      <button class="close-modal" @click="showShareLinkModal = false">×</button>
+      <h2>Share Presentation</h2>
+      <p>Students can use this link to join your presentation</p>
+      
+      <div class="share-content">
+        <div class="code-display">
+          <span class="code-label">Session Code:</span>
+          <span class="code-value">{{ gameStore.accessCode }}</span>
+        </div>
+        
+        <div class="url-display">
+          <input 
+            :value="studentJoinUrl" 
+            readonly 
+            class="url-input"
+            @click="$event.target.select()"
+          />
+          <button 
+            @click="copyShareLink" 
+            class="copy-btn"
+            :disabled="isCopyingLink"
+          >
+            {{ isCopyingLink ? 'Copying...' : 'Copy Link' }}
+          </button>
+        </div>
+        
+        <div class="share-info">
+          <div class="info-item">
+            <span class="info-icon">🔗</span>
+            <span class="info-text">Share this link with your students</span>
+          </div>
+          <div class="info-item">
+            <span class="info-icon">📱</span>
+            <span class="info-text">Works on mobile devices and computers</span>
+          </div>
+          <div class="info-item">
+            <span class="info-icon">🚀</span>
+            <span class="info-text">No login required for students</span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -576,6 +686,181 @@ onUnmounted(() => {
 
 .manage-btn svg {
   color: white !important;
+}
+
+/* Share Button Styles */
+.share-btn {
+  background: #10b981 !important;
+  color: white !important;
+  font-weight: 500;
+}
+
+.share-btn:hover {
+  background: #059669 !important;
+}
+
+.share-btn svg {
+  color: white !important;
+}
+
+/* Share Modal Styles */
+.share-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(4px);
+}
+
+.share-modal {
+  background: white;
+  padding: 2rem;
+  border-radius: 1rem;
+  width: 90%;
+  max-width: 500px;
+  position: relative;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.close-modal {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #6b7280;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.close-modal:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.share-modal h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.share-modal p {
+  margin: 0 0 1.5rem 0;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.share-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.code-display {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+}
+
+.code-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.code-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1f2937;
+  font-family: monospace;
+  letter-spacing: 0.1em;
+}
+
+.url-display {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.url-input {
+  flex: 1;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  background: #f9fafb;
+  color: #374151;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.url-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.copy-btn {
+  padding: 0.75rem 1rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.copy-btn:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.copy-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.share-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: #f0f9ff;
+  border: 1px solid #e0f2fe;
+  border-radius: 0.5rem;
+}
+
+.info-icon {
+  font-size: 1.25rem;
+}
+
+.info-text {
+  font-size: 0.875rem;
+  color: #0c4a6e;
+  font-weight: 500;
 }
 
 /* Add Element Dropdown Styles */
