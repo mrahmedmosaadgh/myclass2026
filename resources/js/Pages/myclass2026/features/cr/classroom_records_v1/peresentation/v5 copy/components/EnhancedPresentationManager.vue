@@ -392,9 +392,7 @@ const syncIcon = computed(() => {
 const syncText = computed(() => {
   if (!isOnline.value) return 'Offline';
   if (isSyncing.value) return 'Syncing...';
-  if (hasSyncQueue.value && sync.syncQueue && sync.syncQueue.value) {
-    return `Needs Sync (${sync.syncQueue.value.length} items)`;
-  }
+  if (hasSyncQueue.value) return `Needs Sync (${sync.syncQueue.value.length} items)`;
   return 'Synced';
 });
 
@@ -620,26 +618,16 @@ const refreshPresentations = async () => {
 
 const refreshCategories = async () => {
   try {
-    if (sync && typeof sync.getCategories === 'function') {
-      categories.value = await sync.getCategories();
-    } else {
-      console.warn('Sync getCategories not available, using empty categories');
-      categories.value = [];
-    }
+    categories.value = await sync.getCategories();
   } catch (error) {
     console.error('Error refreshing categories:', error);
-    categories.value = []; // Fallback to empty categories
   }
 };
 
 const forceSync = async () => {
   try {
-    if (sync && typeof sync.forceSync === 'function') {
-      await sync.forceSync();
-      await refreshPresentations();
-    } else {
-      console.warn('Sync forceSync not available');
-    }
+    await sync.forceSync();
+    await refreshPresentations();
   } catch (error) {
     console.error('Error forcing sync:', error);
   }
@@ -651,31 +639,18 @@ const clearErrors = () => {
 
 // Initialize
 onMounted(async () => {
+  await sync.initialize();
+  await refreshPresentations();
+  await refreshCategories();
+  
+  // Get current presentation
   try {
-    // Initialize sync with error handling
-    if (sync && typeof sync.initialize === 'function') {
-      await sync.initialize();
-    } else {
-      console.warn('Sync initialize not available');
-    }
-    
-    // Refresh presentations
-    await refreshPresentations();
-    
-    // Refresh categories with error handling
-    await refreshCategories();
-    
-    // Get current presentation
-    try {
-      const currentPresentation = await storage.getCurrentPresentation();
-      if (currentPresentation) {
-        currentPresentationId.value = currentPresentation.id;
-      }
-    } catch (error) {
-      console.error('Error getting current presentation:', error);
+    const currentPresentation = await storage.getCurrentPresentation();
+    if (currentPresentation) {
+      currentPresentationId.value = currentPresentation.id;
     }
   } catch (error) {
-    console.error('Error initializing EnhancedPresentationManager:', error);
+    console.error('Error getting current presentation:', error);
   }
 });
 

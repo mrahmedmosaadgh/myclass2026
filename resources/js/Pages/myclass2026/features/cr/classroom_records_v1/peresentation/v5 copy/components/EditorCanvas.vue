@@ -2,7 +2,7 @@
 import { usePresentationStore } from '../stores/presentationStore';
 import { useUIStore } from '../stores/uiStore';
 import ElementNode from './ElementNode.vue';
-// import DrawingCanvasOverlay from './drawing/DrawingCanvasOverlay.vue';
+import DrawingCanvasOverlay from './drawing/DrawingCanvasOverlay.vue';
 
 const presentation = usePresentationStore();
 const ui = useUIStore();
@@ -53,7 +53,7 @@ function calculateWrapperHeight() {
         :element="el"
       />
 
-      <!-- <DrawingCanvasOverlay /> -->
+      <DrawingCanvasOverlay />
     </div>
 
     <!-- Dynamic Height Extension UI -->

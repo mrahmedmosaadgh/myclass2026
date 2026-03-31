@@ -1,0 +1,12 @@
+
+# 2. Refresh Composer's autoload files
+composer dump-autoload
+ 
+# 3. Clear Laravel's cached files
+php artisan config:clear
+php artisan cache:clear
+php artisan route:clear
+php artisan view:clear
+ 
+# 4. Verify the changes
+composer dump-autoload -o
