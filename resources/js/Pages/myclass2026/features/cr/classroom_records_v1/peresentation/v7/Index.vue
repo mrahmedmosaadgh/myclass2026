@@ -19,6 +19,7 @@ import LiveQuestionPanel from './components/LiveQuestionPanel.vue';
 import DistributionModal from './components/DistributionModal.vue';
 import SlideContextMenu from './components/SlideContextMenu.vue';
 import DrawingToolbar from './components/drawing/DrawingToolbar.vue';
+import DrawingCanvasOverlay from './components/drawing/DrawingCanvasOverlay.vue';
 import LiveQuestionOverlay from './components/LiveQuestionOverlay.vue';
 import { useDrawingStore } from './stores/drawingStore';
 
@@ -174,6 +175,96 @@ onMounted(() => {
   console.log(`[${timestamp}] Active drawing tool:`, drawingStore.activeTool);
   console.log(`[${timestamp}] Build version: 2026-04-01-19-04-debug`);
   
+  // Immediate UI debug
+  console.log(`[${timestamp}] === IMMEDIATE UI DEBUG ===`);
+  console.log(`[${timestamp}] Document ready state:`, document.readyState);
+  console.log(`[${timestamp}] App element:`, document.getElementById('app'));
+  console.log(`[${timestamp}] Body children:`, document.body.children.length);
+  
+  // Debug UI visibility
+  console.log(`[${timestamp}] Setting up UI debug timeout...`);
+  setTimeout(() => {
+    console.log(`[${timestamp}] === UI VISIBILITY DEBUG (timeout fired) ===`);
+    
+    // Check main container
+    const mainContainer = document.querySelector('.main-container');
+    if (mainContainer) {
+      const styles = window.getComputedStyle(mainContainer);
+      console.log(`[${timestamp}] Main container found:`, {
+        display: styles.display,
+        visibility: styles.visibility,
+        opacity: styles.opacity,
+        width: styles.width,
+        height: styles.height,
+        offsetWidth: mainContainer.offsetWidth,
+        offsetHeight: mainContainer.offsetHeight
+      });
+    } else {
+      console.log(`[${timestamp}] ❌ Main container NOT found`);
+    }
+    
+    // Check canvas area
+    const canvasArea = document.querySelector('.canvas-area');
+    if (canvasArea) {
+      const styles = window.getComputedStyle(canvasArea);
+      console.log(`[${timestamp}] Canvas area found:`, {
+        display: styles.display,
+        visibility: styles.visibility,
+        opacity: styles.opacity,
+        width: styles.width,
+        height: styles.height,
+        offsetWidth: canvasArea.offsetWidth,
+        offsetHeight: canvasArea.offsetHeight
+      });
+    } else {
+      console.log(`[${timestamp}] ❌ Canvas area NOT found`);
+    }
+    
+    // Check slide container
+    const slideContainer = document.querySelector('.slide-container');
+    if (slideContainer) {
+      const styles = window.getComputedStyle(slideContainer);
+      console.log(`[${timestamp}] Slide container found:`, {
+        display: styles.display,
+        visibility: styles.visibility,
+        opacity: styles.opacity,
+        width: styles.width,
+        height: styles.height,
+        offsetWidth: slideContainer.offsetWidth,
+        offsetHeight: slideContainer.offsetHeight
+      });
+    } else {
+      console.log(`[${timestamp}] ❌ Slide container NOT found`);
+    }
+    
+    // Check body
+    const bodyStyles = window.getComputedStyle(document.body);
+    console.log(`[${timestamp}] Body styles:`, {
+      backgroundColor: bodyStyles.backgroundColor,
+      backgroundImage: bodyStyles.backgroundImage,
+      display: bodyStyles.display,
+      visibility: bodyStyles.visibility,
+      opacity: bodyStyles.opacity
+    });
+    
+    // Check all direct children
+    const appElement = document.getElementById('app');
+    if (appElement) {
+      console.log(`[${timestamp}] App element children:`, appElement.children.length);
+      for (let i = 0; i < appElement.children.length; i++) {
+        const child = appElement.children[i];
+        console.log(`[${timestamp}] Child ${i}:`, {
+          tagName: child.tagName,
+          className: child.className,
+          display: window.getComputedStyle(child).display,
+          visibility: window.getComputedStyle(child).visibility
+        });
+      }
+    }
+    
+    console.log(`[${timestamp}] === END UI DEBUG ===`);
+  }, 1000);
+  
   document.addEventListener('paste', handlePaste);
   document.addEventListener('keydown', handleKeydown);
   document.addEventListener('click', closeSlideContextMenu);
@@ -267,7 +358,9 @@ onUnmounted(() => {
 
     <DrawingToolbar />
 
+    <!-- Drawing FAB - Only show in Edit Mode -->
     <button
+      v-if="ui.isEditMode"
       class="drawing-fab"
       :class="{ active: drawingStore.isDrawingMode }"
       @click="() => { drawingStore.toggleDrawingMode(true); drawingStore.toggleToolbar(true); }"
