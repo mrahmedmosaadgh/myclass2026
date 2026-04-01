@@ -24,6 +24,15 @@ function cutElement() {
   clipboard.cutElement(props.element, store.currentSlide.id);
   store.deleteElement(props.element.id);
 }
+
+function pasteElement() {
+  if (!clipboard.hasClipboardContent()) return;
+  
+  const pastedElement = clipboard.pasteElement(props.element.x + 20, props.element.y + 20);
+  if (pastedElement) {
+    store.addElement(pastedElement);
+  }
+}
 </script>
 
 <template>
@@ -78,6 +87,14 @@ function cutElement() {
           <line x1="9" y1="14" x2="15" y2="14"></line>
         </svg>
         Cut
+      </button>
+      
+      <button @click="pasteElement" class="icon-button" :disabled="!clipboard.hasClipboardContent()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;">
+          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+          <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+        </svg>
+        {{ clipboard.hasClipboardContent() ? 'Paste' : 'No Clipboard Content' }}
       </button>
       
       <button @click="$emit('duplicate')" class="icon-button">
@@ -145,5 +162,15 @@ button:hover {
 
 .icon-button {
   justify-content: flex-start;
+}
+
+button:disabled {
+  color: #6b7280;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+button:disabled:hover {
+  background: transparent;
 }
 </style>

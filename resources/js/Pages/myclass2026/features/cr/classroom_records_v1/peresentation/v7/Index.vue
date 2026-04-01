@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onUnmounted } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import { usePresentationStore } from './stores/presentationStore';
 import { useUIStore } from './stores/uiStore';
 import { useGameStore } from './stores/gameStore';
@@ -18,16 +18,16 @@ import FloatingAnalytics from './components/FloatingAnalytics.vue';
 import LiveQuestionPanel from './components/LiveQuestionPanel.vue';
 import DistributionModal from './components/DistributionModal.vue';
 import SlideContextMenu from './components/SlideContextMenu.vue';
-// import DrawingToolbar from './components/drawing/DrawingToolbar.vue';
-// import LiveQuestionOverlay from './components/LiveQuestionOverlay.vue';
-// import { useDrawingStore } from './stores/drawingStore';
+import DrawingToolbar from './components/drawing/DrawingToolbar.vue';
+import LiveQuestionOverlay from './components/LiveQuestionOverlay.vue';
+import { useDrawingStore } from './stores/drawingStore';
 
 const presentation = usePresentationStore();
 const ui = useUIStore();
 const gameStore = useGameStore();
 const clipboard = useClipboardStore();
 const { handlePaste, pasteElement } = usePaste();
-// const drawingStore = useDrawingStore();
+const drawingStore = useDrawingStore();
 
 // Slide context menu state
 const slideContextMenu = ref({
@@ -115,8 +115,7 @@ function handleKeydown(e) {
     return;
   }
 
-  // Drawing shortcuts (disabled)
-  /*
+  // Drawing shortcuts
   if ((e.ctrlKey || e.metaKey) && key === 'z') {
     e.preventDefault();
     if (e.shiftKey) {
@@ -157,7 +156,6 @@ function handleKeydown(e) {
       return;
     }
   }
-  */
 
   // Slide navigation
   if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown') {
@@ -168,9 +166,19 @@ function handleKeydown(e) {
 }
 
 onMounted(() => {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] V7 Builder - onMounted started`);
+  console.log(`[${timestamp}] Drawing store initialized:`, drawingStore);
+  console.log(`[${timestamp}] Drawing mode status:`, drawingStore.isDrawingMode);
+  console.log(`[${timestamp}] Drawing toolbar status:`, drawingStore.isToolbarOpen);
+  console.log(`[${timestamp}] Active drawing tool:`, drawingStore.activeTool);
+  console.log(`[${timestamp}] Build version: 2026-04-01-19-04-debug`);
+  
   document.addEventListener('paste', handlePaste);
   document.addEventListener('keydown', handleKeydown);
   document.addEventListener('click', closeSlideContextMenu);
+  
+  console.log(`[${timestamp}] V7 Builder - event listeners added`);
 });
 
 onUnmounted(() => {
@@ -257,9 +265,9 @@ onUnmounted(() => {
       @close="closeSlideContextMenu"
     />
 
-    <!-- <DrawingToolbar /> -->
+    <DrawingToolbar />
 
-    <!-- <button
+    <button
       class="drawing-fab"
       :class="{ active: drawingStore.isDrawingMode }"
       @click="() => { drawingStore.toggleDrawingMode(true); drawingStore.toggleToolbar(true); }"
@@ -271,12 +279,12 @@ onUnmounted(() => {
         <path d="M2 12c1.5 1.5 3 3 5 3s3-1.5 5-3c-1.5-1.5-3-3-5-3S3.5 10.5 2 12Z" />
       </svg>
       <span>{{ drawingStore.isDrawingMode ? 'Drawing On' : 'Annotate' }}</span>
-    </button> -->
+    </button>
 
     <!-- Presentation Mode Floating HUD -->
     <div v-if="!ui.isEditMode" class="presentation-hud">
       <FloatingAnalytics />
-      <!-- <LiveQuestionOverlay /> -->
+      <LiveQuestionOverlay />
       
       <button 
         class="fab-leaderboard" 
@@ -440,8 +448,7 @@ onUnmounted(() => {
   text-align: center;
 }
 
-/* Drawing FAB styles (disabled) */
-/*
+/* Drawing FAB styles */
 .drawing-fab {
   position: fixed;
   bottom: 120px;
@@ -484,5 +491,4 @@ onUnmounted(() => {
     display: none;
   }
 }
-*/
 </style>

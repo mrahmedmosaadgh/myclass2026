@@ -1,11 +1,19 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { useDrawingStore, DRAWING_TOOLS, DEFAULT_DRAWING_PALETTE } from '../../stores/drawingStore';
 import { useDrawingHistory } from '../../composables/drawing/useDrawingHistory';
 import ToolButton from './ToolButton.vue';
 
 const drawingStore = useDrawingStore();
 const { undo, redo, canUndo, canRedo, clear } = useDrawingHistory();
+
+onMounted(() => {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] DrawingToolbar component mounted`);
+  console.log(`[${timestamp}] DrawingToolbar - isToolbarOpen:`, drawingStore.isToolbarOpen);
+  console.log(`[${timestamp}] DrawingToolbar - activeTool:`, drawingStore.activeTool);
+  console.log(`[${timestamp}] Build version: 2026-04-01-19-04-debug`);
+});
 
 const palette = computed(() => drawingStore.customPalette?.length ? drawingStore.customPalette : DEFAULT_DRAWING_PALETTE);
 const brushSize = ref(drawingStore.brushSize);
