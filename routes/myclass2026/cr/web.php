@@ -72,6 +72,16 @@ Route::middleware([
             );
         })->name('builder-v5');
 
+        // V7 Presentation Builder
+        Route::get('/builder-v7', function () {
+            return Inertia::render(
+                'myclass2026/features/cr/classroom_records_v1/peresentation/v7/Index',
+                [
+                    'title' => 'Presentation Builder V7 - MyClass2026'
+                ]
+            );
+        })->name('builder-v7');
+
         // Presentation Management Page
         Route::get('/manage', function () {
             return Inertia::render(

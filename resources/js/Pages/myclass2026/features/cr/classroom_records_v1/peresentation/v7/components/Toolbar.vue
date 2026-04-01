@@ -18,6 +18,8 @@ const isSaving = ref(false);
 const showAddElementDropdown = ref(false);
 const showInteractiveDropdown = ref(false);
 const showAIUtilitiesDropdown = ref(false);
+const showShareLinkModal = ref(false);
+const isCopyingLink = ref(false);
 
 const saveStatusIcon = computed(() => {
   if (isSaving.value) return '⏳';
@@ -32,6 +34,28 @@ const saveStatusText = computed(() => {
   if (presentation.saveStatus === 'error') return 'Error';
   return 'Saved';
 });
+
+const studentJoinUrl = computed(() => {
+  if (!gameStore.accessCode) return '';
+  const baseUrl = window.location.origin;
+  return `${baseUrl}/classroom-records/presentation/remote/student?code=${gameStore.accessCode}`;
+});
+
+function generateSessionCode() {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // No I, O, 0, 1 to avoid confusion
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+function ensureAccessCode() {
+  if (!gameStore.accessCode) {
+    gameStore.accessCode = generateSessionCode();
+    gameStore.sessionStatus = 'waiting';
+  }
+}
 
 async function savePresentation() {
   isSaving.value = true;
@@ -238,6 +262,35 @@ function confirmReset() {
   }
 }
 
+function openShareLinkModal() {
+  ensureAccessCode();
+  showShareLinkModal.value = true;
+}
+
+async function copyShareLink() {
+  isCopyingLink.value = true;
+  try {
+    await navigator.clipboard.writeText(studentJoinUrl.value);
+    // Show success feedback
+    const originalText = event.target.innerText;
+    event.target.innerText = '✓ Copied!';
+    setTimeout(() => {
+      event.target.innerText = originalText;
+    }, 2000);
+  } catch (err) {
+    console.error('Failed to copy link:', err);
+    // Fallback for older browsers
+    const textArea = document.createElement('textarea');
+    textArea.value = studentJoinUrl.value;
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+  } finally {
+    isCopyingLink.value = false;
+  }
+}
+
 function handleClickOutside(event) {
   if (!event.target.closest('.add-element-dropdown')) {
     showAddElementDropdown.value = false;
@@ -309,32 +362,32 @@ onUnmounted(() => {
       </button>
       
       <div v-if="showAddElementDropdown" class="dropdown-menu">
-        <button @click="addText; showAddElementDropdown = false" title="Add Text">
+        <button @click="() => { addText(); showAddElementDropdown = false; }" title="Add Text">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>
           Text
         </button>
         
-        <button @click="addMath; showAddElementDropdown = false" title="Add Math Formula">
+        <button @click="() => { addMath(); showAddElementDropdown = false; }" title="Add Math Formula">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5h-7l-3 14H4"></path><path d="M14 10h5"></path><path d="M14 14h5"></path></svg>
           Math
         </button>
 
-        <button @click="triggerImageUpload; showAddElementDropdown = false" title="Upload Image from Device">
+        <button @click="() => { triggerImageUpload(); showAddElementDropdown = false; }" title="Upload Image from Device">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
           Image
         </button>
         
-        <button @click="addRectangle; showAddElementDropdown = false" title="Add Shape (Rectangle)">
+        <button @click="() => { addRectangle(); showAddElementDropdown = false; }" title="Add Shape (Rectangle)">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
           Shape
         </button>
 
-        <button @click="addHtml; showAddElementDropdown = false" title="Add HTML Block">
+        <button @click="() => { addHtml(); showAddElementDropdown = false; }" title="Add HTML Block">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
           HTML
         </button>
         
-        <button @click="addLeaderboard; showAddElementDropdown = false" title="Add Live Leaderboard Slide">
+        <button @click="() => { addLeaderboard(); showAddElementDropdown = false; }" title="Add Live Leaderboard Slide">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20v-6M6 20V10M18 20V4"></path></svg>
           Podium
         </button>
@@ -361,27 +414,27 @@ onUnmounted(() => {
       </button>
       
       <div v-if="showInteractiveDropdown" class="dropdown-menu">
-        <button @click="addLiveQuestion; showInteractiveDropdown = false" title="Add Live Question to Slide">
+        <button @click="() => { addLiveQuestion(); showInteractiveDropdown = false; }" title="Add Live Question to Slide">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path><line x1="9" y1="9" x2="15" y2="9"></line><line x1="9" y1="13" x2="15" y2="13"></line></svg>
           Live Q
         </button>
         
-        <button @click="gameStore.isLeaderboardOpen = true; showInteractiveDropdown = false" title="Live Display Leaderboard">
+        <button @click="() => { gameStore.isLeaderboardOpen = true; showInteractiveDropdown = false; }" title="Live Display Leaderboard">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>
           Leaderboard
         </button>
 
-        <button @click="gameStore.isGroupSetupOpen = true; showInteractiveDropdown = false" title="Configure Classroom Groups">
+        <button @click="() => { gameStore.isGroupSetupOpen = true; showInteractiveDropdown = false; }" title="Configure Classroom Groups">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
           Groups
         </button>
 
-        <button @click="ui.isGroupQuizGeneratorOpen = true; showInteractiveDropdown = false" title="Generate Interactive Group Quiz (V3)">
+        <button @click="() => { ui.isGroupQuizGeneratorOpen = true; showInteractiveDropdown = false; }" title="Generate Interactive Group Quiz (V3)">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
           Group Quiz
         </button>
 
-        <button @click="liveQuestionStore.openPanel(); showInteractiveDropdown = false" title="Create Live Question Session">
+        <button @click="() => { liveQuestionStore.openPanel(); showInteractiveDropdown = false; }" title="Create Live Question Session">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.2 8.4c.5.38.8.97.8 1.6v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h2.5a.5.5 0 0 0 .5-.5v-2A2.5 2.5 0 0 1 9.5 3h0A2.5 2.5 0 0 1 12 5.5v2a.5.5 0 0 0 .5.5H15a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-3a2 2 0 0 1-2-2V8.4"></path><path d="M7 15h.01"></path><path d="M11 15h.01"></path><path d="M15 15h.01"></path><path d="M19 15h.01"></path></svg>
           Live Question
         </button>
@@ -407,12 +460,12 @@ onUnmounted(() => {
       </button>
       
       <div v-if="showAIUtilitiesDropdown" class="dropdown-menu">
-        <button @click="handlePasteBtn; showAIUtilitiesDropdown = false" title="Paste Guide">
+        <button @click="() => { handlePasteBtn(); showAIUtilitiesDropdown = false; }" title="Paste Guide">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
           Paste
         </button>
 
-        <button @click="ui.isAIPasteDialogOpen = true; showAIUtilitiesDropdown = false" title="Paste Standard AI Generation">
+        <button @click="() => { ui.isAIPasteDialogOpen = true; showAIUtilitiesDropdown = false; }" title="Paste Standard AI Generation">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8" y2="16"></line><line x1="16" y1="16" x2="16" y2="16"></line></svg>
           AI Paste
         </button>
@@ -420,6 +473,16 @@ onUnmounted(() => {
     </div>
     
     <div class="divider"></div>
+
+    <!-- Share Link Button -->
+    <button @click="openShareLinkModal" class="share-btn" title="Share Presentation with Students" style="display: flex !important; visibility: visible !important; opacity: 1 !important;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+        <polyline points="16 6 12 2 8 6"></polyline>
+        <line x1="12" y1="2" x2="12" y2="15"></line>
+      </svg>
+      Share
+    </button>
 
     <div class="save-status" :title="presentation.saveStatus === 'saved' ? 'All changes saved locally' : 'Saving...'">
       <div class="status-indicator" :class="presentation.saveStatus"></div>
@@ -441,6 +504,53 @@ onUnmounted(() => {
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
       Reset
     </button>
+  </div>
+
+  <!-- Share Link Modal -->
+  <div v-if="showShareLinkModal" class="share-modal-overlay" @click.self="showShareLinkModal = false">
+    <div class="share-modal">
+      <button class="close-modal" @click="showShareLinkModal = false">×</button>
+      <h2>Share Presentation</h2>
+      <p>Students can use this link to join your presentation</p>
+      
+      <div class="share-content">
+        <div class="code-display">
+          <span class="code-label">Session Code:</span>
+          <span class="code-value">{{ gameStore.accessCode }}</span>
+        </div>
+        
+        <div class="url-display">
+          <input 
+            :value="studentJoinUrl" 
+            readonly 
+            class="url-input"
+            @click="$event.target.select()"
+          />
+          <button 
+            @click="copyShareLink" 
+            class="copy-btn"
+            :disabled="isCopyingLink"
+          >
+            {{ isCopyingLink ? 'Copying...' : 'Copy Link' }}
+          </button>
+        </div>
+        
+        <div class="share-info">
+          <div class="info-item">
+            <span class="info-icon">🔗</span>
+            <span class="info-text">Share this link with your students</span>
+          </div>
+          <div class="info-item">
+            <span class="info-icon">📱</span>
+            <span class="info-text">Works on mobile devices and computers</span>
+          </div>
+          <div class="info-item">
+            <span class="info-icon">🚀</span>
+            <span class="info-text">No login required for students</span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -576,6 +686,188 @@ onUnmounted(() => {
 
 .manage-btn svg {
   color: white !important;
+}
+
+/* Share Button Styles */
+.share-btn {
+  background: #10b981 !important;
+  color: white !important;
+  font-weight: 500;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 8px 12px !important;
+  border-radius: 6px !important;
+  min-width: 80px !important;
+}
+
+.share-btn:hover {
+  background: #059669 !important;
+}
+
+.share-btn svg {
+  color: white !important;
+}
+
+/* Share Modal Styles */
+.share-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(4px);
+}
+
+.share-modal {
+  background: white;
+  padding: 2rem;
+  border-radius: 1rem;
+  width: 90%;
+  max-width: 500px;
+  position: relative;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.close-modal {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #6b7280;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.close-modal:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.share-modal h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.share-modal p {
+  margin: 0 0 1.5rem 0;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.share-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.code-display {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+}
+
+.code-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.code-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1f2937;
+  font-family: monospace;
+  letter-spacing: 0.1em;
+}
+
+.url-display {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.url-input {
+  flex: 1;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  background: #f9fafb;
+  color: #374151;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.url-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.copy-btn {
+  padding: 0.75rem 1rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.copy-btn:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.copy-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.share-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: #f0f9ff;
+  border: 1px solid #e0f2fe;
+  border-radius: 0.5rem;
+}
+
+.info-icon {
+  font-size: 1.25rem;
+}
+
+.info-text {
+  font-size: 0.875rem;
+  color: #0c4a6e;
+  font-weight: 500;
 }
 
 /* Add Element Dropdown Styles */

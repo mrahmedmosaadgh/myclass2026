@@ -3,6 +3,7 @@ import { onMounted, onUnmounted } from 'vue';
 import { usePresentationStore } from './stores/presentationStore';
 import { useUIStore } from './stores/uiStore';
 import { useGameStore } from './stores/gameStore';
+import { useClipboardStore } from './stores/clipboardStore';
 import { usePaste } from './composables/usePaste';
 import EditorCanvas from './components/EditorCanvas.vue';
 import Toolbar from './components/Toolbar.vue';
@@ -16,15 +17,16 @@ import LeaderboardOverlay from './components/LeaderboardOverlay.vue';
 import FloatingAnalytics from './components/FloatingAnalytics.vue';
 import LiveQuestionPanel from './components/LiveQuestionPanel.vue';
 import DistributionModal from './components/DistributionModal.vue';
-import DrawingToolbar from './components/drawing/DrawingToolbar.vue';
-import LiveQuestionOverlay from './components/LiveQuestionOverlay.vue';
-import { useDrawingStore } from './stores/drawingStore';
+// import DrawingToolbar from './components/drawing/DrawingToolbar.vue';
+// import LiveQuestionOverlay from './components/LiveQuestionOverlay.vue';
+// import { useDrawingStore } from './stores/drawingStore';
 
 const presentation = usePresentationStore();
 const ui = useUIStore();
 const gameStore = useGameStore();
-const { handlePaste } = usePaste();
-const drawingStore = useDrawingStore();
+const clipboard = useClipboardStore();
+const { handlePaste, pasteElement } = usePaste();
+// const drawingStore = useDrawingStore();
 
 const toolShortcutMap = {
   p: 'pen',
@@ -41,6 +43,37 @@ function handleKeydown(e) {
   if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
 
   const key = e.key.toLowerCase();
+
+  // Copy/Cut/Paste shortcuts
+  if ((e.ctrlKey || e.metaKey) && key === 'c') {
+    e.preventDefault();
+    if (ui.selectedElementId) {
+      const element = presentation.currentSlide.elements.find(el => el.id === ui.selectedElementId);
+      if (element) {
+        clipboard.copyElement(element, presentation.currentSlide.id);
+      }
+    }
+    return;
+  }
+
+  if ((e.ctrlKey || e.metaKey) && key === 'x') {
+    e.preventDefault();
+    if (ui.selectedElementId) {
+      const element = presentation.currentSlide.elements.find(el => el.id === ui.selectedElementId);
+      if (element) {
+        clipboard.cutElement(element, presentation.currentSlide.id);
+        presentation.deleteElement(ui.selectedElementId);
+        ui.clearSelection();
+      }
+    }
+    return;
+  }
+
+  if ((e.ctrlKey || e.metaKey) && key === 'v') {
+    e.preventDefault();
+    pasteElement();
+    return;
+  }
 
   // Zoom shortcuts
   if ((e.ctrlKey || e.metaKey) && e.key === '=') {
@@ -59,7 +92,8 @@ function handleKeydown(e) {
     return;
   }
 
-  // Drawing shortcuts
+  // Drawing shortcuts (disabled)
+  /*
   if ((e.ctrlKey || e.metaKey) && key === 'z') {
     e.preventDefault();
     if (e.shiftKey) {
@@ -100,6 +134,7 @@ function handleKeydown(e) {
       return;
     }
   }
+  */
 
   // Slide navigation
   if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown') {
@@ -189,9 +224,9 @@ onUnmounted(() => {
     <LiveQuestionPanel />
     <DistributionModal />
 
-    <DrawingToolbar />
+    <!-- <DrawingToolbar /> -->
 
-    <button
+    <!-- <button
       class="drawing-fab"
       :class="{ active: drawingStore.isDrawingMode }"
       @click="() => { drawingStore.toggleDrawingMode(true); drawingStore.toggleToolbar(true); }"
@@ -203,12 +238,12 @@ onUnmounted(() => {
         <path d="M2 12c1.5 1.5 3 3 5 3s3-1.5 5-3c-1.5-1.5-3-3-5-3S3.5 10.5 2 12Z" />
       </svg>
       <span>{{ drawingStore.isDrawingMode ? 'Drawing On' : 'Annotate' }}</span>
-    </button>
+    </button> -->
 
     <!-- Presentation Mode Floating HUD -->
     <div v-if="!ui.isEditMode" class="presentation-hud">
       <FloatingAnalytics />
-      <LiveQuestionOverlay />
+      <!-- <LiveQuestionOverlay /> -->
       
       <button 
         class="fab-leaderboard" 
@@ -372,6 +407,8 @@ onUnmounted(() => {
   text-align: center;
 }
 
+/* Drawing FAB styles (disabled) */
+/*
 .drawing-fab {
   position: fixed;
   bottom: 120px;
@@ -414,4 +451,5 @@ onUnmounted(() => {
     display: none;
   }
 }
+*/
 </style>

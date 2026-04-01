@@ -1,5 +1,6 @@
 import { usePresentationStore } from '../stores/presentationStore';
 import { useUIStore } from '../stores/uiStore';
+import { useClipboardStore } from '../stores/clipboardStore';
 
 function sanitizeHTML(html) {
   const div = document.createElement('div');
@@ -15,10 +16,17 @@ function sanitizeHTML(html) {
 export function usePaste() {
   const presentation = usePresentationStore();
   const ui = useUIStore();
+  const clipboard = useClipboardStore();
   
   async function handlePaste(e) {
     if (!ui.isEditMode) return;
     if (['INPUT', 'TEXTAREA'].includes(e.target.tagName) || e.target.isContentEditable) return;
+
+    // Check if we have clipboard content first
+    if (clipboard.hasClipboardContent()) {
+      pasteElement();
+      return;
+    }
 
     const items = e.clipboardData?.items;
     if (!items) return;
@@ -147,12 +155,24 @@ export function usePaste() {
     });
   }
 
+  function pasteElement() {
+    if (!clipboard.hasClipboardContent()) return;
+    
+    const position = getPosition();
+    const pastedElement = clipboard.pasteElement(position.x, position.y);
+    
+    if (pastedElement) {
+      finishPaste(pastedElement);
+    }
+  }
+
   return {
     handlePaste,
     createTextElement,
     createMathElement,
     createImageElement,
     createHTMLElement,
-    createRectangleElement
+    createRectangleElement,
+    pasteElement
   };
 }

@@ -135,19 +135,43 @@ export const usePresentationStore = defineStore('presentation', () => {
         };
 
         // Save with IndexedDB storage
-        if (indexedDBStorage.isStorageAvailable()) {
-          const result = await indexedDBStorage.savePresentation(payload, {
-            overwrite: true,
-            createBackup: false
-          });
-          currentPresentationKey = result.id;
-          
-          // IMPORTANT: Set current presentation metadata for reload
-          await indexedDBStorage.db.offline_metadata.put({
-            key: 'current_presentation',
-            value: result.id,
-            updated_at: new Date().toISOString()
-          });
+        if (indexedDBStorage.isStorageAvailable && indexedDBStorage.isStorageAvailable()) {
+          // Check if savePresentation function exists
+          if (indexedDBStorage.savePresentation) {
+            const result = await indexedDBStorage.savePresentation(payload, {
+              overwrite: true,
+              createBackup: false
+            });
+            
+            // Only set currentPresentationKey if result exists and has id
+            if (result && result.id) {
+              currentPresentationKey = result.id;
+              console.log('Presentation saved successfully with ID:', result.id);
+              
+              // Set current presentation metadata for reload
+              try {
+                // Use the db instance directly since it's available in the composable
+                const { db } = indexedDBStorage;
+                if (db && db.offline_metadata) {
+                  await db.offline_metadata.put({
+                    key: 'current_presentation',
+                    value: result.id,
+                    updated_at: new Date().toISOString()
+                  });
+                  console.log('Current presentation metadata set successfully');
+                } else {
+                  console.warn('Database or offline_metadata not available');
+                }
+              } catch (metadataError) {
+                console.warn('Failed to set current presentation metadata:', metadataError);
+                // Continue without metadata - presentation is still saved
+              }
+            } else {
+              console.warn('Presentation saved but no ID returned');
+            }
+          } else {
+            console.warn('savePresentation function not available');
+          }
         } else {
           console.warn('IndexedDB not available, auto-save disabled');
         }
