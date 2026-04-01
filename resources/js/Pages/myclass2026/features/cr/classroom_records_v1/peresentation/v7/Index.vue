@@ -17,6 +17,7 @@ import LeaderboardOverlay from './components/LeaderboardOverlay.vue';
 import FloatingAnalytics from './components/FloatingAnalytics.vue';
 import LiveQuestionPanel from './components/LiveQuestionPanel.vue';
 import DistributionModal from './components/DistributionModal.vue';
+import SlideContextMenu from './components/SlideContextMenu.vue';
 // import DrawingToolbar from './components/drawing/DrawingToolbar.vue';
 // import LiveQuestionOverlay from './components/LiveQuestionOverlay.vue';
 // import { useDrawingStore } from './stores/drawingStore';
@@ -27,6 +28,28 @@ const gameStore = useGameStore();
 const clipboard = useClipboardStore();
 const { handlePaste, pasteElement } = usePaste();
 // const drawingStore = useDrawingStore();
+
+// Slide context menu state
+const slideContextMenu = ref({
+  show: false,
+  x: 0,
+  y: 0
+});
+
+function handleSlideContextMenu(e) {
+  if (!ui.isEditMode) return;
+  e.preventDefault();
+  
+  slideContextMenu.value = {
+    show: true,
+    x: e.clientX,
+    y: e.clientY
+  };
+}
+
+function closeSlideContextMenu() {
+  slideContextMenu.value.show = false;
+}
 
 const toolShortcutMap = {
   p: 'pen',
@@ -147,16 +170,18 @@ function handleKeydown(e) {
 onMounted(() => {
   document.addEventListener('paste', handlePaste);
   document.addEventListener('keydown', handleKeydown);
+  document.addEventListener('click', closeSlideContextMenu);
 });
 
 onUnmounted(() => {
   document.removeEventListener('paste', handlePaste);
   document.removeEventListener('keydown', handleKeydown);
+  document.removeEventListener('click', closeSlideContextMenu);
 });
 </script>
 
 <template>
-  <div class="v5-container" :class="{ 'has-fixed-description': !ui.isEditMode && presentation.description && presentation.showDescriptionInPresentMode !== false }">
+  <div class="v5-container" :class="{ 'has-fixed-description': !ui.isEditMode && presentation.description && presentation.showDescriptionInPresentMode !== false }" @contextmenu="handleSlideContextMenu">
     <!-- Fixed Top Navigation Bar (Always Visible) -->
     <PresentationNavBar />
     
@@ -223,6 +248,14 @@ onUnmounted(() => {
     <LeaderboardOverlay />
     <LiveQuestionPanel />
     <DistributionModal />
+
+    <!-- Slide Context Menu -->
+    <SlideContextMenu 
+      :show="slideContextMenu.show"
+      :x="slideContextMenu.x"
+      :y="slideContextMenu.y"
+      @close="closeSlideContextMenu"
+    />
 
     <!-- <DrawingToolbar /> -->
 
