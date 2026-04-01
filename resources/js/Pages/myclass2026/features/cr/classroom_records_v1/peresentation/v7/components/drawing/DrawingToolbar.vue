@@ -226,16 +226,18 @@ const groupedTools = computed(() => ([
   position: fixed;
   top: 80px;
   right: 24px;
-  width: 320px;
+  width: 280px;
   max-width: calc(100% - 48px);
   background: rgba(255, 255, 255, 0.98);
-  border-radius: 24px;
+  border-radius: 20px;
   border: 1px solid rgba(15, 23, 42, 0.08);
-  box-shadow: 0 35px 70px rgba(15, 23, 42, 0.18);
+  box-shadow: 0 25px 50px rgba(15, 23, 42, 0.15);
   z-index: 4000;
   transform: translateX(110%);
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  padding: 22px 22px 24px;
+  padding: 18px 18px 20px;
+  max-height: 85vh;
+  overflow-y: auto;
 }
 
 .drawing-toolbar.open {
@@ -246,31 +248,31 @@ const groupedTools = computed(() => ([
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 18px;
+  margin-bottom: 14px;
 }
 
 .toolbar-header h3 {
-  font-size: 16px;
+  font-size: 15px;
   margin: 0;
   color: #0f172a;
 }
 
 .toolbar-header p {
-  margin: 4px 0 0;
-  font-size: 13px;
+  margin: 3px 0 0;
+  font-size: 12px;
   color: #475569;
 }
 
 .close-btn {
   border: none;
   background: transparent;
-  font-size: 18px;
+  font-size: 16px;
   cursor: pointer;
   color: #94a3b8;
 }
 
 .toolbar-section {
-  margin-bottom: 18px;
+  margin-bottom: 14px;
 }
 
 .mode-toggle {
