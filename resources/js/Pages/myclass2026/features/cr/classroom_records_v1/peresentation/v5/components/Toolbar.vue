@@ -475,7 +475,7 @@ onUnmounted(() => {
     <div class="divider"></div>
 
     <!-- Share Link Button -->
-    <button @click="openShareLinkModal" class="share-btn" title="Share Presentation with Students">
+    <button @click="openShareLinkModal" class="share-btn" title="Share Presentation with Students" style="display: flex !important; visibility: visible !important; opacity: 1 !important;">
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
         <polyline points="16 6 12 2 8 6"></polyline>
@@ -693,6 +693,13 @@ onUnmounted(() => {
   background: #10b981 !important;
   color: white !important;
   font-weight: 500;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 8px 12px !important;
+  border-radius: 6px !important;
+  min-width: 80px !important;
 }
 
 .share-btn:hover {

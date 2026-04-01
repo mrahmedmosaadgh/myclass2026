@@ -1,5 +1,45 @@
 # 📜 Development & History Workflow
 
+
+
+**Git Sync Safety Check:**
+⚠️ *Wait! Before committing, did you pull recent changes from other PCs?*
+If you forgot to pull before starting work, don't just `git pull` as it might create conflicts or overwrite your work. Instead, use:
+`git pull --rebase --autostash` (This automatically saves your local uncommitted work, fetches the remote updates, applies them, and then re-applies your work on top!).
+
+Then, 
+
+npm run build
+
+
+create the required history file in docs/history (with what you did and what still need to be done if you have) with the correct timestamped name and title `YYYY-MM-DD_HH-MM_history_feature_name.md`,
+
+
+ stage the files, commit with the specified message format, and push to your current branch.
+
+npm run build
+public/build is a separate git repository.
+
+Repository Info:
+
+Remote: https://github.com/mrahmedmosaadgh/myclass2026_build.git
+Status: It has many untracked files (the new build assets).
+
+add all files, commit them, and push to this myclass2026_build repository 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Follow these rules strictly to maintain project consistency and history.
 
 ---
@@ -111,28 +151,6 @@ test card instead:
 Card Number: 4111 1111 1111 1111
 Expiry: 12 / 26
 CVC: 123
-
-**Git Sync Safety Check:**
-⚠️ *Wait! Before committing, did you pull recent changes from other PCs?*
-If you forgot to pull before starting work, don't just `git pull` as it might create conflicts or overwrite your work. Instead, use:
-`git pull --rebase --autostash` (This automatically saves your local uncommitted work, fetches the remote updates, applies them, and then re-applies your work on top!).
-
-Then, 
-
-npm run build
-create the required history file in docs/history (with what you did and what still need to be done if you have) with the correct timestamped name and title `YYYY-MM-DD_HH-MM_history_feature_name.md`, stage the files, commit with the specified message format, and push to your current branch.
-
-npm run build
-public/build is a separate git repository.
-
-Repository Info:
-
-Remote: https://github.com/mrahmedmosaadgh/myclass2026_build.git
-Status: It has many untracked files (the new build assets).
-
-add all files, commit them, and push to this myclass2026_build repository 
-
-
 
 
 git fetch origin && git reset --hard origin/main3-clean && php artisan optimize

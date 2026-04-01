@@ -99,12 +99,12 @@ return [
         ],
     ],
     // --- Tools Switcher ---
-    [
-        'id' => 'tools_switcher',
-        'label' => ['en' => 'Tools Switcher', 'ar' => 'مبدل الأدوات'],
-        'route' => 'teacher.tools_switcher',
-        'icon' => 'build_circle',
-    ],
+    // [
+    //     'id' => 'tools_switcher',
+    //     'label' => ['en' => 'Tools Switcher', 'ar' => 'مبدل الأدوات'],
+    //     'route' => 'teacher.tools_switcher',
+    //     'icon' => 'build_circle',
+    // ],
     // --- Communication ---
     [
         'id' => 'communication_group',
