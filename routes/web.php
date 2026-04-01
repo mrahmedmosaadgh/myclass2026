@@ -639,6 +639,16 @@ Route::get('/network-test', function () {
     return Inertia::render('NetworkTest');
 })->name('network.test');
 
+// Temporary public test route for V7 builder (no auth required)
+Route::get('/builder-v7-test', function () {
+    return Inertia::render(
+        'myclass2026/features/cr/classroom_records_v1/peresentation/v7/Index',
+        [
+            'title' => 'Presentation Builder V7 - Test (Public)'
+        ]
+    );
+})->name('builder-v7.test.public');
+
 
 // Test route to check CSRF cookie and session
 Route::get('/sanctum-test', function () {
