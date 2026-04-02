@@ -12,8 +12,8 @@
   </Head>
 
   <div class="standalone-schedule-app-v3">
-    <!-- Mobile-Optimized Header -->
-    <header class="app-header" :class="{ 'compact': isScrolled }">
+    <!-- Compact Header -->
+    <header class="app-header compact">
       <div class="header-content">
         <div class="brand-section">
           <button 
@@ -35,7 +35,6 @@
           <div class="status-indicators">
             <span class="status-badge" :class="serviceWorkerStatus">
               <span class="status-icon">{{ getStatusIcon() }}</span>
-              {{ serviceWorkerStatus }}
             </span>
             
             <span v-if="isOnline" class="online-indicator">🟢</span>
@@ -45,12 +44,12 @@
           <button 
             v-if="canInstall && !isInstalled" 
             @click="handleInstall"
-            class="install-btn"
+            class="install-btn compact"
           >
-            📲 Install
+            📲
           </button>
           
-          <span v-if="isInstalled" class="installed-badge">✓ Installed</span>
+          <span v-if="isInstalled" class="installed-badge compact">✓</span>
         </div>
       </div>
       
@@ -100,86 +99,61 @@
       </div>
     </header>
 
-    <!-- Main Content Area -->
+    <!-- Optimized Main Content -->
     <main class="app-main" :class="{ 'with-menu': showMenu }">
-      <!-- Timing Settings Section -->
-      <section v-if="showTimingSettings" class="timing-section">
-        <div class="section-header">
-          <h2>⏰ Timing Settings</h2>
-          <button @click="showTimingSettings = false" class="close-section-btn">×</button>
+      <!-- Integrated Header with Controls -->
+      <div class="integrated-header">
+        <div class="header-left">
+          <h2 class="section-title">📅 Schedule View</h2>
         </div>
-        
-        <StageDayTimingManager
+        <div class="header-controls">
+          <select v-model="currentStage" class="control-select">
+            <option value="">All Stages</option>
+            <option value="prim">Primary</option>
+            <option value="middle">Middle</option>
+            <option value="sec">Secondary</option>
+          </select>
+          
+          <select v-model="currentDay" class="control-select">
+            <option value="">All Days</option>
+            <option value="d1">Day 1</option>
+            <option value="d2">Day 2</option>
+            <option value="d3">Day 3</option>
+            <option value="d4">Day 4</option>
+            <option value="d5">Day 5</option>
+            <option value="d6">Day 6</option>
+          </select>
+          
+          <button @click="openTimingSettings" class="timing-btn-compact">
+            ⏰
+          </button>
+          
+          <button @click="exportData" class="action-btn-compact">
+            📥
+          </button>
+          
+          <button @click="refreshData" class="action-btn-compact">
+            🔄
+          </button>
+        </div>
+      </div>
+
+      <!-- Timing Settings Section (Full Screen) -->
+      <section v-if="showTimingSettings" class="timing-section-full">
+        <TimingSettingsHub
           v-model="timingData"
-          :stage="currentStage"
-          :day="currentDay"
           @close="showTimingSettings = false"
-          @update:modelValue="handleTimingUpdate"
         />
       </section>
 
-      <!-- Schedule View Section -->
-      <section v-else class="schedule-section">
-        <div class="section-header">
-          <h2>📅 Schedule View</h2>
-          <div class="view-controls">
-            <select v-model="currentStage" class="stage-selector">
-              <option value="">All Stages</option>
-              <option value="prim">Primary</option>
-              <option value="middle">Middle</option>
-              <option value="sec">Secondary</option>
-            </select>
-            
-            <select v-model="currentDay" class="day-selector">
-              <option value="">All Days</option>
-              <option value="d1">Day 1</option>
-              <option value="d2">Day 2</option>
-              <option value="d3">Day 3</option>
-              <option value="d4">Day 4</option>
-              <option value="d5">Day 5</option>
-              <option value="d6">Day 6</option>
-            </select>
-            
-            <button @click="openTimingSettings" class="timing-btn">
-              ⏰ Timing
-            </button>
-          </div>
-        </div>
-        
+      <!-- Schedule Content -->
+      <section v-else class="schedule-content">
         <MyTableScheduleV2 
           :stage="currentStage"
           :day="currentDay"
           :timing-data="timingData"
         />
       </section>
-
-      <!-- Floating Action Button -->
-      <div class="fab-container">
-        <button 
-          @click="toggleFabMenu" 
-          class="fab-main"
-          :class="{ active: fabMenuOpen }"
-        >
-          <span class="fab-icon">+</span>
-        </button>
-        
-        <div class="fab-menu" :class="{ active: fabMenuOpen }">
-          <button @click="openTimingSettings" class="fab-item timing">
-            <span class="fab-item-icon">⏰</span>
-            <span class="fab-item-label">Timing</span>
-          </button>
-          
-          <button @click="exportData" class="fab-item export">
-            <span class="fab-item-icon">📥</span>
-            <span class="fab-item-label">Export</span>
-          </button>
-          
-          <button @click="refreshData" class="fab-item refresh">
-            <span class="fab-item-icon">🔄</span>
-            <span class="fab-item-label">Refresh</span>
-          </button>
-        </div>
-      </div>
     </main>
 
     <!-- Offline Indicator -->
@@ -205,15 +179,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import MyTableScheduleV2 from './MyTableScheduleV2.vue';
-import StageDayTimingManager from './components/StageDayTimingManager.vue';
+import TimingSettingsHub from './components/TimingSettingsHub.vue';
 
 // Component state
 const showMenu = ref(false);
 const showTimingSettings = ref(false);
-const fabMenuOpen = ref(false);
 const isScrolled = ref(false);
 const isOnline = ref(navigator.onLine);
 const canInstall = ref(false);
@@ -249,19 +222,9 @@ const toggleMenu = () => {
   showMenu.value = !showMenu.value;
 };
 
-const toggleFabMenu = () => {
-  fabMenuOpen.value = !fabMenuOpen.value;
-};
-
-const scrollToTop = () => {
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-  showMenu.value = false;
-};
-
 const openTimingSettings = () => {
   showTimingSettings.value = true;
   showMenu.value = false;
-  fabMenuOpen.value = false;
 };
 
 const openDataManager = () => {
@@ -292,7 +255,6 @@ const exportData = () => {
   
   showToast('Schedule data exported successfully!', 'success');
   showMenu.value = false;
-  fabMenuOpen.value = false;
 };
 
 const refreshData = () => {
@@ -303,18 +265,11 @@ const refreshData = () => {
   }
   
   showToast('Data refreshed!', 'success');
-  fabMenuOpen.value = false;
 };
 
 const showAbout = () => {
   showMenu.value = false;
   showToast('Schedule App V3 - Advanced timing settings with offline support', 'info');
-};
-
-const handleTimingUpdate = (newTimingData) => {
-  timingData.value = newTimingData;
-  localStorage.setItem('schedule-v3-timing-data', JSON.stringify(newTimingData));
-  showToast('Timing settings saved!', 'success');
 };
 
 const checkConnection = () => {
@@ -422,10 +377,6 @@ const registerServiceWorker = async () => {
 };
 
 // Event listeners
-const handleScroll = () => {
-  isScrolled.value = window.scrollY > 50;
-};
-
 const handleOnline = () => {
   isOnline.value = true;
   showToast('Back online!', 'success');
@@ -441,6 +392,11 @@ const handleBeforeInstallPrompt = (e) => {
   deferredPrompt.value = e;
   canInstall.value = true;
 };
+
+// Watch for timing data changes
+watch(timingData, (newData) => {
+  localStorage.setItem('schedule-v3-timing-data', JSON.stringify(newData));
+}, { deep: true });
 
 // Lifecycle
 onMounted(() => {
@@ -459,24 +415,19 @@ onMounted(() => {
   registerServiceWorker();
   
   // Add event listeners
-  window.addEventListener('scroll', handleScroll);
   window.addEventListener('online', handleOnline);
   window.addEventListener('offline', handleOffline);
   window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   
-  // Close menus when clicking outside
+  // Close menu when clicking outside
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.slide-menu') && !e.target.closest('.menu-btn')) {
       showMenu.value = false;
-    }
-    if (!e.target.closest('.fab-container')) {
-      fabMenuOpen.value = false;
     }
   });
 });
 
 onUnmounted(() => {
-  window.removeEventListener('scroll', handleScroll);
   window.removeEventListener('online', handleOnline);
   window.removeEventListener('offline', handleOffline);
   window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -491,7 +442,7 @@ onUnmounted(() => {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Header Styles */
+/* Header Styles - Optimized */
 .app-header {
   position: sticky;
   top: 0;
@@ -500,9 +451,6 @@ onUnmounted(() => {
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(148, 163, 184, 0.1);
   transition: all 0.3s ease;
-}
-
-.app-header.compact {
   padding: 0.5rem 0;
 }
 
@@ -510,7 +458,7 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem;
+  padding: 0.5rem 1rem;
   max-width: 100%;
   margin: 0 auto;
 }
@@ -518,17 +466,22 @@ onUnmounted(() => {
 .brand-section {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .menu-btn {
   background: rgba(59, 130, 246, 0.2);
   border: 1px solid rgba(59, 130, 246, 0.3);
   color: #60a5fa;
-  padding: 0.5rem;
-  border-radius: 8px;
+  padding: 0.375rem;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.3s ease;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .menu-btn:hover,
@@ -538,18 +491,18 @@ onUnmounted(() => {
 }
 
 .menu-icon {
-  font-size: 1.2rem;
+  font-size: 1rem;
 }
 
 .brand-info h1 {
-  font-size: 1.2rem;
+  font-size: 1rem;
   font-weight: 700;
   margin: 0;
   color: #f8fafc;
 }
 
 .brand-info p {
-  font-size: 0.75rem;
+  font-size: 0.625rem;
   margin: 0;
   color: #94a3b8;
 }
@@ -557,23 +510,25 @@ onUnmounted(() => {
 .status-section {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.5rem;
 }
 
 .status-indicators {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.25rem;
 }
 
 .status-badge {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 12px;
-  font-size: 0.75rem;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 0.625rem;
   font-weight: 600;
+  padding: 0;
 }
 
 .status-badge.installed {
@@ -599,19 +554,29 @@ onUnmounted(() => {
 
 .online-indicator,
 .offline-indicator {
-  font-size: 0.875rem;
+  font-size: 0.75rem;
 }
 
 .install-btn {
   background: linear-gradient(135deg, #3b82f6, #2563eb);
   border: none;
   color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 0.875rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 16px;
+  font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+}
+
+.install-btn.compact {
+  padding: 0.375rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .install-btn:hover {
@@ -622,11 +587,22 @@ onUnmounted(() => {
 .installed-badge {
   background: rgba(16, 185, 129, 0.2);
   color: #10b981;
-  padding: 0.25rem 0.75rem;
+  padding: 0.25rem 0.5rem;
   border-radius: 12px;
-  font-size: 0.75rem;
+  font-size: 0.625rem;
   font-weight: 600;
   border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.installed-badge.compact {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
 }
 
 /* Slide Menu */
@@ -733,10 +709,10 @@ onUnmounted(() => {
   margin: 0.25rem 0;
 }
 
-/* Main Content */
+/* Main Content - Optimized */
 .app-main {
-  min-height: calc(100vh - 80px);
-  padding: 1rem;
+  min-height: calc(100vh - 60px);
+  padding: 0;
   transition: margin-left 0.3s ease;
 }
 
@@ -744,161 +720,93 @@ onUnmounted(() => {
   margin-left: 300px;
 }
 
-.section-header {
+/* Integrated Header */
+.integrated-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
-  padding: 1rem;
-  background: rgba(30, 41, 59, 0.5);
-  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  background: rgba(30, 41, 59, 0.8);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
   backdrop-filter: blur(10px);
 }
 
-.section-header h2 {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 600;
+.header-left {
+  flex: 1;
 }
 
-.close-section-btn {
-  background: none;
-  border: none;
-  color: #94a3b8;
-  font-size: 1.5rem;
+.section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0;
+  color: #f8fafc;
+}
+
+.header-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.control-select {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  color: #f8fafc;
+  padding: 0.375rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  min-width: 100px;
+}
+
+.timing-btn-compact,
+.action-btn-compact {
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #60a5fa;
+  padding: 0.375rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
   cursor: pointer;
-  padding: 0.25rem;
+  transition: all 0.3s ease;
   width: 32px;
   height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
-  transition: all 0.3s ease;
 }
 
-.close-section-btn:hover {
-  background: rgba(148, 163, 184, 0.1);
-  color: #f8fafc;
-}
-
-.view-controls {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.stage-selector,
-.day-selector {
-  background: rgba(30, 41, 59, 0.8);
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  color: #f8fafc;
-  padding: 0.5rem;
-  border-radius: 8px;
-  font-size: 0.875rem;
-}
-
-.timing-btn {
+.timing-btn-compact {
   background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-color: rgba(139, 92, 246, 0.3);
   color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.2);
 }
 
-.timing-btn:hover {
+.timing-btn-compact:hover {
   background: linear-gradient(135deg, #7c3aed, #6d28d9);
-  border-color: #8b5cf6;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
 }
 
-/* Floating Action Button */
-.fab-container {
-  position: fixed;
-  bottom: 2rem;
-  right: 2rem;
-  z-index: 90;
-}
-
-.fab-main {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-  border: none;
-  color: white;
-  font-size: 1.5rem;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.fab-main:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
-}
-
-.fab-main.active {
-  transform: rotate(45deg);
-}
-
-.fab-menu {
-  position: absolute;
-  bottom: 70px;
-  right: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  opacity: 0;
-  pointer-events: none;
-  transition: all 0.3s ease;
-}
-
-.fab-menu.active {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.fab-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  background: rgba(30, 41, 59, 0.95);
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  border-radius: 24px;
-  color: #f8fafc;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  white-space: nowrap;
-}
-
-.fab-item:hover {
-  background: rgba(59, 130, 246, 0.2);
+.action-btn-compact:hover {
+  background: rgba(59, 130, 246, 0.3);
   border-color: #60a5fa;
-  transform: translateX(-4px);
+  transform: translateY(-1px);
 }
 
-.fab-item-icon {
-  font-size: 1rem;
+/* Full Screen Timing Section */
+.timing-section-full {
+  height: calc(100vh - 60px);
+  overflow: hidden;
 }
 
-.fab-item-label {
-  font-weight: 500;
+/* Schedule Content */
+.schedule-content {
+  height: calc(100vh - 120px);
+  overflow: auto;
+  padding: 1rem;
 }
 
-/* Offline Indicator */
+/* Offline Indicator - Optimized */
 .offline-indicator-bar {
   position: fixed;
   bottom: 0;
@@ -1028,54 +936,56 @@ onUnmounted(() => {
   color: #f8fafc;
 }
 
-/* Mobile Responsiveness */
+/* Mobile Responsiveness - Optimized */
 @media (max-width: 768px) {
   .header-content {
-    padding: 0.75rem;
+    padding: 0.5rem;
   }
   
   .brand-info h1 {
-    font-size: 1rem;
+    font-size: 0.875rem;
   }
   
   .brand-info p {
-    font-size: 0.625rem;
+    font-size: 0.5rem;
   }
   
-  .view-controls {
-    flex-direction: column;
+  .status-section {
     gap: 0.25rem;
   }
   
-  .stage-selector,
-  .day-selector {
+  .integrated-header {
+    padding: 0.5rem;
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: stretch;
+  }
+  
+  .header-controls {
+    justify-content: center;
+    gap: 0.375rem;
+  }
+  
+  .control-select {
+    font-size: 0.625rem;
+    padding: 0.25rem 0.375rem;
+    min-width: 80px;
+  }
+  
+  .timing-btn-compact,
+  .action-btn-compact {
+    width: 28px;
+    height: 28px;
     font-size: 0.75rem;
-    padding: 0.375rem;
   }
   
-  .fab-container {
-    bottom: 1rem;
-    right: 1rem;
+  .schedule-content {
+    height: calc(100vh - 140px);
+    padding: 0.5rem;
   }
   
-  .fab-main {
-    width: 48px;
-    height: 48px;
-    font-size: 1.25rem;
-  }
-  
-  .fab-menu {
-    bottom: 60px;
-  }
-  
-  .fab-item {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.75rem;
-  }
-  
-  .toast {
-    min-width: 250px;
-    max-width: calc(100vw - 2rem);
+  .timing-section-full {
+    height: calc(100vh - 50px);
   }
   
   .app-main.with-menu {
@@ -1086,17 +996,35 @@ onUnmounted(() => {
     width: 100%;
     left: -100%;
   }
+  
+  .offline-indicator-bar {
+    padding: 0.5rem;
+  }
+  
+  .offline-text,
+  .retry-btn {
+    font-size: 0.75rem;
+  }
 }
 
 @media (max-width: 480px) {
-  .section-header {
-    flex-direction: column;
-    gap: 1rem;
-    align-items: stretch;
+  .header-controls {
+    flex-wrap: wrap;
+    gap: 0.25rem;
   }
   
-  .view-controls {
-    justify-content: center;
+  .control-select {
+    min-width: 70px;
+    font-size: 0.5rem;
+  }
+  
+  .section-title {
+    font-size: 1rem;
+  }
+  
+  .schedule-content {
+    height: calc(100vh - 160px);
+    padding: 0.375rem;
   }
 }
 </style>
