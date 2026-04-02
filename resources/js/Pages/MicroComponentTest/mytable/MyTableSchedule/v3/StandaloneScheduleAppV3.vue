@@ -577,21 +577,24 @@ onUnmounted(() => {
 }
 
 .status-badge.installed {
-  background: rgba(16, 185, 129, 0.2);
-  color: #10b981;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
   border: 1px solid rgba(16, 185, 129, 0.3);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
 }
 
 .status-badge.checking {
-  background: rgba(251, 191, 36, 0.2);
-  color: #f59e0b;
-  border: 1px solid rgba(251, 191, 36, 0.3);
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
 }
 
 .status-badge.failed {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
   border: 1px solid rgba(239, 68, 68, 0.3);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
 }
 
 .online-indicator,
@@ -796,20 +799,23 @@ onUnmounted(() => {
 }
 
 .timing-btn {
-  background: rgba(251, 191, 36, 0.2);
-  border: 1px solid rgba(251, 191, 36, 0.3);
-  color: #f59e0b;
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  color: white;
   padding: 0.5rem 1rem;
   border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.2);
 }
 
 .timing-btn:hover {
-  background: rgba(251, 191, 36, 0.3);
-  border-color: #f59e0b;
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  border-color: #8b5cf6;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
 }
 
 /* Floating Action Button */
@@ -962,23 +968,31 @@ onUnmounted(() => {
 }
 
 .toast.success {
-  border-color: rgba(16, 185, 129, 0.3);
-  color: #10b981;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
 }
 
 .toast.error {
-  border-color: rgba(239, 68, 68, 0.3);
-  color: #ef4444;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
 }
 
 .toast.warning {
-  border-color: rgba(251, 191, 36, 0.3);
-  color: #f59e0b;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
 }
 
 .toast.info {
-  border-color: rgba(59, 130, 246, 0.3);
-  color: #60a5fa;
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  color: white;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
 }
 
 .toast-icon {

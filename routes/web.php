@@ -424,6 +424,11 @@ Route::get('/my-fly-schedule-app-v2-sw.js', function () {
 // Include Schedule App V3 Routes
 include dirname(__DIR__).'/routes/schedule_app_v3.php';
 
+// Schedule App V3 Routes (TEMPORARY - directly in web.php for testing)
+Route::get('/my-fly-schedule-app/v3', function () {
+    return Inertia::render('MicroComponentTest/mytable/MyTableSchedule/v3/StandaloneScheduleAppV3');
+})->withoutMiddleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->name('schedule.app.v3');
+
 // Schedule App V3 Routes (MOVED to separate file: routes/schedule_app_v3.php)
 // Main App: /my-fly-schedule-app/v3
 // Manifest: /my-fly-schedule-app/v3/manifest.webmanifest  

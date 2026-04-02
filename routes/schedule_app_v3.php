@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\HandleInertiaRequests;
+use Inertia\Inertia;
 
 /*
 |--------------------------------------------------------------------------
