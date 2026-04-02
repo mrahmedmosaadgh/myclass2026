@@ -1,18 +1,27 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue';
 import { useDrawingStore, DRAWING_TOOLS, DEFAULT_DRAWING_PALETTE } from '../../stores/drawingStore';
-import { useDrawingHistory } from '../../composables/drawing/useDrawingHistory';
+// TEMPORARILY DISABLED: Drawing history causing page load issues
+// import { useDrawingHistory } from '../../composables/drawing/useDrawingHistory';
 import ToolButton from './ToolButton.vue';
 
 const drawingStore = useDrawingStore();
-const { undo, redo, canUndo, canRedo, clear } = useDrawingHistory();
+// TEMPORARILY DISABLED: Drawing history
+// const { undo, redo, canUndo, canRedo, clear } = useDrawingHistory();
+
+// Temporary stub functions for undo/redo
+const undo = () => console.log('Undo temporarily disabled');
+const redo = () => console.log('Redo temporarily disabled');
+const canUndo = computed(() => false);
+const canRedo = computed(() => false);
+const clear = () => console.log('Clear temporarily disabled');
 
 onMounted(() => {
   const timestamp = new Date().toISOString();
   console.log(`[${timestamp}] DrawingToolbar component mounted`);
   console.log(`[${timestamp}] DrawingToolbar - isToolbarOpen:`, drawingStore.isToolbarOpen);
   console.log(`[${timestamp}] DrawingToolbar - activeTool:`, drawingStore.activeTool);
-  console.log(`[${timestamp}] Build version: 2026-04-01-21-22-fixed`);
+  console.log(`[${timestamp}] Build version: 2026-04-01-21-39-fixed`);
 });
 
 const palette = computed(() => drawingStore.customPalette?.length ? drawingStore.customPalette : DEFAULT_DRAWING_PALETTE);
@@ -285,16 +294,16 @@ const groupedTools = computed(() => ([
 
 .tools .tool-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
 }
 
 .tool-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 12px;
-  border-radius: 12px;
+  padding: 10px 6px;
+  border-radius: 10px;
   border: 2px solid rgba(148, 163, 184, 0.3);
   background: rgba(255, 255, 255, 0.95);
   color: #475569;
@@ -302,6 +311,7 @@ const groupedTools = computed(() => ([
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+  min-height: 45px;
 }
 
 .tool-button::before {
@@ -316,8 +326,8 @@ const groupedTools = computed(() => ([
 .tool-button:hover:not(.active) {
   border-color: #6366f1;
   color: #4f46e5;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(99, 102, 241, 0.15);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 12px rgba(99, 102, 241, 0.15);
 }
 
 .tool-button:hover::before {
@@ -328,14 +338,16 @@ const groupedTools = computed(() => ([
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
   color: white;
   border-color: transparent;
-  box-shadow: 0 12px 24px rgba(99, 102, 241, 0.4);
-  transform: scale(1.05);
+  box-shadow: 0 8px 16px rgba(99, 102, 241, 0.4);
+  transform: scale(1.02);
 }
 
 .tool-button svg {
   position: relative;
   z-index: 1;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+  width: 18px;
+  height: 18px;
 }
 
 .section-label {

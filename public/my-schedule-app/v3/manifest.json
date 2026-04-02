@@ -1,0 +1,67 @@
+{
+  "name": "My Schedule App V3",
+  "short_name": "Schedule V3",
+  "description": "Advanced schedule app with timing settings, offline capabilities, and PWA installation.",
+  "id": "/my-fly-schedule-app/v3",
+  "start_url": "/my-fly-schedule-app/v3",
+  "scope": "/my-fly-schedule-app/v3",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#1e293b",
+  "orientation": "portrait-primary",
+  "categories": ["productivity", "education", "utilities"],
+  "lang": "en",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/my-fly-schedule-app/v3/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Open Schedule V3",
+      "short_name": "Schedule V3",
+      "description": "View your advanced schedule with timing settings",
+      "url": "/my-fly-schedule-app/v3",
+      "icons": [
+        {
+          "src": "/my-fly-schedule-app/v3/icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "Timing Settings",
+      "short_name": "Settings",
+      "description": "Configure schedule timing settings",
+      "url": "/my-fly-schedule-app/v3#timing",
+      "icons": [
+        {
+          "src": "/my-fly-schedule-app/v3/icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/my-fly-schedule-app/v3/screenshots/main.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Main schedule view"
+    },
+    {
+      "src": "/my-fly-schedule-app/v3/screenshots/mobile.png",
+      "sizes": "375x812",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Mobile schedule view"
+    }
+  ]
+}

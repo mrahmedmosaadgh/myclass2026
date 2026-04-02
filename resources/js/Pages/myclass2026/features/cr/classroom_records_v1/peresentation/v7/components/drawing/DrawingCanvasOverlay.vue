@@ -40,22 +40,38 @@ function refreshCanvas() {
   scheduleDraw();
 }
 
+function handleTouchStart(event) {
+  if (drawingStore.isDrawingMode) {
+    // Prevent default behavior when in drawing mode
+    event.preventDefault();
+    event.stopPropagation();
+  }
+}
+
+function handleTouchMove(event) {
+  if (drawingStore.isDrawingMode) {
+    // Prevent default behavior when in drawing mode
+    event.preventDefault();
+    event.stopPropagation();
+  }
+}
+
+function handleTouchEnd(event) {
+  if (drawingStore.isDrawingMode) {
+    // Prevent default behavior when in drawing mode
+    event.preventDefault();
+    event.stopPropagation();
+  }
+}
+
 defineExpose({ refreshCanvas });
 </script>
 
 <template>
-  <div class="drawing-overlay" :class="overlayClasses" @dblclick.stop.prevent="handleDoubleClick" @click.capture="handleOverlayClick">
+  <div class="drawing-overlay" :class="overlayClasses" @dblclick.stop.prevent="handleDoubleClick" @click.capture="handleOverlayClick"
+       @touchstart.prevent="handleTouchStart" @touchmove.prevent="handleTouchMove" @touchend.prevent="handleTouchEnd">
     <div class="drawing-overlay__grid" v-if="drawingStore.showGrid"></div>
     <canvas ref="canvasRef" class="drawing-overlay__canvas" :style="{ pointerEvents: drawingStore.isDrawingMode ? 'auto' : 'none' }"></canvas>
-
-    <div v-if="!drawingStore.isDrawingMode" class="drawing-overlay__hint">
-      <div class="hint-card">
-        <p><strong>Drawing mode off.</strong> Open the annotation toolbar or double-click to start sketching.</p>
-        <button class="hint-button" @click.stop="drawingStore.toggleDrawingMode(true); drawingStore.toggleToolbar(true)">
-          Enter Drawing Mode
-        </button>
-      </div>
-    </div>
 
     <div v-if="laserPosition" class="laser-pointer" :style="laserStyle"></div>
   </div>
@@ -69,10 +85,12 @@ defineExpose({ refreshCanvas });
   pointer-events: none;
   user-select: none;
   overflow: hidden;
+  touch-action: none; /* Prevent touch actions like pan and zoom */
 }
 
 .drawing-overlay.is-active {
   pointer-events: auto;
+  touch-action: none; /* Ensure touch actions are blocked when drawing */
 }
 
 .drawing-overlay__canvas {
@@ -80,6 +98,7 @@ defineExpose({ refreshCanvas });
   height: 100%;
   display: block;
   cursor: crosshair;
+  touch-action: none; /* Prevent touch scrolling/panning on canvas */
 }
 
 .drawing-overlay__grid {
@@ -90,44 +109,6 @@ defineExpose({ refreshCanvas });
   background-size: 20px 20px;
   pointer-events: none;
   z-index: 1;
-}
-
-.drawing-overlay__hint {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
-  pointer-events: none;
-}
-
-.hint-card {
-  pointer-events: auto;
-  background: rgba(255, 255, 255, 0.94);
-  border-radius: 14px;
-  padding: 18px 22px;
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.15);
-  text-align: center;
-  max-width: 360px;
-}
-
-.hint-button {
-  margin-top: 10px;
-  background: #4f46e5;
-  color: white;
-  border: none;
-  border-radius: 10px;
-  padding: 8px 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.hint-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 20px rgba(79, 70, 229, 0.35);
 }
 
 .laser-pointer {

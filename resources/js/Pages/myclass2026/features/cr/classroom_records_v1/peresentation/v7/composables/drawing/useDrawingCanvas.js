@@ -4,12 +4,13 @@ import { usePresentationStore } from '../../stores/presentationStore';
 import { getStroke } from 'perfect-freehand';
 
 const DEFAULT_PERFECT_FREEHAND_OPTIONS = {
-  thinning: 0.6,
-  smoothing: 0.6,
-  streamline: 0.4,
+  thinning: 0.3, // Reduced from 0.6 for more consistent width
+  smoothing: 0.5, // Reduced from 0.6 for more responsive drawing
+  streamline: 0.3, // Reduced from 0.4 for better fast drawing
   easing: (t) => t,
   simulatePressure: true,
-  last: true
+  last: true,
+  size: 4 // Base size multiplier
 };
 
 function hexToRgba(hex, opacity = 1) {
@@ -140,8 +141,9 @@ function drawStroke(ctx, drawing) {
   const size = drawing.size || drawing.style?.size || 4;
   const options = {
     ...DEFAULT_PERFECT_FREEHAND_OPTIONS,
-    size,
-    thinning: drawing.tool === 'highlighter' ? 0.9 : DEFAULT_PERFECT_FREEHAND_OPTIONS.thinning
+    size: size, // Use the captured size directly
+    thinning: drawing.tool === 'highlighter' ? 0.7 : 0.3, // Less thinning for consistent width
+    smoothing: drawing.tool === 'highlighter' ? 0.6 : 0.5
   };
   const outlinePoints = getStroke(points, options);
   const color = hexToRgba(drawing.color || drawing.style?.color || '#0f172a', (drawing.opacity || 100) / 100);
@@ -171,16 +173,6 @@ function drawText(ctx, drawing) {
   ctx.restore();
 }
 
-function getEventPoint(evt, canvas) {
-  const rect = canvas.getBoundingClientRect();
-  const scaleX = canvas.width / rect.width;
-  const scaleY = canvas.height / rect.height;
-  return {
-    x: (evt.clientX - rect.left) * scaleX,
-    y: (evt.clientY - rect.top) * scaleY
-  };
-}
-
 function distanceBetween(a, b) {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
@@ -203,6 +195,19 @@ export function useDrawingCanvas(options = {}) {
   const animationFrame = ref(null);
   const laserPosition = ref(null);
 
+  function getEventPoint(evt, canvas) {
+    const rect = canvas.getBoundingClientRect();
+    const cssWidth = canvas.clientWidth || 1;
+    const cssHeight = canvas.clientHeight || 1;
+    const scaleX = cssWidth / (rect.width || 1);
+    const scaleY = cssHeight / (rect.height || 1);
+
+    return {
+      x: (evt.clientX - rect.left) * scaleX,
+      y: (evt.clientY - rect.top) * scaleY
+    };
+  }
+
   const currentBuffer = computed(() => {
     const slideId = drawingStore.currentSlideId;
     return slideId ? drawingStore.slideBuffers[slideId] : null;
@@ -223,9 +228,13 @@ export function useDrawingCanvas(options = {}) {
     const parent = canvas.parentElement;
     if (!parent) return;
     const ratio = window.devicePixelRatio || 1;
-    canvas.width = parent.clientWidth * ratio;
-    canvas.height = parent.clientHeight * ratio;
-    ctx.scale(ratio, ratio);
+    const cssWidth = parent.clientWidth;
+    const cssHeight = parent.clientHeight;
+
+    canvas.width = Math.round(cssWidth * ratio);
+    canvas.height = Math.round(cssHeight * ratio);
+
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
     drawAll();
   }
 
@@ -241,7 +250,9 @@ export function useDrawingCanvas(options = {}) {
     const ctx = contextRef.value;
     const canvas = canvasRef.value;
     if (!ctx || !canvas) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const clearWidth = canvas.clientWidth || canvas.width;
+    const clearHeight = canvas.clientHeight || canvas.height;
+    ctx.clearRect(0, 0, clearWidth, clearHeight);
     const drawings = drawingStore.slideBuffers[drawingStore.currentSlideId]?.drawings || [];
     drawings.forEach((drawing) => {
       if (drawing.type === 'shape') {
@@ -303,7 +314,7 @@ export function useDrawingCanvas(options = {}) {
       type: 'stroke',
       tool,
       points: [point],
-      size: drawingStore.brushSize,
+      size: drawingStore.brushSize, // Capture size at stroke start
       color: drawingStore.strokeColor,
       opacity: tool === 'highlighter' ? drawingStore.highlighterOpacity : drawingStore.strokeOpacity,
       timestamp: new Date().toISOString()
