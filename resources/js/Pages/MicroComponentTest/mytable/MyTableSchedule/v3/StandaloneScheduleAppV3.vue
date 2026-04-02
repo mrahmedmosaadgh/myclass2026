@@ -26,12 +26,21 @@
           </button>
           
           <div class="brand-info">
-            <h1 class="app-title">⚙️ SCHEDULE V3</h1>
+            <h5 class="app-title">⚙️ SCHEDULE V3</h5>
             <p class="app-subtitle">ADVANCED • OFFLINE • TIMING</p>
           </div>
         </div>
         
         <div class="status-section">
+
+          <a href="#" @click.prevent="openAppSettings" class="menu-item">
+            <span class="menu-item-icon">⚙️</span>
+            <span class="menu-item-text">App Settings</span>
+          </a>
+
+
+
+
           <div class="status-indicators">
             <span class="status-badge" :class="serviceWorkerStatus">
               <span class="status-icon">{{ getStatusIcon() }}</span>
@@ -66,10 +75,7 @@
             <span class="menu-item-text">Home</span>
           </a>
           
-          <a href="#" @click.prevent="openAppSettings" class="menu-item">
-            <span class="menu-item-icon">⚙️</span>
-            <span class="menu-item-text">App Settings</span>
-          </a>
+
           
           <a href="#" @click.prevent="openDataManager" class="menu-item">
             <span class="menu-item-icon">📁</span>
