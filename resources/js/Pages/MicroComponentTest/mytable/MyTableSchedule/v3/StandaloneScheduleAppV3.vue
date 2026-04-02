@@ -12,7 +12,7 @@
   </Head>
 
   <div class="standalone-schedule-app-v3">
-    <!-- Compact Header -->
+    <!-- Fixed Header with Menu -->
     <header class="app-header compact">
       <div class="header-content">
         <div class="brand-section">
@@ -66,9 +66,9 @@
             <span class="menu-item-text">Home</span>
           </a>
           
-          <a href="#" @click.prevent="openTimingSettings" class="menu-item">
-            <span class="menu-item-icon">⏰</span>
-            <span class="menu-item-text">Timing Settings</span>
+          <a href="#" @click.prevent="openAppSettings" class="menu-item">
+            <span class="menu-item-icon">⚙️</span>
+            <span class="menu-item-text">App Settings</span>
           </a>
           
           <a href="#" @click.prevent="openDataManager" class="menu-item">
@@ -76,9 +76,9 @@
             <span class="menu-item-text">Data Manager</span>
           </a>
           
-          <a href="#" @click.prevent="openSettings" class="menu-item">
-            <span class="menu-item-icon">⚙️</span>
-            <span class="menu-item-text">Settings</span>
+          <a href="#" @click.prevent="openGeneralSettings" class="menu-item">
+            <span class="menu-item-icon">🔧</span>
+            <span class="menu-item-text">General Settings</span>
           </a>
           
           <a href="#" @click.prevent="exportData" class="menu-item">
@@ -124,8 +124,8 @@
             <option value="d6">Day 6</option>
           </select>
           
-          <button @click="openTimingSettings" class="timing-btn-compact">
-            ⏰
+          <button @click="openAppSettings" class="timing-btn-compact">
+            ⚙️
           </button>
           
           <button @click="exportData" class="action-btn-compact">
@@ -138,11 +138,11 @@
         </div>
       </div>
 
-      <!-- Timing Settings Section (Full Screen) -->
-      <section v-if="showTimingSettings" class="timing-section-full">
-        <TimingSettingsHub
+      <!-- App Settings Section (Full Screen) -->
+      <section v-if="showAppSettings" class="app-settings-full">
+        <AppSettingsHub
           v-model="timingData"
-          @close="showTimingSettings = false"
+          @close="showAppSettings = false"
         />
       </section>
 
@@ -182,11 +182,11 @@
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import MyTableScheduleV2 from './MyTableScheduleV2.vue';
-import TimingSettingsHub from './components/TimingSettingsHub.vue';
+import AppSettingsHub from './components/AppSettingsHub.vue';
 
 // Component state
 const showMenu = ref(false);
-const showTimingSettings = ref(false);
+const showAppSettings = ref(false);
 const isScrolled = ref(false);
 const isOnline = ref(navigator.onLine);
 const canInstall = ref(false);
@@ -222,8 +222,8 @@ const toggleMenu = () => {
   showMenu.value = !showMenu.value;
 };
 
-const openTimingSettings = () => {
-  showTimingSettings.value = true;
+const openAppSettings = () => {
+  showAppSettings.value = true;
   showMenu.value = false;
 };
 
@@ -232,9 +232,9 @@ const openDataManager = () => {
   showToast('Data Manager coming soon!', 'info');
 };
 
-const openSettings = () => {
+const openGeneralSettings = () => {
   showMenu.value = false;
-  showToast('Settings coming soon!', 'info');
+  showToast('General Settings coming soon!', 'info');
 };
 
 const exportData = () => {
@@ -444,14 +444,17 @@ onUnmounted(() => {
 
 /* Header Styles - Optimized */
 .app-header {
-  position: sticky;
+  position: fixed;
   top: 0;
-  z-index: 100;
+  left: 0;
+  right: 0;
+  z-index: 1000;
   background: rgba(15, 23, 42, 0.95);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(148, 163, 184, 0.1);
   transition: all 0.3s ease;
   padding: 0.5rem 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .header-content {
@@ -713,6 +716,7 @@ onUnmounted(() => {
 .app-main {
   min-height: calc(100vh - 60px);
   padding: 0;
+  padding-top: 60px;
   transition: margin-left 0.3s ease;
 }
 
@@ -793,8 +797,8 @@ onUnmounted(() => {
   transform: translateY(-1px);
 }
 
-/* Full Screen Timing Section */
-.timing-section-full {
+/* Full Screen App Settings Section */
+.app-settings-full {
   height: calc(100vh - 60px);
   overflow: hidden;
 }
@@ -979,12 +983,16 @@ onUnmounted(() => {
     font-size: 0.75rem;
   }
   
+  .app-main {
+    padding-top: 50px;
+  }
+  
   .schedule-content {
     height: calc(100vh - 140px);
     padding: 0.5rem;
   }
   
-  .timing-section-full {
+  .app-settings-full {
     height: calc(100vh - 50px);
   }
   
