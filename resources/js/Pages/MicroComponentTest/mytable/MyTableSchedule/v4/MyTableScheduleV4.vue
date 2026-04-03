@@ -727,11 +727,8 @@ onMounted(() => {
     try {
       const parsed = JSON.parse(savedTimings);
       timingsConfig.value = {
-        default: parsed.default || timingsConfig.value.default,
-        overrides: {
-          ...(timingsConfig.value.overrides || {}),
-          ...(parsed.overrides || {})
-        }
+        default: Array.isArray(parsed.default) ? parsed.default : [],
+        overrides: parsed.overrides && typeof parsed.overrides === 'object' ? parsed.overrides : {}
       };
     } catch (e) {
       console.warn('Failed to restore shared timings', e);
@@ -761,12 +758,10 @@ const handleDataRefresh = (event) => {
       try {
         const parsed = JSON.parse(savedTimings);
         timingsConfig.value = {
-          default: parsed.default || timingsConfig.value.default,
-          overrides: {
-            ...(timingsConfig.value.overrides || {}),
-            ...(parsed.overrides || {})
-          }
+          default: Array.isArray(parsed.default) ? parsed.default : [],
+          overrides: parsed.overrides && typeof parsed.overrides === 'object' ? parsed.overrides : {}
         };
+        handleTimingsUpdate(resolvedTimeSlots.value);
         showAutoSaveStatus('saved', 'Timing data refreshed from import');
       } catch (e) {
         console.warn('Failed to refresh timings from import', e);
