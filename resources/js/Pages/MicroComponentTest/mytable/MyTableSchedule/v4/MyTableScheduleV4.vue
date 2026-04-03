@@ -722,7 +722,7 @@ onMounted(() => {
     selectedDay.value = dayIndexToId(new Date().getDay());
   }
 
-  const savedTimings = localStorage.getItem('school-timings-v4') || localStorage.getItem('schedule-v4-stage-timings');
+  const savedTimings = localStorage.getItem('schedule-v4-stage-timings') || localStorage.getItem('school-timings-v4');
   if (savedTimings) {
     try {
       const parsed = JSON.parse(savedTimings);
@@ -756,7 +756,7 @@ const handleDataRefresh = (event) => {
   
   // Reload data from localStorage
   if (target === 'stage_day_timings' || target === 'school_timetable') {
-    const savedTimings = localStorage.getItem('school-timings-v4') || localStorage.getItem('schedule-v4-stage-timings');
+    const savedTimings = localStorage.getItem('schedule-v4-stage-timings') || localStorage.getItem('school-timings-v4');
     if (savedTimings) {
       try {
         const parsed = JSON.parse(savedTimings);

@@ -77,7 +77,12 @@ export function useDataImportExport() {
   };
 
   const getCurrentTimingConfig = () => {
-    return normalizeTimingConfig(loadStoredJSON('school-timings-v2', createBaseTimingConfig()));
+    return normalizeTimingConfig(
+      loadStoredJSON(
+        'schedule-v4-stage-timings',
+        loadStoredJSON('school-timings-v4', loadStoredJSON('school-timings-v2', createBaseTimingConfig()))
+      )
+    );
   };
 
   const getCurrentPersonalData = () => {
@@ -327,27 +332,30 @@ export function useDataImportExport() {
   const applyTimingPayload = (payload) => {
     const current = getCurrentTimingConfig();
 
+    const persistTimingConfig = (value) => {
+      const json = JSON.stringify(value);
+      localStorage.setItem('schedule-v4-stage-timings', json);
+      localStorage.setItem('school-timings-v4', json);
+      return value;
+    };
+
     if (payload.mode === 'same_for_all') {
       current.default = clone(payload.default);
-      localStorage.setItem('schedule-v4-stage-timings', JSON.stringify(current));
-      return current;
+      return persistTimingConfig(current);
     }
 
     if (payload.mode === 'stage_default') {
       current.overrides[payload.stage].default = clone(payload.default);
-      localStorage.setItem('schedule-v4-stage-timings', JSON.stringify(current));
-      return current;
+      return persistTimingConfig(current);
     }
 
     if (payload.mode === 'stage_day') {
       current.overrides[payload.stage].days[payload.day] = clone(payload.slots);
-      localStorage.setItem('schedule-v4-stage-timings', JSON.stringify(current));
-      return current;
+      return persistTimingConfig(current);
     }
 
     const normalized = normalizeTimingConfig(payload);
-    localStorage.setItem('schedule-v4-stage-timings', JSON.stringify(normalized));
-    return normalized;
+    return persistTimingConfig(normalized);
   };
 
   const buildExportPayload = async (target, options = {}) => {
@@ -420,7 +428,7 @@ export function useDataImportExport() {
           data: {
             viewMode: localStorage.getItem('schedule-app-view-mode'),
             notifications: Notification.permission,
-            customTimings: localStorage.getItem('school-timings-v2'),
+            customTimings: localStorage.getItem('schedule-v4-stage-timings') || localStorage.getItem('school-timings-v4') || localStorage.getItem('school-timings-v2'),
             userPreferences: {
               theme: localStorage.getItem('app-theme'),
               language: localStorage.getItem('app-language'),
