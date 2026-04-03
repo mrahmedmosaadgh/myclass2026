@@ -21,6 +21,23 @@
       </div>
     </div>
 
+    <!-- Color Scheme -->
+    <div class="setting-group">
+      <h4 class="group-title">Table View Colors</h4>
+      <div class="setting-row">
+        <div class="setting-info">
+          <span class="setting-label">Color Scheme</span>
+          <span class="setting-desc">Choose color palette for classrooms</span>
+        </div>
+        <select v-model="colorScheme" @change="updateColorScheme" class="color-select">
+          <option value="default">Default</option>
+          <option value="pastel">Pastel</option>
+          <option value="vibrant">Vibrant</option>
+          <option value="monochrome">Monochrome</option>
+        </select>
+      </div>
+    </div>
+
     <!-- Test Time Override -->
     <div class="setting-group">
       <h4 class="group-title">Test Time Override</h4>
@@ -143,6 +160,7 @@ const statusType = ref('info');
 const storageInfo = ref(null);
 const testDayIndex = ref(0);
 const testTimeValue = ref('09:00');
+const colorScheme = ref('default');
 
 const syncStatusDesc = computed(() => {
   if (!store.isOnline.value) return 'Offline';
@@ -248,6 +266,15 @@ const resetApp = async () => {
   }
 };
 
+const updateColorScheme = async () => {
+  try {
+    await store.db.saveSetting('colorScheme', colorScheme.value);
+    showStatus('Color scheme updated', 'success');
+  } catch (e) {
+    showStatus('Failed to save color scheme', 'error');
+  }
+};
+
 watch(() => store.testTimeEnabled.value, (val) => {
   testDayIndex.value = store.testDayIndex.value;
   testTimeValue.value = store.testTimeValue.value;
@@ -256,6 +283,8 @@ watch(() => store.testTimeEnabled.value, (val) => {
 onMounted(async () => {
   const notifSetting = await store.db.getSetting('notificationsEnabled');
   notificationsEnabled.value = !!notifSetting;
+  const colorSetting = await store.db.getSetting('colorScheme');
+  colorScheme.value = colorSetting || 'default';
   storageInfo.value = await store.db.getStorageInfo();
 });
 </script>
@@ -369,11 +398,32 @@ onMounted(async () => {
 .action-btn.danger {
   border-color: rgba(239, 68, 68, 0.3);
   background: rgba(239, 68, 68, 0.1);
-  color: #f87171;
 }
 
 .action-btn.danger:hover {
   background: rgba(239, 68, 68, 0.2);
+}
+
+.color-select {
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #e2e8f0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 32px;
+  min-width: 120px;
+}
+
+.color-select:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.color-select option {
+  background: #1e293b;
+  color: #e2e8f0;
 }
 
 .sync-badge {

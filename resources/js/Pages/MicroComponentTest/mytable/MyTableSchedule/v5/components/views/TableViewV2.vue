@@ -36,6 +36,7 @@
               :key="`${day.dayIndex}-${slot.id}`"
               class="subject-cell"
               :class="getSubjectCellClass(slot.id, day)"
+              :style="getSubjectStyle(slot.id, day)"
             >
               <div v-if="getSubject(slot.id, day)" class="subject-content">
                 <span class="subject-name">{{ getSubject(slot.id, day) }}</span>
@@ -57,14 +58,21 @@ import { useAppStore } from '../../composables/useAppStore';
 const store = useAppStore();
 const resolvedTimeSlots = inject('resolvedTimeSlots');
 
-// Color palette for classrooms
-const classroomColors = [
-  '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6',
-  '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16',
-  '#06b6d4', '#a855f7', '#f43f5e', '#22c55e', '#eab308'
-];
+// Color schemes
+const colorSchemes = {
+  default: ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16', '#06b6d4', '#a855f7', '#f43f5e', '#22c55e', '#eab308'],
+  pastel: ['#93c5fd', '#fca5a5', '#86efac', '#fcd34d', '#c4b5fd', '#f9a8d4', '#5eead4', '#fdba74', '#a5b4fc', '#bef264', '#67e8f9', '#d8b4fe', '#fda4af', '#86efac', '#fde047'],
+  vibrant: ['#2563eb', '#dc2626', '#059669', '#d97706', '#7c3aed', '#db2777', '#0d9488', '#ea580c', '#4f46e5', '#65a30d', '#0891b2', '#9333ea', '#e11d48', '#16a34a', '#ca8a04'],
+  monochrome: ['#1e293b', '#334155', '#475569', '#64748b', '#94a3b8', '#cbd5e1', '#e2e8f0', '#f1f5f9', '#f8fafc', '#0f172a', '#475569', '#64748b', '#94a3b8', '#cbd5e1', '#e2e8f0']
+};
 
-// Assign consistent colors to classrooms
+// Get current color scheme
+const currentColorScheme = computed(() => {
+  // Default to 'default' scheme if not set
+  return colorSchemes.default;
+});
+
+// Color palette for classrooms
 const getClassroomColor = (subject) => {
   if (!subject) return 'transparent';
   // Use a simple hash to assign consistent colors
@@ -72,7 +80,14 @@ const getClassroomColor = (subject) => {
   for (let i = 0; i < subject.length; i++) {
     hash = subject.charCodeAt(i) + ((hash << 5) - hash);
   }
-  return classroomColors[Math.abs(hash) % classroomColors.length];
+  const colors = currentColorScheme.value;
+  return colors[Math.abs(hash) % colors.length];
+};
+
+// Get color for a specific subject cell
+const getSubjectColor = (subject) => {
+  if (!subject) return 'transparent';
+  return getClassroomColor(subject);
 };
 
 const scheduleDays = computed(() => {
@@ -121,8 +136,6 @@ const getSubjectCellClass = (periodNum, day) => {
   
   if (subject) {
     classes.push('has-subject');
-    const color = getClassroomColor(subject);
-    classes.push('subject-colored');
   } else {
     classes.push('empty');
   }
@@ -143,6 +156,17 @@ const getSubjectCellClass = (periodNum, day) => {
   }
   
   return classes;
+};
+
+const getSubjectStyle = (periodNum, day) => {
+  const subject = getSubject(periodNum, day);
+  if (!subject) return {};
+  
+  const color = getSubjectColor(subject);
+  return {
+    backgroundColor: color,
+    color: 'white'
+  };
 };
 </script>
 
@@ -267,10 +291,6 @@ const getSubjectCellClass = (periodNum, day) => {
   font-weight: 600;
 }
 
-.subject-cell.subject-colored {
-  color: white;
-}
-
 .subject-cell.current {
   box-shadow: inset 0 0 0 2px #3b82f6;
   transform: scale(1.05);
@@ -306,16 +326,6 @@ const getSubjectCellClass = (periodNum, day) => {
   color: #cbd5e1;
   font-size: 0.9rem;
 }
-
-/* Dynamic coloring based on subject */
-.subject-cell.has-subject:nth-child(2) { background: #3b82f6; }
-.subject-cell.has-subject:nth-child(3) { background: #ef4444; }
-.subject-cell.has-subject:nth-child(4) { background: #10b981; }
-.subject-cell.has-subject:nth-child(5) { background: #f59e0b; }
-.subject-cell.has-subject:nth-child(6) { background: #8b5cf6; }
-.subject-cell.has-subject:nth-child(7) { background: #ec4899; }
-.subject-cell.has-subject:nth-child(8) { background: #14b8a6; }
-.subject-cell.has-subject:nth-child(9) { background: #f97316; }
 
 @media (max-width: 640px) {
   .table-view-v2 {
