@@ -38,6 +38,29 @@
       </div>
     </div>
 
+    <!-- Cloud Sync Options -->
+    <div class="setting-group">
+      <h4 class="group-title">Cloud Sync</h4>
+      <div class="setting-row">
+        <div class="setting-info">
+          <span class="setting-label">Sync from Cloud First</span>
+          <span class="setting-desc">Load cloud data on app start (cloud-wins)</span>
+        </div>
+        <button
+          class="toggle-btn"
+          :class="{ active: syncFromCloudFirst }"
+          @click="toggleSyncFromCloudFirst"
+        >
+          <span class="toggle-dot"></span>
+        </button>
+      </div>
+      <div v-if="syncFromCloudFirst" class="setting-row">
+        <button class="action-btn" @click="performSyncFromCloud">
+          Sync from Cloud Now
+        </button>
+      </div>
+    </div>
+
     <!-- Test Time Override -->
     <div class="setting-group">
       <h4 class="group-title">Test Time Override</h4>
@@ -151,8 +174,10 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import { useAppStore } from '../../composables/useAppStore';
+import { useCloudSync } from '../../composables/useCloudSync';
 
 const store = useAppStore();
+const { syncFromCloudFirstEnabled, syncFromCloud } = useCloudSync();
 
 const notificationsEnabled = ref(false);
 const statusMessage = ref('');
@@ -161,6 +186,7 @@ const storageInfo = ref(null);
 const testDayIndex = ref(0);
 const testTimeValue = ref('09:00');
 const colorScheme = ref('default');
+const syncFromCloudFirst = ref(false);
 
 const syncStatusDesc = computed(() => {
   if (!store.isOnline.value) return 'Offline';
@@ -275,6 +301,45 @@ const updateColorScheme = async () => {
   }
 };
 
+const toggleSyncFromCloudFirst = async () => {
+  syncFromCloudFirst.value = !syncFromCloudFirst.value;
+  try {
+    await store.db.saveSetting('syncFromCloudFirst', syncFromCloudFirst.value);
+    showStatus(syncFromCloudFirst.value ? 'Sync from cloud enabled' : 'Sync from cloud disabled', 'success');
+  } catch (e) {
+    showStatus('Failed to save sync setting', 'error');
+  }
+};
+
+const performSyncFromCloud = async () => {
+  try {
+    const result = await syncFromCloud(async (data) => {
+      // Save cloud data to all relevant stores
+      if (data.personalSchedule) {
+        await store.db.setPersonalSchedule(data.personalSchedule);
+      }
+      if (data.timingsConfig) {
+        await store.db.setTimingConfig(data.timingsConfig);
+      }
+      if (data.appSettings) {
+        for (const [key, value] of Object.entries(data.appSettings)) {
+          await store.db.saveSetting(key, value);
+        }
+      }
+      // Reload the page to apply changes
+      setTimeout(() => window.location.reload(), 1000);
+    });
+    
+    if (result.success) {
+      showStatus('Data loaded from cloud successfully', 'success');
+    } else {
+      showStatus('Failed to load from cloud: ' + result.error, 'error');
+    }
+  } catch (e) {
+    showStatus('Sync from cloud failed: ' + e.message, 'error');
+  }
+};
+
 watch(() => store.testTimeEnabled.value, (val) => {
   testDayIndex.value = store.testDayIndex.value;
   testTimeValue.value = store.testTimeValue.value;
@@ -285,6 +350,8 @@ onMounted(async () => {
   notificationsEnabled.value = !!notifSetting;
   const colorSetting = await store.db.getSetting('colorScheme');
   colorScheme.value = colorSetting || 'default';
+  const syncSetting = await store.db.getSetting('syncFromCloudFirst');
+  syncFromCloudFirst.value = !!syncSetting;
   storageInfo.value = await store.db.getStorageInfo();
 });
 </script>

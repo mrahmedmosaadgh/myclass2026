@@ -4,16 +4,17 @@
       <table class="schedule-table-v2">
         <thead>
           <tr>
-            <th class="header-day">Day</th>
+            <th class="header-day fixed-col">Day</th>
             <th
               v-for="slot in timeSlots"
               :key="slot.id"
               class="header-period"
-              :class="{ 'break-header': slot.type === 'break' }"
+              :class="{ 'break-header': slot.type === 'break', 'current-period': isCurrentPeriod(slot) }"
             >
               <div class="period-header">
                 <span class="period-title">{{ slot.title }}</span>
                 <span class="time-range">{{ slot.start }} - {{ slot.end }}</span>
+                <span v-if="isCurrentPeriod(slot)" class="current-indicator">● NOW</span>
               </div>
             </th>
           </tr>
@@ -25,7 +26,7 @@
             class="day-row"
             :class="{ active: isCurrentDay(day.dayIndex) }"
           >
-            <td class="day-cell">
+            <td class="day-cell fixed-col">
               <div class="day-info">
                 <span class="day-name">{{ day.day }}</span>
                 <span v-if="isCurrentDay(day.dayIndex)" class="current-badge">Today</span>
@@ -52,11 +53,103 @@
 </template>
 
 <script setup>
-import { computed, inject } from 'vue';
+import { computed, inject, onMounted, onUnmounted, ref } from 'vue';
 import { useAppStore } from '../../composables/useAppStore';
 
 const store = useAppStore();
 const resolvedTimeSlots = inject('resolvedTimeSlots');
+
+// Alert system
+const alertInterval = ref(null);
+const lastAlertPeriod = ref(null);
+
+// Check for 5-minute alerts
+const checkForAlerts = () => {
+  if (!store.isOnline.value) return;
+  
+  const current = store.testTimeEnabled.value ? store.testDayIndex.value : store.currentDayIndex.value;
+  const now = store.testTimeEnabled.value ? 
+    (store.testTimeValue.value.split(':').reduce((h, m) => h * 60 + m * 1, 0) * 60) :
+    store.currentTotalSecs.value;
+  
+  timeSlots.value.forEach(slot => {
+    if (slot.type === 'lesson') {
+      const end = slot.endMin * 60;
+      const timeUntilEnd = end - now;
+      
+      // Alert 5 minutes before end
+      if (timeUntilEnd <= 300 && timeUntilEnd > 0 && lastAlertPeriod.value !== slot.id) {
+        lastAlertPeriod.value = slot.id;
+        showNotification(`${slot.title} ends in 5 minutes!`);
+      }
+      
+      // Reset alert after period ends
+      if (timeUntilEnd <= 0 && lastAlertPeriod.value === slot.id) {
+        lastAlertPeriod.value = null;
+      }
+    }
+  });
+};
+
+const showNotification = (message) => {
+  // Browser notification if permitted
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification('Schedule Alert', {
+      body: message,
+      icon: '/my-fly-schedule-app/v5/icon.png'
+    });
+  }
+  
+  // Fallback: alert dialog
+  if (confirm(message + '\n\nClick OK to acknowledge')) {
+    // User acknowledged
+  }
+};
+
+// Start alert checking
+onMounted(() => {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+  
+  // Check every 30 seconds
+  alertInterval.value = setInterval(checkForAlerts, 30000);
+  checkForAlerts(); // Check immediately
+  
+  // Pre-populate color map with all subjects
+  initializeColorMap();
+});
+
+onUnmounted(() => {
+  if (alertInterval.value) {
+    clearInterval(alertInterval.value);
+  }
+});
+
+// Initialize color map with all unique subjects
+const initializeColorMap = () => {
+  const allSubjects = new Set();
+  
+  // Collect all unique subjects from schedule data
+  scheduleDays.value.forEach(day => {
+    day.classes.forEach(period => {
+      if (period.sub && period.sub.trim()) {
+        allSubjects.add(period.sub);
+      }
+    });
+  });
+  
+  // Assign colors to all subjects
+  const colors = currentColorScheme.value;
+  let colorIndex = 0;
+  
+  allSubjects.forEach(subject => {
+    if (!subjectColorMap.value.has(subject)) {
+      subjectColorMap.value.set(subject, colors[colorIndex % colors.length]);
+      colorIndex++;
+    }
+  });
+};
 
 // Color schemes
 const colorSchemes = {
@@ -72,16 +165,32 @@ const currentColorScheme = computed(() => {
   return colorSchemes.default;
 });
 
-// Color palette for classrooms
+// Persistent color mapping for subjects
+const subjectColorMap = ref(new Map());
+
+// Assign consistent colors to classrooms
 const getClassroomColor = (subject) => {
   if (!subject) return 'transparent';
-  // Use a simple hash to assign consistent colors
-  let hash = 0;
-  for (let i = 0; i < subject.length; i++) {
-    hash = subject.charCodeAt(i) + ((hash << 5) - hash);
+  
+  // Check if we already have a color for this subject
+  if (subjectColorMap.value.has(subject)) {
+    return subjectColorMap.value.get(subject);
   }
+  
+  // Assign a new color for this subject
   const colors = currentColorScheme.value;
-  return colors[Math.abs(hash) % colors.length];
+  const existingColors = Array.from(subjectColorMap.value.values());
+  const availableColors = colors.filter(color => !existingColors.includes(color));
+  
+  // If all colors are used, cycle back to the beginning
+  const colorToUse = availableColors.length > 0 ? 
+    availableColors[0] : 
+    colors[subjectColorMap.value.size % colors.length];
+  
+  // Store the color for this subject
+  subjectColorMap.value.set(subject, colorToUse);
+  
+  return colorToUse;
 };
 
 // Get color for a specific subject cell
@@ -118,6 +227,20 @@ const timeSlots = computed(() => {
 const isCurrentDay = (dayIndex) => {
   const current = store.testTimeEnabled.value ? store.testDayIndex.value : store.currentDayIndex.value;
   return current === dayIndex;
+};
+
+const isCurrentPeriod = (slot) => {
+  if (!store.testTimeEnabled.value && !isCurrentDay(store.currentDayIndex.value)) {
+    return false;
+  }
+  
+  const now = store.testTimeEnabled.value ? 
+    (store.testTimeValue.value.split(':').reduce((h, m) => h * 60 + m * 1, 0) * 60) :
+    store.currentTotalSecs.value;
+  const start = slot.startMin * 60;
+  const end = slot.endMin * 60;
+  
+  return now >= start && now < end;
 };
 
 const getSubject = (periodNum, day) => {
@@ -182,12 +305,32 @@ const getSubjectStyle = (periodNum, day) => {
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  position: relative;
 }
 
 .schedule-table-v2 {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.85rem;
+}
+
+/* Fixed column styles */
+.fixed-col {
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  background: #f8fafc;
+  border-right: 2px solid #e2e8f0;
+}
+
+.header-day.fixed-col {
+  background: #f8fafc;
+  border-right: 2px solid #e2e8f0;
+}
+
+.day-cell.fixed-col {
+  background: #f8fafc;
+  border-right: 2px solid #e2e8f0;
 }
 
 .header-day {
@@ -214,6 +357,11 @@ const getSubjectStyle = (periodNum, day) => {
   background: #f1f5f9;
 }
 
+.header-period.current-period {
+  background: #dbeafe;
+  border-bottom: 2px solid #3b82f6;
+}
+
 .period-header {
   display: flex;
   flex-direction: column;
@@ -228,6 +376,18 @@ const getSubjectStyle = (periodNum, day) => {
 .time-range {
   font-size: 0.6rem;
   opacity: 0.7;
+}
+
+.current-indicator {
+  font-size: 0.55rem;
+  color: #3b82f6;
+  font-weight: 700;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 .day-row {

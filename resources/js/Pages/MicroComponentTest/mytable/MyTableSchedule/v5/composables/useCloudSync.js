@@ -11,6 +11,7 @@ export function useCloudSync() {
   const isOnline = ref(navigator.onLine);
   const lastSyncTime = ref(null);
   const isSyncing = ref(false);
+  const syncFromCloudFirstEnabled = ref(false); // New option
 
   // Listen for online/offline
   if (typeof window !== 'undefined') {
@@ -135,15 +136,63 @@ export function useCloudSync() {
     }
   };
 
+  /**
+   * Sync from cloud first (cloud-wins strategy).
+   * @param {Function} saveToIdbFn - Callback to save data to IndexedDB
+   * @returns {Object} { success, error? }
+   */
+  const syncFromCloudFirst = async (saveToIdbFn) => {
+    if (!isOnline.value) {
+      syncStatus.value = 'offline';
+      syncMessage.value = 'Offline — cannot sync from cloud';
+      return { success: false, error: 'offline' };
+    }
+
+    if (isSyncing.value) return { success: false, error: 'already syncing' };
+    isSyncing.value = true;
+    syncStatus.value = 'syncing';
+    syncMessage.value = 'Loading from cloud...';
+
+    try {
+      const response = await axios.get('/schedule-app-v5/load-data', {
+        headers: { 'X-User-ID': getUserId() }
+      });
+
+      const result = response.data;
+
+      if (result.success && result.data) {
+        // Save cloud data to local IndexedDB (cloud-wins)
+        if (saveToIdbFn) {
+          await saveToIdbFn(result.data);
+        }
+        
+        lastSyncTime.value = Date.now();
+        syncStatus.value = 'synced';
+        syncMessage.value = 'Loaded from cloud';
+        return { success: true, data: result.data };
+      }
+
+      throw new Error(result.error || 'No data on cloud');
+    } catch (e) {
+      syncStatus.value = 'error';
+      syncMessage.value = 'Failed to load from cloud';
+      return { success: false, error: e.message };
+    } finally {
+      isSyncing.value = false;
+    }
+  };
+
   return {
     syncStatus,
     syncMessage,
     isOnline,
     lastSyncTime,
     isSyncing,
+    syncFromCloudFirstEnabled,
     getUserId,
     pushToServer,
     pullFromServer,
-    processQueue
+    processQueue,
+    syncFromCloudFirst
   };
 }
