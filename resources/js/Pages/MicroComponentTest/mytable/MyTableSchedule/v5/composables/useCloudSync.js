@@ -55,7 +55,7 @@ export function useCloudSync() {
     syncMessage.value = 'Saving to cloud...';
 
     try {
-      const response = await fetch('/api/v5/save-data', {
+      const response = await fetch('/schedule-app-v5/save-data', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -97,7 +97,7 @@ export function useCloudSync() {
     }
 
     try {
-      const response = await fetch('/api/v5/load-data', {
+      const response = await fetch('/schedule-app-v5/load-data', {
         headers: { 'X-User-ID': getUserId() }
       });
 

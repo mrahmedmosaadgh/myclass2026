@@ -56,10 +56,10 @@ Route::get('/my-fly-schedule-app/v5-sw.js', function () {
 });
 
 // API Routes (Public - No Auth Required)
-Route::prefix('api/v5')->group(function () {
+Route::prefix('schedule-app-v5')->group(function () {
     
     // Health check
-    Route::get('/health', function () {
+    Route::get('health', function () {
         return response()->json([
             'status' => 'ok',
             'version' => '5.0',
@@ -76,7 +76,7 @@ Route::prefix('api/v5')->group(function () {
     });
 
     // Save data to server
-    Route::post('/save-data', function (Request $request) {
+    Route::post('save-data', function (Request $request) {
         $data = $request->all();
         $userId = $request->header('X-User-ID');
         
@@ -127,7 +127,7 @@ Route::prefix('api/v5')->group(function () {
     });
 
     // Load data from server
-    Route::get('/load-data', function (Request $request) {
+    Route::get('load-data', function (Request $request) {
         $userId = $request->header('X-User-ID');
         
         if (!$userId) {
@@ -164,7 +164,7 @@ Route::prefix('api/v5')->group(function () {
     });
 
     // List backups
-    Route::get('/backups', function (Request $request) {
+    Route::get('backups', function (Request $request) {
         $userId = $request->header('X-User-ID');
         
         if (!$userId) {
@@ -210,7 +210,7 @@ Route::prefix('api/v5')->group(function () {
     });
 
     // Download backup
-    Route::get('/download-backup/{filename}', function (Request $request, $filename) {
+    Route::get('download-backup/{filename}', function (Request $request, $filename) {
         $userId = $request->header('X-User-ID');
         
         if (!$userId) {
