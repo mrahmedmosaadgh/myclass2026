@@ -33,8 +33,8 @@ Route::domain('qudratpro.com')->group(function () {
     // Include Remote Control System Routes (inside domain)
     include dirname(__DIR__).'/routes/myclass2026/remote_control.php';
 
-    // Include Schedule App V5 Routes (inside domain)
-    include dirname(__DIR__).'/routes/schedule_app_v5.php';
+    // // Include Schedule App V5 Routes (inside domain)
+    // include dirname(__DIR__).'/routes/schedule_app_v5.php';
 
     // // API Routes - Public without authentication
     // Route::prefix('api/v5')->withoutMiddleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
@@ -1109,3 +1109,8 @@ include dirname(__DIR__).'/routes/fix_laravel_cache.php';
 Route::get('/lesson-template-manager', function () {
      return Inertia::render('LessonTemplateManager/index');
 })->name('lesson-template-manager');
+
+
+
+    // Include Schedule App V5 Routes (inside domain)
+    include dirname(__DIR__).'/routes/schedule_app_v5.php';

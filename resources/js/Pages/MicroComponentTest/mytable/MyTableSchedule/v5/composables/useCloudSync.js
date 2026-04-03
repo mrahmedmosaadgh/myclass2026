@@ -1,4 +1,5 @@
 import { ref } from 'vue';
+import axios from 'axios';
 
 /**
  * Cloud sync composable with local-wins conflict resolution.
@@ -55,19 +56,16 @@ export function useCloudSync() {
     syncMessage.value = 'Saving to cloud...';
 
     try {
-      const response = await fetch('/schedule-app-v5/save-data', {
-        method: 'POST',
+      const response = await axios.post('/schedule-app-v5/save-data', {
+        ...data,
+        timestamp: Date.now()
+      }, {
         headers: {
-          'Content-Type': 'application/json',
           'X-User-ID': getUserId()
-        },
-        body: JSON.stringify({
-          ...data,
-          timestamp: Date.now()
-        })
+        }
       });
 
-      const result = await response.json();
+      const result = response.data;
 
       if (result.success) {
         lastSyncTime.value = Date.now();
@@ -97,11 +95,11 @@ export function useCloudSync() {
     }
 
     try {
-      const response = await fetch('/schedule-app-v5/load-data', {
+      const response = await axios.get('/schedule-app-v5/load-data', {
         headers: { 'X-User-ID': getUserId() }
       });
 
-      const result = await response.json();
+      const result = response.data;
 
       if (!result.success || !result.data) {
         return { success: false, source: 'local', error: 'no server data' };
