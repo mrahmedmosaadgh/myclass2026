@@ -120,20 +120,6 @@
       <MyTableScheduleV4 @data-changed="handleDataChange" />
     </main>
 
-    <!-- Mobile Bottom Navigation -->
-    <nav class="bottom-nav">
-      <button 
-        v-for="navItem in bottomNavItems"
-        :key="navItem.id"
-        @click="handleBottomNavClick(navItem)"
-        :class="['nav-btn', { active: activeBottomNav === navItem.id }]"
-        class="nav-btn"
-      >
-        <span class="nav-icon">{{ navItem.icon }}</span>
-        <span class="nav-label">{{ navItem.label }}</span>
-      </button>
-    </nav>
-
     <!-- Floating Action Button -->
     <button
       v-if="showScrollToTop"
@@ -479,12 +465,12 @@ const isScrolled = ref(false);
 const showScrollToTop = ref(false);
 const isOnline = ref(navigator.onLine);
 const showNotifyBtn = ref(false);
-const activeBottomNav = ref('home');
 const currentView = ref('card');
 const selectedStage = ref('Primary 1');
 const selectedDay = ref('Monday');
 const overrideDate = ref('');
 const overrideTime = ref('');
+
 const currentRealTime = ref(new Date());
 let deferredPrompt = null;
 let scrollTimeout = null;
@@ -605,14 +591,6 @@ const viewOptions = [
   }
 ];
 
-// Bottom navigation items
-const bottomNavItems = [
-  { id: 'home', icon: '🏠', label: 'Home' },
-  { id: 'views', icon: '👁️', label: 'Views' },
-  { id: 'school', icon: '🏫', label: 'School' },
-  { id: 'settings', icon: '⚙️', label: 'Settings' }
-];
-
 // Methods
 const getStatusIcon = () => {
   switch (serviceWorkerStatus.value) {
@@ -638,21 +616,6 @@ const toggleMenu = () => {
   showMenu.value = !showMenu.value;
   
   // Haptic feedback on mobile
-  if (navigator.vibrate) {
-    navigator.vibrate(50);
-  }
-};
-
-const handleBottomNavClick = (navItem) => {
-  activeBottomNav.value = navItem.id;
-  
-  if (navItem.id === 'settings') {
-    openSettings();
-  } else if (navItem.id === 'home') {
-    scrollToTop();
-  }
-  
-  // Haptic feedback
   if (navigator.vibrate) {
     navigator.vibrate(50);
   }
@@ -1466,8 +1429,7 @@ onUnmounted(() => {
 .app-main {
   flex: 1;
   transition: filter 0.3s ease;
-  min-height: calc(100vh - 140px); /* Account for header and bottom nav */
-  padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  min-height: calc(100vh - 80px); /* Account for header only */
 }
 
 .app-main.with-menu {
@@ -1475,54 +1437,10 @@ onUnmounted(() => {
   pointer-events: none;
 }
 
-/* Bottom Navigation */
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: rgba(15, 23, 42, 0.95);
-  border-top: 1px solid rgba(59, 130, 246, 0.3);
-  backdrop-filter: blur(10px);
-  display: flex;
-  justify-content: space-around;
-  padding: 0.5rem 0 calc(0.5rem + env(safe-area-inset-bottom, 0px));
-  z-index: 50;
-}
-
-.nav-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.5rem;
-  background: transparent;
-  border: none;
-  color: #64748b;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  min-width: 60px;
-  font-size: 0.65rem;
-  font-weight: 500;
-}
-
-.nav-btn:hover,
-.nav-btn.active {
-  color: #60a5fa;
-}
-
-.nav-icon {
-  font-size: 1.25rem;
-}
-
-.nav-label {
-  font-weight: 500;
-}
-
 /* Floating Action Button */
 .fab-scroll-top {
   position: fixed;
-  bottom: 80px;
+  bottom: 20px;
   right: 1rem;
   width: 48px;
   height: 48px;
@@ -1761,18 +1679,6 @@ onUnmounted(() => {
     left: -100%;
   }
   
-  .bottom-nav {
-    padding: 0.375rem 0;
-  }
-
-  .app-main {
-    padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
-  }
-
-  .bottom-nav {
-    padding: 0.375rem 0 calc(0.5rem + env(safe-area-inset-bottom, 0px));
-  }
-
   .modal-overlay,
   .modal-overlay.large {
     align-items: flex-end;
@@ -1785,22 +1691,9 @@ onUnmounted(() => {
     width: 100%;
     margin-bottom: 0;
   }
-
-  .nav-btn {
-    min-width: 50px;
-    padding: 0.375rem;
-  }
-  
-  .nav-icon {
-    font-size: 1rem;
-  }
-  
-  .nav-label {
-    font-size: 0.6rem;
-  }
   
   .fab-scroll-top {
-    bottom: 70px;
+    bottom: 20px;
     right: 0.75rem;
     width: 44px;
     height: 44px;
@@ -1809,7 +1702,6 @@ onUnmounted(() => {
 
 /* Touch feedback */
 .menu-btn:active,
-.nav-btn:active,
 .install-btn:active,
 .fab-scroll-top:active {
   transform: scale(0.95);
@@ -1817,7 +1709,6 @@ onUnmounted(() => {
 
 /* Focus styles for accessibility */
 .menu-btn:focus-visible,
-.nav-btn:focus-visible,
 .install-btn:focus-visible,
 .fab-scroll-top:focus-visible,
 .close-btn:focus-visible {
