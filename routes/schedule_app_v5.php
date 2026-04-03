@@ -17,7 +17,7 @@ use Inertia\Inertia;
 // Main application route
 Route::get('/my-fly-schedule-app/v5', function () {
     return Inertia::render('MicroComponentTest/mytable/MyTableSchedule/v5/ScheduleAppV5');
-})->name('schedule.app.v5');
+})->withoutMiddleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->name('schedule.app.v5');
 
 // PWA Manifest
 Route::get('/my-fly-schedule-app/v5/manifest.webmanifest', function () {
@@ -33,8 +33,8 @@ Route::get('/my-fly-schedule-app/v5/manifest.webmanifest', function () {
 });
 
 // App Icon
-Route::get('/my-fly-schedule-app/v5/icon.svg', function () {
-    $iconPath = public_path('my-fly-schedule-app/v5/icon.svg');
+Route::get('/my-fly-schedule-app/v5/icon.png', function () {
+    $iconPath = public_path('my-fly-schedule-app/v5/icon.png');
     if (!file_exists($iconPath)) {
         abort(404);
     }
@@ -124,7 +124,7 @@ Route::prefix('api/v5')->group(function () {
                 'error' => 'Save failed: ' . $e->getMessage()
             ], 500);
         }
-    });
+    })->withoutMiddleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']);
 
     // Load data from server
     Route::get('/load-data', function (Request $request) {
@@ -161,7 +161,7 @@ Route::prefix('api/v5')->group(function () {
                 'error' => 'Load failed: ' . $e->getMessage()
             ], 500);
         }
-    });
+    })->withoutMiddleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']);
 
     // List backups
     Route::get('/backups', function (Request $request) {

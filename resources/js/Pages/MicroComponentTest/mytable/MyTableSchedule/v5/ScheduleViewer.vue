@@ -17,7 +17,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, provide, inject } from 'vue';
 import { useAppStore } from './composables/useAppStore';
 import { useTimingResolver } from './composables/useTimingResolver';
 import AdminTimingBar from './components/AdminTimingBar.vue';

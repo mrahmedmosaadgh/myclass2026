@@ -54,9 +54,9 @@
   ],
   "icons": [
     {
-      "src": "/my-fly-schedule-app/v5/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/my-fly-schedule-app/v5/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ],

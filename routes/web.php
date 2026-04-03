@@ -33,6 +33,9 @@ Route::domain('qudratpro.com')->group(function () {
     // Include Remote Control System Routes (inside domain)
     include dirname(__DIR__).'/routes/myclass2026/remote_control.php';
 
+    // Include Schedule App V5 Routes (inside domain)
+    include dirname(__DIR__).'/routes/schedule_app_v5.php';
+
     // Diagnostic route (Inside domain)
     Route::get('/debug-controller', function() {
         try {
