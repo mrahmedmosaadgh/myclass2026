@@ -313,39 +313,6 @@ Route::prefix('api/v4')->group(function () {
     })->withoutMiddleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'web'])->name('schedule.app.v4.api.health');
 })->withoutMiddleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']);
 
-// Public Menu API for Schedule App V4
-Route::get('/api/menu', function (\Illuminate\Http\Request $request) {
-    try {
-        // Return a minimal menu structure for the schedule app
-        return response()->json([
-            'success' => true,
-            'menu' => [
-                [
-                    'name' => 'Schedule App V4',
-                    'icon' => 'calendar',
-                    'url' => '/my-fly-schedule-app/v4',
-                    'active' => true
-                ],
-                [
-                    'name' => 'Data Manager',
-                    'icon' => 'database',
-                    'url' => '/my-fly-schedule-app/v4#data-manager'
-                ],
-                [
-                    'name' => 'Settings',
-                    'icon' => 'cog',
-                    'url' => '/my-fly-schedule-app/v4#settings'
-                ]
-            ]
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'error' => $e->getMessage()
-        ], 500);
-    }
-})->withoutMiddleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'web'])->name('schedule.app.v4.api.menu');
-
 // Cache-busting Route for V4
 Route::get('/my-fly-schedule-app/v4', function () {
     return Inertia::render('MicroComponentTest/mytable/MyTableSchedule/v4/StandaloneScheduleAppV4');

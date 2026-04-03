@@ -67,7 +67,14 @@ export const useMenuStore = defineStore('menu', {
                 // Determine if we should use the new config-based API
                 // For now, we switch everyone to the new system
                 // We pass the role query param so admins can view other roles
-                const response = await axios.get('/api/menu', {
+                
+                let apiUrl = '/api/menu';
+                if (role === 'guest') {
+                    // Use the schedule app specific endpoint for guest users
+                    apiUrl = '/api/schedule-app-v4/menu';
+                }
+                
+                const response = await axios.get(apiUrl, {
                     params: { role: role }
                 });
 

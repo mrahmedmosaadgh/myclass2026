@@ -53,7 +53,32 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-// Menu API
+// Public Menu API for Schedule App V4
+Route::get('/schedule-app-v4/menu', function (Request $request) {
+    return response()->json([
+        'success' => true,
+        'menu' => [
+            [
+                'name' => 'Schedule App V4',
+                'icon' => 'calendar',
+                'url' => '/my-fly-schedule-app/v4',
+                'active' => true
+            ],
+            [
+                'name' => 'Data Manager',
+                'icon' => 'database',
+                'url' => '/my-fly-schedule-app/v4#data-manager'
+            ],
+            [
+                'name' => 'Settings',
+                'icon' => 'cog',
+                'url' => '/my-fly-schedule-app/v4#settings'
+            ]
+        ]
+    ]);
+})->withoutMiddleware(['auth:sanctum', 'web']);
+
+// Menu API (authenticated)
 Route::middleware(['auth:sanctum', 'web'])->get('/menu', [NavigationController::class, 'index']);
 
 Route::middleware(['auth:sanctum','web'])->get('/schools', [App\Http\Controllers\SchoolController::class, 'apiIndex']);
