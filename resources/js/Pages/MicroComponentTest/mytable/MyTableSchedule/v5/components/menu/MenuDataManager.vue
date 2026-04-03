@@ -3,89 +3,162 @@
     <h3 class="section-title">Data Manager</h3>
     <p class="section-desc">Import, export, and backup your schedule data.</p>
 
-    <!-- Export Section -->
-    <div class="section">
-      <h4 class="sub-section-title">Export</h4>
-      <div class="export-grid">
-        <button class="export-btn" @click="exportAll">
-          <span class="export-icon">📦</span>
-          <span class="export-label">Full Backup</span>
-          <span class="export-desc">All data with timestamps</span>
-        </button>
-        <button class="export-btn" @click="exportTimings">
-          <span class="export-icon">⏰</span>
-          <span class="export-label">Timings Only</span>
-          <span class="export-desc">Default + overrides</span>
-        </button>
-        <button class="export-btn" @click="exportSchedule">
-          <span class="export-icon">📅</span>
-          <span class="export-label">Schedule Only</span>
-          <span class="export-desc">Personal schedule</span>
-        </button>
-        <button class="export-btn" @click="exportSchool">
-          <span class="export-icon">🏫</span>
-          <span class="export-label">School Timetable</span>
-          <span class="export-desc">Teacher assignments</span>
-        </button>
-      </div>
+    <!-- Tab Navigation -->
+    <div class="tab-nav">
+      <button 
+        class="tab-btn" 
+        :class="{ active: activeTab === 'export' }"
+        @click="activeTab = 'export'"
+      >
+        <span class="tab-icon">📤</span>
+        <span>Export</span>
+      </button>
+      <button 
+        class="tab-btn" 
+        :class="{ active: activeTab === 'import' }"
+        @click="activeTab = 'import'"
+      >
+        <span class="tab-icon">📥</span>
+        <span>Import</span>
+      </button>
+      <button 
+        class="tab-btn" 
+        :class="{ active: activeTab === 'storage' }"
+        @click="activeTab = 'storage'"
+      >
+        <span class="tab-icon">�</span>
+        <span>Storage</span>
+      </button>
     </div>
 
-    <!-- Import Section -->
-    <div class="section">
-      <h4 class="sub-section-title">Import</h4>
-      <div class="import-area">
-        <textarea
-          v-model="pasteJson"
-          class="paste-textarea"
-          placeholder="Paste JSON data here..."
-          rows="4"
-        ></textarea>
-        <div class="paste-actions">
-          <select v-model="importTarget" class="target-select">
-            <option value="">Choose target...</option>
-            <option value="full-backup">Full Backup</option>
-            <option value="timings">Timings Only</option>
-            <option value="schedule">Schedule Only</option>
-            <option value="school">School Timetable</option>
-          </select>
-          <button class="btn-primary" @click="importPasted" :disabled="!importTarget || !pasteJson.trim()">
-            📥 Import
+    <!-- Tab Content -->
+    <div class="tab-content">
+      <!-- Export Tab -->
+      <div v-if="activeTab === 'export'" class="tab-panel">
+        <div class="export-grid">
+          <button class="export-card" @click="exportAll">
+            <div class="card-icon">📦</div>
+            <div class="card-content">
+              <h5>Full Backup</h5>
+              <p>All data with timestamps</p>
+            </div>
+            <div class="card-action">Export</div>
+          </button>
+          <button class="export-card" @click="exportTimings">
+            <div class="card-icon">⏰</div>
+            <div class="card-content">
+              <h5>Timings Only</h5>
+              <p>Default + overrides</p>
+            </div>
+            <div class="card-action">Export</div>
+          </button>
+          <button class="export-card" @click="exportSchedule">
+            <div class="card-icon">📅</div>
+            <div class="card-content">
+              <h5>Personal Schedule</h5>
+              <p>Your weekly schedule</p>
+            </div>
+            <div class="card-action">Export</div>
+          </button>
+          <button class="export-card" @click="exportSchool">
+            <div class="card-icon">🏫</div>
+            <div class="card-content">
+              <h5>School Timetable</h5>
+              <p>Teacher assignments</p>
+            </div>
+            <div class="card-action">Export</div>
           </button>
         </div>
       </div>
 
-      <div v-if="importMessage" class="import-status" :class="importType">
-        {{ importMessage }}
-      </div>
-    </div>
+      <!-- Import Tab -->
+      <div v-if="activeTab === 'import'" class="tab-panel">
+        <div class="import-section">
+          <h4 class="panel-title">Paste JSON Data</h4>
+          <div class="paste-area">
+            <textarea
+              v-model="pasteJson"
+              class="paste-textarea"
+              placeholder="Paste your JSON data here..."
+              rows="6"
+            ></textarea>
+            <div class="paste-controls">
+              <select v-model="importTarget" class="target-select">
+                <option value="">Select data type...</option>
+                <option value="full-backup">Full Backup</option>
+                <option value="timings">Timings Only</option>
+                <option value="schedule">Personal Schedule</option>
+                <option value="school">School Timetable</option>
+              </select>
+              <button 
+                class="btn-primary" 
+                @click="importPasted" 
+                :disabled="!importTarget || !pasteJson.trim()"
+              >
+                <span class="btn-icon">📥</span>
+                Import Data
+              </button>
+            </div>
+          </div>
 
-    <!-- File Upload -->
-    <div class="section">
-      <h4 class="sub-section-title">File Upload</h4>
-      <div class="upload-area" :class="{ active: dragActive }" @drop="handleDrop" @dragover.prevent @dragenter.prevent @dragleave="dragActive = false">
-        <input type="file" ref="fileInput" @change="handleFileSelect" accept=".json" style="display: none;">
-        <div class="upload-prompt">
-          <span class="upload-icon">📁</span>
-          <p>Drop JSON file here or <button class="link-btn" @click="$refs.fileInput.click()">browse</button></p>
+          <div v-if="importMessage" class="import-status" :class="importType">
+            <span class="status-icon">{{ importType === 'success' ? '✅' : '❌' }}</span>
+            {{ importMessage }}
+          </div>
         </div>
-      </div>
-    </div>
 
-    <!-- Storage Info -->
-    <div class="section">
-      <h4 class="sub-section-title">Storage</h4>
-      <div class="storage-info" v-if="storageInfo">
-        <div class="storage-row">
-          <span class="storage-label">Database</span>
-          <span class="storage-value">{{ storageInfo.dbName }} v{{ storageInfo.version }}</span>
-        </div>
-        <div v-for="(info, store) in storageInfo.stores" :key="store" class="storage-row">
-          <span class="storage-label">{{ store }}</span>
-          <span class="storage-value">{{ info.count }} items • {{ formatSize(info.sizeBytes) }}</span>
+        <div class="import-section">
+          <h4 class="panel-title">Upload File</h4>
+          <div class="upload-area" :class="{ active: dragActive }" @drop="handleDrop" @dragover.prevent @dragenter.prevent @dragleave="dragActive = false">
+            <input type="file" ref="fileInput" @change="handleFileSelect" accept=".json" style="display: none;">
+            <div class="upload-content">
+              <div class="upload-icon">📁</div>
+              <p class="upload-text">Drop JSON file here or <button class="link-btn" @click="$refs.fileInput.click()">browse files</button></p>
+              <p class="upload-hint">Supports .json files up to 5MB</p>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="storage-actions">
-        <button class="btn-danger" @click="clearAllData">🗑 Clear All Data</button>
+
+      <!-- Storage Tab -->
+      <div v-if="activeTab === 'storage'" class="tab-panel">
+        <div class="storage-section">
+          <h4 class="panel-title">Database Information</h4>
+          <div class="storage-info" v-if="storageInfo">
+            <div class="info-card">
+              <div class="info-header">
+                <span class="info-icon">🗄️</span>
+                <span class="info-title">{{ storageInfo.dbName }} v{{ storageInfo.version }}</span>
+              </div>
+              <div class="info-body">
+                <div v-for="(info, store) in storageInfo.stores" :key="store" class="storage-row">
+                  <span class="store-name">{{ formatStoreName(store) }}</span>
+                  <span class="store-stats">{{ info.count }} items • {{ formatSize(info.sizeBytes) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="storage-section">
+          <h4 class="panel-title">Storage Actions</h4>
+          <div class="action-grid">
+            <button class="action-card danger" @click="clearAllData">
+              <div class="action-icon">🗑️</div>
+              <div class="action-content">
+                <h5>Clear All Data</h5>
+                <p>Delete everything from local storage</p>
+              </div>
+            </button>
+            <button class="action-card" @click="exportAll">
+              <div class="action-icon">💾</div>
+              <div class="action-content">
+                <h5>Backup Now</h5>
+                <p>Create full backup before clearing</p>
+              </div>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -97,13 +170,16 @@ import { useAppStore } from '../../composables/useAppStore';
 
 const store = useAppStore();
 
+// Tab management
+const activeTab = ref('export');
+
 const pasteJson = ref('');
 const importTarget = ref('');
 const importMessage = ref('');
-const importType = ref('success');
+const importType = ref('info');
 const dragActive = ref(false);
-const storageInfo = ref(null);
 const fileInput = ref(null);
+const storageInfo = ref(null);
 
 const clone = (v) => JSON.parse(JSON.stringify(v));
 
@@ -111,6 +187,17 @@ const formatSize = (bytes) => {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+const formatStoreName = (store) => {
+  const names = {
+    'timings': 'Timings',
+    'personalSchedule': 'Personal Schedule',
+    'schoolTimetable': 'School Timetable',
+    'appSettings': 'App Settings',
+    'syncQueue': 'Sync Queue'
+  };
+  return names[store] || store;
 };
 
 const downloadJson = (data, filename) => {
@@ -413,5 +500,405 @@ onMounted(async () => {
   font-size: 0.8rem;
   cursor: pointer;
   min-height: 44px;
+}
+
+/* Tab Navigation */
+.tab-nav {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 0;
+}
+
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: none;
+  border-radius: 8px 8px 0 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.tab-btn:hover {
+  color: #475569;
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.tab-btn.active {
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+  border-bottom: 2px solid #3b82f6;
+  margin-bottom: -1px;
+}
+
+.tab-icon {
+  font-size: 1rem;
+}
+
+/* Tab Content */
+.tab-content {
+  min-height: 300px;
+}
+
+.tab-panel {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.panel-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 1rem 0;
+}
+
+/* Export Cards */
+.export-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.export-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.export-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  transform: translateY(-2px);
+}
+
+.card-icon {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.card-content h5 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 0.25rem 0;
+}
+
+.card-content p {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.card-action {
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #3b82f6;
+}
+
+/* Import Section */
+.import-section {
+  margin-bottom: 2rem;
+}
+
+.paste-area {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.paste-textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-size: 0.75rem;
+  resize: vertical;
+}
+
+.paste-controls {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  align-items: center;
+}
+
+.target-select {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.8rem;
+}
+
+.btn-primary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.import-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  margin-top: 1rem;
+}
+
+.import-status.success {
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+}
+
+.import-status.error {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+}
+
+/* Upload Area */
+.upload-area {
+  border: 2px dashed #e2e8f0;
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.upload-area.active {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.upload-content {
+  pointer-events: none;
+}
+
+.upload-icon {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.upload-text {
+  font-size: 0.9rem;
+  color: #475569;
+  margin: 0 0 0.5rem 0;
+}
+
+.upload-hint {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: #3b82f6;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: inherit;
+}
+
+/* Storage Section */
+.storage-section {
+  margin-bottom: 2rem;
+}
+
+.info-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.info-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.info-icon {
+  font-size: 1.2rem;
+}
+
+.info-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.info-body {
+  padding: 1rem;
+}
+
+.storage-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.storage-row:last-child {
+  border-bottom: none;
+}
+
+.store-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.store-stats {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+/* Action Grid */
+.action-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.action-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.action-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+}
+
+.action-card.danger:hover {
+  border-color: #dc2626;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.15);
+}
+
+.action-icon {
+  font-size: 1.5rem;
+}
+
+.action-content h5 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 0.25rem 0;
+}
+
+.action-content p {
+  font-size: 0.7rem;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .tab-btn {
+    color: #94a3b8;
+  }
+
+  .tab-btn:hover {
+    color: #cbd5e1;
+    background: rgba(148, 163, 184, 0.1);
+  }
+
+  .tab-btn.active {
+    color: #60a5fa;
+    background: rgba(96, 165, 250, 0.1);
+    border-bottom-color: #60a5fa;
+  }
+
+  .export-card,
+  .paste-area,
+  .info-card,
+  .action-card {
+    background: #1e293b;
+    border-color: #334155;
+  }
+
+  .export-card:hover,
+  .action-card:hover {
+    border-color: #3b82f6;
+  }
+
+  .card-content h5,
+  .info-title,
+  .action-content h5 {
+    color: #f1f5f9;
+  }
+
+  .card-content p,
+  .upload-text,
+  .store-name {
+    color: #94a3b8;
+  }
+
+  .paste-textarea {
+    background: #0f172a;
+    border-color: #334155;
+    color: #e2e8f0;
+  }
+
+  .info-header {
+    background: #334155;
+    border-bottom-color: #475569;
+  }
 }
 </style>
