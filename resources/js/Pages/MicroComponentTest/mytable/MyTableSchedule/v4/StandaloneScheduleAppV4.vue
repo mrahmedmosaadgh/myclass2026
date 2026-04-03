@@ -910,6 +910,85 @@ const formatDate = (date) => {
   });
 };
 
+const handleDataImport = (event) => {
+  const { target } = event.detail;
+  
+  // Handle different types of imported data
+  switch (target) {
+    case 'personal_schedule':
+      // Move imported personal schedule data to the correct keys
+      const importedSchedule = localStorage.getItem('imported-personal-schedule');
+      const importedTimings = localStorage.getItem('imported-personal-timings');
+      
+      if (importedSchedule) {
+        localStorage.setItem('schedule-v4-personal-schedule', importedSchedule);
+        localStorage.removeItem('imported-personal-schedule');
+      }
+      
+      if (importedTimings) {
+        localStorage.setItem('schedule-v4-personal-timings', importedTimings);
+        localStorage.removeItem('imported-personal-timings');
+      }
+      
+      handleNotification('Import Complete', 'Personal schedule data has been imported and applied');
+      break;
+      
+    case 'school_timetable':
+      // Move imported school timetable data to the correct keys
+      const importedSchoolTimetable = localStorage.getItem('imported-school-timetable');
+      
+      if (importedSchoolTimetable) {
+        localStorage.setItem('schedule-v4-school-timetable', importedSchoolTimetable);
+        localStorage.removeItem('imported-school-timetable');
+      }
+      
+      handleNotification('Import Complete', 'School timetable data has been imported and applied');
+      break;
+      
+    case 'stage_day_timings':
+      // Move imported timing data to the correct keys
+      const importedStageTimings = localStorage.getItem('imported-stage-day-timings');
+      
+      if (importedStageTimings) {
+        localStorage.setItem('schedule-v4-stage-timings', importedStageTimings);
+        localStorage.removeItem('imported-stage-day-timings');
+      }
+      
+      handleNotification('Import Complete', 'Timing data has been imported and applied');
+      break;
+      
+    case 'app_settings':
+      // Move imported settings to the correct keys
+      const importedSettings = localStorage.getItem('imported-app-settings');
+      
+      if (importedSettings) {
+        localStorage.setItem('schedule-v4-app-settings', importedSettings);
+        localStorage.removeItem('imported-app-settings');
+      }
+      
+      // Reload view and timing settings if they were imported
+      const savedView = localStorage.getItem('schedule-v4-current-view');
+      if (savedView) {
+        currentView.value = savedView;
+      }
+      
+      const savedStage = localStorage.getItem('schedule-v4-selected-stage');
+      const savedDay = localStorage.getItem('schedule-v4-selected-day');
+      if (savedStage && savedDay) {
+        selectedStage.value = savedStage;
+        selectedDay.value = savedDay;
+      }
+      
+      handleNotification('Import Complete', 'App settings have been imported and applied');
+      break;
+  }
+  
+  // Emit a global refresh event to notify child components
+  window.dispatchEvent(new CustomEvent('data-refresh-required', { 
+    detail: { source: 'import', target } 
+  }));
+};
+
 const clearCache = () => {
   if ('caches' in window) {
     caches.keys().then(cacheNames => {
@@ -1081,8 +1160,8 @@ onMounted(() => {
   checkNotificationStatus();
   handleOnlineStatus();
   
-  // Add scroll listener
-  window.addEventListener('scroll', handleScroll);
+  // Add event listeners for data import
+  window.addEventListener('schedule-v2-data-imported', handleDataImport);
   
   // Add online/offline listeners
   window.addEventListener('online', handleOnlineStatus);
@@ -1093,6 +1172,7 @@ onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll);
   window.removeEventListener('online', handleOnlineStatus);
   window.removeEventListener('offline', handleOnlineStatus);
+  window.removeEventListener('schedule-v2-data-imported', handleDataImport);
   
   if (scrollTimeout) {
     clearTimeout(scrollTimeout);

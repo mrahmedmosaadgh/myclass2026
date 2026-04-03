@@ -293,12 +293,12 @@ export function useDataImportExport() {
   };
 
   const applyPersonalPayload = (payload) => {
-    localStorage.setItem('imported-personal-schedule', JSON.stringify(payload.schedule));
-    localStorage.setItem('imported-personal-timings', JSON.stringify(payload.timings));
+    localStorage.setItem('schedule-v4-personal-schedule', JSON.stringify(payload.schedule));
+    localStorage.setItem('schedule-v4-personal-timings', JSON.stringify(payload.timings));
 
     Object.entries(payload.preferences || {}).forEach(([key, value]) => {
       if (value !== null && value !== undefined) {
-        localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
+        localStorage.setItem(`schedule-v4-${key}`, typeof value === 'string' ? value : JSON.stringify(value));
       }
     });
 
@@ -310,7 +310,7 @@ export function useDataImportExport() {
   };
 
   const applySchoolPayload = (payload) => {
-    localStorage.setItem('imported-school-timetable', JSON.stringify({
+    localStorage.setItem('schedule-v4-school-timetable', JSON.stringify({
       stages: payload.stages,
       defaultTimings: payload.defaultTimings,
       customTimings: payload.customTimings,
@@ -318,7 +318,7 @@ export function useDataImportExport() {
     }));
 
     if (payload.customTimings) {
-      localStorage.setItem('school-timings-v2', JSON.stringify(payload.customTimings));
+      localStorage.setItem('schedule-v4-school-timings', JSON.stringify(payload.customTimings));
     }
 
     return payload;
@@ -329,24 +329,24 @@ export function useDataImportExport() {
 
     if (payload.mode === 'same_for_all') {
       current.default = clone(payload.default);
-      localStorage.setItem('school-timings-v2', JSON.stringify(current));
+      localStorage.setItem('schedule-v4-stage-timings', JSON.stringify(current));
       return current;
     }
 
     if (payload.mode === 'stage_default') {
       current.overrides[payload.stage].default = clone(payload.default);
-      localStorage.setItem('school-timings-v2', JSON.stringify(current));
+      localStorage.setItem('schedule-v4-stage-timings', JSON.stringify(current));
       return current;
     }
 
     if (payload.mode === 'stage_day') {
       current.overrides[payload.stage].days[payload.day] = clone(payload.slots);
-      localStorage.setItem('school-timings-v2', JSON.stringify(current));
+      localStorage.setItem('schedule-v4-stage-timings', JSON.stringify(current));
       return current;
     }
 
     const normalized = normalizeTimingConfig(payload);
-    localStorage.setItem('school-timings-v2', JSON.stringify(normalized));
+    localStorage.setItem('schedule-v4-stage-timings', JSON.stringify(normalized));
     return normalized;
   };
 
@@ -557,11 +557,13 @@ export function useDataImportExport() {
 
       if (key === 'customTimings') {
         const timingsValue = typeof value === 'string' ? value : JSON.stringify(value);
-        localStorage.setItem('school-timings-v2', timingsValue);
+        localStorage.setItem('schedule-v4-stage-timings', timingsValue);
         return;
       }
 
-      localStorage.setItem(key, typeof value === 'object' ? JSON.stringify(value) : value);
+      // Use schedule-v4 prefix for all settings
+      const storageKey = key.startsWith('schedule-v4-') ? key : `schedule-v4-${key}`;
+      localStorage.setItem(storageKey, typeof value === 'object' ? JSON.stringify(value) : value);
     });
 
     return payload;
