@@ -767,10 +767,6 @@ const handleDataRefresh = (event) => {
             ...(parsed.overrides || {})
           }
         };
-        // Call the time slot calculation function if it exists
-        if (typeof calculateTimeSlots === 'function') {
-          calculateTimeSlots();
-        }
         showAutoSaveStatus('saved', 'Timing data refreshed from import');
       } catch (e) {
         console.warn('Failed to refresh timings from import', e);
