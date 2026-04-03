@@ -9,7 +9,7 @@ const RUNTIME_CACHE = 'schedule-app-v5-runtime-1';
 const APP_SHELL = [
   '/my-fly-schedule-app/ver5',
   '/my-fly-schedule-app/v5/manifest.webmanifest',
-  '/my-fly-schedule-app/v5/icon.svg'
+  '/my-fly-schedule-app/v5/icon.png'
 ];
 
 // Install event: cache app shell
