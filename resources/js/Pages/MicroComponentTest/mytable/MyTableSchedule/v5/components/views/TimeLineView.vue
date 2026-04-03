@@ -28,6 +28,18 @@
           <option value="d6">Saturday</option>
         </select>
       </div>
+
+      <div class="control-group">
+        <label class="control-label">My Events:</label>
+        <div class="event-controls">
+          <button @click="showAddEventDialog = true" class="btn-add-event">
+            + Add Event
+          </button>
+          <button @click="removeAllUserEvents" class="btn-clear-events" v-if="userEvents.length > 0">
+            Clear All
+          </button>
+        </div>
+      </div>
     </div>
 
     <div class="timeline-container">
@@ -69,23 +81,43 @@
                 'lesson-period': timeSlot.type === 'lesson',
                 'break-period': timeSlot.type === 'break',
                 'activity-period': timeSlot.type === 'activity',
-                'has-content': hasPeriodContent(timeSlot, stage.id, selectedDay)
+                'has-content': hasPeriodContent(timeSlot, stage.id, selectedDay),
+                'has-nafs': hasNafs(timeSlot, stage.id, selectedDay)
               }"
               :style="{
                 top: `${getTimePosition(timeSlot.startMin)}px`,
-                height: `${getTimeHeight(timeSlot.startMin, timeSlot.endMin)}px`
+                height: `${getTimeHeight(timeSlot.startMin, timeSlot.endMin)}px`,
+                backgroundColor: getPeriodColor(timeSlot, stage.id, selectedDay)
               }"
             >
               <div class="period-content">
                 <div class="period-title">{{ getPeriodTitle(timeSlot, stage.id, selectedDay) }}</div>
-                <div class="period-subject">{{ getPeriodSubject(timeSlot, stage.id, selectedDay) }}</div>
                 <div class="period-teacher">{{ getPeriodTeacher(timeSlot, stage.id, selectedDay) }}</div>
+                <div v-if="hasNafs(timeSlot, stage.id, selectedDay)" class="nafs-indicator">N</div>
               </div>
               
               <!-- Progress indicator for current period -->
               <div v-if="isCurrentPeriod(timeSlot, stage.id, selectedDay)" class="progress-indicator">
                 <div class="progress-fill" :style="{ height: `${getPeriodProgress(timeSlot)}%` }"></div>
                 <div class="progress-line" :style="{ bottom: `${getPeriodProgress(timeSlot)}%` }"></div>
+              </div>
+            </div>
+
+            <!-- User Event Blocks -->
+            <div 
+              v-for="userEvent in getUserEventsForStage(stage.id)" 
+              :key="`user-${userEvent.id}`"
+              class="user-event-block"
+              :style="{
+                top: `${getTimePosition(userEvent.startMin)}px`,
+                height: `${getTimeHeight(userEvent.startMin, userEvent.endMin)}px`,
+                backgroundColor: userEvent.color
+              }"
+            >
+              <div class="user-event-content">
+                <div class="user-event-title">{{ userEvent.title }}</div>
+                <div class="user-event-time">{{ userEvent.startTime }} - {{ userEvent.endTime }}</div>
+                <button @click="removeUserEvent(userEvent.id)" class="btn-remove-event">×</button>
               </div>
             </div>
           </div>
@@ -98,6 +130,58 @@
       <div class="time-label">Now: {{ currentTimeDisplay }}</div>
       <div class="time-dot"></div>
     </div>
+
+    <!-- Add Event Dialog -->
+    <div v-if="showAddEventDialog" class="dialog-overlay" @click="showAddEventDialog = false">
+      <div class="dialog-content" @click.stop>
+        <h3>Add Custom Event</h3>
+        <form @submit.prevent="addUserEvent">
+          <div class="form-group">
+            <label>Event Title:</label>
+            <input v-model="newEvent.title" type="text" placeholder="e.g., Meeting, Study time" required>
+          </div>
+          
+          <div class="form-group">
+            <label>Stage:</label>
+            <select v-model="newEvent.stageId" required>
+              <option value="">Select Stage</option>
+              <option v-for="stage in allStages" :key="stage.id" :value="stage.id">
+                {{ stage.title }}
+              </option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label>Start Time:</label>
+            <input v-model="newEvent.startTime" type="time" required>
+          </div>
+          
+          <div class="form-group">
+            <label>End Time:</label>
+            <input v-model="newEvent.endTime" type="time" required>
+          </div>
+          
+          <div class="form-group">
+            <label>Color:</label>
+            <div class="color-picker">
+              <div 
+                v-for="color in eventColors" 
+                :key="color"
+                class="color-option"
+                :class="{ active: newEvent.color === color }"
+                :style="{ backgroundColor: color }"
+                @click="newEvent.color = color"
+              ></div>
+            </div>
+          </div>
+          
+          <div class="form-actions">
+            <button type="button" @click="showAddEventDialog = false" class="btn-cancel">Cancel</button>
+            <button type="submit" class="btn-add">Add Event</button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -105,6 +189,15 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useAppStore } from '../../composables/useAppStore.js';
 import { useTimingResolver } from '../../composables/useTimingResolver.js';
+import defaultTimingData from '../../schedule_timing.json';
+
+// Color schemes from TableViewV2
+const colorSchemes = {
+  default: ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16', '#06b6d4', '#a855f7', '#f43f5e', '#22c55e', '#eab308'],
+  pastel: ['#93c5fd', '#fca5a5', '#86efac', '#fcd34d', '#c4b5fd', '#f9a8d4', '#5eead4', '#fdba74', '#a5b4fc', '#bef264', '#67e8f9', '#d8b4fe', '#fda4af', '#86efac', '#fde047'],
+  vibrant: ['#2563eb', '#dc2626', '#059669', '#d97706', '#7c3aed', '#db2777', '#0d9488', '#ea580c', '#4f46e5', '#65a30d', '#0891b2', '#9333ea', '#e11d48', '#16a34a', '#ca8a04'],
+  monochrome: ['#1e293b', '#334155', '#475569', '#64748b', '#94a3b8', '#cbd5e1', '#e2e8f0', '#f1f5f9', '#f8fafc', '#0f172a', '#475569', '#64748b', '#94a3b8', '#cbd5e1', '#e2e8f0']
+};
 
 const props = defineProps({
   showProgress: { type: Boolean, default: true },
@@ -114,12 +207,82 @@ const props = defineProps({
 
 const store = useAppStore();
 
+// Color system from TableViewV2
+const currentColorScheme = computed(() => colorSchemes.default);
+const subjectColorMap = ref(new Map());
+
+// Initialize color map
+const initializeColorMap = () => {
+  const allSubjects = new Set();
+  
+  // Collect all unique subjects from schedule data
+  if (Array.isArray(store.scheduleData.value)) {
+    store.scheduleData.value.forEach(day => {
+      if (day.classes) {
+        day.classes.forEach(period => {
+          if (period.sub && period.sub.trim()) {
+            allSubjects.add(period.sub);
+          }
+        });
+      }
+    });
+  }
+  
+  // Assign colors to all subjects
+  const colors = currentColorScheme.value;
+  let colorIndex = 0;
+  
+  allSubjects.forEach(subject => {
+    if (!subjectColorMap.value.has(subject)) {
+      subjectColorMap.value.set(subject, colors[colorIndex % colors.length]);
+      colorIndex++;
+    }
+  });
+};
+
+// Get consistent color for subject
+const getSubjectColor = (subject) => {
+  if (!subject) return 'transparent';
+  
+  if (subjectColorMap.value.has(subject)) {
+    return subjectColorMap.value.get(subject);
+  }
+  
+  const colors = currentColorScheme.value;
+  const existingColors = Array.from(subjectColorMap.value.values());
+  const availableColors = colors.filter(color => !existingColors.includes(color));
+  
+  const colorToUse = availableColors.length > 0 ? 
+    availableColors[0] : 
+    colors[subjectColorMap.value.size % colors.length];
+  
+  subjectColorMap.value.set(subject, colorToUse);
+  return colorToUse;
+};
+
 // State
 const selectedStages = ref(['prim', 'middle', 'sec']); // Default to all stages selected
 const selectedDay = ref('today');
 const currentTimeDisplay = ref('');
 const timelineGrid = ref(null);
 let timeUpdateInterval = null;
+
+// User Events State
+const userEvents = ref([]);
+const showAddEventDialog = ref(false);
+const newEvent = ref({
+  title: '',
+  stageId: '',
+  startTime: '',
+  endTime: '',
+  color: '#8b5cf6'
+});
+
+// Available colors for user events
+const eventColors = [
+  '#8b5cf6', '#ef4444', '#10b981', '#f59e0b', '#ec4899', 
+  '#14b8a6', '#f97316', '#6366f1', '#84cc16', '#06b6d4'
+];
 
 // Stage definitions
 const allStages = [
@@ -138,27 +301,11 @@ const { resolvedTimeSlots } = useTimingResolver(
   computed(() => store.timingsConfig),
   computed(() => 'prim'), // Use primary timing as fallback
   computed(() => selectedDay.value === 'today' ? getTodayDayId() : selectedDay.value),
-  []
+  defaultTimingData
 );
 
 const timeSlots = computed(() => {
-  const slots = resolvedTimeSlots.value;
-  
-  // If no slots or config not loaded, provide fallback
-  if (!slots || slots.length === 0) {
-    return [
-      { id: 1, title: 'Period 1', type: 'lesson', start: '09:00', end: '09:30', startMin: 540, endMin: 570 },
-      { id: 2, title: 'Period 2', type: 'lesson', start: '09:30', end: '10:00', startMin: 570, endMin: 600 },
-      { id: 'b1', title: 'First Break', type: 'break', start: '10:00', end: '10:30', startMin: 600, endMin: 630 },
-      { id: 3, title: 'Period 3', type: 'lesson', start: '10:30', end: '11:00', startMin: 630, endMin: 660 },
-      { id: 4, title: 'Period 4', type: 'lesson', start: '11:00', end: '11:30', startMin: 660, endMin: 690 },
-      { id: 'b2', title: 'Second Break', type: 'break', start: '11:30', end: '12:00', startMin: 690, endMin: 720 },
-      { id: 5, title: 'Period 5', type: 'lesson', start: '12:00', end: '12:25', startMin: 720, endMin: 745 },
-      { id: 6, title: 'Period 6', type: 'lesson', start: '12:25', end: '12:50', startMin: 745, endMin: 770 }
-    ];
-  }
-  
-  return slots;
+  return resolvedTimeSlots.value || [];
 });
 
 // Generate hours for the timeline (6:00 to 22:00)
@@ -241,7 +388,6 @@ const getPeriodSubject = (timeSlot, stageId, dayId) => {
   const actualDayId = dayId === 'today' ? getTodayDayId() : dayId;
   const scheduleData = store.scheduleData.value;
   
-  // Ensure scheduleData is an array
   if (!Array.isArray(scheduleData)) {
     return '';
   }
@@ -251,12 +397,34 @@ const getPeriodSubject = (timeSlot, stageId, dayId) => {
   if (daySchedule && daySchedule.classes) {
     const period = daySchedule.classes.find(p => p.p === timeSlot.id);
     if (period && period.sub) {
-      // Add stage prefix to differentiate between stages
-      return `${stageId.toUpperCase()}: ${period.sub}`;
+      return period.sub;
     }
   }
   
   return '';
+};
+
+const getPeriodColor = (timeSlot, stageId, dayId) => {
+  const subject = getPeriodSubject(timeSlot, stageId, dayId);
+  return getSubjectColor(subject);
+};
+
+const hasNafs = (timeSlot, stageId, dayId) => {
+  const actualDayId = dayId === 'today' ? getTodayDayId() : dayId;
+  const scheduleData = store.scheduleData.value;
+  
+  if (!Array.isArray(scheduleData)) {
+    return false;
+  }
+  
+  const daySchedule = scheduleData.find(item => item.day === actualDayId || item.dayIndex === getDayIndexFromId(actualDayId));
+  
+  if (daySchedule && daySchedule.classes) {
+    const period = daySchedule.classes.find(p => p.p === timeSlot.id);
+    return period?.nafs || false;
+  }
+  
+  return false;
 };
 
 const getPeriodTeacher = (timeSlot, stageId, dayId) => {
@@ -327,12 +495,87 @@ const updateCurrentTime = () => {
   });
 };
 
+// User Event Functions
+const timeToMinutes = (timeStr) => {
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  return hours * 60 + minutes;
+};
+
+const addUserEvent = () => {
+  const event = {
+    id: Date.now(),
+    title: newEvent.value.title,
+    stageId: newEvent.value.stageId,
+    startTime: newEvent.value.startTime,
+    endTime: newEvent.value.endTime,
+    color: newEvent.value.color,
+    startMin: timeToMinutes(newEvent.value.startTime),
+    endMin: timeToMinutes(newEvent.value.endTime),
+    dayId: selectedDay.value === 'today' ? getTodayDayId() : selectedDay.value
+  };
+  
+  userEvents.value.push(event);
+  saveUserEvents();
+  
+  // Reset form
+  newEvent.value = {
+    title: '',
+    stageId: '',
+    startTime: '',
+    endTime: '',
+    color: '#8b5cf6'
+  };
+  showAddEventDialog.value = false;
+};
+
+const removeUserEvent = (eventId) => {
+  userEvents.value = userEvents.value.filter(event => event.id !== eventId);
+  saveUserEvents();
+};
+
+const removeAllUserEvents = () => {
+  if (confirm('Are you sure you want to remove all your custom events?')) {
+    userEvents.value = [];
+    saveUserEvents();
+  }
+};
+
+const getUserEventsForStage = (stageId) => {
+  const actualDayId = selectedDay.value === 'today' ? getTodayDayId() : selectedDay.value;
+  return userEvents.value.filter(event => 
+    event.stageId === stageId && event.dayId === actualDayId
+  );
+};
+
+const saveUserEvents = () => {
+  try {
+    localStorage.setItem('timeline-user-events', JSON.stringify(userEvents.value));
+  } catch (e) {
+    console.warn('Failed to save user events:', e);
+  }
+};
+
+const loadUserEvents = () => {
+  try {
+    const saved = localStorage.getItem('timeline-user-events');
+    if (saved) {
+      userEvents.value = JSON.parse(saved);
+    }
+  } catch (e) {
+    console.warn('Failed to load user events:', e);
+  }
+};
+
 // Lifecycle
 onMounted(() => {
   updateCurrentTime();
   if (props.autoRefresh) {
     timeUpdateInterval = setInterval(updateCurrentTime, 1000);
   }
+  // Initialize color mapping
+  initializeColorMap();
+  // Load user events
+  loadUserEvents();
 });
 
 onUnmounted(() => {
@@ -568,37 +811,52 @@ onUnmounted(() => {
   transition: all 0.2s ease;
   cursor: pointer;
   z-index: 1;
-  min-height: 20px; /* Minimum height for very short periods */
+  min-height: 20px;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .period-block.has-content {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
   color: white;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(0, 0, 0, 0.2);
 }
 
 .period-block.break-period {
-  background: linear-gradient(135deg, #10b981, #059669);
+  background: linear-gradient(135deg, #10b981, #059669) !important;
   color: white;
   box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
   border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
 .period-block.activity-period {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
   color: white;
   box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
   border: 1px solid rgba(245, 158, 11, 0.2);
 }
 
 .period-block.current-period {
-  box-shadow: 0 0 0 3px #ef4444, 0 0 20px rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 0 3px #ef4444, 0 0 20px rgba(239, 68, 68, 0.5) !important;
   z-index: 5;
   animation: pulse 2s infinite;
+}
+
+.period-block.has-nafs {
+  position: relative;
+}
+
+.period-block.has-nafs::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
 }
 
 @keyframes pulse {
@@ -612,7 +870,7 @@ onUnmounted(() => {
 
 .period-block:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
   z-index: 3;
 }
 
@@ -626,13 +884,7 @@ onUnmounted(() => {
   min-height: 100%;
   word-wrap: break-word;
   overflow: hidden;
-}
-
-.period-time {
-  font-weight: 600;
-  font-size: 0.625rem;
-  opacity: 0.9;
-  margin-bottom: 2px;
+  position: relative;
 }
 
 .period-title {
@@ -642,23 +894,30 @@ onUnmounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   font-size: 0.65rem;
-}
-
-.period-subject {
-  opacity: 0.9;
-  margin-bottom: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 0.6875rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .period-teacher {
-  opacity: 0.8;
-  font-size: 0.625rem;
+  opacity: 0.9;
+  font-size: 0.6rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-weight: 500;
+}
+
+.nafs-indicator {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #333;
+  padding: 1px 3px;
+  border-radius: 3px;
+  font-size: 0.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 /* Progress Indicator */
@@ -817,7 +1076,252 @@ onUnmounted(() => {
   }
 }
 
-/* Responsive */
+/* Event Controls */
+.event-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.btn-add-event {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-add-event:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.btn-clear-events {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-clear-events:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
+
+/* User Event Blocks */
+.user-event-block {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  z-index: 2;
+  min-height: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.user-event-block:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  z-index: 4;
+}
+
+.user-event-content {
+  padding: 6px;
+  font-size: 0.7rem;
+  line-height: 1.2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100%;
+  position: relative;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.user-event-title {
+  font-weight: 600;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.65rem;
+}
+
+.user-event-time {
+  opacity: 0.9;
+  font-size: 0.6rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+
+.btn-remove-event {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #333;
+  border: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.user-event-block:hover .btn-remove-event {
+  opacity: 1;
+}
+
+.btn-remove-event:hover {
+  background: #ef4444;
+  color: white;
+}
+
+/* Dialog Styles */
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.dialog-content {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.dialog-content h3 {
+  margin: 0 0 1.5rem 0;
+  color: #1f2937;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #374151;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  transition: border-color 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.color-picker {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.color-option {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.color-option:hover {
+  transform: scale(1.1);
+}
+
+.color-option.active {
+  border-color: #1f2937;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 2rem;
+}
+
+.btn-cancel {
+  background: #f3f4f6;
+  color: #374151;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-cancel:hover {
+  background: #e5e7eb;
+}
+
+.btn-add {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-add:hover {
+  background: #2563eb;
+}
 @media (max-width: 768px) {
   .timeline-controls {
     flex-direction: column;
