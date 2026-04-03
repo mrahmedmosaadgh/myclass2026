@@ -2,20 +2,18 @@
   <div class="timeline-view">
     <div class="timeline-controls">
       <div class="control-group">
-        <label class="control-label">View Mode:</label>
-        <select v-model="viewMode" class="view-mode-select">
-          <option value="all-stages">All Stages</option>
-          <option value="single-stage">Single Stage</option>
-        </select>
-      </div>
-      
-      <div v-if="viewMode === 'single-stage'" class="control-group">
-        <label class="control-label">Select Stage:</label>
-        <select v-model="selectedStage" class="stage-select">
-          <option value="prim">Primary</option>
-          <option value="middle">Middle</option>
-          <option value="sec">Secondary</option>
-        </select>
+        <label class="control-label">Select Stages:</label>
+        <div class="stage-checkboxes">
+          <label v-for="stage in allStages" :key="stage.id" class="stage-checkbox">
+            <input 
+              type="checkbox" 
+              :value="stage.id" 
+              v-model="selectedStages"
+              class="checkbox-input"
+            >
+            <span class="checkbox-label">{{ stage.title }}</span>
+          </label>
+        </div>
       </div>
       
       <div class="control-group">
@@ -53,6 +51,11 @@
           </div>
         </div>
 
+        <!-- Horizontal Grid Lines (span across all columns) -->
+        <div class="horizontal-grid">
+          <div v-for="hour in hours" :key="`grid-${hour}`" class="horizontal-line" :style="{ top: `${getTimePosition(hour * 60)}px` }"></div>
+        </div>
+
         <!-- Stage Columns -->
         <div v-for="stage in displayStages" :key="stage.id" class="stage-column">
           <div class="stage-content">
@@ -74,7 +77,6 @@
               }"
             >
               <div class="period-content">
-                <div class="period-time">{{ timeSlot.start }} - {{ timeSlot.end }}</div>
                 <div class="period-title">{{ getPeriodTitle(timeSlot, stage.id, selectedDay) }}</div>
                 <div class="period-subject">{{ getPeriodSubject(timeSlot, stage.id, selectedDay) }}</div>
                 <div class="period-teacher">{{ getPeriodTeacher(timeSlot, stage.id, selectedDay) }}</div>
@@ -113,8 +115,7 @@ const props = defineProps({
 const store = useAppStore();
 
 // State
-const viewMode = ref('all-stages');
-const selectedStage = ref('prim');
+const selectedStages = ref(['prim', 'middle', 'sec']); // Default to all stages selected
 const selectedDay = ref('today');
 const currentTimeDisplay = ref('');
 const timelineGrid = ref(null);
@@ -129,21 +130,36 @@ const allStages = [
 
 // Computed properties
 const displayStages = computed(() => {
-  if (viewMode.value === 'single-stage') {
-    return allStages.filter(stage => stage.id === selectedStage.value);
-  }
-  return allStages;
+  return allStages.filter(stage => selectedStages.value.includes(stage.id));
 });
 
-// Use primary stage timing as reference for time slots
+// Create timing resolver for the timeline
 const { resolvedTimeSlots } = useTimingResolver(
   computed(() => store.timingsConfig),
-  ref('prim'), // Use prim as reference for time structure
-  ref('d1'),   // Use d1 as reference for time structure
+  computed(() => selectedStages.value[0] || 'prim'), // Use first selected stage
+  computed(() => selectedDay.value === 'today' ? getTodayDayId() : selectedDay.value),
   []
 );
 
-const timeSlots = computed(() => resolvedTimeSlots.value);
+const timeSlots = computed(() => {
+  const slots = resolvedTimeSlots.value;
+  
+  // If no slots or config not loaded, provide fallback
+  if (!slots || slots.length === 0) {
+    return [
+      { id: 1, title: 'Period 1', type: 'lesson', start: '09:00', end: '09:30', startMin: 540, endMin: 570 },
+      { id: 2, title: 'Period 2', type: 'lesson', start: '09:30', end: '10:00', startMin: 570, endMin: 600 },
+      { id: 'b1', title: 'First Break', type: 'break', start: '10:00', end: '10:30', startMin: 600, endMin: 630 },
+      { id: 3, title: 'Period 3', type: 'lesson', start: '10:30', end: '11:00', startMin: 630, endMin: 660 },
+      { id: 4, title: 'Period 4', type: 'lesson', start: '11:00', end: '11:30', startMin: 660, endMin: 690 },
+      { id: 'b2', title: 'Second Break', type: 'break', start: '11:30', end: '12:00', startMin: 690, endMin: 720 },
+      { id: 5, title: 'Period 5', type: 'lesson', start: '12:00', end: '12:25', startMin: 720, endMin: 745 },
+      { id: 6, title: 'Period 6', type: 'lesson', start: '12:25', end: '12:50', startMin: 745, endMin: 770 }
+    ];
+  }
+  
+  return slots;
+});
 
 // Generate hours for the timeline (6:00 to 22:00)
 const hours = computed(() => {
@@ -160,13 +176,13 @@ const showCurrentTimeIndicator = computed(() => {
 
 // Time positioning functions
 const getTimePosition = (minutes) => {
-  // Convert minutes to pixels (1px per minute, starting from 6:00)
+  // Convert minutes to pixels (2px per minute, starting from 6:00)
   const startOfDay = 6 * 60; // 6:00 AM
-  return (minutes - startOfDay) * 1; // 1px per minute
+  return (minutes - startOfDay) * 2; // 2px per minute for better visibility
 };
 
 const getTimeHeight = (startMin, endMin) => {
-  return (endMin - startMin) * 1; // 1px per minute
+  return (endMin - startMin) * 2; // 2px per minute for better visibility
 };
 
 // Helper functions
@@ -350,6 +366,43 @@ onUnmounted(() => {
   min-width: 120px;
 }
 
+/* Stage Checkboxes */
+.stage-checkboxes {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.stage-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.stage-checkbox:hover {
+  border-color: #3b82f6;
+  background: #f0f9ff;
+}
+
+.checkbox-input {
+  width: 16px;
+  height: 16px;
+  accent-color: #3b82f6;
+}
+
+.checkbox-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  user-select: none;
+}
+
 /* Timeline Container */
 .timeline-container {
   background: white;
@@ -405,8 +458,27 @@ onUnmounted(() => {
 .timeline-grid {
   position: relative;
   display: flex;
-  min-height: 960px; /* 16 hours * 60px per hour */
+  min-height: 1920px; /* 16 hours * 120px per hour (2px per minute) */
   background: linear-gradient(to bottom, #ffffff, #f8fafc);
+}
+
+/* Horizontal Grid Lines */
+.horizontal-grid {
+  position: absolute;
+  left: 80px; /* Start after time column */
+  right: 0;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.horizontal-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #f1f5f9;
+  z-index: 0;
 }
 
 /* Time Grid Background */
@@ -424,7 +496,7 @@ onUnmounted(() => {
   position: absolute;
   left: 0;
   right: 0;
-  height: 1px;
+  height: 2px;
 }
 
 .hour-line {
@@ -432,16 +504,21 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   height: 1px;
-  background: #e2e8f0;
+  background: #d1d5db;
+  z-index: 0;
 }
 
 .hour-label {
   position: absolute;
-  left: 4px;
-  top: -8px;
+  left: 8px;
+  top: -10px;
   font-size: 0.625rem;
   color: #6b7280;
-  font-weight: 500;
+  font-weight: 600;
+  background: #f8fafc;
+  padding: 2px 4px;
+  border-radius: 4px;
+  border: 1px solid #e5e7eb;
 }
 
 /* Stage Columns */
@@ -464,60 +541,81 @@ onUnmounted(() => {
 /* Period Blocks - Positioned by actual time */
 .period-block {
   position: absolute;
-  left: 4px;
-  right: 4px;
-  border-radius: 6px;
+  left: 8px;
+  right: 8px;
+  border-radius: 8px;
   overflow: hidden;
   transition: all 0.2s ease;
   cursor: pointer;
   z-index: 1;
+  min-height: 20px; /* Minimum height for very short periods */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .period-block.has-content {
   background: linear-gradient(135deg, #3b82f6, #2563eb);
   color: white;
-  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  border: 1px solid rgba(59, 130, 246, 0.2);
 }
 
 .period-block.break-period {
   background: linear-gradient(135deg, #10b981, #059669);
   color: white;
-  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+  border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
 .period-block.activity-period {
   background: linear-gradient(135deg, #f59e0b, #d97706);
   color: white;
-  box-shadow: 0 2px 4px rgba(245, 158, 11, 0.2);
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+  border: 1px solid rgba(245, 158, 11, 0.2);
 }
 
 .period-block.current-period {
-  box-shadow: 0 0 0 2px #ef4444, 0 0 12px rgba(239, 68, 68, 0.4);
+  box-shadow: 0 0 0 3px #ef4444, 0 0 20px rgba(239, 68, 68, 0.5);
   z-index: 5;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 3px #ef4444, 0 0 20px rgba(239, 68, 68, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 3px #ef4444, 0 0 30px rgba(239, 68, 68, 0.7);
+  }
 }
 
 .period-block:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-  z-index: 2;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  z-index: 3;
 }
 
 .period-content {
-  padding: 0.5rem;
+  padding: 8px;
   font-size: 0.75rem;
   line-height: 1.3;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100%;
 }
 
 .period-time {
   font-weight: 600;
   font-size: 0.625rem;
-  opacity: 0.8;
-  margin-bottom: 0.25rem;
+  opacity: 0.9;
+  margin-bottom: 2px;
 }
 
 .period-title {
   font-weight: 600;
-  margin-bottom: 0.25rem;
+  margin-bottom: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -525,7 +623,7 @@ onUnmounted(() => {
 
 .period-subject {
   opacity: 0.9;
-  margin-bottom: 0.25rem;
+  margin-bottom: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -533,7 +631,7 @@ onUnmounted(() => {
 }
 
 .period-teacher {
-  opacity: 0.7;
+  opacity: 0.8;
   font-size: 0.625rem;
   white-space: nowrap;
   overflow: hidden;
@@ -674,6 +772,20 @@ onUnmounted(() => {
   .day-select {
     background: #1e293b;
     border-color: #475569;
+    color: #e2e8f0;
+  }
+  
+  .stage-checkbox {
+    background: #1e293b;
+    border-color: #475569;
+  }
+  
+  .stage-checkbox:hover {
+    border-color: #3b82f6;
+    background: #1e3a8a;
+  }
+  
+  .checkbox-label {
     color: #e2e8f0;
   }
   
