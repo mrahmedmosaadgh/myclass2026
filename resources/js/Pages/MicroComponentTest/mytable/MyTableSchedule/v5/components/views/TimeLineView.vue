@@ -207,6 +207,11 @@ const getDayLabel = (dayId) => {
   return dayLabels[dayId] || 'Unknown';
 };
 
+const getDayIndexFromId = (dayId) => {
+  const mapping = { d1: 1, d2: 2, d3: 3, d4: 4, d5: 5, d6: 6 };
+  return mapping[dayId] || 1;
+};
+
 const getActualDayId = () => {
   return selectedDay.value === 'today' ? getTodayDayId() : selectedDay.value;
 };
@@ -214,12 +219,18 @@ const getActualDayId = () => {
 const getPeriodTitle = (timeSlot, stageId, dayId) => {
   const actualDayId = dayId === 'today' ? getTodayDayId() : dayId;
   const scheduleData = store.scheduleData.value;
-  const daySchedule = scheduleData.find(item => item.day === actualDayId);
   
-  if (daySchedule && daySchedule.schedule) {
-    const period = daySchedule.schedule.find(p => p.period === timeSlot.id);
-    if (period) {
-      return period.title || timeSlot.title;
+  // Ensure scheduleData is an array
+  if (!Array.isArray(scheduleData)) {
+    return timeSlot.title;
+  }
+  
+  const daySchedule = scheduleData.find(item => item.day === actualDayId || item.dayIndex === getDayIndexFromId(actualDayId));
+  
+  if (daySchedule && daySchedule.classes) {
+    const period = daySchedule.classes.find(p => p.p === timeSlot.id);
+    if (period && period.sub) {
+      return period.sub || timeSlot.title;
     }
   }
   
@@ -229,12 +240,18 @@ const getPeriodTitle = (timeSlot, stageId, dayId) => {
 const getPeriodSubject = (timeSlot, stageId, dayId) => {
   const actualDayId = dayId === 'today' ? getTodayDayId() : dayId;
   const scheduleData = store.scheduleData.value;
-  const daySchedule = scheduleData.find(item => item.day === actualDayId);
   
-  if (daySchedule && daySchedule.schedule) {
-    const period = daySchedule.schedule.find(p => p.period === timeSlot.id);
-    if (period && period.subject) {
-      return period.subject;
+  // Ensure scheduleData is an array
+  if (!Array.isArray(scheduleData)) {
+    return '';
+  }
+  
+  const daySchedule = scheduleData.find(item => item.day === actualDayId || item.dayIndex === getDayIndexFromId(actualDayId));
+  
+  if (daySchedule && daySchedule.classes) {
+    const period = daySchedule.classes.find(p => p.p === timeSlot.id);
+    if (period && period.sub) {
+      return period.sub;
     }
   }
   
@@ -246,12 +263,12 @@ const getPeriodTeacher = (timeSlot, stageId, dayId) => {
   const schoolTimetable = store.schoolTimetable.value;
   const stageData = schoolTimetable.stages?.[stageId];
   
-  if (stageData) {
-    const dayData = stageData.find(item => item.day === actualDayId);
-    if (dayData && dayData.schedule) {
-      const period = dayData.schedule.find(p => p.period === timeSlot.id);
-      if (period && period.teacher) {
-        return period.teacher;
+  // Handle the nested structure with teachers and assignments
+  if (stageData && stageData.teachers && Array.isArray(stageData.teachers)) {
+    for (const teacher of stageData.teachers) {
+      const assignments = teacher.assignments?.[actualDayId];
+      if (assignments && assignments[timeSlot.id]) {
+        return teacher.name;
       }
     }
   }
