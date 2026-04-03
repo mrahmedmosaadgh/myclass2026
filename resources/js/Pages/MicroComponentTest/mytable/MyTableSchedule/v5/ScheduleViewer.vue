@@ -30,9 +30,9 @@ const store = useAppStore();
 
 // Resolve timing slots for this stage/day
 const { resolvedTimeSlots } = useTimingResolver(
-  store._timingsConfig,
-  store._selectedStage,
-  store._selectedDay,
+  store.timingsConfig,
+  store.selectedStage,
+  store.selectedDay,
   // fallback from schedule_timing.json
   [
     { id: 1, title: 'Period 1', type: 'lesson', start: '09:00', end: '09:30' },
@@ -45,6 +45,9 @@ const { resolvedTimeSlots } = useTimingResolver(
     { id: 6, title: 'Period 6', type: 'lesson', start: '12:25', end: '12:50' }
   ]
 );
+
+// Debug: Log resolved slots
+console.log('Resolved time slots:', resolvedTimeSlots.value);
 
 const viewMode = computed(() => store.currentViewMode.value);
 

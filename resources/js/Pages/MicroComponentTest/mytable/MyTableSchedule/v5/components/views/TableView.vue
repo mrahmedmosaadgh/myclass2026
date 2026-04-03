@@ -20,7 +20,7 @@
         </thead>
         <tbody>
           <tr
-            v-for="slot in resolvedTimeSlots.value"
+            v-for="slot in timeSlots"
             :key="slot.id"
             class="period-row"
             :class="{ 'break-row': slot.type === 'break' }"
@@ -56,11 +56,34 @@ import { useAppStore } from '../../composables/useAppStore';
 const store = useAppStore();
 const resolvedTimeSlots = inject('resolvedTimeSlots');
 
+// Debug: Check what we received
+console.log('TableView - resolvedTimeSlots:', resolvedTimeSlots);
+console.log('TableView - resolvedTimeSlots.value:', resolvedTimeSlots?.value);
+console.log('TableView - store.scheduleData:', store.scheduleData.value);
+
 const scheduleDays = computed(() => {
   return store.scheduleData.value.map(d => ({
     ...d,
     dayIndex: d.dayIndex ?? 0
   }));
+});
+
+// Fallback time slots in case inject fails
+const timeSlots = computed(() => {
+  if (resolvedTimeSlots?.value) {
+    return resolvedTimeSlots.value;
+  }
+  // Fallback static slots
+  return [
+    { id: 1, title: 'Period 1', type: 'lesson', start: '09:00', end: '09:30', startMin: 540, endMin: 570 },
+    { id: 2, title: 'Period 2', type: 'lesson', start: '09:30', end: '10:00', startMin: 570, endMin: 600 },
+    { id: 'b1', title: 'First Break', type: 'break', start: '10:00', end: '10:30', startMin: 600, endMin: 630 },
+    { id: 3, title: 'Period 3', type: 'lesson', start: '10:30', end: '11:00', startMin: 630, endMin: 660 },
+    { id: 4, title: 'Period 4', type: 'lesson', start: '11:00', end: '11:30', startMin: 660, endMin: 690 },
+    { id: 'b2', title: 'Second Break', type: 'break', start: '11:30', end: '12:00', startMin: 690, endMin: 720 },
+    { id: 5, title: 'Period 5', type: 'lesson', start: '12:00', end: '12:25', startMin: 720, endMin: 745 },
+    { id: 6, title: 'Period 6', type: 'lesson', start: '12:25', end: '12:50', startMin: 745, endMin: 770 }
+  ];
 });
 
 const isCurrentDay = (dayIndex) => {
@@ -80,7 +103,7 @@ const hasNafs = (periodNum, day) => {
 
 const getCellClass = (periodNum, dayIndex) => {
   if (!isCurrentDay(dayIndex)) return '';
-  const slot = resolvedTimeSlots.value.find(s => s.id === periodNum);
+  const slot = timeSlots.value.find(s => s.id === periodNum);
   if (!slot) return '';
   const now = store.currentTotalSecs.value;
   const start = slot.startMin * 60;
