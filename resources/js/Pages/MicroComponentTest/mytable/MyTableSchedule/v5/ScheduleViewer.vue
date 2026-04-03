@@ -48,7 +48,7 @@ const { resolvedTimeSlots } = useTimingResolver(
 
 const viewMode = computed(() => store.currentViewMode.value);
 
-// Provide resolved slots to all view components
+// Provide resolved time slots to child components
 provide('resolvedTimeSlots', resolvedTimeSlots);
 </script>
 
