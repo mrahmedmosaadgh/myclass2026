@@ -72,6 +72,21 @@
             <span class="menu-item-text">Home</span>
           </a>
           
+          <a href="#" @click.prevent="openViewSelector" class="menu-item">
+            <span class="menu-item-icon">👁️</span>
+            <span class="menu-item-text">Schedule View</span>
+          </a>
+          
+          <a href="#" @click.prevent="openTimingSelector" class="menu-item">
+            <span class="menu-item-icon">⏰</span>
+            <span class="menu-item-text">Choose Timing</span>
+          </a>
+          
+          <a href="#" @click.prevent="openTimeOverride" class="menu-item">
+            <span class="menu-item-icon">🕐</span>
+            <span class="menu-item-text">Test Time Override</span>
+          </a>
+          
           <a href="#" @click.prevent="openDataManager" class="menu-item">
             <span class="menu-item-icon">📁</span>
             <span class="menu-item-text">Data Manager</span>
@@ -216,6 +231,228 @@
         </div>
       </div>
     </div>
+  <!-- View Selector Modal -->
+    <div v-if="showViewSelectorModal" class="modal-overlay" @click="closeViewSelector">
+      <div class="modal-content view-selector-modal" @click.stop>
+        <div class="modal-header">
+          <h3>Choose Schedule View</h3>
+          <button @click="closeViewSelector" class="close-btn">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="view-options">
+            <button
+              v-for="view in viewOptions"
+              :key="view.id"
+              @click="selectView(view.id)"
+              :class="['view-option-btn', { active: currentView === view.id }]"
+            >
+              <div class="view-option-icon">{{ view.icon }}</div>
+              <div class="view-option-content">
+                <h4 class="view-option-title">{{ view.title }}</h4>
+                <p class="view-option-description">{{ view.description }}</p>
+                <div class="view-option-features">
+                  <span v-for="feature in view.features" :key="feature" class="feature-tag">
+                    {{ feature }}
+                  </span>
+                </div>
+              </div>
+              <div class="view-option-status">
+                <span v-if="currentView === view.id" class="current-indicator">✓ Current</span>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Timing Selector Modal -->
+    <div v-if="showTimingSelectorModal" class="modal-overlay" @click="closeTimingSelector">
+      <div class="modal-content timing-selector-modal" @click.stop>
+        <div class="modal-header">
+          <h3>Choose Timing Settings</h3>
+          <button @click="closeTimingSelector" class="close-btn">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="timing-selection">
+            <!-- Stage Selection -->
+            <div class="selection-section">
+              <h4 class="section-title">
+                <span class="section-icon">🏫</span>
+                Select Stage
+              </h4>
+              <div class="stage-grid">
+                <button
+                  v-for="stage in stageOptions"
+                  :key="stage"
+                  @click="selectedStage = stage"
+                  :class="['stage-btn', { active: selectedStage === stage }]"
+                >
+                  {{ stage }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Day Selection -->
+            <div class="selection-section">
+              <h4 class="section-title">
+                <span class="section-icon">📅</span>
+                Select Day
+              </h4>
+              <div class="day-grid">
+                <button
+                  v-for="day in dayOptions"
+                  :key="day"
+                  @click="selectedDay = day"
+                  :class="['day-btn', { active: selectedDay === day }]"
+                >
+                  {{ day }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Current Selection Display -->
+            <div class="current-selection">
+              <h4 class="section-title">
+                <span class="section-icon">✅</span>
+                Current Selection
+              </h4>
+              <div class="selection-display">
+                <div class="selection-item">
+                  <span class="selection-label">Stage:</span>
+                  <span class="selection-value">{{ selectedStage }}</span>
+                </div>
+                <div class="selection-item">
+                  <span class="selection-label">Day:</span>
+                  <span class="selection-value">{{ selectedDay }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="timing-actions">
+              <button @click="resetTimingSelection" class="action-btn secondary">
+                🔄 Reset to Default
+              </button>
+              <button @click="saveTimingSelection" class="action-btn primary">
+                💾 Save Selection
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Time Override Modal -->
+    <div v-if="showTimeOverrideModal" class="modal-overlay" @click="closeTimeOverride">
+      <div class="modal-content time-override-modal" @click.stop>
+        <div class="modal-header">
+          <h3>Test Time Override</h3>
+          <button @click="closeTimeOverride" class="close-btn">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="time-override-content">
+            <!-- Current Status -->
+            <div class="override-status">
+              <div class="status-indicator" :class="{ active: isTimeOverrideActive }">
+                <span class="status-icon">{{ isTimeOverrideActive ? '🔴' : '⚪' }}</span>
+                <span class="status-text">
+                  {{ isTimeOverrideActive ? 'Override Active' : 'Using Real Time' }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Real Time Display -->
+            <div class="time-display-section">
+              <h4 class="section-title">
+                <span class="section-icon">🕐</span>
+                Current Real Time
+              </h4>
+              <div class="time-display">
+                <div class="time-value">{{ formatTime(currentRealTime) }}</div>
+                <div class="time-date">{{ formatDate(currentRealTime) }}</div>
+              </div>
+            </div>
+
+            <!-- Override Time Input -->
+            <div class="override-input-section">
+              <h4 class="section-title">
+                <span class="section-icon">⏰</span>
+                Override Time
+              </h4>
+              <div class="time-input-grid">
+                <div class="input-group">
+                  <label class="input-label">Date</label>
+                  <input
+                    v-model="overrideDate"
+                    type="date"
+                    class="time-input"
+                    :max="maxDate"
+                  />
+                </div>
+                <div class="input-group">
+                  <label class="input-label">Time</label>
+                  <input
+                    v-model="overrideTime"
+                    type="time"
+                    class="time-input"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Quick Time Options -->
+            <div class="quick-time-section">
+              <h4 class="section-title">
+                <span class="section-icon">⚡</span>
+                Quick Time Options
+              </h4>
+              <div class="quick-time-grid">
+                <button
+                  v-for="option in quickTimeOptions"
+                  :key="option.id"
+                  @click="setQuickTime(option)"
+                  class="quick-time-btn"
+                >
+                  <span class="quick-time-icon">{{ option.icon }}</span>
+                  <span class="quick-time-label">{{ option.label }}</span>
+                  <span class="quick-time-desc">{{ option.description }}</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Override Time Display -->
+            <div v-if="overrideDateTime" class="override-time-display">
+              <h4 class="section-title">
+                <span class="section-icon">🎯</span>
+                Override Time Will Be
+              </h4>
+              <div class="time-display override">
+                <div class="time-value">{{ formatTime(overrideDateTime) }}</div>
+                <div class="time-date">{{ formatDate(overrideDateTime) }}</div>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="time-override-actions">
+              <button
+                v-if="isTimeOverrideActive"
+                @click="disableTimeOverride"
+                class="action-btn danger"
+              >
+                ⏹️ Disable Override
+              </button>
+              <button
+                @click="enableTimeOverride"
+                :disabled="!overrideDateTime"
+                class="action-btn primary"
+              >
+                ▶️ Enable Override
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -235,17 +472,138 @@ const showMenu = ref(false);
 const showSettingsModal = ref(false);
 const showAboutModal = ref(false);
 const showDataManagerModal = ref(false);
+const showViewSelectorModal = ref(false);
+const showTimingSelectorModal = ref(false);
+const showTimeOverrideModal = ref(false);
 const isScrolled = ref(false);
 const showScrollToTop = ref(false);
 const isOnline = ref(navigator.onLine);
 const showNotifyBtn = ref(false);
 const activeBottomNav = ref('home');
+const currentView = ref('card');
+const selectedStage = ref('Primary 1');
+const selectedDay = ref('Monday');
+const overrideDate = ref('');
+const overrideTime = ref('');
+const currentRealTime = ref(new Date());
 let deferredPrompt = null;
 let scrollTimeout = null;
+let realTimeInterval = null;
 
 const { exportAllData } = useDataImportExport();
 
 const manifestHref = computed(() => '/my-fly-schedule-app/v4/manifest.webmanifest');
+
+// Computed properties
+const isTimeOverrideActive = computed(() => {
+  return localStorage.getItem('schedule-v4-time-override') !== null;
+});
+
+const overrideDateTime = computed(() => {
+  if (overrideDate.value && overrideTime.value) {
+    return new Date(`${overrideDate.value}T${overrideTime.value}`);
+  }
+  return null;
+});
+
+const maxDate = computed(() => {
+  const today = new Date();
+  return today.toISOString().split('T')[0];
+});
+
+// Stage and Day options
+const stageOptions = [
+  'KG 1', 'KG 2', 'Primary 1', 'Primary 2', 'Primary 3', 
+  'Primary 4', 'Primary 5', 'Primary 6', 'Prep 1', 'Prep 2', 'Prep 3'
+];
+
+const dayOptions = [
+  'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
+];
+
+// Quick time options
+const quickTimeOptions = [
+  {
+    id: 'now',
+    icon: '🕐',
+    label: 'Now',
+    description: 'Current time'
+  },
+  {
+    id: 'morning',
+    icon: '🌅',
+    label: 'Morning',
+    description: '8:00 AM'
+  },
+  {
+    id: 'start',
+    icon: '🏫',
+    label: 'School Start',
+    description: '7:30 AM'
+  },
+  {
+    id: 'first',
+    icon: '1️⃣',
+    label: 'First Period',
+    description: '8:00 AM'
+  },
+  {
+    id: 'break',
+    icon: '☕',
+    label: 'Break Time',
+    description: '10:00 AM'
+  },
+  {
+    id: 'lunch',
+    icon: '🍽️',
+    label: 'Lunch Time',
+    description: '12:00 PM'
+  },
+  {
+    id: 'afternoon',
+    icon: '🌇',
+    label: 'Afternoon',
+    description: '2:00 PM'
+  },
+  {
+    id: 'end',
+    icon: '🏁',
+    label: 'School End',
+    description: '3:00 PM'
+  }
+];
+
+// View options for the selector
+const viewOptions = [
+  {
+    id: 'card',
+    icon: '🎴',
+    title: 'Card View',
+    description: 'Visual cards with detailed information for each period',
+    features: ['Visual', 'Detailed', 'Mobile Friendly']
+  },
+  {
+    id: 'table',
+    icon: '📊',
+    title: 'Table View',
+    description: 'Compact table layout for quick overview',
+    features: ['Compact', 'Overview', 'Printable']
+  },
+  {
+    id: 'list',
+    icon: '📋',
+    title: 'List View',
+    description: 'Simple list format for easy scanning',
+    features: ['Simple', 'Scannable', 'Minimal']
+  },
+  {
+    id: 'master',
+    icon: '🏫',
+    title: 'School View',
+    description: 'Complete school timetable with all stages and teachers',
+    features: ['Complete', 'Administrative', 'All Data']
+  }
+];
 
 // Bottom navigation items
 const bottomNavItems = [
@@ -332,6 +690,224 @@ const showAbout = () => {
 const closeAbout = () => {
   showAboutModal.value = false;
   showMenu.value = false;
+};
+
+const openViewSelector = () => {
+  showViewSelectorModal.value = true;
+  showMenu.value = false;
+  
+  // Load current view from localStorage
+  const savedView = localStorage.getItem('schedule-v4-current-view');
+  if (savedView) {
+    currentView.value = savedView;
+  }
+};
+
+const closeViewSelector = () => {
+  showViewSelectorModal.value = false;
+};
+
+const selectView = (viewId) => {
+  currentView.value = viewId;
+  localStorage.setItem('schedule-v4-current-view', viewId);
+  
+  // Emit event to child component to change view
+  const event = new CustomEvent('view-change', { detail: { view: viewId } });
+  window.dispatchEvent(event);
+  
+  // Show notification
+  const selectedView = viewOptions.find(v => v.id === viewId);
+  handleNotification('View Changed', `Switched to ${selectedView.title}`);
+  
+  closeViewSelector();
+};
+
+const openTimingSelector = () => {
+  showTimingSelectorModal.value = true;
+  showMenu.value = false;
+  
+  // Load current timing selection from localStorage
+  const savedStage = localStorage.getItem('schedule-v4-selected-stage');
+  const savedDay = localStorage.getItem('schedule-v4-selected-day');
+  
+  if (savedStage && stageOptions.includes(savedStage)) {
+    selectedStage.value = savedStage;
+  }
+  if (savedDay && dayOptions.includes(savedDay)) {
+    selectedDay.value = savedDay;
+  }
+};
+
+const closeTimingSelector = () => {
+  showTimingSelectorModal.value = false;
+};
+
+const resetTimingSelection = () => {
+  selectedStage.value = 'Primary 1';
+  selectedDay.value = 'Monday';
+  
+  // Clear saved preferences
+  localStorage.removeItem('schedule-v4-selected-stage');
+  localStorage.removeItem('schedule-v4-selected-day');
+  
+  // Emit event to child component
+  const event = new CustomEvent('timing-change', { 
+    detail: { stage: selectedStage.value, day: selectedDay.value, reset: true } 
+  });
+  window.dispatchEvent(event);
+  
+  handleNotification('Timing Reset', 'Reset to default timing settings');
+};
+
+const saveTimingSelection = () => {
+  // Save to localStorage
+  localStorage.setItem('schedule-v4-selected-stage', selectedStage.value);
+  localStorage.setItem('schedule-v4-selected-day', selectedDay.value);
+  
+  // Emit event to child component
+  const event = new CustomEvent('timing-change', { 
+    detail: { stage: selectedStage.value, day: selectedDay.value, reset: false } 
+  });
+  window.dispatchEvent(event);
+  
+  // Show notification
+  handleNotification('Timing Saved', `Stage: ${selectedStage.value}, Day: ${selectedDay.value}`);
+  
+  closeTimingSelector();
+};
+
+const openTimeOverride = () => {
+  showTimeOverrideModal.value = true;
+  showMenu.value = false;
+  
+  // Load current override if exists
+  const savedOverride = localStorage.getItem('schedule-v4-time-override');
+  if (savedOverride) {
+    const overrideDate = new Date(savedOverride);
+    overrideDate.value = overrideDate.toISOString().split('T')[0];
+    overrideTime.value = overrideDate.toTimeString().slice(0, 5);
+  } else {
+    // Set default to current time
+    const now = new Date();
+    overrideDate.value = now.toISOString().split('T')[0];
+    overrideTime.value = now.toTimeString().slice(0, 5);
+  }
+  
+  // Start real-time clock
+  startRealTimeClock();
+};
+
+const closeTimeOverride = () => {
+  showTimeOverrideModal.value = false;
+  stopRealTimeClock();
+};
+
+const startRealTimeClock = () => {
+  currentRealTime.value = new Date();
+  realTimeInterval = setInterval(() => {
+    currentRealTime.value = new Date();
+  }, 1000);
+};
+
+const stopRealTimeClock = () => {
+  if (realTimeInterval) {
+    clearInterval(realTimeInterval);
+    realTimeInterval = null;
+  }
+};
+
+const setQuickTime = (option) => {
+  const now = new Date();
+  const date = now.toISOString().split('T')[0];
+  
+  switch (option.id) {
+    case 'now':
+      overrideDate.value = date;
+      overrideTime.value = now.toTimeString().slice(0, 5);
+      break;
+    case 'morning':
+      overrideDate.value = date;
+      overrideTime.value = '08:00';
+      break;
+    case 'start':
+      overrideDate.value = date;
+      overrideTime.value = '07:30';
+      break;
+    case 'first':
+      overrideDate.value = date;
+      overrideTime.value = '08:00';
+      break;
+    case 'break':
+      overrideDate.value = date;
+      overrideTime.value = '10:00';
+      break;
+    case 'lunch':
+      overrideDate.value = date;
+      overrideTime.value = '12:00';
+      break;
+    case 'afternoon':
+      overrideDate.value = date;
+      overrideTime.value = '14:00';
+      break;
+    case 'end':
+      overrideDate.value = date;
+      overrideTime.value = '15:00';
+      break;
+  }
+};
+
+const enableTimeOverride = () => {
+  if (overrideDateTime.value) {
+    const overrideString = overrideDateTime.value.toISOString();
+    localStorage.setItem('schedule-v4-time-override', overrideString);
+    
+    // Emit event to child components
+    const event = new CustomEvent('time-override-change', { 
+      detail: { 
+        isActive: true, 
+        overrideTime: overrideDateTime.value,
+        realTime: currentRealTime.value
+      } 
+    });
+    window.dispatchEvent(event);
+    
+    handleNotification('Time Override Enabled', `Override set to ${formatTime(overrideDateTime.value)}`);
+    closeTimeOverride();
+  }
+};
+
+const disableTimeOverride = () => {
+  localStorage.removeItem('schedule-v4-time-override');
+  
+  // Emit event to child components
+  const event = new CustomEvent('time-override-change', { 
+    detail: { 
+      isActive: false, 
+      overrideTime: null,
+      realTime: currentRealTime.value
+    } 
+  });
+  window.dispatchEvent(event);
+  
+  handleNotification('Time Override Disabled', 'Now using real time');
+  closeTimeOverride();
+};
+
+const formatTime = (date) => {
+  return date.toLocaleTimeString('en-US', { 
+    hour: '2-digit', 
+    minute: '2-digit',
+    hour12: true 
+  });
+};
+
+const formatDate = (date) => {
+  return date.toLocaleDateString('en-US', { 
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
 };
 
 const clearCache = () => {
@@ -521,6 +1097,9 @@ onUnmounted(() => {
   if (scrollTimeout) {
     clearTimeout(scrollTimeout);
   }
+  
+  // Clean up real-time clock
+  stopRealTimeClock();
 });
 </script>
 
@@ -1164,5 +1743,502 @@ onUnmounted(() => {
 .close-btn:focus-visible {
   outline: 2px solid #60a5fa;
   outline-offset: 2px;
+}
+
+/* View Selector Modal */
+.view-selector-modal {
+  max-width: 600px;
+  width: 90%;
+}
+
+.view-options {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.view-option-btn {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: #1e293b;
+  border: 2px solid #334155;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: left;
+  width: 100%;
+}
+
+.view-option-btn:hover {
+  border-color: #3b82f6;
+  background: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.view-option-btn.active {
+  border-color: #10b981;
+  background: #059669;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.view-option-icon {
+  font-size: 2.5rem;
+  opacity: 0.9;
+  flex-shrink: 0;
+}
+
+.view-option-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.view-option-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #f1f5f9;
+  margin: 0 0 0.5rem 0;
+}
+
+.view-option-description {
+  font-size: 0.875rem;
+  color: #94a3b8;
+  margin: 0 0 0.75rem 0;
+  line-height: 1.4;
+}
+
+.view-option-features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.feature-tag {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+  border-radius: 999px;
+  font-weight: 500;
+}
+
+.view-option-btn.active .feature-tag {
+  background: rgba(16, 185, 129, 0.2);
+  color: #86efac;
+}
+
+.view-option-status {
+  flex-shrink: 0;
+}
+
+.current-indicator {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.2);
+  padding: 0.375rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+/* Mobile optimizations for view selector */
+@media (max-width: 640px) {
+  .view-option-btn {
+    padding: 1rem;
+    gap: 0.75rem;
+  }
+  
+  .view-option-icon {
+    font-size: 2rem;
+  }
+  
+  .view-option-title {
+    font-size: 1rem;
+  }
+  
+  .view-option-description {
+    font-size: 0.8rem;
+  }
+  
+  .view-option-features {
+    gap: 0.375rem;
+  }
+  
+  .feature-tag {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.4rem;
+  }
+  
+  .current-indicator {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+  }
+}
+
+/* Timing Selector Modal */
+.timing-selector-modal {
+  max-width: 500px;
+  width: 90%;
+}
+
+.timing-selection {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.selection-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #f1f5f9;
+  margin: 0;
+}
+
+.section-icon {
+  font-size: 1.25rem;
+}
+
+.stage-grid,
+.day-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.75rem;
+}
+
+.stage-btn,
+.day-btn {
+  padding: 0.75rem 1rem;
+  background: #1e293b;
+  border: 2px solid #334155;
+  border-radius: 8px;
+  color: #cbd5e1;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.stage-btn:hover,
+.day-btn:hover {
+  border-color: #3b82f6;
+  background: #2563eb;
+  color: white;
+  transform: translateY(-1px);
+}
+
+.stage-btn.active,
+.day-btn.active {
+  border-color: #10b981;
+  background: #059669;
+  color: white;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.current-selection {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.selection-display {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.selection-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+}
+
+.selection-label {
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.selection-value {
+  font-weight: 600;
+  color: #f1f5f9;
+  background: rgba(59, 130, 246, 0.2);
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+}
+
+.timing-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.action-btn {
+  flex: 1;
+  padding: 0.875rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.action-btn.secondary {
+  background: #475569;
+  color: white;
+}
+
+.action-btn.secondary:hover {
+  background: #334155;
+}
+
+.action-btn.primary {
+  background: #3b82f6;
+  color: white;
+}
+
+.action-btn.primary:hover {
+  background: #2563eb;
+}
+
+/* Mobile optimizations for timing selector */
+@media (max-width: 640px) {
+  .timing-selector-modal {
+    width: 95%;
+  }
+  
+  .stage-grid,
+  .day-grid {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 0.5rem;
+  }
+  
+  .stage-btn,
+  .day-btn {
+    padding: 0.625rem 0.75rem;
+    font-size: 0.875rem;
+  }
+  
+  .section-title {
+    font-size: 1rem;
+  }
+  
+  .timing-actions {
+    flex-direction: column;
+  }
+  
+  .action-btn {
+    padding: 0.75rem 1rem;
+  }
+}
+
+/* Time Override Modal */
+.time-override-modal {
+  max-width: 600px;
+  width: 90%;
+}
+
+.time-override-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.override-status {
+  text-align: center;
+  padding: 1rem;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 12px;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.status-indicator.active {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.status-icon {
+  font-size: 1.25rem;
+}
+
+.time-display-section,
+.override-input-section,
+.quick-time-section,
+.override-time-display {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.time-display {
+  text-align: center;
+  padding: 1.5rem;
+  background: #1e293b;
+  border: 2px solid #334155;
+  border-radius: 12px;
+}
+
+.time-display.override {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.time-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #60a5fa;
+  margin-bottom: 0.5rem;
+}
+
+.time-date {
+  font-size: 1rem;
+  color: #94a3b8;
+}
+
+.time-input-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.input-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.time-input {
+  padding: 0.75rem;
+  background: #1e293b;
+  border: 2px solid #334155;
+  border-radius: 8px;
+  color: #f1f5f9;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.time-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.quick-time-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.quick-time-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: #1e293b;
+  border: 2px solid #334155;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.quick-time-btn:hover {
+  border-color: #3b82f6;
+  background: #2563eb;
+  transform: translateY(-2px);
+}
+
+.quick-time-icon {
+  font-size: 1.5rem;
+}
+
+.quick-time-label {
+  font-weight: 600;
+  color: #f1f5f9;
+  font-size: 0.875rem;
+}
+
+.quick-time-desc {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.time-override-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.action-btn.danger {
+  background: #ef4444;
+  color: white;
+}
+
+.action-btn.danger:hover {
+  background: #dc2626;
+}
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Mobile optimizations for time override */
+@media (max-width: 640px) {
+  .time-override-modal {
+    width: 95%;
+  }
+  
+  .time-input-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .quick-time-grid {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.5rem;
+  }
+  
+  .quick-time-btn {
+    padding: 0.75rem;
+  }
+  
+  .time-value {
+    font-size: 1.5rem;
+  }
+  
+  .time-override-actions {
+    flex-direction: column;
+  }
+  
+  .action-btn {
+    padding: 0.75rem 1rem;
+  }
 }
 </style>

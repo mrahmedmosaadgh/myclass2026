@@ -1,15 +1,33 @@
 <template>
   <div class="data-manager">
     <div class="manager-header">
-      <h3 class="manager-title">📁 Data Management</h3>
-      <p class="manager-subtitle">Export and import your schedule data</p>
+      <h3 class="manager-title">📁 Data Manager</h3>
+      <p class="manager-subtitle">Manage your schedule data with import and export</p>
     </div>
 
-    <!-- Export Section -->
-    <div class="section">
-      <h4 class="section-title">📤 Export Data</h4>
-      
-      <div class="export-options">
+    <!-- Tab Navigation -->
+    <div class="tab-navigation">
+      <button 
+        v-for="tab in tabs" 
+        :key="tab.id"
+        :class="['tab-btn', { active: activeTab === tab.id }]"
+        @click="activeTab = tab.id"
+      >
+        <span class="tab-icon">{{ tab.icon }}</span>
+        <span class="tab-label">{{ tab.label }}</span>
+        <span class="tab-desc">{{ tab.description }}</span>
+      </button>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+      <!-- Export Tab -->
+      <div v-if="activeTab === 'export'" class="tab-panel">
+        <div class="panel-header">
+          <h4 class="panel-title">📤 Export Data</h4>
+          <p class="panel-subtitle">Download your schedule data in various formats</p>
+        </div>
+        
         <!-- Namecode Input -->
         <div class="namecode-input">
           <label class="input-label">Name Code (optional):</label>
@@ -23,6 +41,7 @@
           <small class="input-hint">Used in filename: datatype_namecode_timestamp.json</small>
         </div>
 
+        <!-- Smart Export Builder -->
         <div class="smart-panel">
           <div class="smart-panel-header">
             <h5 class="smart-panel-title">Smart Export Builder</h5>
@@ -94,232 +113,246 @@
           </div>
         </div>
 
-        <!-- Export Buttons -->
-        <div class="export-buttons">
-          <button
-            @click="exportPersonal"
-            :disabled="isExporting"
-            class="export-btn personal"
-          >
-            <span class="btn-icon">👤</span>
-            <span class="btn-text">Personal Schedule</span>
-            <span class="btn-desc">Your classes and timings</span>
-          </button>
+        <!-- Quick Export Buttons -->
+        <div class="export-section">
+          <h5 class="section-subtitle">Quick Export</h5>
+          <div class="export-buttons">
+            <button
+              @click="exportPersonal"
+              :disabled="isExporting"
+              class="export-btn personal"
+            >
+              <span class="btn-icon">👤</span>
+              <span class="btn-text">Personal Schedule</span>
+              <span class="btn-desc">Your classes and timings</span>
+            </button>
 
-          <button
-            @click="exportSchool"
-            :disabled="isExporting"
-            class="export-btn school"
-          >
-            <span class="btn-icon">🏫</span>
-            <span class="btn-text">School Timetable</span>
-            <span class="btn-desc">All teachers and stages</span>
-          </button>
+            <button
+              @click="exportSchool"
+              :disabled="isExporting"
+              class="export-btn school"
+            >
+              <span class="btn-icon">🏫</span>
+              <span class="btn-text">School Timetable</span>
+              <span class="btn-desc">All teachers and stages</span>
+            </button>
 
-          <button
-            @click="exportSettings"
-            :disabled="isExporting"
-            class="export-btn settings"
-          >
-            <span class="btn-icon">⚙️</span>
-            <span class="btn-text">App Settings</span>
-            <span class="btn-desc">Preferences and config</span>
-          </button>
+            <button
+              @click="exportSettings"
+              :disabled="isExporting"
+              class="export-btn settings"
+            >
+              <span class="btn-icon">⚙️</span>
+              <span class="btn-text">App Settings</span>
+              <span class="btn-desc">Preferences and config</span>
+            </button>
 
-          <button
-            @click="exportAll"
-            :disabled="isExporting"
-            class="export-btn all"
-          >
-            <span class="btn-icon">📦</span>
-            <span class="btn-text">Complete Backup</span>
-            <span class="btn-desc">All data in 3 files</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Export Progress -->
-      <div v-if="isExporting" class="progress-section">
-        <div class="progress-bar">
-          <div 
-            class="progress-fill" 
-            :style="{ width: `${exportProgress}%` }"
-          ></div>
-        </div>
-        <p class="progress-text">Exporting... {{ exportProgress }}%</p>
-      </div>
-
-      <!-- Export Results -->
-      <div v-if="exportResults.length > 0" class="results-section">
-        <h5 class="results-title">✅ Export Complete</h5>
-        <div class="results-list">
-          <div
-            v-for="result in exportResults"
-            :key="result.filename"
-            class="result-item"
-          >
-            <span class="result-icon">📄</span>
-            <span class="result-filename">{{ result.filename }}</span>
-            <span class="result-size">{{ formatFileSize(result.size) }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Import Section -->
-    <div class="section">
-      <h4 class="section-title">📥 Import Data</h4>
-
-      <div class="paste-import-panel">
-        <div class="paste-header-row">
-          <div>
-            <h5 class="paste-title">Paste Data Directly</h5>
-            <p class="paste-subtitle">Choose what the pasted JSON is for, preview it, validate it, then accept and update.</p>
+            <button
+              @click="exportAll"
+              :disabled="isExporting"
+              class="export-btn all"
+            >
+              <span class="btn-icon">📦</span>
+              <span class="btn-text">Complete Backup</span>
+              <span class="btn-desc">All data in 3 files</span>
+            </button>
           </div>
         </div>
 
-        <div class="import-target-grid">
-          <button
-            v-for="target in importTargets"
-            :key="target.id"
-            type="button"
-            class="target-card"
-            :class="{ active: pasteTarget === target.id }"
-            @click="pasteTarget = target.id"
-          >
-            <span class="target-title">{{ target.label }}</span>
-            <span class="target-desc">{{ target.description }}</span>
-            <span class="target-example">{{ target.example }}</span>
-          </button>
-        </div>
-
-        <label class="input-label" for="paste-json-input">Paste JSON</label>
-        <textarea
-          id="paste-json-input"
-          v-model="pastedJson"
-          class="paste-textarea"
-          placeholder='Paste valid JSON here, for example: { "schedule": [], "timings": [] }'
-          spellcheck="false"
-        ></textarea>
-        <small class="input-hint">Available options: personal schedule, school timetable, timing only, and app settings.</small>
-
-        <div v-if="pasteValidationMessage" class="paste-validation" :class="{ error: pasteValidationState === 'error', success: pasteValidationState === 'success' }">
-          {{ pasteValidationMessage }}
-        </div>
-
-        <div class="paste-actions">
-          <button
-            type="button"
-            class="browse-btn secondary"
-            @click="pasteFromClipboard"
-          >
-            Paste
-          </button>
-          <button
-            type="button"
-            class="browse-btn secondary"
-            @click="previewPastedJson"
-          >
-            View Data
-          </button>
-          <button
-            type="button"
-            class="browse-btn secondary"
-            @click="validatePastedJson"
-          >
-            Validate Paste
-          </button>
-          <button
-            type="button"
-            class="import-btn"
-            :disabled="isImporting || !pasteTarget || !pastedJson.trim() || !pastedJsonValidated"
-            @click="acceptPastedData"
-          >
-            <span v-if="!isImporting">Accept & Update</span>
-            <span v-else>Updating... {{ importProgress }}%</span>
-          </button>
-        </div>
-
-        <div v-if="pastedPreview" class="json-preview-panel import-preview-panel">
-          <div class="json-preview-header">
-            <span class="files-title">Import Preview</span>
-            <span class="preview-filename">{{ pasteTarget }}</span>
+        <!-- Export Progress -->
+        <div v-if="isExporting" class="progress-section">
+          <div class="progress-bar">
+            <div 
+              class="progress-fill" 
+              :style="{ width: `${exportProgress}%` }"
+            ></div>
           </div>
-          <pre class="json-preview">{{ pastedPreview }}</pre>
+          <p class="progress-text">Exporting... {{ exportProgress }}%</p>
         </div>
-      </div>
-      
-      <div class="import-area" :class="{ 'drag-over': isDragOver }" @drop="handleDrop" @dragover.prevent @dragleave="isDragOver = false" @dragenter.prevent="isDragOver = true">
-        <div class="import-content">
-          <div class="import-icon">📁</div>
-          <p class="import-text">Drop JSON files here or click to browse</p>
-          <p class="import-hint">Supports: personal_schedule, school_timetable, stage_day_timings, app_settings</p>
-          
-          <input
-            ref="fileInput"
-            type="file"
-            accept=".json"
-            multiple
-            @change="handleFileSelect"
-            class="file-input"
-          />
-          
-          <button @click="openFilePicker" class="browse-btn">
-            Browse Files
-          </button>
+
+        <!-- Export Results -->
+        <div v-if="exportResults.length > 0" class="results-section">
+          <h5 class="results-title">✅ Export Complete</h5>
+          <div class="results-list">
+            <div
+              v-for="result in exportResults"
+              :key="result.filename"
+              class="result-item"
+            >
+              <span class="result-icon">📄</span>
+              <span class="result-filename">{{ result.filename }}</span>
+              <span class="result-size">{{ formatFileSize(result.size) }}</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Selected Files -->
-      <div v-if="selectedFiles.length > 0" class="selected-files">
-        <h5 class="files-title">Selected Files:</h5>
-        <div class="files-list">
-          <div
-            v-for="(file, index) in selectedFiles"
-            :key="index"
-            class="file-item"
-          >
-            <span class="file-icon">📄</span>
-            <span class="file-name">{{ file.name }}</span>
-            <span class="file-size">{{ formatFileSize(file.size) }}</span>
-            <button @click="removeFile(index)" class="remove-btn">×</button>
+      <!-- Import Tab -->
+      <div v-if="activeTab === 'import'" class="tab-panel">
+        <div class="panel-header">
+          <h4 class="panel-title">📥 Import Data</h4>
+          <p class="panel-subtitle">Restore or update your schedule from files or clipboard</p>
+        </div>
+
+        <!-- Paste Import Section -->
+        <div class="import-section">
+          <h5 class="section-subtitle">Import from Clipboard</h5>
+          <div class="paste-import-panel">
+            <div class="paste-header-row">
+              <div>
+                <h5 class="paste-title">Paste Data Directly</h5>
+                <p class="paste-subtitle">Choose what the pasted JSON is for, preview it, validate it, then accept and update.</p>
+              </div>
+            </div>
+
+            <div class="import-target-grid">
+              <button
+                v-for="target in importTargets"
+                :key="target.id"
+                type="button"
+                class="target-card"
+                :class="{ active: pasteTarget === target.id }"
+                @click="pasteTarget = target.id"
+              >
+                <span class="target-title">{{ target.label }}</span>
+                <span class="target-desc">{{ target.description }}</span>
+                <span class="target-example">{{ target.example }}</span>
+              </button>
+            </div>
+
+            <label class="input-label" for="paste-json-input">Paste JSON</label>
+            <textarea
+              id="paste-json-input"
+              v-model="pastedJson"
+              class="paste-textarea"
+              placeholder='Paste valid JSON here, for example: { "schedule": [], "timings": [] }'
+              spellcheck="false"
+            ></textarea>
+            <small class="input-hint">Available options: personal schedule, school timetable, timing only, and app settings.</small>
+
+            <div v-if="pasteValidationMessage" class="paste-validation" :class="{ error: pasteValidationState === 'error', success: pasteValidationState === 'success' }">
+              {{ pasteValidationMessage }}
+            </div>
+
+            <div class="paste-actions">
+              <button
+                type="button"
+                class="browse-btn secondary"
+                @click="pasteFromClipboard"
+              >
+                📋 Paste
+              </button>
+              <button
+                type="button"
+                class="browse-btn secondary"
+                @click="previewPastedJson"
+              >
+                👁️ View Data
+              </button>
+              <button
+                type="button"
+                class="browse-btn secondary"
+                @click="validatePastedJson"
+              >
+                ✅ Validate
+              </button>
+              <button
+                type="button"
+                class="import-btn"
+                :disabled="isImporting || !pasteTarget || !pastedJson.trim() || !pastedJsonValidated"
+                @click="acceptPastedData"
+              >
+                <span v-if="!isImporting">📥 Accept & Update</span>
+                <span v-else>⏳ Updating... {{ importProgress }}%</span>
+              </button>
+            </div>
+
+            <div v-if="pastedPreview" class="json-preview-panel import-preview-panel">
+              <div class="json-preview-header">
+                <span class="files-title">Import Preview</span>
+                <span class="preview-filename">{{ pasteTarget }}</span>
+              </div>
+              <pre class="json-preview">{{ pastedPreview }}</pre>
+            </div>
           </div>
         </div>
         
-        <button
-          @click="importSelectedFiles"
-          :disabled="isImporting || selectedFiles.length === 0"
-          class="import-btn"
-        >
-          <span v-if="!isImporting">📥 Import {{ selectedFiles.length }} File(s)</span>
-          <span v-else>Importing... {{ importProgress }}%</span>
-        </button>
-      </div>
+        <!-- File Import Section -->
+        <div class="import-section">
+          <h5 class="section-subtitle">Import from Files</h5>
+          <div class="import-area" :class="{ 'drag-over': isDragOver }" @drop="handleDrop" @dragover.prevent @dragleave="isDragOver = false" @dragenter.prevent="isDragOver = true">
+            <div class="import-content">
+              <div class="import-icon">📁</div>
+              <p class="import-text">Drop JSON files here or click to browse</p>
+              <p class="import-hint">Supports: personal_schedule, school_timetable, stage_day_timings, app_settings</p>
+              
+              <input
+                ref="fileInput"
+                type="file"
+                accept=".json"
+                multiple
+                @change="handleFileSelect"
+                class="file-input"
+              />
+              
+              <button @click="openFilePicker" class="browse-btn">
+                📂 Browse Files
+              </button>
+            </div>
+          </div>
 
-      <!-- Import Progress -->
-      <div v-if="isImporting" class="progress-section">
-        <div class="progress-bar">
-          <div 
-            class="progress-fill" 
-            :style="{ width: `${importProgress}%` }"
-          ></div>
+          <!-- Selected Files -->
+          <div v-if="selectedFiles.length > 0" class="selected-files">
+            <h5 class="files-title">Selected Files:</h5>
+            <div class="files-list">
+              <div
+                v-for="(file, index) in selectedFiles"
+                :key="index"
+                class="file-item"
+              >
+                <span class="file-icon">📄</span>
+                <span class="file-name">{{ file.name }}</span>
+                <span class="file-size">{{ formatFileSize(file.size) }}</span>
+                <button @click="removeFile(index)" class="remove-btn">×</button>
+              </div>
+            </div>
+            
+            <button
+              @click="importSelectedFiles"
+              :disabled="isImporting || selectedFiles.length === 0"
+              class="import-btn"
+            >
+              <span v-if="!isImporting">📥 Import {{ selectedFiles.length }} File(s)</span>
+              <span v-else>⏳ Importing... {{ importProgress }}%</span>
+            </button>
+          </div>
         </div>
-        <p class="progress-text">Importing... {{ importProgress }}%</p>
-      </div>
 
-      <!-- Import Results -->
-      <div v-if="importResults.length > 0" class="results-section">
-        <h5 class="results-title">📋 Import Results</h5>
-        <div class="results-list">
-          <div
-            v-for="result in importResults"
-            :key="result.filename"
-            class="result-item"
-            :class="{ 'error': !result.success }"
-          >
-            <span class="result-icon">{{ result.success ? '✅' : '❌' }}</span>
-            <span class="result-filename">{{ result.filename }}</span>
-            <span class="result-message">{{ result.message }}</span>
+        <!-- Import Progress -->
+        <div v-if="isImporting" class="progress-section">
+          <div class="progress-bar">
+            <div 
+              class="progress-fill" 
+              :style="{ width: `${importProgress}%` }"
+            ></div>
+          </div>
+          <p class="progress-text">Importing... {{ importProgress }}%</p>
+        </div>
+
+        <!-- Import Results -->
+        <div v-if="importResults.length > 0" class="results-section">
+          <h5 class="results-title">📋 Import Results</h5>
+          <div class="results-list">
+            <div
+              v-for="result in importResults"
+              :key="result.filename"
+              class="result-item"
+              :class="{ 'error': !result.success }"
+            >
+              <span class="result-icon">{{ result.success ? '✅' : '❌' }}</span>
+              <span class="result-filename">{{ result.filename }}</span>
+              <span class="result-message">{{ result.message }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -342,6 +375,23 @@ import { ref, watch } from 'vue';
 import { useDataImportExport } from '../composables/useDataImportExport.js';
 
 const emit = defineEmits(['notification']);
+
+// Tab state
+const activeTab = ref('export');
+const tabs = [
+  {
+    id: 'export',
+    icon: '📤',
+    label: 'Export',
+    description: 'Download your data'
+  },
+  {
+    id: 'import',
+    icon: '📥',
+    label: 'Import',
+    description: 'Restore data'
+  }
+];
 
 // Import/Export composable
 const {
@@ -689,7 +739,7 @@ const formatFileSize = (bytes) => {
 
 <style scoped>
 .data-manager {
-  max-width: 600px;
+  max-width: 700px;
   margin: 0 auto;
   padding: 1.5rem;
   background: white;
@@ -715,12 +765,95 @@ const formatFileSize = (bytes) => {
   margin: 0;
 }
 
-.section {
+/* Tab Navigation */
+.tab-navigation {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  background: #f8fafc;
+  padding: 0.25rem;
+  border-radius: 12px;
+}
+
+.tab-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 0.75rem;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #64748b;
+}
+
+.tab-btn:hover {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+
+.tab-btn.active {
+  background: white;
+  color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tab-icon {
+  font-size: 1.5rem;
+}
+
+.tab-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.tab-desc {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+/* Tab Content */
+.tab-content {
+  min-height: 400px;
+}
+
+.tab-panel {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.panel-header {
+  text-align: center;
   margin-bottom: 2rem;
 }
 
-.section-title {
-  font-size: 1.125rem;
+.panel-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 0.5rem 0;
+}
+
+.panel-subtitle {
+  color: #475569;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.import-section,
+.export-section {
+  margin-bottom: 2rem;
+}
+
+.section-subtitle {
+  font-size: 1rem;
   font-weight: 600;
   color: #1e293b;
   margin: 0 0 1rem 0;
@@ -1139,6 +1272,7 @@ const formatFileSize = (bytes) => {
   color: white;
   border: none;
   border-radius: 8px;
+  font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.3s ease;
@@ -1153,6 +1287,7 @@ const formatFileSize = (bytes) => {
 }
 
 .files-title {
+  font-size: 0.875rem;
   font-weight: 600;
   color: #1e293b;
   margin: 0 0 1rem 0;
@@ -1176,11 +1311,12 @@ const formatFileSize = (bytes) => {
 }
 
 .file-icon {
-  font-size: 1.25rem;
+  font-size: 1rem;
 }
 
 .file-name {
   flex: 1;
+  font-size: 0.875rem;
   font-weight: 500;
   color: #1e293b;
 }
@@ -1191,15 +1327,17 @@ const formatFileSize = (bytes) => {
 }
 
 .remove-btn {
-  background: #ef4444;
-  color: white;
-  border: none;
-  border-radius: 50%;
   width: 24px;
   height: 24px;
+  border: none;
+  background: #ef4444;
+  color: white;
+  border-radius: 50%;
   cursor: pointer;
-  font-weight: bold;
-  transition: background 0.3s ease;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .remove-btn:hover {
@@ -1208,11 +1346,12 @@ const formatFileSize = (bytes) => {
 
 .import-btn {
   width: 100%;
-  padding: 1rem;
+  padding: 0.75rem 1.5rem;
   background: #10b981;
   color: white;
   border: none;
   border-radius: 8px;
+  font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.3s ease;
@@ -1223,7 +1362,7 @@ const formatFileSize = (bytes) => {
 }
 
 .import-btn:disabled {
-  background: #64748b;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
@@ -1242,22 +1381,23 @@ const formatFileSize = (bytes) => {
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #3b82f6, #2563eb);
+  background: #3b82f6;
   transition: width 0.3s ease;
 }
 
 .progress-text {
   font-size: 0.875rem;
   color: #475569;
-  text-align: center;
   margin: 0;
+  text-align: center;
 }
 
 .results-section {
-  margin: 1.5rem 0;
+  margin-top: 1.5rem;
 }
 
 .results-title {
+  font-size: 0.875rem;
   font-weight: 600;
   color: #1e293b;
   margin: 0 0 1rem 0;
@@ -1274,8 +1414,8 @@ const formatFileSize = (bytes) => {
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem;
-  background: #f0fdf4;
-  border: 1px solid #dcfce7;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
 }
 
@@ -1285,11 +1425,12 @@ const formatFileSize = (bytes) => {
 }
 
 .result-icon {
-  font-size: 1.25rem;
+  font-size: 1rem;
 }
 
 .result-filename {
   flex: 1;
+  font-size: 0.875rem;
   font-weight: 500;
   color: #1e293b;
 }
@@ -1313,6 +1454,7 @@ const formatFileSize = (bytes) => {
   padding: 0.75rem 1rem;
   border: none;
   border-radius: 8px;
+  font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -1336,29 +1478,33 @@ const formatFileSize = (bytes) => {
   background: #d97706;
 }
 
-/* Mobile optimizations */
-@media (max-width: 640px) {
+/* Responsive Design */
+@media (max-width: 768px) {
   .data-manager {
     padding: 1rem;
   }
-
-  .import-target-grid {
+  
+  .tab-navigation {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .tab-btn {
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: 0.75rem 1rem;
+    gap: 0.75rem;
+  }
+  
+  .export-buttons {
     grid-template-columns: 1fr;
   }
-
-  .paste-actions {
-    flex-direction: column;
-  }
-
-  .smart-actions {
-    flex-direction: column;
-  }
-
+  
   .smart-type-grid {
     grid-template-columns: 1fr;
   }
   
-  .export-buttons {
+  .import-target-grid {
     grid-template-columns: 1fr;
   }
   
@@ -1366,8 +1512,12 @@ const formatFileSize = (bytes) => {
     flex-direction: column;
   }
   
-  .import-area {
-    padding: 1.5rem;
+  .paste-actions {
+    flex-wrap: wrap;
+  }
+  
+  .smart-actions {
+    flex-wrap: wrap;
   }
 }
 </style>
