@@ -263,7 +263,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 
 const emit = defineEmits(['close', 'open-app-settings', 'open-data-manager', 'open-general-settings', 'export-data', 'import-data', 'refresh-data']);
 
@@ -988,10 +988,6 @@ onMounted(() => {
 
 /* Mobile Optimizations */
 @media (max-width: 768px) {
-  .app-settings-dialog {
-    /* Full screen on mobile */
-  }
-  
   .dialog-header {
     padding: 0.75rem 1rem;
   }
