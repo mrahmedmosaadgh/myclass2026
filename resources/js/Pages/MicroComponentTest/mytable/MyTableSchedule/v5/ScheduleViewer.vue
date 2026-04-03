@@ -7,6 +7,7 @@
         <CardView v-if="viewMode === 'card'" :key="'card'" />
         <TableView v-else-if="viewMode === 'table'" :key="'table'" />
         <TableViewV2 v-else-if="viewMode === 'tablev2'" :key="'tablev2'" />
+        <TimeLineView v-else-if="viewMode === 'timeline'" :key="'timeline'" />
         <ListView v-else-if="viewMode === 'list'" :key="'list'" />
         <MasterTimetableView v-else-if="viewMode === 'master'" :key="'master'" />
         <div v-else class="unknown-view">
@@ -25,6 +26,7 @@ import AdminTimingBar from './components/AdminTimingBar.vue';
 import CardView from './components/views/CardView.vue';
 import TableView from './components/views/TableView.vue';
 import TableViewV2 from './components/views/TableViewV2.vue';
+import TimeLineView from './components/views/TimeLineView.vue';
 import ListView from './components/views/ListView.vue';
 import MasterTimetableView from './components/views/MasterTimetableView.vue';
 
