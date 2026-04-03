@@ -55,8 +55,8 @@ Route::get('/my-fly-schedule-app/v5-sw.js', function () {
         ->header('Cache-Control', 'no-cache'); // Don't cache service worker
 });
 
-// API Routes
-Route::prefix('api/v5')->withoutMiddleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
+// API Routes (Public - No Auth Required)
+Route::prefix('api/v5')->group(function () {
     
     // Health check
     Route::get('/health', function () {

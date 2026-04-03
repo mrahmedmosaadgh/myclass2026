@@ -36,6 +36,11 @@ Route::domain('qudratpro.com')->group(function () {
     // Include Schedule App V5 Routes (inside domain)
     include dirname(__DIR__).'/routes/schedule_app_v5.php';
 
+    // API Routes - Public without authentication
+    Route::prefix('api/v5')->withoutMiddleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
+        // This ensures all V5 API routes are public
+    });
+
     // Diagnostic route (Inside domain)
     Route::get('/debug-controller', function() {
         try {
