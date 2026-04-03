@@ -7,8 +7,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="manifest" :href="manifestHref">
-    <link rel="icon" href="/my-fly-schedule-app/v5/icon.svg" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="/my-fly-schedule-app/v5/icon.svg">
+    <link rel="icon" href="/my-fly-schedule-app/v5/icon.png" type="image/png">
+    <link rel="apple-touch-icon" href="/my-fly-schedule-app/v5/icon.png">
   </Head>
 
   <div class="schedule-app-v5">
