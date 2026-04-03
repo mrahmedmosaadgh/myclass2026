@@ -389,6 +389,9 @@ const saveDataToServer = async (data) => {
 };
 
 const loadDataFromServer = async () => {
+  const localTimingsRaw = localStorage.getItem('schedule-v4-stage-timings') || localStorage.getItem('school-timings-v4');
+  const hasLocalTimings = !!localTimingsRaw;
+
   try {
     const response = await fetch('/api/v4/load-data', {
       headers: {
@@ -400,7 +403,7 @@ const loadDataFromServer = async () => {
     
     if (result.success && result.data) {
       // Apply loaded data
-      if (result.data.timingsConfig) {
+      if (!hasLocalTimings && result.data.timingsConfig) {
         timingsConfig.value = result.data.timingsConfig;
       }
       if (result.data.selectedStage) {
@@ -424,7 +427,7 @@ const loadDataFromServer = async () => {
       try {
         const parsed = JSON.parse(backup);
         if (parsed.data) {
-          if (parsed.data.timingsConfig) {
+          if (!hasLocalTimings && parsed.data.timingsConfig) {
             timingsConfig.value = parsed.data.timingsConfig;
           }
           if (parsed.data.selectedStage) {
