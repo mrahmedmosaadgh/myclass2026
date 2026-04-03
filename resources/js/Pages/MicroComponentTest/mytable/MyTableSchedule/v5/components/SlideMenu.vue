@@ -24,10 +24,10 @@
           <div class="menu-content">
             <MenuHome v-if="activeSection === 'home'" @close="$emit('close')" />
             <MenuViewSelector v-else-if="activeSection === 'views'" @close="$emit('close')" />
-            <MenuTimingConfig v-else-if="activeSection === 'timing'" />
-            <MenuDataManager v-else-if="activeSection === 'data'" />
-            <MenuSettings v-else-if="activeSection === 'settings'" />
-            <MenuAbout v-else-if="activeSection === 'about'" />
+            <MenuTimingConfig v-else-if="activeSection === 'timing'" @close="$emit('close')" />
+            <MenuDataManager v-else-if="activeSection === 'data'" @close="$emit('close')" />
+            <MenuSettings v-else-if="activeSection === 'settings'" @close="$emit('close')" />
+            <MenuAbout v-else-if="activeSection === 'about'" @close="$emit('close')" />
           </div>
 
           <div class="menu-footer">

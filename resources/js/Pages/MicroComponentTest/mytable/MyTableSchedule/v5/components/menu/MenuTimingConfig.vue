@@ -1,7 +1,14 @@
 <template>
   <div class="menu-timing">
-    <h3 class="section-title">Timing Configuration</h3>
-    <p class="section-desc">Edit period start/end times per stage and day.</p>
+    <div class="menu-header">
+      <div>
+        <h3 class="section-title">Timing Configuration</h3>
+        <p class="section-desc">Edit period start/end times per stage and day.</p>
+      </div>
+      <button class="close-btn" @click="handleClose" title="Close">
+        ✕
+      </button>
+    </div>
 
     <!-- Stage / Day Selector -->
     <div class="selector-row">
@@ -166,6 +173,9 @@
 import { ref, computed, watch } from 'vue';
 import { useAppStore } from '../../composables/useAppStore';
 
+// Define emits
+const emit = defineEmits(['close']);
+
 const store = useAppStore();
 
 const stages = [
@@ -241,6 +251,39 @@ const loadSlots = () => {
   const slots = resolveCurrentSlots();
   editableSlots.value = slots.map(s => ({ ...s, _key: ++keyCounter }));
   hasUnsavedChanges.value = false; // Reset after loading
+};
+
+// Handler functions with confirmation
+const handleStageChange = (newStage) => {
+  if (newStage === editStage.value) return; // No change needed
+  
+  if (hasUnsavedChanges.value) {
+    if (!confirm('You have unsaved changes. Are you sure you want to switch stages? Your changes will be lost.')) {
+      return; // Don't switch if user cancels
+    }
+  }
+  editStage.value = newStage;
+};
+
+const handleDayChange = (newDay) => {
+  if (newDay === editDay.value) return; // No change needed
+  
+  if (hasUnsavedChanges.value) {
+    if (!confirm('You have unsaved changes. Are you sure you want to switch days? Your changes will be lost.')) {
+      return; // Don't switch if user cancels
+    }
+  }
+  editDay.value = newDay;
+};
+
+// Close confirmation
+const handleClose = () => {
+  if (hasUnsavedChanges.value) {
+    if (!confirm('You have unsaved changes. Are you sure you want to close? Your changes will be lost.')) {
+      return; // Don't close if user cancels
+    }
+  }
+  emit('close');
 };
 
 watch([editStage, editDay], loadSlots, { immediate: true });
@@ -472,6 +515,31 @@ const applyImportData = async () => {
 </script>
 
 <style scoped>
+/* Menu Header */
+.menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 0.25rem;
+  border-radius: 4px;
+  line-height: 1;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
 .section-title {
   font-size: 0.8rem;
   font-weight: 600;
@@ -812,13 +880,30 @@ const applyImportData = async () => {
 
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
-  .import-dialog {
-    background: #1f2937;
+  .close-btn {
+    color: #9ca3af;
+  }
+  
+  .close-btn:hover {
+    background: #374151;
     color: #f9fafb;
+  }
+  
+  .section-title {
+    color: #94a3b8;
+  }
+  
+  .section-desc {
+    color: #64748b;
   }
   
   .dialog-header {
     border-bottom-color: #374151;
+  }
+  
+  .import-dialog {
+    background: #1f2937;
+    color: #f9fafb;
   }
   
   .dialog-header h4 {
