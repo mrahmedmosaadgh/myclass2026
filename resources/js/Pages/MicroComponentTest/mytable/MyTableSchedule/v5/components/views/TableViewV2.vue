@@ -44,6 +44,12 @@
                 <span v-if="hasNafs(slot.id, day)" class="nafs-indicator">N</span>
               </div>
               <span v-else class="empty-cell">—</span>
+              
+              <!-- Progress indicator for current period -->
+              <div v-if="isCurrentPeriod(slot) && isCurrentDay(day.dayIndex)" class="cell-progress">
+                <div class="progress-fill" :style="{ height: `${periodProgress}%` }"></div>
+                <div class="progress-line" :style="{ top: `${100 - periodProgress}%` }"></div>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -62,6 +68,44 @@ const resolvedTimeSlots = inject('resolvedTimeSlots');
 // Alert system
 const alertInterval = ref(null);
 const lastAlertPeriod = ref(null);
+
+// Time progress tracking
+const periodProgress = ref(0);
+const currentTimeDisplay = ref('00:00:00');
+const activePeriodInfo = ref(null);
+
+// Update time progress
+const updateTimeProgress = () => {
+  currentTimeDisplay.value = store.testTimeEnabled.value ? 
+    store.testTimeValue.value + ':00' : 
+    new Date().toTimeString().split(' ')[0];
+  
+  const current = store.testTimeEnabled.value ? store.testDayIndex.value : store.currentDayIndex.value;
+  const now = store.testTimeEnabled.value ? 
+    (store.testTimeValue.value.split(':').reduce((h, m) => h * 60 + m * 1, 0) * 60) :
+    store.currentTotalSecs.value;
+  
+  // Find current period and calculate progress
+  timeSlots.value.forEach(slot => {
+    if (slot.type === 'lesson' && isCurrentPeriod(slot)) {
+      const startSecs = slot.startMin * 60;
+      const endSecs = slot.endMin * 60;
+      const totalDuration = endSecs - startSecs;
+      const elapsed = now - startSecs;
+      
+      periodProgress.value = Math.min(100, Math.max(0, (elapsed / totalDuration) * 100));
+      
+      const remainingSecs = endSecs - now;
+      const mins = Math.floor(Math.max(0, remainingSecs) / 60);
+      const secs = Math.max(0, remainingSecs % 60);
+      
+      activePeriodInfo.value = {
+        timeLeft: `${mins}:${secs.toString().padStart(2, '0')}`,
+        title: slot.title
+      };
+    }
+  });
+};
 
 // Check for 5-minute alerts
 const checkForAlerts = () => {
@@ -112,12 +156,19 @@ onMounted(() => {
     Notification.requestPermission();
   }
   
-  // Check every 30 seconds
+  // Check every 30 seconds for alerts
   alertInterval.value = setInterval(checkForAlerts, 30000);
   checkForAlerts(); // Check immediately
   
+  // Update time progress every second
+  const progressInterval = setInterval(updateTimeProgress, 1000);
+  updateTimeProgress(); // Update immediately
+  
   // Pre-populate color map with all subjects
   initializeColorMap();
+  
+  // Store interval for cleanup
+  alertInterval.value = progressInterval;
 });
 
 onUnmounted(() => {
@@ -288,7 +339,7 @@ const getSubjectStyle = (periodNum, day) => {
   const color = getSubjectColor(subject);
   return {
     backgroundColor: color,
-    color: 'white'
+    color: '#ffffff' // Ensure white text for all colored cells
   };
 };
 </script>
@@ -297,20 +348,23 @@ const getSubjectStyle = (periodNum, day) => {
 .table-view-v2 {
   padding: 1rem;
   overflow-x: auto;
+  max-width: 100vw;
 }
 
 .table-container {
   min-width: 800px;
+  max-width: 100%;
   background: white;
   border-radius: 12px;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   position: relative;
 }
 
 .schedule-table-v2 {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 0.85rem;
 }
 
@@ -321,16 +375,19 @@ const getSubjectStyle = (periodNum, day) => {
   z-index: 10;
   background: #f8fafc;
   border-right: 2px solid #e2e8f0;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
 }
 
 .header-day.fixed-col {
   background: #f8fafc;
   border-right: 2px solid #e2e8f0;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
 }
 
 .day-cell.fixed-col {
   background: #f8fafc;
   border-right: 2px solid #e2e8f0;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
 }
 
 .header-day {
@@ -487,6 +544,48 @@ const getSubjectStyle = (periodNum, day) => {
   font-size: 0.9rem;
 }
 
+/* Progress indicator styles */
+.cell-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.progress-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.2);
+  transition: height 1s linear;
+}
+
+.progress-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.6);
+}
+
+.progress-line::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: -3px;
+  width: 6px;
+  height: 6px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 0 3px rgba(255, 255, 255, 0.8);
+}
+
 @media (max-width: 640px) {
   .table-view-v2 {
     padding: 0.5rem;
@@ -494,11 +593,13 @@ const getSubjectStyle = (periodNum, day) => {
 
   .table-container {
     min-width: 600px;
+    max-width: calc(100vw - 1rem);
   }
 
   .header-day { 
     width: 80px; 
     padding: 0.5rem;
+    font-size: 0.75rem;
   }
 
   .day-cell {
@@ -509,12 +610,46 @@ const getSubjectStyle = (periodNum, day) => {
 
   .subject-cell {
     padding: 0.3rem;
+    min-width: 70px;
   }
 
-  .subject-name { font-size: 0.65rem; }
+  .subject-name { 
+    font-size: 0.65rem;
+    font-weight: 600;
+  }
+
+  .period-header {
+    padding: 0.3rem;
+  }
+
+  .period-title {
+    font-size: 0.65rem;
+  }
+
+  .time-range {
+    font-size: 0.55rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .table-container {
+    min-width: 500px;
+  }
+  
+  .subject-cell {
+    min-width: 60px;
+  }
+  
+  .subject-name {
+    font-size: 0.6rem;
+  }
 }
 
 @media (prefers-color-scheme: dark) {
+  .table-view-v2 {
+    background: #0f172a;
+  }
+
   .table-container {
     background: #1e293b;
   }
@@ -526,6 +661,13 @@ const getSubjectStyle = (periodNum, day) => {
     color: #f1f5f9;
   }
 
+  .header-day.fixed-col,
+  .day-cell.fixed-col {
+    background: #334155;
+    border-color: #475569;
+    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.3);
+  }
+
   .header-period {
     background: #334155;
     border-color: #475569;
@@ -534,6 +676,11 @@ const getSubjectStyle = (periodNum, day) => {
 
   .header-period.break-header {
     background: #475569;
+  }
+
+  .header-period.current-period {
+    background: #1e3a8a;
+    border-color: #3b82f6;
   }
 
   .day-row {
@@ -554,7 +701,11 @@ const getSubjectStyle = (periodNum, day) => {
   }
 
   .nafs-indicator {
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.3);
+  }
+
+  .current-indicator {
+    color: #60a5fa;
   }
 }
 </style>
