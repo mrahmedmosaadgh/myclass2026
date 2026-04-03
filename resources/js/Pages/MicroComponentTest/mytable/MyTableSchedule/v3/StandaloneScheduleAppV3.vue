@@ -32,15 +32,6 @@
         </div>
         
         <div class="status-section">
-
-          <a href="#" @click.prevent="openAppSettings" class="menu-item">
-            <span class="menu-item-icon">⚙️</span>
-            <span class="menu-item-text">App Settings</span>
-          </a>
-
-
-
-
           <div class="status-indicators">
             <span class="status-badge" :class="serviceWorkerStatus">
               <span class="status-icon">{{ getStatusIcon() }}</span>
@@ -75,16 +66,14 @@
             <span class="menu-item-text">Home</span>
           </a>
           
-
-          
-          <a href="#" @click.prevent="openDataManager" class="menu-item">
-            <span class="menu-item-icon">📁</span>
-            <span class="menu-item-text">Data Manager</span>
+          <a href="#" @click.prevent="toggleSettingsPanel" class="menu-item">
+            <span class="menu-item-icon">⚙️</span>
+            <span class="menu-item-text">Settings</span>
           </a>
           
-          <a href="#" @click.prevent="openGeneralSettings" class="menu-item">
-            <span class="menu-item-icon">🔧</span>
-            <span class="menu-item-text">General Settings</span>
+          <a href="#" @click.prevent="openDataManager" class="menu-item">
+            <span class="menu-item-icon">�</span>
+            <span class="menu-item-text">Data Manager</span>
           </a>
           
           <a href="#" @click.prevent="exportData" class="menu-item">
@@ -107,59 +96,26 @@
 
     <!-- Optimized Main Content -->
     <main class="app-main" :class="{ 'with-menu': showMenu }">
-      <!-- Integrated Header with Controls -->
-      <div class="integrated-header">
-        <div class="header-left">
-          <h2 class="section-title">📅 Schedule View</h2>
-        </div>
-        <div class="header-controls">
-          <select v-model="currentStage" class="control-select">
-            <option value="">All Stages</option>
-            <option value="prim">Primary</option>
-            <option value="middle">Middle</option>
-            <option value="sec">Secondary</option>
-          </select>
-          
-          <select v-model="currentDay" class="control-select">
-            <option value="">All Days</option>
-            <option value="d1">Day 1</option>
-            <option value="d2">Day 2</option>
-            <option value="d3">Day 3</option>
-            <option value="d4">Day 4</option>
-            <option value="d5">Day 5</option>
-            <option value="d6">Day 6</option>
-          </select>
-          
-          <button @click="openAppSettings" class="timing-btn-compact">
-            ⚙️
-          </button>
-          
-          <button @click="exportData" class="action-btn-compact">
-            📥
-          </button>
-          
-          <button @click="refreshData" class="action-btn-compact">
-            🔄
-          </button>
-        </div>
-      </div>
-
-      <!-- App Settings Section (Full Screen) -->
-      <section v-if="showAppSettings" class="app-settings-full">
-        <AppSettingsHub
-          v-model="timingData"
-          @close="showAppSettings = false"
-        />
-      </section>
-
-      <!-- Schedule Content -->
-      <section v-else class="schedule-content">
+      <!-- Clean Schedule View -->
+      <section class="schedule-content">
         <MyTableScheduleV2 
           :stage="currentStage"
           :day="currentDay"
           :timing-data="timingData"
         />
       </section>
+      
+      <!-- App Settings Panel (Full Screen Dialog) -->
+      <AppSettingsPanel
+        v-if="showSettingsPanel"
+        @close="closeSettingsPanel"
+        @open-app-settings="openAppSettings"
+        @open-data-manager="openDataManager"
+        @open-general-settings="openGeneralSettings"
+        @export-data="exportData"
+        @import-data="importData"
+        @refresh-data="refreshData"
+      />
     </main>
 
     <!-- Offline Indicator -->
@@ -185,19 +141,25 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { Head } from '@inertiajs/vue3';
-import MyTableScheduleV2 from './MyTableScheduleV2.vue';
+import MyTableScheduleV2 from '../v2/MyTableScheduleV2.vue';
 import AppSettingsHub from './components/AppSettingsHub.vue';
+import AppSettingsPanel from './components/AppSettingsPanel.vue';
 
 // Component state
 const showMenu = ref(false);
 const showAppSettings = ref(false);
+const showSettingsPanel = ref(false);
 const isScrolled = ref(false);
 const isOnline = ref(navigator.onLine);
 const canInstall = ref(false);
 const isInstalled = ref(false);
 const deferredPrompt = ref(null);
+
+// Dropdown state
+const showStageDropdown = ref(false);
+const showDayDropdown = ref(false);
 
 // Schedule state
 const currentStage = ref('');
@@ -220,12 +182,79 @@ const timingData = ref({
 const toasts = ref([]);
 
 // Computed properties
-const manifestHref = computed(() => '/my-fly-schedule-app/v3/manifest.webmanifest');
+const manifestHref = computed(() => '/my-schedule-app/v3/manifest.webmanifest');
 const serviceWorkerStatus = ref('checking');
 
 // Methods
 const toggleMenu = () => {
   showMenu.value = !showMenu.value;
+};
+
+// Settings panel methods
+const toggleSettingsPanel = () => {
+  showSettingsPanel.value = !showSettingsPanel.value;
+  showMenu.value = false;
+};
+
+const closeSettingsPanel = () => {
+  showSettingsPanel.value = false;
+};
+
+// Dropdown methods
+const toggleStageDropdown = () => {
+  showStageDropdown.value = !showStageDropdown.value;
+  showDayDropdown.value = false; // Close other dropdown
+};
+
+const toggleDayDropdown = () => {
+  showDayDropdown.value = !showDayDropdown.value;
+  showStageDropdown.value = false; // Close other dropdown
+};
+
+const selectStage = (stage) => {
+  currentStage.value = stage;
+  showStageDropdown.value = false;
+  // Save to localStorage
+  localStorage.setItem('schedule-v3-selected-stage', stage);
+  showToast(`Stage changed to ${getStageLabel(stage) || 'All Stages'}`, 'success');
+};
+
+const selectDay = (day) => {
+  currentDay.value = day;
+  showDayDropdown.value = false;
+  // Save to localStorage
+  localStorage.setItem('schedule-v3-selected-day', day);
+  showToast(`Day changed to ${getDayLabel(day) || 'All Days'}`, 'success');
+};
+
+const getStageLabel = (stage) => {
+  const labels = {
+    'prim': 'Primary',
+    'middle': 'Middle',
+    'sec': 'Secondary'
+  };
+  return labels[stage] || '';
+};
+
+const getDayLabel = (day) => {
+  const labels = {
+    'd1': 'Day 1',
+    'd2': 'Day 2',
+    'd3': 'Day 3',
+    'd4': 'Day 4',
+    'd5': 'Day 5',
+    'd6': 'Day 6'
+  };
+  return labels[day] || '';
+};
+
+const getTodayDay = () => {
+  // Get current day of week and map to day number
+  const today = new Date().getDay();
+  // Map: Sunday=0, Monday=1, Tuesday=2, Wednesday=3, Thursday=4, Friday=5, Saturday=6
+  // To: Day 1-6 (assuming school week starts on Monday)
+  const dayMap = { 1: 'd1', 2: 'd2', 3: 'd3', 4: 'd4', 5: 'd5', 6: 'd6' };
+  return dayMap[today] || '';
 };
 
 const openAppSettings = () => {
@@ -261,6 +290,46 @@ const exportData = () => {
   
   showToast('Schedule data exported successfully!', 'success');
   showMenu.value = false;
+};
+
+const importData = () => {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = JSON.parse(e.target.result);
+          
+          // Import timing data
+          if (data.timingData) {
+            timingData.value = data.timingData;
+            localStorage.setItem('schedule-v3-timing-data', JSON.stringify(data.timingData));
+          }
+          
+          // Import stage and day
+          if (data.currentStage !== undefined) {
+            currentStage.value = data.currentStage;
+            localStorage.setItem('schedule-v3-selected-stage', data.currentStage);
+          }
+          
+          if (data.currentDay !== undefined) {
+            currentDay.value = data.currentDay;
+            localStorage.setItem('schedule-v3-selected-day', data.currentDay);
+          }
+          
+          showToast('Schedule data imported successfully!', 'success');
+        } catch (error) {
+          showToast('Error importing data. Please check the file format.', 'error');
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+  input.click();
 };
 
 const refreshData = () => {
@@ -328,10 +397,11 @@ const getToastIcon = (type) => {
 
 const getStatusIcon = () => {
   const icons = {
-    checking: '⏳',
+    checking: '🔄',
     installed: '✅',
     failed: '❌',
-    updated: '🔄'
+    updated: '🔄',
+    offline: '📱'
   };
   return icons[serviceWorkerStatus.value] || '❓';
 };
@@ -360,24 +430,33 @@ const handleInstall = async () => {
 const registerServiceWorker = async () => {
   if ('serviceWorker' in navigator) {
     try {
-      const registration = await navigator.serviceWorker.register('/my-fly-schedule-app/v3/sw.js');
-      console.log('[V3] SW registered:', registration);
-      
-      // Check for updates
-      registration.addEventListener('updatefound', () => {
-        const newWorker = registration.installing;
-        newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            serviceWorkerStatus.value = 'updated';
-            showToast('App updated! Refresh to see changes.', 'info');
-          }
-        });
+      // Try to register service worker, but don't fail if it doesn't exist
+      const registration = await navigator.serviceWorker.register('/my-schedule-app/v3/sw.js').catch(() => {
+        console.log('[V3] Service worker not found, running without PWA features');
+        return null;
       });
       
-      serviceWorkerStatus.value = 'installed';
+      if (registration) {
+        console.log('[V3] SW registered:', registration);
+        
+        // Check for updates
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              serviceWorkerStatus.value = 'updated';
+              showToast('App updated! Refresh to see changes.', 'info');
+            }
+          });
+        });
+        
+        serviceWorkerStatus.value = 'installed';
+      } else {
+        serviceWorkerStatus.value = 'offline';
+      }
     } catch (error) {
-      console.error('[V3] SW registration failed:', error);
-      serviceWorkerStatus.value = 'failed';
+      console.log('[V3] Running without service worker:', error.message);
+      serviceWorkerStatus.value = 'offline';
     }
   }
 };
@@ -412,6 +491,18 @@ onMounted(() => {
     timingData.value = JSON.parse(savedTimingData);
   }
   
+  // Load saved stage and day selections
+  const savedStage = localStorage.getItem('schedule-v3-selected-stage');
+  const savedDay = localStorage.getItem('schedule-v3-selected-day');
+  
+  if (savedStage !== null) {
+    currentStage.value = savedStage;
+  }
+  
+  if (savedDay !== null) {
+    currentDay.value = savedDay;
+  }
+  
   // Check if already installed
   if (window.matchMedia('(display-mode: standalone)').matches) {
     isInstalled.value = true;
@@ -425,10 +516,16 @@ onMounted(() => {
   window.addEventListener('offline', handleOffline);
   window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   
-  // Close menu when clicking outside
+  // Close menu and dropdowns when clicking outside
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.slide-menu') && !e.target.closest('.menu-btn')) {
       showMenu.value = false;
+    }
+    
+    // Close dropdowns when clicking outside
+    if (!e.target.closest('.dropdown-container')) {
+      showStageDropdown.value = false;
+      showDayDropdown.value = false;
     }
   });
 });
@@ -759,6 +856,91 @@ onUnmounted(() => {
   flex-wrap: wrap;
 }
 
+.dropdown-group {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.dropdown-container {
+  position: relative;
+}
+
+.dropdown-btn {
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  color: #f8fafc;
+  opacity: 1;
+  padding: 0.375rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 100px;
+  justify-content: space-between;
+  font-weight: 500;
+}
+
+.dropdown-btn:hover {
+  background: rgba(30, 41, 59, 0.9);
+  border-color: rgba(148, 163, 184, 0.4);
+}
+
+.dropdown-arrow {
+  font-size: 0.625rem;
+  transition: transform 0.3s ease;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: rgba(15, 23, 42, 0.98);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  margin-top: 0.25rem;
+  overflow: hidden;
+}
+
+.dropdown-item {
+  display: block;
+  padding: 0.5rem 0.75rem;
+  color: #f8fafc;
+  text-decoration: none;
+  font-size: 0.75rem;
+  font-weight: 500;
+  opacity: 1;
+  transition: all 0.3s ease;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.dropdown-item:hover {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.dropdown-item.today {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  font-weight: 600;
+  opacity: 1;
+}
+
+.dropdown-item.today:hover {
+  background: rgba(16, 185, 129, 0.3);
+  color: #10b981;
+}
+
 .control-select {
   background: rgba(15, 23, 42, 0.8);
   border: 1px solid rgba(148, 163, 184, 0.2);
@@ -976,10 +1158,24 @@ onUnmounted(() => {
     gap: 0.375rem;
   }
   
-  .control-select {
+  .dropdown-group {
+    flex-direction: column;
+    gap: 0.25rem;
+    width: 100%;
+  }
+  
+  .dropdown-btn {
     font-size: 0.625rem;
-    padding: 0.25rem 0.375rem;
+    padding: 0.25rem 0.5rem;
     min-width: 80px;
+  }
+  
+  .dropdown-menu {
+    font-size: 0.625rem;
+  }
+  
+  .dropdown-item {
+    padding: 0.375rem 0.5rem;
   }
   
   .timing-btn-compact,

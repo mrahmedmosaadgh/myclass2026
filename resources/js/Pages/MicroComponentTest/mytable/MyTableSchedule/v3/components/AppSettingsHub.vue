@@ -25,6 +25,128 @@
 
     <!-- Tab Content -->
     <div class="tab-content">
+      <!-- Schedule View Tab -->
+      <div v-if="activeMainTab === 'schedule'" class="schedule-view-tab">
+        <div class="tab-description">
+          <h3>📅 Schedule View</h3>
+          <p>View and manage your schedule with different filters and display options</p>
+        </div>
+
+        <!-- Schedule Controls -->
+        <div class="schedule-controls">
+          <div class="control-group">
+            <h4>Stage Selection</h4>
+            <select v-model="currentStage" class="control-select">
+              <option value="">All Stages</option>
+              <option value="prim">Primary</option>
+              <option value="middle">Middle</option>
+              <option value="sec">Secondary</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <h4>Day Selection</h4>
+            <select v-model="currentDay" class="control-select">
+              <option value="">All Days</option>
+              <option value="d1">Day 1</option>
+              <option value="d2">Day 2</option>
+              <option value="d3">Day 3</option>
+              <option value="d4">Day 4</option>
+              <option value="d5">Day 5</option>
+              <option value="d6">Day 6</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <h4>View Options</h4>
+            <div class="view-options">
+              <label class="view-option">
+                <input type="checkbox" v-model="scheduleViewOptions.showWeekends" />
+                <span>Show Weekends</span>
+              </label>
+              <label class="view-option">
+                <input type="checkbox" v-model="scheduleViewOptions.showEmptyPeriods" />
+                <span>Show Empty Periods</span>
+              </label>
+              <label class="view-option">
+                <input type="checkbox" v-model="scheduleViewOptions.compactView" />
+                <span>Compact View</span>
+              </label>
+              <label class="view-option">
+                <input type="checkbox" v-model="scheduleViewOptions.showTeacherNames" />
+                <span>Show Teacher Names</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <h4>Display Mode</h4>
+            <div class="display-modes">
+              <label class="display-mode">
+                <input type="radio" name="displayMode" value="grid" v-model="scheduleViewOptions.displayMode" />
+                <span>Grid View</span>
+              </label>
+              <label class="display-mode">
+                <input type="radio" name="displayMode" value="list" v-model="scheduleViewOptions.displayMode" />
+                <span>List View</span>
+              </label>
+              <label class="display-mode">
+                <input type="radio" name="displayMode" value="timeline" v-model="scheduleViewOptions.displayMode" />
+                <span>Timeline View</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Schedule Preview -->
+        <div class="schedule-preview">
+          <h4>Current Schedule Preview</h4>
+          <div class="preview-container">
+            <div class="preview-header">
+              <span class="preview-title">{{ getScheduleTitle() }}</span>
+              <button @click="refreshSchedulePreview" class="refresh-preview-btn">
+                🔄 Refresh
+              </button>
+            </div>
+            <div class="preview-content">
+              <div class="preview-summary">
+                <div class="summary-item">
+                  <span class="summary-label">Active Periods:</span>
+                  <span class="summary-value">{{ getActivePeriodsCount() }}</span>
+                </div>
+                <div class="summary-item">
+                  <span class="summary-label">Total Duration:</span>
+                  <span class="summary-value">{{ getTotalDuration() }}</span>
+                </div>
+                <div class="summary-item">
+                  <span class="summary-label">Break Time:</span>
+                  <span class="summary-value">{{ getBreakTime() }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+          <h4>Quick Actions</h4>
+          <div class="action-buttons">
+            <button @click="exportCurrentSchedule" class="action-btn export">
+              📥 Export Current View
+            </button>
+            <button @click="printSchedule" class="action-btn print">
+              🖨️ Print Schedule
+            </button>
+            <button @click="shareSchedule" class="action-btn share">
+              📤 Share Schedule
+            </button>
+            <button @click="resetViewSettings" class="action-btn reset">
+              🔄 Reset View
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Timing Settings Tab -->
       <div v-if="activeMainTab === 'timing'" class="timing-tab">
         <div class="tab-description">
@@ -519,13 +641,25 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'close']);
 
 // Component state
-const activeMainTab = ref('timing');
+const activeMainTab = ref('schedule');
 const activeTimingSubTab = ref('global');
 const selectedDay = ref('');
 const hasChanges = ref(false);
 
+// Schedule view state
+const currentStage = ref('');
+const currentDay = ref('');
+const scheduleViewOptions = ref({
+  showWeekends: false,
+  showEmptyPeriods: true,
+  compactView: false,
+  showTeacherNames: true,
+  displayMode: 'grid'
+});
+
 // Main tabs configuration
 const mainTabs = [
+  { id: 'schedule', label: 'Schedule View', icon: '📅' },
   { id: 'timing', label: 'Timing', icon: '⏰', badge: 'Primary' },
   { id: 'display', label: 'Display', icon: '🎨' },
   { id: 'notifications', label: 'Notifications', icon: '🔔' },
@@ -640,7 +774,109 @@ const timingsData = computed({
   set: (value) => emit('update:modelValue', value)
 });
 
-// Methods
+// Schedule view methods
+const getScheduleTitle = () => {
+  const stageName = currentStage.value ? currentStage.value.charAt(0).toUpperCase() + currentStage.value.slice(1) : 'All Stages';
+  const dayName = currentDay.value ? currentDay.value.replace('d', 'Day ') : 'All Days';
+  return `${stageName} • ${dayName}`;
+};
+
+const getActivePeriodsCount = () => {
+  const timings = timingsData.value.default || [];
+  return timings.filter(period => period.type === 'lesson').length;
+};
+
+const getTotalDuration = () => {
+  const timings = timingsData.value.default || [];
+  let totalMinutes = 0;
+  
+  timings.forEach(period => {
+    if (period.start && period.end) {
+      const start = new Date(`2000-01-01T${period.start}`);
+      const end = new Date(`2000-01-01T${period.end}`);
+      totalMinutes += (end - start) / (1000 * 60);
+    }
+  });
+  
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${hours}h ${minutes}m`;
+};
+
+const getBreakTime = () => {
+  const timings = timingsData.value.default || [];
+  let breakMinutes = 0;
+  
+  timings.forEach(period => {
+    if (period.type === 'break' && period.start && period.end) {
+      const start = new Date(`2000-01-01T${period.start}`);
+      const end = new Date(`2000-01-01T${period.end}`);
+      breakMinutes += (end - start) / (1000 * 60);
+    }
+  });
+  
+  const hours = Math.floor(breakMinutes / 60);
+  const minutes = breakMinutes % 60;
+  return `${hours}h ${minutes}m`;
+};
+
+const refreshSchedulePreview = () => {
+  showToast('Schedule preview refreshed', 'success');
+};
+
+const exportCurrentSchedule = () => {
+  const scheduleData = {
+    stage: currentStage.value,
+    day: currentDay.value,
+    viewOptions: scheduleViewOptions.value,
+    timingData: timingsData.value,
+    exportDate: new Date().toISOString()
+  };
+  
+  const blob = new Blob([JSON.stringify(scheduleData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `schedule-${getScheduleTitle().toLowerCase().replace(/[^a-z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  
+  showToast('Current schedule exported successfully!', 'success');
+};
+
+const printSchedule = () => {
+  showToast('Print functionality coming soon!', 'info');
+};
+
+const shareSchedule = () => {
+  if (navigator.share) {
+    navigator.share({
+      title: 'My Schedule',
+      text: `Check out my schedule: ${getScheduleTitle()}`,
+      url: window.location.href
+    }).then(() => {
+      showToast('Schedule shared successfully!', 'success');
+    }).catch(() => {
+      showToast('Share cancelled', 'info');
+    });
+  } else {
+    showToast('Share not supported on this device', 'warning');
+  }
+};
+
+const resetViewSettings = () => {
+  scheduleViewOptions.value = {
+    showWeekends: false,
+    showEmptyPeriods: true,
+    compactView: false,
+    showTeacherNames: true,
+    displayMode: 'grid'
+  };
+  currentStage.value = '';
+  currentDay.value = '';
+  hasChanges.value = true;
+  showToast('View settings reset to defaults', 'success');
+};
 const selectMainTab = (tabId) => {
   activeMainTab.value = tabId;
 };
@@ -1027,6 +1263,198 @@ onMounted(() => {
 .sub-tab.active {
   color: #3b82f6;
   border-bottom-color: #3b82f6;
+}
+
+/* Schedule View Styles */
+.schedule-view-tab {
+  max-width: 800px;
+}
+
+.schedule-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.control-group h4 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 0.75rem 0;
+}
+
+.control-select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  background: white;
+}
+
+.view-options,
+.display-modes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.view-option,
+.display-mode {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.view-option input,
+.display-mode input {
+  accent-color: #3b82f6;
+}
+
+.schedule-preview {
+  background: #f8fafc;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 2rem;
+}
+
+.schedule-preview h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 1rem 0;
+}
+
+.preview-container {
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.preview-title {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.refresh-preview-btn {
+  padding: 0.5rem 1rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.refresh-preview-btn:hover {
+  background: #2563eb;
+}
+
+.preview-content {
+  padding: 1rem;
+}
+
+.preview-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: #f8fafc;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.summary-label {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.summary-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.quick-actions h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 1rem 0;
+}
+
+.action-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.action-btn {
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.875rem;
+}
+
+.action-btn.export {
+  background: #10b981;
+  color: white;
+}
+
+.action-btn.export:hover {
+  background: #059669;
+}
+
+.action-btn.print {
+  background: #6366f1;
+  color: white;
+}
+
+.action-btn.print:hover {
+  background: #4f46e5;
+}
+
+.action-btn.share {
+  background: #3b82f6;
+  color: white;
+}
+
+.action-btn.share:hover {
+  background: #2563eb;
+}
+
+.action-btn.reset {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+}
+
+.action-btn.reset:hover {
+  background: #e2e8f0;
 }
 
 /* Timing Styles */

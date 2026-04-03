@@ -486,7 +486,7 @@ onMounted(() => {
   // Setup audio
   try {
     // using absolute path for demo/test purposes based on original PWA
-    alertSound = new Audio('/my-schedule-app/v2/notification1.mp3'); 
+    alertSound = new Audio('/notification1.mp3'); 
   } catch (e) {
     console.warn("Could not initialize audio", e);
   }
