@@ -7,8 +7,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="manifest" :href="manifestHref">
-    <link rel="icon" href="/my-schedule-app/v3/icon.svg" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="/my-schedule-app/v3/icon.svg">
+    <link rel="icon" href="/my-fly-schedule-app/v3/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/my-fly-schedule-app/v3/icon.svg">
   </Head>
 
   <div class="standalone-schedule-app-v3">
@@ -188,7 +188,7 @@ const timingData = ref({
 const toasts = ref([]);
 
 // Computed properties
-const manifestHref = computed(() => '/my-schedule-app/v3/manifest.webmanifest');
+const manifestHref = computed(() => '/my-fly-schedule-app/v3/manifest.webmanifest');
 const serviceWorkerStatus = ref('checking');
 
 // Methods
@@ -384,7 +384,7 @@ const handleInstall = async () => {
 const registerServiceWorker = async () => {
   if (!('serviceWorker' in navigator)) return;
   try {
-    const registration = await navigator.serviceWorker.register('/my-schedule-app/v3/sw.js');
+    const registration = await navigator.serviceWorker.register('/my-fly-schedule-app/v3/sw.js');
     console.log('[V3] SW registered:', registration);
     registration.addEventListener('updatefound', () => {
       const newWorker = registration.installing;

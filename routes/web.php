@@ -424,10 +424,18 @@ Route::get('/my-fly-schedule-app-v2-sw.js', function () {
 // Include Schedule App V3 Routes
 include dirname(__DIR__).'/routes/schedule_app_v3.php';
 
+// Include Schedule App V4 Routes
+include dirname(__DIR__).'/routes/schedule_app_v4.php';
+
 // Schedule App V3 Routes (TEMPORARY - directly in web.php for testing)
 Route::get('/my-fly-schedule-app/v3', function () {
     return Inertia::render('MicroComponentTest/mytable/MyTableSchedule/v3/StandaloneScheduleAppV3');
 })->withoutMiddleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->name('schedule.app.v3');
+
+// Schedule App V4 Routes (TEMPORARY - directly in web.php for testing)
+Route::get('/my-fly-schedule-app/v4', function () {
+    return Inertia::render('MicroComponentTest/mytable/MyTableSchedule/v4/StandaloneScheduleAppV4');
+})->withoutMiddleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->name('schedule.app.v4');
 
 // Schedule App V3 Routes (MOVED to separate file: routes/schedule_app_v3.php)
 // Main App: /my-fly-schedule-app/v3
@@ -435,6 +443,13 @@ Route::get('/my-fly-schedule-app/v3', function () {
 // Icon: /my-fly-schedule-app/v3/icon.svg
 // Service Worker: /my-fly-schedule-app/v3/sw.js
 // Test: /my-fly-schedule-app/v3/test
+
+// Schedule App V4 Routes (MOVED to separate file: routes/schedule_app_v4.php)
+// Main App: /my-fly-schedule-app/v4
+// Manifest: /my-fly-schedule-app/v4/manifest.webmanifest  
+// Icon: /my-fly-schedule-app/v4/icon.svg
+// Service Worker: /my-fly-schedule-app/v4/sw.js
+// Features: Offline auto-save, user folder storage, backup management
 
 // Offline Storage Demo Route
 Route::get('/my-fly-schedule-app/v2/offline-storage-demo', function () {
