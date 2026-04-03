@@ -92,10 +92,12 @@ self.addEventListener('fetch', (event) => {
             // Clone the response since it can only be consumed once
             const responseClone = response.clone();
             
-            // Cache the fetched resource
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseClone);
-            });
+            // Only cache complete responses (not partial 206 responses)
+            if (response.status === 200) {
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(event.request, responseClone);
+              });
+            }
 
             return response;
           })

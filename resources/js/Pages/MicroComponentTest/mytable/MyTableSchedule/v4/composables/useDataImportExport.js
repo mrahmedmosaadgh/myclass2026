@@ -615,6 +615,9 @@ export function useDataImportExport() {
         default:
           throw new Error('Unknown import target.');
       }
+    } catch (error) {
+      console.error('❌ runImportByTarget failed:', error);
+      return { success: false, error: error.message };
     } finally {
       importProgress.value = 100;
       isImporting.value = false;
@@ -785,21 +788,43 @@ export function useDataImportExport() {
   // Auto-detect file type and import
   const importFromFile = async (file) => {
     try {
+      console.log('🔄 Starting file import:', file.name);
       const jsonData = await readFileAsJSON(file);
+      console.log('📄 Parsed JSON data:', jsonData);
       
-      switch (jsonData.type) {
-        case 'personal_schedule':
-          return await importPersonalSchedule(file);
-        case 'school_timetable':
-          return await importSchoolTimetable(file);
-        case 'stage_day_timings':
-          return await importStageDayTimings(file);
-        case 'app_settings':
-          return await importAppSettings(file);
-        default:
-          throw new Error('Unknown file type. Supported types: personal_schedule, school_timetable, stage_day_timings, app_settings');
+      // Try to auto-detect the type if not specified
+      let detectedType = jsonData.type;
+      
+      if (!detectedType) {
+        console.log('🔍 Auto-detecting file type...');
+        // Auto-detect based on content structure
+        if (jsonData.schedule && jsonData.timings) {
+          detectedType = 'personal_schedule';
+          console.log('✅ Detected as personal_schedule');
+        } else if (jsonData.stages || (jsonData.defaultTimings && jsonData.overrides)) {
+          detectedType = 'school_timetable';
+          console.log('✅ Detected as school_timetable');
+        } else if (jsonData.default || (jsonData.mode && (jsonData.slots || jsonData.stage))) {
+          detectedType = 'stage_day_timings';
+          console.log('✅ Detected as stage_day_timings');
+        } else if (typeof jsonData === 'object' && !jsonData.schedule && !jsonData.stages && !jsonData.default) {
+          detectedType = 'app_settings';
+          console.log('✅ Detected as app_settings');
+        } else {
+          console.log('❌ Could not auto-detect type');
+          throw new Error('Cannot auto-detect file type. Please use the "Import from Clipboard" option and specify the data type.');
+        }
+      } else {
+        console.log('📋 Using specified type:', detectedType);
       }
+      
+      console.log('🚀 Running import for type:', detectedType);
+      const result = await runImportByTarget(detectedType, jsonData);
+      console.log('✅ Import result:', result);
+      return result;
+      
     } catch (error) {
+      console.error('❌ Import failed:', error);
       return { success: false, error: error.message };
     }
   };

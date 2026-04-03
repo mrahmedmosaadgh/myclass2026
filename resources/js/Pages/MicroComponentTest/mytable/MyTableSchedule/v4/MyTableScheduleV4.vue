@@ -722,7 +722,7 @@ onMounted(() => {
     selectedDay.value = dayIndexToId(new Date().getDay());
   }
 
-  const savedTimings = localStorage.getItem('school-timings-v4');
+  const savedTimings = localStorage.getItem('school-timings-v4') || localStorage.getItem('schedule-v4-stage-timings');
   if (savedTimings) {
     try {
       const parsed = JSON.parse(savedTimings);
@@ -745,10 +745,48 @@ onMounted(() => {
   
   // Show initial auto-save status
   showAutoSaveStatus('saved', 'Ready - auto-save enabled');
+  
+  // Listen for data import events
+  window.addEventListener('data-refresh-required', handleDataRefresh);
 });
 
+const handleDataRefresh = (event) => {
+  const { source, target } = event.detail;
+  console.log('Data refresh required:', source, target);
+  
+  // Reload data from localStorage
+  if (target === 'stage_day_timings' || target === 'school_timetable') {
+    const savedTimings = localStorage.getItem('school-timings-v4') || localStorage.getItem('schedule-v4-stage-timings');
+    if (savedTimings) {
+      try {
+        const parsed = JSON.parse(savedTimings);
+        timingsConfig.value = {
+          default: parsed.default || timingsConfig.value.default,
+          overrides: {
+            ...(timingsConfig.value.overrides || {}),
+            ...(parsed.overrides || {})
+          }
+        };
+        calculateTimeSlots();
+        showAutoSaveStatus('saved', 'Timing data refreshed from import');
+      } catch (e) {
+        console.warn('Failed to refresh timings from import', e);
+      }
+    }
+  }
+  
+  if (target === 'personal_schedule') {
+    // Reload personal schedule data
+    loadDataFromServer();
+    showAutoSaveStatus('saved', 'Personal schedule refreshed from import');
+  }
+};
+
 onUnmounted(() => {
-  if (timerInterval) clearInterval(timerInterval);
+  if (timerInterval) {
+    clearInterval(timerInterval);
+  }
+  window.removeEventListener('data-refresh-required', handleDataRefresh);
   window.removeEventListener('online', handleOnlineStatus);
   window.removeEventListener('offline', handleOnlineStatus);
   clearTimeout(autoSaveTimeout);
@@ -772,7 +810,9 @@ watch([selectedStage, selectedDay], () => {
 });
 
 watch(timingsConfig, (newValue) => {
+  // Save to both keys for compatibility
   localStorage.setItem('school-timings-v4', JSON.stringify(newValue));
+  localStorage.setItem('schedule-v4-stage-timings', JSON.stringify(newValue));
   handleTimingsUpdate(resolvedTimeSlots.value);
 }, { deep: true });
 </script>
