@@ -13,7 +13,7 @@
             :key="s.id"
             class="sel-btn"
             :class="{ active: editStage === s.id }"
-            @click="editStage = s.id"
+            @click="handleStageChange(s.id)"
           >{{ s.label }}</button>
         </div>
       </div>
@@ -24,14 +24,14 @@
           <button
             class="sel-btn"
             :class="{ active: editDay === '' }"
-            @click="editDay = ''"
+            @click="handleDayChange('')"
           >All</button>
           <button
             v-for="d in days"
             :key="d.id"
             class="sel-btn"
             :class="{ active: editDay === d.id, 'has-custom': customDays.includes(d.id) }"
-            @click="editDay = d.id"
+            @click="handleDayChange(d.id)"
           >{{ d.short }}</button>
         </div>
       </div>
@@ -92,6 +92,68 @@
       <button class="btn-secondary" @click="resetToDefault">
         ↩ Reset
       </button>
+      <button class="btn-export" @click="exportStageData">
+        📤 Export
+      </button>
+      <button class="btn-import" @click="showImportDialog = true">
+        📥 Import
+      </button>
+    </div>
+
+    <!-- Import Dialog -->
+    <div v-if="showImportDialog" class="import-dialog-overlay" @click.self="showImportDialog = false">
+      <div class="import-dialog">
+        <div class="dialog-header">
+          <h4>Import Stage Timings</h4>
+          <button class="close-btn" @click="showImportDialog = false">✕</button>
+        </div>
+        
+        <div class="import-steps">
+          <!-- Step 1: File Upload -->
+          <div class="step-section">
+            <h5>1. Choose JSON File</h5>
+            <div class="file-upload-area" :class="{ active: dragActive }" 
+                 @drop="handleImportDrop" @dragover.prevent @dragenter.prevent @dragleave="dragActive = false">
+              <input type="file" ref="importFileInput" @change="handleImportFileSelect" accept=".json" style="display: none;">
+              <div class="upload-content">
+                <div class="upload-icon">📁</div>
+                <p class="upload-text">Drop JSON file here or <button class="link-btn" @click="$refs.importFileInput.click()">browse files</button></p>
+                <p class="upload-hint">Supports stage timing JSON files</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2: JSON Preview -->
+          <div v-if="importJsonData" class="step-section">
+            <h5>2. Preview & Validate</h5>
+            <div class="json-preview">
+              <div class="preview-header">
+                <span class="preview-status" :class="importValidation.valid ? 'valid' : 'invalid'">
+                  {{ importValidation.valid ? '✅ Valid JSON' : '❌ Invalid JSON' }}
+                </span>
+                <button class="copy-btn" @click="copyImportJson">📋 Copy</button>
+              </div>
+              <pre class="json-content">{{ formatJson(importJsonData) }}</pre>
+            </div>
+            <div v-if="!importValidation.valid" class="validation-error">
+              ❌ {{ importValidation.error }}
+            </div>
+          </div>
+
+          <!-- Step 3: Apply -->
+          <div v-if="importValidation.valid" class="step-section">
+            <h5>3. Apply Changes</h5>
+            <div class="apply-actions">
+              <button class="btn-primary" @click="applyImportData">
+                📥 Import & Apply
+              </button>
+              <button class="btn-secondary" @click="showImportDialog = false">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div v-if="statusMessage" class="status-msg" :class="statusType">
@@ -126,6 +188,14 @@ const editDay = ref('');
 const editableSlots = ref([]);
 const statusMessage = ref('');
 const statusType = ref('success');
+
+// Import/Export state
+const showImportDialog = ref(false);
+const dragActive = ref(false);
+const importJsonData = ref('');
+const importValidation = ref({ valid: false, error: '' });
+const hasUnsavedChanges = ref(false);
+
 let keyCounter = 0;
 
 const clone = (v) => JSON.parse(JSON.stringify(v));
@@ -163,8 +233,14 @@ const resolveCurrentSlots = () => {
 };
 
 const loadSlots = () => {
+  if (hasUnsavedChanges.value) {
+    if (!confirm('You have unsaved changes. Are you sure you want to continue? Your changes will be lost.')) {
+      return; // Don't switch if user cancels
+    }
+  }
   const slots = resolveCurrentSlots();
   editableSlots.value = slots.map(s => ({ ...s, _key: ++keyCounter }));
+  hasUnsavedChanges.value = false; // Reset after loading
 };
 
 watch([editStage, editDay], loadSlots, { immediate: true });
@@ -179,6 +255,7 @@ const addSlot = () => {
     start: last?.end || '09:00',
     end: last ? addMinutes(last.end, 30) : '09:30'
   });
+  hasUnsavedChanges.value = true;
 };
 
 const addMinutes = (timeStr, mins) => {
@@ -191,10 +268,11 @@ const addMinutes = (timeStr, mins) => {
 
 const removeSlot = (index) => {
   editableSlots.value.splice(index, 1);
+  hasUnsavedChanges.value = true;
 };
 
 const onSlotChange = () => {
-  // Reactive — changes tracked automatically
+  hasUnsavedChanges.value = true;
 };
 
 const copyFromDefault = async () => {
@@ -233,6 +311,7 @@ const applyTimings = async () => {
   }
 
   await store.setTimingsConfig(config);
+  hasUnsavedChanges.value = false;
   statusMessage.value = 'Timing applied successfully!';
   statusType.value = 'success';
   setTimeout(() => { statusMessage.value = ''; }, 3000);
@@ -259,9 +338,136 @@ const resetToDefault = async () => {
 
   await store.setTimingsConfig(config);
   loadSlots();
+  hasUnsavedChanges.value = false;
   statusMessage.value = 'Reset to default.';
   statusType.value = 'info';
   setTimeout(() => { statusMessage.value = ''; }, 3000);
+};
+
+// Import/Export functions
+const exportStageData = () => {
+  const config = store.timingsConfig.value;
+  const stageData = config?.overrides?.[editStage.value] || { default: null, days: {} };
+  
+  const exportData = {
+    type: 'stage_timings',
+    version: '5.0',
+    stage: editStage.value,
+    timestamp: new Date().toISOString(),
+    data: stageData
+  };
+  
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `schedule-v5-${editStage.value}-timings-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+const handleImportFileSelect = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  readImportFile(file);
+};
+
+const handleImportDrop = (e) => {
+  e.preventDefault();
+  dragActive.value = false;
+  const file = e.dataTransfer.files[0];
+  if (!file || !file.name.endsWith('.json')) return;
+  readImportFile(file);
+};
+
+const readImportFile = (file) => {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    importJsonData.value = e.target.result;
+    validateImportData();
+  };
+  reader.readAsText(file);
+};
+
+const validateImportData = () => {
+  try {
+    const json = JSON.parse(importJsonData.value);
+    
+    // Validate structure
+    if (!json.data || typeof json.data !== 'object') {
+      importValidation.value = { valid: false, error: 'Invalid file structure: missing data object' };
+      return;
+    }
+    
+    const data = json.data;
+    if (data.default && !Array.isArray(data.default)) {
+      importValidation.value = { valid: false, error: 'Invalid default timings: must be an array' };
+      return;
+    }
+    
+    if (data.days && typeof data.days !== 'object') {
+      importValidation.value = { valid: false, error: 'Invalid days data: must be an object' };
+      return;
+    }
+    
+    importValidation.value = { valid: true, error: '' };
+  } catch (e) {
+    importValidation.value = { valid: false, error: `JSON parsing error: ${e.message}` };
+  }
+};
+
+const formatJson = (jsonString) => {
+  try {
+    return JSON.stringify(JSON.parse(jsonString), null, 2);
+  } catch {
+    return jsonString;
+  }
+};
+
+const copyImportJson = () => {
+  navigator.clipboard.writeText(importJsonData.value).then(() => {
+    // Show copy success message briefly
+    const originalText = importJsonData.value;
+    importJsonData.value = '✅ Copied to clipboard!';
+    setTimeout(() => {
+      importJsonData.value = originalText;
+    }, 1000);
+  });
+};
+
+const applyImportData = async () => {
+  try {
+    const json = JSON.parse(importJsonData.value);
+    const stageData = json.data;
+    
+    // Update the current stage's timings
+    const config = clone(store.timingsConfig.value);
+    if (!config.overrides) config.overrides = {};
+    if (!config.overrides[editStage.value]) {
+      config.overrides[editStage.value] = { default: null, days: {} };
+    }
+    
+    config.overrides[editStage.value] = stageData;
+    await store.setTimingsConfig(config);
+    
+    // Reload current view
+    loadSlots();
+    hasUnsavedChanges.value = false;
+    
+    // Close dialog and show success message
+    showImportDialog.value = false;
+    statusMessage.value = 'Stage timings imported successfully!';
+    statusType.value = 'success';
+    setTimeout(() => { statusMessage.value = ''; }, 3000);
+    
+    // Reset import state
+    importJsonData.value = '';
+    importValidation.value = { valid: false, error: '' };
+  } catch (e) {
+    statusMessage.value = `Import failed: ${e.message}`;
+    statusType.value = 'error';
+    setTimeout(() => { statusMessage.value = ''; }, 4000);
+  }
 };
 </script>
 
@@ -388,65 +594,294 @@ const resetToDefault = async () => {
 .slot-input.type { min-width: 70px; }
 .slot-input.time { min-width: 70px; }
 
-.slot-remove {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
+/* Import/Export Buttons */
+.btn-export {
+  background: #10b981;
+  color: white;
   border: none;
-  background: rgba(239, 68, 68, 0.2);
-  color: #f87171;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.btn-export:hover {
+  background: #059669;
+}
+
+.btn-import {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.btn-import:hover {
+  background: #2563eb;
+}
+
+/* Import Dialog */
+.import-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 1000;
 }
 
-.timing-actions {
+.import-dialog {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.dialog-header {
   display: flex;
-  gap: 0.5rem;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
 }
 
-.btn-primary {
-  flex: 1;
-  padding: 0.6rem;
-  border-radius: 10px;
+.dialog-header h4 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.close-btn {
+  background: none;
   border: none;
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-  color: white;
-  font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 1.25rem;
   cursor: pointer;
-  min-height: 44px;
+  color: #6b7280;
+  padding: 0.25rem;
+  border-radius: 4px;
 }
 
-.btn-primary:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+.close-btn:hover {
+  background: #f3f4f6;
+  color: #374151;
 }
 
-.btn-secondary {
-  padding: 0.6rem 1rem;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: transparent;
-  color: #94a3b8;
+.import-steps {
+  padding: 1.5rem;
+}
+
+.step-section {
+  margin-bottom: 2rem;
+}
+
+.step-section:last-child {
+  margin-bottom: 0;
+}
+
+.step-section h5 {
+  margin: 0 0 1rem 0;
+  font-size: 0.875rem;
   font-weight: 600;
-  font-size: 0.85rem;
-  cursor: pointer;
-  min-height: 44px;
+  color: #374151;
 }
 
-.status-msg {
-  margin-top: 0.75rem;
-  padding: 0.5rem 0.75rem;
+/* File Upload */
+.file-upload-area {
+  border: 2px dashed #d1d5db;
   border-radius: 8px;
-  font-size: 0.8rem;
+  padding: 2rem;
   text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
 }
 
-.status-msg.success { background: rgba(16, 185, 129, 0.2); color: #34d399; }
-.status-msg.info { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+.file-upload-area:hover,
+.file-upload-area.active {
+  border-color: #3b82f6;
+  background: #f0f9ff;
+}
+
+.upload-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.upload-text {
+  margin: 0.5rem 0;
+  color: #374151;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: #3b82f6;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: inherit;
+}
+
+.upload-hint {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+/* JSON Preview */
+.json-preview {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.preview-status.valid {
+  color: #059669;
+  font-weight: 500;
+}
+
+.preview-status.invalid {
+  color: #dc2626;
+  font-weight: 500;
+}
+
+.copy-btn {
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: background 0.2s;
+}
+
+.copy-btn:hover {
+  background: #e5e7eb;
+}
+
+.json-content {
+  margin: 0;
+  padding: 1rem;
+  background: #1f2937;
+  color: #f9fafb;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  overflow-x: auto;
+  max-height: 300px;
+}
+
+.validation-error {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  color: #dc2626;
+  font-size: 0.875rem;
+}
+
+/* Apply Actions */
+.apply-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .import-dialog {
+    background: #1f2937;
+    color: #f9fafb;
+  }
+  
+  .dialog-header {
+    border-bottom-color: #374151;
+  }
+  
+  .dialog-header h4 {
+    color: #f9fafb;
+  }
+  
+  .close-btn {
+    color: #9ca3af;
+  }
+  
+  .close-btn:hover {
+    background: #374151;
+    color: #f9fafb;
+  }
+  
+  .step-section h5 {
+    color: #f9fafb;
+  }
+  
+  .file-upload-area {
+    border-color: #4b5563;
+    background: #111827;
+  }
+  
+  .file-upload-area:hover,
+  .file-upload-area.active {
+    border-color: #3b82f6;
+    background: #1e3a8a;
+  }
+  
+  .upload-text {
+    color: #f9fafb;
+  }
+  
+  .upload-hint {
+    color: #9ca3af;
+  }
+  
+  .json-preview {
+    border-color: #374151;
+  }
+  
+  .preview-header {
+    background: #111827;
+    border-bottom-color: #374151;
+  }
+  
+  .copy-btn {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+  }
+  
+  .copy-btn:hover {
+    background: #4b5563;
+  }
+  
+  .validation-error {
+    background: #7f1d1d;
+    border-color: #991b1b;
+    color: #fca5a5;
+  }
+}
 
 .slot-list-enter-active,
 .slot-list-leave-active {
