@@ -15,7 +15,7 @@ use Inertia\Inertia;
 */
 
 // Main application route
-Route::get('/my-fly-schedule-app/v5', function () {
+Route::get('/my-fly-schedule-app/ver5', function () {
     return Inertia::render('MicroComponentTest/mytable/MyTableSchedule/v5/ScheduleAppV5');
 })->withoutMiddleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->name('schedule.app.v5');
 
@@ -56,7 +56,7 @@ Route::get('/my-fly-schedule-app/v5-sw.js', function () {
 });
 
 // API Routes
-Route::prefix('api/v5')->group(function () {
+Route::prefix('api/v5')->withoutMiddleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
     
     // Health check
     Route::get('/health', function () {
@@ -124,7 +124,7 @@ Route::prefix('api/v5')->group(function () {
                 'error' => 'Save failed: ' . $e->getMessage()
             ], 500);
         }
-    })->withoutMiddleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']);
+    });
 
     // Load data from server
     Route::get('/load-data', function (Request $request) {
@@ -161,7 +161,7 @@ Route::prefix('api/v5')->group(function () {
                 'error' => 'Load failed: ' . $e->getMessage()
             ], 500);
         }
-    })->withoutMiddleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']);
+    });
 
     // List backups
     Route::get('/backups', function (Request $request) {

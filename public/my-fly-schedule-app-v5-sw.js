@@ -7,7 +7,7 @@ const RUNTIME_CACHE = 'schedule-app-v5-runtime-1';
 
 // App shell URLs to cache on install
 const APP_SHELL = [
-  '/my-fly-schedule-app/v5',
+  '/my-fly-schedule-app/ver5',
   '/my-fly-schedule-app/v5/manifest.webmanifest',
   '/my-fly-schedule-app/v5/icon.svg'
 ];
