@@ -136,7 +136,7 @@ const displayStages = computed(() => {
 // Create timing resolver for the timeline
 const { resolvedTimeSlots } = useTimingResolver(
   computed(() => store.timingsConfig),
-  computed(() => selectedStages.value[0] || 'prim'), // Use first selected stage
+  computed(() => 'prim'), // Use primary timing as fallback
   computed(() => selectedDay.value === 'today' ? getTodayDayId() : selectedDay.value),
   []
 );
@@ -220,21 +220,21 @@ const getPeriodTitle = (timeSlot, stageId, dayId) => {
   const actualDayId = dayId === 'today' ? getTodayDayId() : dayId;
   const scheduleData = store.scheduleData.value;
   
-  // Ensure scheduleData is an array
   if (!Array.isArray(scheduleData)) {
-    return timeSlot.title;
+    return `${timeSlot.title} from ${timeSlot.start} to ${timeSlot.end}`;
   }
   
   const daySchedule = scheduleData.find(item => item.day === actualDayId || item.dayIndex === getDayIndexFromId(actualDayId));
   
+  let subjectInfo = '';
   if (daySchedule && daySchedule.classes) {
     const period = daySchedule.classes.find(p => p.p === timeSlot.id);
     if (period && period.sub) {
-      return period.sub || timeSlot.title;
+      subjectInfo = ` [${period.sub}]`;
     }
   }
   
-  return timeSlot.title;
+  return `${timeSlot.title} from ${timeSlot.start} to ${timeSlot.end}${subjectInfo}`;
 };
 
 const getPeriodSubject = (timeSlot, stageId, dayId) => {
@@ -251,7 +251,8 @@ const getPeriodSubject = (timeSlot, stageId, dayId) => {
   if (daySchedule && daySchedule.classes) {
     const period = daySchedule.classes.find(p => p.p === timeSlot.id);
     if (period && period.sub) {
-      return period.sub;
+      // Add stage prefix to differentiate between stages
+      return `${stageId.toUpperCase()}: ${period.sub}`;
     }
   }
   
@@ -527,8 +528,8 @@ onUnmounted(() => {
 
 .hour-label {
   position: absolute;
-  left: 8px;
-  top: -10px;
+  left: 4px;
+  top: -8px;
   font-size: 0.625rem;
   color: #6b7280;
   font-weight: 600;
@@ -536,6 +537,8 @@ onUnmounted(() => {
   padding: 2px 4px;
   border-radius: 4px;
   border: 1px solid #e5e7eb;
+  z-index: 10;
+  white-space: nowrap;
 }
 
 /* Stage Columns */
@@ -614,13 +617,15 @@ onUnmounted(() => {
 }
 
 .period-content {
-  padding: 8px;
-  font-size: 0.75rem;
-  line-height: 1.3;
+  padding: 6px;
+  font-size: 0.7rem;
+  line-height: 1.2;
   display: flex;
   flex-direction: column;
   justify-content: center;
   min-height: 100%;
+  word-wrap: break-word;
+  overflow: hidden;
 }
 
 .period-time {
@@ -636,6 +641,7 @@ onUnmounted(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: 0.65rem;
 }
 
 .period-subject {
