@@ -3,13 +3,47 @@ import { useOfflineDB } from './useOfflineDB';
 import { useCloudSync } from './useCloudSync';
 import defaultScheduleData from '../schedule_data.json';
 import defaultTimingData from '../schedule_timing.json';
-import defaultStageDayTimings from '../data/stage_day_timings.json';
 import masterTimetableData from '../data/master_timetable_data.json';
 
 const STORE_KEY = Symbol('AppStoreV5');
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+/**
+ * Migrate old timing structure to new per-stage structure
+ */
+function migrateOldTimings(oldConfig) {
+  const newConfig = {
+    stages: ['prim', 'middle', 'sec'],
+    overrides: {}
+  };
+
+  // If old config had default timings, use them for all stages
+  const defaultTimings = oldConfig.default || [];
+  
+  ['prim', 'middle', 'sec'].forEach(stage => {
+    // Use stage-specific default if it exists, otherwise use global default
+    const stageDefault = oldConfig.overrides?.[stage]?.default || defaultTimings;
+    
+    newConfig.overrides[stage] = {
+      default: stageDefault,
+      days: {}
+    };
+
+    // Copy any day-specific overrides
+    ['d1', 'd2', 'd3', 'd4', 'd5', 'd6'].forEach(day => {
+      const dayTiming = oldConfig.overrides?.[stage]?.days?.[day];
+      if (dayTiming) {
+        newConfig.overrides[stage].days[day] = dayTiming;
+      } else {
+        newConfig.overrides[stage].days[day] = null; // inherit stage default
+      }
+    });
+  });
+
+  return newConfig;
 }
 
 /**
@@ -22,7 +56,7 @@ export function createAppStore() {
 
   // ── Reactive State ──
 
-  const timingsConfig = ref(clone(defaultStageDayTimings));
+  const timingsConfig = ref({ stages: [], overrides: {} });
   const scheduleData = ref(clone(defaultScheduleData));
   const schoolTimetable = ref(clone(masterTimetableData));
 
@@ -179,13 +213,34 @@ export function createAppStore() {
     try {
       await db.init();
 
-      // Load timing config
-      const savedTimings = await db.getTimingConfig();
-      if (savedTimings && Array.isArray(savedTimings.default) && savedTimings.default.length > 0) {
+      // Load timings config with migration support
+      let savedTimings = await db.getTimingConfig();
+      if (!savedTimings) {
+        // First load - build config from new structure
+        const stagesConfig = await import('../data/stages.json');
+        const primTimings = await import('../data/timings/prim.json');
+        const middleTimings = await import('../data/timings/middle.json');
+        const secTimings = await import('../data/timings/sec.json');
+        
         timingsConfig.value = {
-          default: savedTimings.default,
-          overrides: savedTimings.overrides || {}
+          stages: stagesConfig.default,
+          overrides: {
+            prim: primTimings.default,
+            middle: middleTimings.default,
+            sec: secTimings.default
+          }
         };
+        
+        await saveTimingsToIDB();
+      } else {
+        // Check if we need to migrate from old structure
+        if (savedTimings.default || savedTimings.autoApplyToAll) {
+          // Migrate old structure to new
+          timingsConfig.value = migrateOldTimings(savedTimings);
+          await saveTimingsToIDB();
+        } else {
+          timingsConfig.value = savedTimings;
+        }
       }
 
       // Load personal schedule

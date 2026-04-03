@@ -45,7 +45,8 @@
       </div>
 
       <div v-if="editableSlots.length === 0" class="empty-state">
-        <p>No custom timing for this selection. Using {{ editDay ? 'stage default' : 'global default' }}.</p>
+        <p v-if="editDay">No custom timing for this day. Using stage default.</p>
+        <p v-else>No stage default timing set. Click "Copy from default" to load the default schedule.</p>
         <button class="action-sm" @click="copyFromDefault">Copy from default</button>
       </div>
 
@@ -157,6 +158,7 @@ const resolveCurrentSlots = () => {
     return clone(stageOverride.default);
   }
 
+  // No default available - return empty
   return [];
 };
 
@@ -195,9 +197,23 @@ const onSlotChange = () => {
   // Reactive — changes tracked automatically
 };
 
-const copyFromDefault = () => {
+const copyFromDefault = async () => {
+  let source = [];
+  
+  // Try to get stage default from config first
   const config = store.timingsConfig.value;
-  let source = config?.default || [];
+  if (config?.overrides?.[editStage.value]?.default) {
+    source = config.overrides[editStage.value].default;
+  } else {
+    // Load from stage file if no default is set
+    try {
+      const stageTimings = await import(`../../data/timings/${editStage.value}.json`);
+      source = stageTimings.default;
+    } catch (e) {
+      console.warn('Failed to load stage defaults:', e);
+    }
+  }
+  
   editableSlots.value = clone(source).map(s => ({ ...s, _key: ++keyCounter }));
 };
 
@@ -228,9 +244,17 @@ const resetToDefault = async () => {
   if (!config.overrides?.[editStage.value]) return;
 
   if (editDay.value) {
+    // Reset specific day to inherit stage default
     config.overrides[editStage.value].days[editDay.value] = null;
   } else {
-    config.overrides[editStage.value].default = null;
+    // Reset stage default - load from the stage file
+    try {
+      const stageTimings = await import(`../../data/timings/${editStage.value}.json`);
+      config.overrides[editStage.value].default = stageTimings.default;
+    } catch (e) {
+      console.warn('Failed to load stage defaults:', e);
+      config.overrides[editStage.value].default = null;
+    }
   }
 
   await store.setTimingsConfig(config);

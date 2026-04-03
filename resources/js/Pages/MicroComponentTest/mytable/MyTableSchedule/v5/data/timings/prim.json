@@ -57,42 +57,12 @@
       "end": "12:50"
     }
   ],
-  "autoApplyToAll": true,
-  "appliedStages": ["prim", "middle", "sec"],
-  "appliedDays": ["d1", "d2", "d3", "d4", "d5", "d6"],
-  "overrides": {
-    "prim": {
-      "default": null,
-      "days": {
-        "d1": null,
-        "d2": null,
-        "d3": null,
-        "d4": null,
-        "d5": null,
-        "d6": null
-      }
-    },
-    "middle": {
-      "default": null,
-      "days": {
-        "d1": null,
-        "d2": null,
-        "d3": null,
-        "d4": null,
-        "d5": null,
-        "d6": null
-      }
-    },
-    "sec": {
-      "default": null,
-      "days": {
-        "d1": null,
-        "d2": null,
-        "d3": null,
-        "d4": null,
-        "d5": null,
-        "d6": null
-      }
-    }
+  "days": {
+    "d1": null,
+    "d2": null,
+    "d3": null,
+    "d4": null,
+    "d5": null,
+    "d6": null
   }
 }

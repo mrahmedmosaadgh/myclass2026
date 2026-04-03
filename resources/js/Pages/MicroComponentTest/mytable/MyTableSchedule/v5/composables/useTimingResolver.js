@@ -17,9 +17,9 @@ export function normalizeSlots(slots) {
 
 /**
  * Creates a computed ref that resolves the active time slots based on
- * the timing config hierarchy: stage+day override > stage default > global default > fallback.
+ * the new timing structure: stage+day override > stage default > fallback.
  *
- * @param {import('vue').Ref} timingsConfig  - { default: [...], overrides: { prim: { default, days: { d1: [...] } } } }
+ * @param {import('vue').Ref} timingsConfig  - { stages: [...], overrides: { prim: { default, days: { d1: [...] } } } }
  * @param {import('vue').Ref} selectedStage  - 'prim' | 'middle' | 'sec'
  * @param {import('vue').Ref} selectedDay    - 'd1' .. 'd6'
  * @param {Array} fallbackSlots              - static fallback from schedule_timing.json
@@ -40,12 +40,7 @@ export function useTimingResolver(timingsConfig, selectedStage, selectedDay, fal
       return normalizeSlots(stageOverride.default);
     }
 
-    // 3. Global default
-    if (config?.default?.length) {
-      return normalizeSlots(config.default);
-    }
-
-    // 4. Static fallback
+    // 3. Static fallback
     return normalizeSlots(fallbackSlots);
   });
 

@@ -35,39 +35,72 @@
     <div class="tab-content">
       <!-- Export Tab -->
       <div v-if="activeTab === 'export'" class="tab-panel">
-        <div class="export-grid">
-          <button class="export-card" @click="exportAll">
-            <div class="card-icon">📦</div>
-            <div class="card-content">
-              <h5>Full Backup</h5>
-              <p>All data with timestamps</p>
-            </div>
-            <div class="card-action">Export</div>
-          </button>
-          <button class="export-card" @click="exportTimings">
-            <div class="card-icon">⏰</div>
-            <div class="card-content">
-              <h5>Timings Only</h5>
-              <p>Default + overrides</p>
-            </div>
-            <div class="card-action">Export</div>
-          </button>
-          <button class="export-card" @click="exportSchedule">
-            <div class="card-icon">📅</div>
-            <div class="card-content">
-              <h5>Personal Schedule</h5>
-              <p>Your weekly schedule</p>
-            </div>
-            <div class="card-action">Export</div>
-          </button>
-          <button class="export-card" @click="exportSchool">
-            <div class="card-icon">🏫</div>
-            <div class="card-content">
-              <h5>School Timetable</h5>
-              <p>Teacher assignments</p>
-            </div>
-            <div class="card-action">Export</div>
-          </button>
+        <div class="export-section">
+          <h4 class="panel-title">Stage Timings</h4>
+          <div class="export-grid">
+            <button class="export-card" @click="exportStageTimings('prim')">
+              <div class="card-icon">🎓</div>
+              <div class="card-content">
+                <h5>Primary Timings</h5>
+                <p>Primary stage schedule</p>
+              </div>
+              <div class="card-action">Export</div>
+            </button>
+            <button class="export-card" @click="exportStageTimings('middle')">
+              <div class="card-icon">📚</div>
+              <div class="card-content">
+                <h5>Middle Timings</h5>
+                <p>Middle stage schedule</p>
+              </div>
+              <div class="card-action">Export</div>
+            </button>
+            <button class="export-card" @click="exportStageTimings('sec')">
+              <div class="card-icon">🎓</div>
+              <div class="card-content">
+                <h5>Secondary Timings</h5>
+                <p>Secondary stage schedule</p>
+              </div>
+              <div class="card-action">Export</div>
+            </button>
+            <button class="export-card" @click="exportTimings">
+              <div class="card-icon">📦</div>
+              <div class="card-content">
+                <h5>All Timings</h5>
+                <p>Full timing configuration</p>
+              </div>
+              <div class="card-action">Export</div>
+            </button>
+          </div>
+        </div>
+        
+        <div class="export-section">
+          <h4 class="panel-title">Other Data</h4>
+          <div class="export-grid">
+            <button class="export-card" @click="exportSchedule">
+              <div class="card-icon">📅</div>
+              <div class="card-content">
+                <h5>Personal Schedule</h5>
+                <p>Your weekly schedule</p>
+              </div>
+              <div class="card-action">Export</div>
+            </button>
+            <button class="export-card" @click="exportSchool">
+              <div class="card-icon">🏫</div>
+              <div class="card-content">
+                <h5>School Timetable</h5>
+                <p>Teacher assignments</p>
+              </div>
+              <div class="card-action">Export</div>
+            </button>
+            <button class="export-card" @click="exportAll">
+              <div class="card-icon">💾</div>
+              <div class="card-content">
+                <h5>Full Backup</h5>
+                <p>All data with timestamps</p>
+              </div>
+              <div class="card-action">Export</div>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -84,11 +117,17 @@
             ></textarea>
             <div class="paste-controls">
               <select v-model="importTarget" class="target-select">
-                <option value="">Select data type...</option>
-                <option value="full-backup">Full Backup</option>
-                <option value="timings">Timings Only</option>
-                <option value="schedule">Personal Schedule</option>
-                <option value="school">School Timetable</option>
+                <optgroup label="Stage Timings">
+                  <option value="prim-timings">Primary Timings</option>
+                  <option value="middle-timings">Middle Timings</option>
+                  <option value="sec-timings">Secondary Timings</option>
+                </optgroup>
+                <optgroup label="Other Data">
+                  <option value="timings">All Timings</option>
+                  <option value="schedule">Personal Schedule</option>
+                  <option value="school">School Timetable</option>
+                  <option value="full-backup">Full Backup</option>
+                </optgroup>
               </select>
               <button 
                 class="btn-primary" 
@@ -225,6 +264,19 @@ const exportTimings = async () => {
   }, `schedule-v5-timings-${new Date().toISOString().slice(0, 10)}.json`);
 };
 
+const exportStageTimings = async (stage) => {
+  const config = await store.db.getTimingConfig();
+  const stageData = config?.overrides?.[stage] || { default: null, days: {} };
+  
+  downloadJson({
+    type: 'stage_timings',
+    version: '5.0',
+    stage: stage,
+    timestamp: new Date().toISOString(),
+    data: stageData
+  }, `schedule-v5-${stage}-timings-${new Date().toISOString().slice(0, 10)}.json`);
+};
+
 const exportSchedule = async () => {
   const data = await store.db.getPersonalSchedule();
   downloadJson({
@@ -259,6 +311,18 @@ const importPasted = async () => {
       await store.setTimingsConfig(config);
       importMessage.value = 'Timings imported successfully!';
       importType.value = 'success';
+    } else if (importTarget.value === 'prim-timings') {
+      await importStageTimings('prim', json);
+      importMessage.value = 'Primary timings imported successfully!';
+      importType.value = 'success';
+    } else if (importTarget.value === 'middle-timings') {
+      await importStageTimings('middle', json);
+      importMessage.value = 'Middle timings imported successfully!';
+      importType.value = 'success';
+    } else if (importTarget.value === 'sec-timings') {
+      await importStageTimings('sec', json);
+      importMessage.value = 'Secondary timings imported successfully!';
+      importType.value = 'success';
     } else if (importTarget.value === 'schedule') {
       const data = json.data || json;
       await store.setScheduleData(data.schedule || data);
@@ -276,6 +340,22 @@ const importPasted = async () => {
     importType.value = 'error';
   }
   setTimeout(() => { importMessage.value = ''; }, 4000);
+};
+
+const importStageTimings = async (stage, json) => {
+  const config = await store.db.getTimingConfig();
+  const stageData = json.data || json;
+  
+  // Update only the specified stage's timings
+  const updatedConfig = {
+    ...config,
+    overrides: {
+      ...config.overrides,
+      [stage]: stageData
+    }
+  };
+  
+  await store.setTimingsConfig(updatedConfig);
 };
 
 const handleFileSelect = (e) => {
@@ -566,7 +646,11 @@ onMounted(async () => {
   margin: 0 0 1rem 0;
 }
 
-/* Export Cards */
+/* Export Section */
+.export-section {
+  margin-bottom: 2rem;
+}
+
 .export-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
