@@ -55,6 +55,8 @@
         <div>DisplayStages count: {{ displayStages.length }}</div>
         <div>Selected day: {{ selectedDay }}</div>
         <div>Store initialized: {{ store.isInitialized.value }}</div>
+        <div>Test HTML: <span v-html="'<strong>Bold Test</strong>'"></span></div>
+        <div>Test LaTeX: <span v-html="renderLatexMath('$x^2 + y^2 = z^2$')"></span></div>
       </div>
       
       <!-- Header Row -->
@@ -106,6 +108,10 @@
               }"
               @dblclick="startEditingPeriod(timeSlot, stage.id, selectedDay)"
             >
+              <!-- Debug info inside period block -->
+              <div style="position: absolute; top: 2px; left: 2px; font-size: 8px; color: red; z-index: 100;">
+                {{ timeSlot.id }} - {{ stage.id }}
+              </div>
               <!-- Edit Mode -->
               <div v-if="isEditingPeriod(timeSlot.id, stage.id, selectedDay)" class="period-edit-mode">
                 <div class="edit-form">
@@ -134,8 +140,8 @@
               
               <!-- Display Mode -->
               <div v-else class="period-content" :key="mathRenderKey">
-                <div class="period-title" v-html="getPeriodTitleWithMath(timeSlot, stage.id, selectedDay) || 'No content'"></div>
-                <div class="period-teacher" v-html="getPeriodTeacherWithMath(timeSlot, stage.id, selectedDay) || 'No teacher'"></div>
+                <div class="period-title" v-html="(getPeriodTitleWithMath(timeSlot, stage.id, selectedDay) || 'Test Title: $E=mc^2$')"></div>
+                <div class="period-teacher" v-html="(getPeriodTeacherWithMath(timeSlot, stage.id, selectedDay) || 'Test Teacher: Dr. Smith')"></div>
                 <div v-if="hasNafs(timeSlot, stage.id, selectedDay)" class="nafs-indicator">N</div>
                 <div class="edit-hint">Double-click to edit</div>
               </div>
@@ -933,13 +939,21 @@ const renderLatexMath = (text) => {
 
 // Enhanced period content functions with LaTeX support
 const getPeriodTitleWithMath = (timeSlot, stageId, dayId) => {
+  console.log('getPeriodTitleWithMath called with:', { timeSlot, stageId, dayId });
   const title = getPeriodTitle(timeSlot, stageId, dayId);
-  return renderLatexMath(title);
+  console.log('Original title:', title);
+  const rendered = renderLatexMath(title);
+  console.log('Rendered title:', rendered);
+  return rendered || 'Fallback Title: $x^2$';
 };
 
 const getPeriodTeacherWithMath = (timeSlot, stageId, dayId) => {
+  console.log('getPeriodTeacherWithMath called with:', { timeSlot, stageId, dayId });
   const teacher = getPeriodTeacher(timeSlot, stageId, dayId);
-  return renderLatexMath(teacher);
+  console.log('Original teacher:', teacher);
+  const rendered = renderLatexMath(teacher);
+  console.log('Rendered teacher:', rendered);
+  return rendered || 'Fallback Teacher: Dr. Test';
 };
 
 // Computed property to trigger re-render when KaTeX loads
@@ -1082,6 +1096,8 @@ const mathRenderKey = computed(() => katexLoaded.value);
   display: flex;
   min-height: 1920px; /* 16 hours * 120px per hour (2px per minute) */
   background: linear-gradient(to bottom, #ffffff, #f8fafc);
+  border: 3px solid #00ff00 !important; /* Green border for debugging */
+  background: #f0f0f0 !important; /* Gray background for debugging */
 }
 
 /* Horizontal Grid Lines */
@@ -1176,7 +1192,8 @@ const mathRenderKey = computed(() => katexLoaded.value);
   display: flex;
   flex-direction: column;
   justify-content: center;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 2px solid #ff0000 !important; /* Red border for debugging */
+  background: #ffff00 !important; /* Yellow background for debugging */
 }
 
 .period-block.editing {
