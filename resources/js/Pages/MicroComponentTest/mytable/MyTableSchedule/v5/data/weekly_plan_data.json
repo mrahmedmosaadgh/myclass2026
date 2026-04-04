@@ -1,0 +1,101 @@
+{
+  "2026-W14": {
+    "meta": { "title": "Week 14 – Topic 7 Review" },
+    "classes": {
+      "7A": {
+        "d1": {
+          "1": {
+            "cw": "Topic 7 Topic Review",
+            "cwPages": "419-421",
+            "hw": "Student Book: Topic 7 Topic Review",
+            "hwPages": "417-418",
+            "presentationLink": "",
+            "materialLink": "",
+            "notesHtml": "<p><strong>Focus:</strong> Review all Topic 7 skills.</p><ul><li>Warm-up questions</li><li>Quick correction</li></ul>"
+          }
+        },
+        "d2": {
+          "1": {
+            "cw": "Fractions practice",
+            "cwPages": "422-423",
+            "hw": "Workbook exercises",
+            "hwPages": "424",
+            "presentationLink": "",
+            "materialLink": "",
+            "notesHtml": ""
+          },
+          "7": {
+            "cw": "Fractions word problems",
+            "cwPages": "425",
+            "hw": "Finish worksheet",
+            "hwPages": "426",
+            "presentationLink": "",
+            "materialLink": "",
+            "notesHtml": ""
+          }
+        },
+        "d3": {
+          "7": {
+            "cw": "Mixed review",
+            "cwPages": "427-428",
+            "hw": "Topic 7 practice test",
+            "hwPages": "429",
+            "presentationLink": "",
+            "materialLink": "",
+            "notesHtml": ""
+          }
+        }
+      },
+      "5B": {
+        "d1": {
+          "5": {
+            "cw": "Decimals review",
+            "cwPages": "310-312",
+            "hw": "Exercises 1-4",
+            "hwPages": "313",
+            "presentationLink": "",
+            "materialLink": "",
+            "notesHtml": "<p>Let students solve Q1-Q3 first.</p>"
+          }
+        },
+        "d2": {
+          "4": {
+            "cw": "Adding decimals",
+            "cwPages": "314-315",
+            "hw": "Workbook page",
+            "hwPages": "316",
+            "presentationLink": "",
+            "materialLink": "",
+            "notesHtml": ""
+          }
+        }
+      },
+      "4A": {
+        "d1": {
+          "3": {
+            "cw": "Multiplication table review",
+            "cwPages": "200-201",
+            "hw": "Times tables sheet",
+            "hwPages": "202",
+            "presentationLink": "",
+            "materialLink": "",
+            "notesHtml": ""
+          }
+        }
+      },
+      "5A": {
+        "d1": {
+          "6": {
+            "cw": "Geometry intro",
+            "cwPages": "250-252",
+            "hw": "Draw shapes worksheet",
+            "hwPages": "253",
+            "presentationLink": "",
+            "materialLink": "",
+            "notesHtml": ""
+          }
+        }
+      }
+    }
+  }
+}

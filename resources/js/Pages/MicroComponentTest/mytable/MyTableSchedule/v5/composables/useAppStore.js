@@ -4,6 +4,7 @@ import { useCloudSync } from './useCloudSync';
 import defaultScheduleData from '../schedule_data.json';
 import defaultTimingData from '../schedule_timing.json';
 import masterTimetableData from '../data/master_timetable_data.json';
+import defaultWeeklyPlanData from '../data/weekly_plan_data.json';
 
 const STORE_KEY = Symbol('AppStoreV5');
 
@@ -74,6 +75,58 @@ export function createAppStore() {
 
   const isInitialized = ref(false);
   const storeError = ref(null);
+
+  // ── Weekly Plans State ──
+  const weeklyPlans = ref(clone(defaultWeeklyPlanData));
+
+  // ── Weekly Plan Helpers ──
+
+  const getWeekKey = (date = new Date()) => {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+  };
+
+  const getWeekTitle = (weekKey) => {
+    return weeklyPlans.value[weekKey]?.meta?.title || weekKey;
+  };
+
+  const getWeeklyPlanEntry = (weekKey, className, dayId, periodId) => {
+    return weeklyPlans.value[weekKey]?.classes?.[className]?.[dayId]?.[String(periodId)] || null;
+  };
+
+  const getScheduleClasses = () => {
+    const classes = new Set();
+    const data = Array.isArray(scheduleData.value) ? scheduleData.value : [];
+    data.forEach(day => {
+      (day.classes || []).forEach(slot => {
+        if (slot.sub && slot.sub.trim()) classes.add(slot.sub.trim());
+      });
+    });
+    return Array.from(classes).sort();
+  };
+
+  const dayIdToName = (dayId) => {
+    const map = { d1: 'Sunday', d2: 'Monday', d3: 'Tuesday', d4: 'Wednesday', d5: 'Thursday', d6: 'Friday' };
+    return map[dayId] || dayId;
+  };
+
+  const getScheduledSlotsForClass = (className) => {
+    const slots = [];
+    const data = Array.isArray(scheduleData.value) ? scheduleData.value : [];
+    data.forEach(day => {
+      const dayId = `d${day.dayIndex + 1}`;
+      (day.classes || []).forEach(slot => {
+        if (slot.sub === className) {
+          slots.push({ dayId, dayName: day.day, periodId: String(slot.p) });
+        }
+      });
+    });
+    return slots;
+  };
 
   // ── Helpers ──
 
@@ -195,6 +248,44 @@ export function createAppStore() {
     pushCloudSnapshot();
   };
 
+  // ── Weekly Plan Mutations ──
+
+  const saveWeeklyPlansToIDB = async () => {
+    try {
+      await db.saveSetting('weeklyPlans', toRaw(weeklyPlans.value));
+    } catch (e) {
+      console.warn('[Store] Failed to save weeklyPlans to IDB:', e);
+    }
+  };
+
+  const setWeeklyPlans = async (data) => {
+    weeklyPlans.value = clone(data);
+    await saveWeeklyPlansToIDB();
+  };
+
+  const setWeekTitle = async (weekKey, title) => {
+    if (!weeklyPlans.value[weekKey]) {
+      weeklyPlans.value[weekKey] = { meta: { title }, classes: {} };
+    } else {
+      if (!weeklyPlans.value[weekKey].meta) weeklyPlans.value[weekKey].meta = {};
+      weeklyPlans.value[weekKey].meta.title = title;
+    }
+    await saveWeeklyPlansToIDB();
+  };
+
+  const updateWeeklyPlanEntry = async (weekKey, className, dayId, periodId, payload) => {
+    const pid = String(periodId);
+    if (!weeklyPlans.value[weekKey]) {
+      weeklyPlans.value[weekKey] = { meta: { title: weekKey }, classes: {} };
+    }
+    const wk = weeklyPlans.value[weekKey];
+    if (!wk.classes) wk.classes = {};
+    if (!wk.classes[className]) wk.classes[className] = {};
+    if (!wk.classes[className][dayId]) wk.classes[className][dayId] = {};
+    wk.classes[className][dayId][pid] = { ...wk.classes[className][dayId][pid], ...payload };
+    await saveWeeklyPlansToIDB();
+  };
+
   const setTestTimeConfig = async (config) => {
     testTimeEnabled.value = !!config.enabled;
     testDayIndex.value = Number(config.dayIndex ?? 0);
@@ -273,6 +364,12 @@ export function createAppStore() {
         testTimeValue.value = savedTestTime.timeValue || '09:00';
       }
 
+      // Load weekly plans
+      const savedWeeklyPlans = await db.getSetting('weeklyPlans');
+      if (savedWeeklyPlans && Object.keys(savedWeeklyPlans).length > 0) {
+        weeklyPlans.value = savedWeeklyPlans;
+      }
+
       // Cloud sync: pull with local-wins
       const localLastModified = savedTimings?.lastModified || 0;
       const pullResult = await cloud.pullFromServer(localLastModified);
@@ -329,6 +426,7 @@ export function createAppStore() {
     // State (readonly for consumers)
     timingsConfig: readonly(timingsConfig),
     scheduleData: readonly(scheduleData),
+    weeklyPlans: readonly(weeklyPlans),
     schoolTimetable: readonly(schoolTimetable),
     selectedStage: readonly(selectedStage),
     selectedDay: readonly(selectedDay),
@@ -360,6 +458,9 @@ export function createAppStore() {
     setScheduleData,
     setSchoolTimetable,
     setTestTimeConfig,
+    setWeeklyPlans,
+    setWeekTitle,
+    updateWeeklyPlanEntry,
 
     // DB access (for DataManager)
     db,
@@ -371,6 +472,12 @@ export function createAppStore() {
 
     // Helpers
     dayIndexToId,
+    dayIdToName,
+    getWeekKey,
+    getWeekTitle,
+    getWeeklyPlanEntry,
+    getScheduleClasses,
+    getScheduledSlotsForClass,
     masterTimetableData
   };
 

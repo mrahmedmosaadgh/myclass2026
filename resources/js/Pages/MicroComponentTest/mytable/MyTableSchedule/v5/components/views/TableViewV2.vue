@@ -38,8 +38,9 @@
               class="subject-cell"
               :class="getSubjectCellClass(slot.id, day)"
               :style="getSubjectStyle(slot.id, day)"
+              @click="handleCellClick(slot.id, day)"
             >
-              <div v-if="getSubject(slot.id, day)" class="subject-content">
+              <div v-if="getSubject(slot.id, day)" class="subject-content clickable">
                 <span class="subject-name">{{ getSubject(slot.id, day) }}</span>
                 <span v-if="hasNafs(slot.id, day)" class="nafs-indicator">N</span>
               </div>
@@ -56,11 +57,25 @@
       </table>
     </div>
   </div>
+
+  <!-- Weekly Plan Detail Dialog -->
+  <WeeklyPlanDetailDialog
+    v-if="showWeeklyDialog"
+    :open="showWeeklyDialog"
+    :week-key="dialogWeekKey"
+    :class-name="dialogClassName"
+    :day-id="dialogDayId"
+    :period-id="dialogPeriodId"
+    :day-name="dialogDayName"
+    :period-title="dialogPeriodTitle"
+    @close="showWeeklyDialog = false"
+  />
 </template>
 
 <script setup>
 import { computed, inject, onMounted, onUnmounted, ref } from 'vue';
 import { useAppStore } from '../../composables/useAppStore';
+import WeeklyPlanDetailDialog from './WeeklyPlanDetailDialog.vue';
 
 const store = useAppStore();
 const resolvedTimeSlots = inject('resolvedTimeSlots');
@@ -73,6 +88,15 @@ const lastAlertPeriod = ref(null);
 const periodProgress = ref(0);
 const currentTimeDisplay = ref('00:00:00');
 const activePeriodInfo = ref(null);
+
+// Weekly plan dialog state
+const showWeeklyDialog = ref(false);
+const dialogWeekKey = ref('');
+const dialogClassName = ref('');
+const dialogDayId = ref('');
+const dialogPeriodId = ref('');
+const dialogDayName = ref('');
+const dialogPeriodTitle = ref('');
 
 // Update time progress
 const updateTimeProgress = () => {
@@ -342,6 +366,26 @@ const getSubjectStyle = (periodNum, day) => {
     color: '#ffffff' // Ensure white text for all colored cells
   };
 };
+
+const handleCellClick = (periodId, day) => {
+  const subject = getSubject(periodId, day);
+  if (!subject) return; // Only handle clicks on non-empty cells
+  
+  const dayId = `d${day.dayIndex + 1}`;
+  const weekKey = store.getWeekKey();
+  const slot = timeSlots.value.find(s => s.id === periodId);
+  
+  // Set dialog data
+  dialogWeekKey.value = weekKey;
+  dialogClassName.value = subject;
+  dialogDayId.value = dayId;
+  dialogPeriodId.value = String(periodId);
+  dialogDayName.value = day.day;
+  dialogPeriodTitle.value = slot?.title || `Period ${periodId}`;
+  
+  // Show dialog
+  showWeeklyDialog.value = true;
+};
 </script>
 
 <style scoped>
@@ -523,6 +567,10 @@ const getSubjectStyle = (periodNum, day) => {
   flex-direction: column;
   align-items: center;
   gap: 0.1rem;
+}
+
+.subject-content.clickable {
+  cursor: pointer;
 }
 
 .subject-name {

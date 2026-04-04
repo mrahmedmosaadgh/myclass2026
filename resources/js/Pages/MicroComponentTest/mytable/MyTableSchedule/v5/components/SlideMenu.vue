@@ -26,6 +26,7 @@
             <MenuViewSelector v-else-if="activeSection === 'views'" @close="$emit('close')" />
             <MenuTimingConfig v-else-if="activeSection === 'timing'" @close="$emit('close')" />
             <MenuDataManager v-else-if="activeSection === 'data'" @close="$emit('close')" />
+            <MenuWeeklyPlan v-else-if="activeSection === 'weekly'" @close="$emit('close')" />
             <MenuSettings v-else-if="activeSection === 'settings'" @close="$emit('close')" />
             <MenuAbout v-else-if="activeSection === 'about'" @close="$emit('close')" />
           </div>
@@ -45,6 +46,7 @@ import MenuHome from './menu/MenuHome.vue';
 import MenuViewSelector from './menu/MenuViewSelector.vue';
 import MenuTimingConfig from './menu/MenuTimingConfig.vue';
 import MenuDataManager from './menu/MenuDataManager.vue';
+import MenuWeeklyPlan from './menu/MenuWeeklyPlan.vue';
 import MenuSettings from './menu/MenuSettings.vue';
 import MenuAbout from './menu/MenuAbout.vue';
 
@@ -61,6 +63,7 @@ const menuItems = [
   { id: 'views', icon: '👁️', label: 'Views' },
   { id: 'timing', icon: '⏰', label: 'Timing' },
   { id: 'data', icon: '📁', label: 'Data' },
+  { id: 'weekly', icon: '📓', label: 'Weekly' },
   { id: 'settings', icon: '⚙️', label: 'Settings' },
   { id: 'about', icon: 'ℹ️', label: 'About' }
 ];
