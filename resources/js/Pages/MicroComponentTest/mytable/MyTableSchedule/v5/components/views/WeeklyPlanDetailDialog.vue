@@ -76,6 +76,25 @@
                 <div class="notes-content" v-html="sanitizedNotes"></div>
               </div>
 
+              <div class="detail-section">
+                <h4>Status & Rating</h4>
+                <div class="detail-item">
+                  <label>Status:</label>
+                  <span :class="{ 'status-done': planData.done, 'status-pending': !planData.done }">
+                    {{ planData.done ? '✅ Done' : '⏳ Pending' }}
+                  </span>
+                </div>
+                <div class="detail-item">
+                  <label>Rating:</label>
+                  <div class="rating-display">
+                    <span v-for="star in 5" :key="star" class="star">
+                      {{ star <= (planData.rating || 0) ? '⭐' : '☆' }}
+                    </span>
+                    <span class="rating-text">({{ planData.rating || 0 }}/5)</span>
+                  </div>
+                </div>
+              </div>
+
               <div class="dialog-actions">
                 <button @click="openWeeklyMenu" class="edit-btn">Edit in Weekly Menu</button>
               </div>
@@ -110,7 +129,7 @@ const props = defineProps({
   periodTitle: String
 });
 
-defineEmits(['close']);
+const emit = defineEmits(['close']);
 
 const store = useAppStore();
 const showPresentationViewer = ref(false);
@@ -375,5 +394,30 @@ const openWeeklyMenu = () => {
   .detail-item label {
     min-width: auto;
   }
+}
+
+/* Status and Rating Styles */
+.status-done {
+  color: #28a745;
+  font-weight: 600;
+}
+
+.status-pending {
+  color: #6c757d;
+}
+
+.rating-display {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.star {
+  font-size: 1rem;
+}
+
+.rating-text {
+  font-size: 0.875rem;
+  color: #666;
 }
 </style>

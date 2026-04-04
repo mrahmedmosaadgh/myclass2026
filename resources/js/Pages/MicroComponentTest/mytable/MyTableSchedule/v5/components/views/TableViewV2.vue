@@ -43,6 +43,7 @@
               <div v-if="getSubject(slot.id, day)" class="subject-content clickable">
                 <span class="subject-name">{{ getSubject(slot.id, day) }}</span>
                 <span v-if="hasNafs(slot.id, day)" class="nafs-indicator">N</span>
+                <span v-if="isPeriodDone(slot.id, day)" class="done-indicator">✓</span>
               </div>
               <span v-else class="empty-cell">—</span>
               
@@ -328,6 +329,17 @@ const hasNafs = (periodNum, day) => {
   return period?.nafs || false;
 };
 
+const isPeriodDone = (periodNum, day) => {
+  const subject = getSubject(periodNum, day);
+  if (!subject) return false;
+  
+  const dayId = `d${day.dayIndex + 1}`;
+  const weekKey = store.getWeekKey();
+  const weeklyPlanEntry = store.getWeeklyPlanEntry(weekKey, subject, dayId, String(periodNum));
+  
+  return weeklyPlanEntry?.done || false;
+};
+
 const getSubjectCellClass = (periodNum, day) => {
   const subject = getSubject(periodNum, day);
   const classes = [];
@@ -585,6 +597,16 @@ const handleCellClick = (periodId, day) => {
   border-radius: 4px;
   font-size: 0.55rem;
   font-weight: 700;
+}
+
+.done-indicator {
+  background: #28a745;
+  color: white;
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+  font-size: 0.55rem;
+  font-weight: 700;
+  margin-left: 0.2rem;
 }
 
 .empty-cell {

@@ -21,7 +21,7 @@
             </button>
           </nav>
 
-          <div class="menu-content" :class="{ 'weekly-menu-active': activeSection === 'weekly' }">
+          <div class="menu-content">
             <MenuHome v-if="activeSection === 'home'" @close="$emit('close')" />
             <MenuViewSelector v-else-if="activeSection === 'views'" @close="$emit('close')" />
             <MenuTimingConfig v-else-if="activeSection === 'timing'" @close="$emit('close')" />
@@ -88,18 +88,12 @@ watch(() => props.open, (val) => {
   left: 0;
   bottom: 0;
   width: 100%;
-  max-width: 420px;
+  max-width: 100%;
   background: #0f172a;
   color: #f1f5f9;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-}
-
-/* Full screen for weekly menu */
-.slide-menu.weekly-menu-active {
-  max-width: 100%;
-  width: 100%;
 }
 
 .menu-header {
@@ -220,13 +214,8 @@ watch(() => props.open, (val) => {
 
 @media (min-width: 768px) {
   .slide-menu {
-    max-width: 480px;
-    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3);
-  }
-  
-  .slide-menu.weekly-menu-active {
     max-width: 100%;
-    width: 100%;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3);
   }
 }
 </style>

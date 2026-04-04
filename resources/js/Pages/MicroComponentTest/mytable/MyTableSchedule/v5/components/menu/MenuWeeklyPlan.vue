@@ -51,6 +51,8 @@
         <div class="slot-actions">
           <button @click="showImportDialog = true" class="import-btn">📥 Import</button>
           <button @click="exportClassData" class="export-btn">📤 Export</button>
+          <button @click="showImportAllDialog = true" class="import-all-btn">📥 Import All</button>
+          <button @click="exportAllData" class="export-all-btn">📤 Export All</button>
         </div>
       </div>
 
@@ -65,12 +67,13 @@
           </div>
           <div class="slot-fields">
             <div class="field-group">
-              <label>CW</label>
+              <label>CW <span v-if="!getSlotFieldValue(slot.dayId, slot.periodId, 'cw')" class="needs-update">⚠️ Needs update</span></label>
               <input
                 :value="getSlotFieldValue(slot.dayId, slot.periodId, 'cw')"
                 @input="updateSlot(slot.dayId, slot.periodId, 'cw', $event.target.value)"
                 placeholder="Classwork topic..."
                 class="field-input"
+                :class="{ 'empty-field': !getSlotFieldValue(slot.dayId, slot.periodId, 'cw') }"
               />
             </div>
             <div class="field-group">
@@ -83,12 +86,13 @@
               />
             </div>
             <div class="field-group">
-              <label>HW</label>
+              <label>HW <span v-if="!getSlotFieldValue(slot.dayId, slot.periodId, 'hw')" class="needs-update">⚠️ Needs update</span></label>
               <input
                 :value="getSlotFieldValue(slot.dayId, slot.periodId, 'hw')"
                 @input="updateSlot(slot.dayId, slot.periodId, 'hw', $event.target.value)"
                 placeholder="Homework assignment..."
                 class="field-input"
+                :class="{ 'empty-field': !getSlotFieldValue(slot.dayId, slot.periodId, 'hw') }"
               />
             </div>
             <div class="field-group">
@@ -128,6 +132,33 @@
                 rows="3"
               ></textarea>
             </div>
+            <div class="field-group">
+              <label class="checkbox-label">
+                <input
+                  type="checkbox"
+                  :checked="getSlotFieldValue(slot.dayId, slot.periodId, 'done')"
+                  @change="updateSlot(slot.dayId, slot.periodId, 'done', $event.target.checked)"
+                  class="field-checkbox"
+                />
+                Done
+              </label>
+            </div>
+            <div class="field-group">
+              <label>Rating (1-5)</label>
+              <div class="rating-container">
+                <button
+                  v-for="star in 5"
+                  :key="star"
+                  type="button"
+                  @click="updateSlot(slot.dayId, slot.periodId, 'rating', star)"
+                  class="star-btn"
+                  :class="{ active: getSlotFieldValue(slot.dayId, slot.periodId, 'rating') >= star }"
+                >
+                  ⭐
+                </button>
+              </div>
+              <span class="rating-text">{{ getSlotFieldValue(slot.dayId, slot.periodId, 'rating') || 'Not rated' }}/5</span>
+            </div>
           </div>
         </div>
       </div>
@@ -161,9 +192,10 @@
               class="json-textarea"
               rows="8"
             ></textarea>
-            <button @click="importFromPaste" class="import-btn" :disabled="!pastedJson.trim()">
-              Import from Paste
-            </button>
+            <div class="import-buttons">
+              <button @click="importFromPaste" class="import-btn">📥 Import</button>
+              <button @click="pasteFromClipboard" class="paste-btn">📋 Paste</button>
+            </div>
           </div>
 
           <div class="import-method">
@@ -183,6 +215,57 @@
 
         <div v-if="importError" class="import-error">
           {{ importError }}
+        </div>
+        <div v-if="importSuccess" class="import-success">
+          {{ importSuccess }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Import All Dialog -->
+    <div v-if="showImportAllDialog" class="import-overlay" @click.self="closeImportAllDialog">
+      <div class="import-dialog">
+        <div class="dialog-header">
+          <h4>Import All Classes</h4>
+          <button @click="closeImportAllDialog" class="close-btn">✕</button>
+        </div>
+        
+        <div class="import-methods">
+          <div class="import-method">
+            <h5>Paste JSON (All Classes)</h5>
+            <textarea
+              v-model="pastedAllJson"
+              placeholder="Paste JSON for all classes here..."
+              class="json-textarea"
+              rows="8"
+            ></textarea>
+            <div class="import-buttons">
+              <button @click="importAllFromPaste" class="import-btn">📥 Import</button>
+              <button @click="pasteAllFromClipboard" class="paste-btn">📋 Paste</button>
+            </div>
+          </div>
+          
+          <div class="import-method">
+            <h5>Upload File (All Classes)</h5>
+            <input
+              type="file"
+              ref="allFileInput"
+              @change="handleAllFileUpload"
+              accept=".json"
+              class="file-input"
+              style="display: none"
+            />
+            <button @click="$refs.allFileInput.click()" class="import-btn">
+              Choose File
+            </button>
+          </div>
+        </div>
+
+        <div v-if="importAllError" class="import-error">
+          {{ importAllError }}
+        </div>
+        <div v-if="importAllSuccess" class="import-success">
+          {{ importAllSuccess }}
         </div>
       </div>
     </div>
@@ -206,6 +289,14 @@ const importMode = ref('class');
 const pastedJson = ref('');
 const importError = ref('');
 const fileInput = ref(null);
+const importSuccess = ref('');
+
+// Import All state
+const showImportAllDialog = ref(false);
+const pastedAllJson = ref('');
+const importAllError = ref('');
+const importAllSuccess = ref('');
+const allFileInput = ref(null);
 
 // Computed
 const currentWeekKey = computed(() => {
@@ -268,7 +359,10 @@ const loadSlotData = () => {
 };
 
 const getSlotFieldValue = (dayId, periodId, field) => {
-  return slotData.value[dayId]?.[periodId]?.[field] || '';
+  const value = slotData.value[dayId]?.[periodId]?.[field];
+  if (field === 'done') return value || false;
+  if (field === 'rating') return value || 0;
+  return value || '';
 };
 
 const updateSlot = (dayId, periodId, field, value) => {
@@ -289,17 +383,30 @@ const exportClassData = () => {
     days: {}
   };
   
-  Object.entries(slotData.value).forEach(([dayId, periods]) => {
-    data.days[dayId] = {};
-    Object.entries(periods).forEach(([periodId, entry]) => {
-      const clean = { ...entry };
-      Object.keys(clean).forEach(key => {
-        if (clean[key] === '') delete clean[key];
-      });
-      if (Object.keys(clean).length > 0) {
-        data.days[dayId][periodId] = clean;
-      }
-    });
+  // Get all scheduled slots for this class
+  const scheduledSlots = store.getScheduledSlotsForClass(selectedClass.value);
+  
+  // Initialize all scheduled days and periods with empty data
+  scheduledSlots.forEach(slot => {
+    if (!data.days[slot.dayId]) {
+      data.days[slot.dayId] = {};
+    }
+    
+    // Get current data for this slot (if any)
+    const currentEntry = slotData.value[slot.dayId]?.[slot.periodId] || {};
+    
+    // Include all fields, even if empty
+    data.days[slot.dayId][slot.periodId] = {
+      cw: currentEntry.cw || '',
+      cwPages: currentEntry.cwPages || '',
+      hw: currentEntry.hw || '',
+      hwPages: currentEntry.hwPages || '',
+      presentationLink: currentEntry.presentationLink || '',
+      materialLink: currentEntry.materialLink || '',
+      notesHtml: currentEntry.notesHtml || '',
+      done: currentEntry.done || false,
+      rating: currentEntry.rating || 0
+    };
   });
   
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -315,6 +422,7 @@ const closeImportDialog = () => {
   showImportDialog.value = false;
   pastedJson.value = '';
   importError.value = '';
+  importSuccess.value = '';
   importMode.value = 'class';
 };
 
@@ -383,11 +491,151 @@ const importFromPaste = () => {
     
     // Reload current class data
     loadSlotData();
-    closeImportDialog();
+    
+    // Show success message
+    const importedCount = importMode.value === 'class' 
+      ? Object.keys(data.days).length 
+      : Object.keys(data.classes).length;
+    importSuccess.value = `✅ Successfully imported ${importedCount} ${importMode.value === 'class' ? 'period' : 'class'}(ies)`;
+    
+    // Auto-close after success
+    setTimeout(() => {
+      closeImportDialog();
+    }, 2000);
     
   } catch (error) {
     importError.value = `Import failed: ${error.message}`;
   }
+};
+
+const pasteFromClipboard = async () => {
+  try {
+    const text = await navigator.clipboard.readText();
+    pastedJson.value = text;
+  } catch (error) {
+    importError.value = 'Failed to read clipboard. Please paste manually.';
+  }
+};
+
+const pasteAllFromClipboard = async () => {
+  try {
+    const text = await navigator.clipboard.readText();
+    pastedAllJson.value = text;
+  } catch (error) {
+    importAllError.value = 'Failed to read clipboard. Please paste manually.';
+  }
+};
+
+// Import All functions
+const closeImportAllDialog = () => {
+  showImportAllDialog.value = false;
+  pastedAllJson.value = '';
+  importAllError.value = '';
+  importAllSuccess.value = '';
+};
+
+const handleAllFileUpload = (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    pastedAllJson.value = e.target.result;
+    importAllFromPaste();
+  };
+  reader.readAsText(file);
+};
+
+const importAllFromPaste = () => {
+  importAllError.value = '';
+  
+  try {
+    const data = JSON.parse(pastedAllJson.value);
+    
+    // Validate all classes format
+    if (!data.week || !data.classes || typeof data.classes !== 'object') {
+      throw new Error('Invalid format for all classes import');
+    }
+    
+    // Import all classes data
+    Object.entries(data.classes).forEach(([className, classData]) => {
+      if (classData && classData.days) {
+        Object.entries(classData.days).forEach(([dayId, periods]) => {
+          Object.entries(periods).forEach(([periodId, entry]) => {
+            store.updateWeeklyPlanEntry(currentWeekKey.value, className, dayId, periodId, entry);
+          });
+        });
+      }
+    });
+    
+    // Update week title if provided
+    if (data.weekTitle) {
+      editableWeekTitle.value = data.weekTitle;
+      saveWeekTitle();
+    }
+    
+    // Show success message
+    const importedCount = Object.keys(data.classes).length;
+    importAllSuccess.value = `✅ Successfully imported ${importedCount} classes`;
+    
+    // Auto-close after success
+    setTimeout(() => {
+      closeImportAllDialog();
+    }, 2000);
+    
+  } catch (error) {
+    importAllError.value = `Import failed: ${error.message}`;
+  }
+};
+
+const exportAllData = () => {
+  const data = {
+    week: currentWeekKey.value,
+    weekTitle: editableWeekTitle.value,
+    classes: {}
+  };
+  
+  // Get all classes from schedule
+  const allClasses = store.getScheduleClasses();
+  
+  // Export data for each class
+  allClasses.forEach(className => {
+    const scheduledSlots = store.getScheduledSlotsForClass(className);
+    data.classes[className] = {
+      days: {}
+    };
+    
+    // Initialize all scheduled days and periods with empty data
+    scheduledSlots.forEach(slot => {
+      if (!data.classes[className].days[slot.dayId]) {
+        data.classes[className].days[slot.dayId] = {};
+      }
+      
+      // Get current data for this slot (if any)
+      const currentEntry = store.getWeeklyPlanEntry(currentWeekKey.value, className, slot.dayId, slot.periodId) || {};
+      
+      // Include all fields, even if empty
+      data.classes[className].days[slot.dayId][slot.periodId] = {
+        cw: currentEntry.cw || '',
+        cwPages: currentEntry.cwPages || '',
+        hw: currentEntry.hw || '',
+        hwPages: currentEntry.hwPages || '',
+        presentationLink: currentEntry.presentationLink || '',
+        materialLink: currentEntry.materialLink || '',
+        notesHtml: currentEntry.notesHtml || '',
+        done: currentEntry.done || false,
+        rating: currentEntry.rating || 0
+      };
+    });
+  });
+  
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `weekly-plan-all-classes-${currentWeekKey.value}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
 };
 
 // Lifecycle
@@ -557,7 +805,7 @@ watch(() => weekTitle.value, (newTitle) => {
   border: none;
   padding: 0.375rem 0.75rem;
   border-radius: 4px;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   cursor: pointer;
 }
 
@@ -565,7 +813,27 @@ watch(() => weekTitle.value, (newTitle) => {
   background: #6c757d;
 }
 
-.import-btn:hover, .export-btn:hover {
+.import-all-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 0.375rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.export-all-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 0.375rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.import-btn:hover, .export-btn:hover, .import-all-btn:hover, .export-all-btn:hover {
   opacity: 0.9;
 }
 
@@ -725,5 +993,96 @@ watch(() => weekTitle.value, (newTitle) => {
   .field-group.full-width {
     grid-column: 1;
   }
+}
+
+/* Checkbox and Rating Styles */
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.field-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.rating-container {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.star-btn {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.2s;
+}
+
+.star-btn:hover {
+  transform: scale(1.1);
+}
+
+.star-btn.active {
+  color: #ffc107;
+}
+
+.rating-text {
+  font-size: 0.875rem;
+  color: #666;
+}
+
+/* Needs Update Indicators */
+.needs-update {
+  font-size: 0.75rem;
+  color: #dc3545;
+  font-weight: 500;
+  margin-left: 0.5rem;
+}
+
+.empty-field {
+  border-color: #dc3545 !important;
+  background-color: #fff5f5 !important;
+}
+
+.empty-field:focus {
+  border-color: #dc3545 !important;
+  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2) !important;
+}
+
+/* Import Buttons */
+.import-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.paste-btn {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 0.375rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.paste-btn:hover {
+  opacity: 0.9;
+}
+
+/* Success Message */
+.import-success {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: #d4edda;
+  color: #155724;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  border: 1px solid #c3e6cb;
 }
 </style>
