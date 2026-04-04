@@ -133,9 +133,9 @@
               </div>
               
               <!-- Display Mode -->
-              <div v-else class="period-content">
-                <div class="period-title" v-html="getPeriodTitleWithMath(timeSlot, stage.id, selectedDay)"></div>
-                <div class="period-teacher" v-html="getPeriodTeacherWithMath(timeSlot, stage.id, selectedDay)"></div>
+              <div v-else class="period-content" :key="mathRenderKey">
+                <div class="period-title" v-html="getPeriodTitleWithMath(timeSlot, stage.id, selectedDay) || 'No content'"></div>
+                <div class="period-teacher" v-html="getPeriodTeacherWithMath(timeSlot, stage.id, selectedDay) || 'No teacher'"></div>
                 <div v-if="hasNafs(timeSlot, stage.id, selectedDay)" class="nafs-indicator">N</div>
                 <div class="edit-hint">Double-click to edit</div>
               </div>
@@ -159,7 +159,7 @@
               }"
             >
               <div class="user-event-content">
-                <div class="user-event-title" v-html="renderLatexMath(userEvent.title)"></div>
+                <div class="user-event-title" :key="mathRenderKey" v-html="renderLatexMath(userEvent.title)"></div>
                 <div class="user-event-time">{{ userEvent.startTime }} - {{ userEvent.endTime }}</div>
                 <button @click="removeUserEvent(userEvent.id)" class="btn-remove-event">×</button>
               </div>
@@ -400,6 +400,9 @@ const editingPeriod = ref({
   originalSubject: '',
   originalTeacher: ''
 });
+
+// Reactive trigger for re-rendering
+const katexLoaded = ref(false);
 
 // Available colors for user events
 const eventColors = [
@@ -850,6 +853,13 @@ onMounted(() => {
   loadUserEvents();
   // Load KaTeX for math rendering
   loadKaTeX();
+  
+  // Listen for KaTeX load event to re-render
+  window.addEventListener('katex-loaded', () => {
+    // Force re-render by updating reactive variable
+    katexLoaded.value = true;
+    console.log('KaTeX loaded, re-rendering components');
+  });
 });
 
 onUnmounted(() => {
@@ -867,12 +877,14 @@ const loadKaTeX = () => {
   script.crossOrigin = 'anonymous';
   script.onload = () => {
     console.log('KaTeX loaded successfully');
+    // Trigger re-render of components to update LaTeX
+    window.dispatchEvent(new CustomEvent('katex-loaded'));
   };
   document.head.appendChild(script);
 };
 
 const renderLatexMath = (text) => {
-  if (!text || typeof text !== 'string') return text;
+  if (!text || typeof text !== 'string') return text || '';
   
   // Check if text contains LaTeX patterns (between $...$ or $$...$$)
   const latexPattern = /\$\$([^$]+)\$\$|\$([^$]+)\$/g;
@@ -905,6 +917,10 @@ const renderLatexMath = (text) => {
           errorColor: '#ef4444'
         });
         rendered = rendered.replace(matchInfo.full, renderedMath);
+      } else {
+        // KaTeX not loaded yet, show original LaTeX with styling
+        const latexClass = matchInfo.displayMode ? 'latex-display' : 'latex-inline';
+        rendered = rendered.replace(matchInfo.full, `<span class="${latexClass}">${matchInfo.latex}</span>`);
       }
     } catch (error) {
       console.warn('LaTeX rendering error:', error);
@@ -925,6 +941,9 @@ const getPeriodTeacherWithMath = (timeSlot, stageId, dayId) => {
   const teacher = getPeriodTeacher(timeSlot, stageId, dayId);
   return renderLatexMath(teacher);
 };
+
+// Computed property to trigger re-render when KaTeX loads
+const mathRenderKey = computed(() => katexLoaded.value);
 </script>
 
 <style scoped>
@@ -1387,16 +1406,46 @@ const getPeriodTeacherWithMath = (timeSlot, stageId, dayId) => {
   font-size: 0.8em;
 }
 
+/* Fallback LaTeX styling when KaTeX isn't loaded */
+.period-content .latex-inline {
+  font-family: 'Times New Roman', serif;
+  font-style: italic;
+  color: #1f2937;
+  background: rgba(59, 130, 246, 0.1);
+  padding: 1px 3px;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+.period-content .latex-display {
+  display: block;
+  font-family: 'Times New Roman', serif;
+  font-style: italic;
+  color: #1f2937;
+  background: rgba(59, 130, 246, 0.1);
+  padding: 4px 6px;
+  border-radius: 4px;
+  text-align: center;
+  margin: 2px 0;
+  font-size: 0.95em;
+}
+
 /* Ensure math doesn't break layout */
 .period-title .katex,
-.period-teacher .katex {
+.period-teacher .katex,
+.period-title .latex-inline,
+.period-teacher .latex-inline,
+.period-title .latex-display,
+.period-teacher .latex-display {
   display: inline-block;
   vertical-align: middle;
   line-height: 1;
 }
 
 /* Adjust math size for small period blocks */
-.period-block.has-content .katex {
+.period-block.has-content .katex,
+.period-block.has-content .latex-inline,
+.period-block.has-content .latex-display {
   font-size: 0.8em;
 }
 
