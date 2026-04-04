@@ -1,5 +1,5 @@
 <script setup>
-import { ref, nextTick, watch } from 'vue';
+import { ref, nextTick, watch, computed } from 'vue';
 import { renderMath as renderMathUtil } from '@/Utils/katex';
 import './utils/mathAIHelper'; // Load AI helper
 
@@ -47,6 +47,12 @@ const isEditing = ref(false);
 const content = ref(props.modelValue || '');
 const editor = ref(null);
 const isRenderMode = ref(false);
+
+// Computed property for rendered content with LaTeX
+const renderedContent = computed(() => {
+  if (!props.modelValue) return '';
+  return renderMathUtil(props.modelValue);
+});
 
 // Functions
 function startEditing() {
@@ -286,7 +292,7 @@ watch(() => props.modelValue, (newValue) => {
     <div v-else-if="!isEditing && modelValue" 
          class="description-display" 
          @click="editable && startEditing()"
-         v-html="modelValue">
+         v-html="renderedContent">
     </div>
     
     <!-- Edit state -->

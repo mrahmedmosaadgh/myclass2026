@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onUnmounted } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import { usePresentationStore } from './stores/presentationStore';
 import { useUIStore } from './stores/uiStore';
 import { useGameStore } from './stores/gameStore';
@@ -19,6 +19,9 @@ import DistributionModal from './components/DistributionModal.vue';
 // import DrawingToolbar from './components/drawing/DrawingToolbar.vue';
 // import LiveQuestionOverlay from './components/LiveQuestionOverlay.vue';
 // import { useDrawingStore } from './stores/drawingStore';
+
+// LaTeX rendering state
+const katexLoaded = ref(false);
 
 const presentation = usePresentationStore();
 const ui = useUIStore();
@@ -111,9 +114,78 @@ function handleKeydown(e) {
   }
 }
 
+// LaTeX Math Rendering
+const loadKaTeX = () => {
+  // Load KaTeX script
+  const script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js';
+  script.integrity = 'sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUbKyIyUH';
+  script.crossOrigin = 'anonymous';
+  script.onload = () => {
+    console.log('KaTeX loaded successfully');
+    katexLoaded.value = true;
+  };
+  document.head.appendChild(script);
+};
+
+const renderLatexMath = (text) => {
+  if (!text || typeof text !== 'string') return text || '';
+  
+  // Check if text contains LaTeX patterns (between $...$ or $$...$$)
+  const latexPattern = /\$\$([^$]+)\$\$|\$([^$]+)\$/g;
+  
+  if (!latexPattern.test(text)) return text;
+  
+  // Reset regex lastIndex
+  latexPattern.lastIndex = 0;
+  
+  let rendered = text;
+  const matches = [];
+  let match;
+  
+  // Collect all matches
+  while ((match = latexPattern.exec(text)) !== null) {
+    matches.push({
+      full: match[0],
+      latex: match[1] || match[2],
+      displayMode: !!match[1] // $$...$$ is display mode
+    });
+  }
+  
+  // Replace each LaTeX expression with rendered math
+  matches.forEach((matchInfo) => {
+    try {
+      if (typeof katex !== 'undefined') {
+        const renderedMath = katex.renderToString(matchInfo.latex, {
+          displayMode: matchInfo.displayMode,
+          throwOnError: false,
+          errorColor: '#ef4444'
+        });
+        rendered = rendered.replace(matchInfo.full, renderedMath);
+      } else {
+        // KaTeX not loaded yet, show original LaTeX with styling
+        const latexClass = matchInfo.displayMode ? 'latex-display' : 'latex-inline';
+        rendered = rendered.replace(matchInfo.full, `<span class="${latexClass}">${matchInfo.latex}</span>`);
+      }
+    } catch (error) {
+      console.warn('LaTeX rendering error:', error);
+      // Keep original text if rendering fails
+    }
+  });
+  
+  return rendered;
+};
+
+// Computed property for description with LaTeX
+const descriptionWithMath = () => {
+  return renderLatexMath(presentation.description || '');
+};
+
 onMounted(() => {
   document.addEventListener('paste', handlePaste);
   document.addEventListener('keydown', handleKeydown);
+  // Load KaTeX for math rendering
+  loadKaTeX();
 });
 
 onUnmounted(() => {
@@ -124,6 +196,9 @@ onUnmounted(() => {
 
 <template>
   <div class="v5-container" :class="{ 'has-fixed-description': !ui.isEditMode && presentation.description && presentation.showDescriptionInPresentMode !== false }">
+    <!-- KaTeX CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+    
     <!-- Fixed Top Navigation Bar (Always Visible) -->
     <PresentationNavBar />
     
@@ -146,7 +221,7 @@ onUnmounted(() => {
 
     <!-- Description Display in Present Mode (Above Slides) -->
     <div v-if="!ui.isEditMode && presentation.description && presentation.showDescriptionInPresentMode !== false" class="description-present-container">
-      <div class="description-present-content" v-html="presentation.description"></div>
+      <div class="description-present-content" :key="katexLoaded" v-html="descriptionWithMath()"></div>
     </div>
 
     <!-- Zoom Toolbar for Present Mode -->
@@ -328,6 +403,48 @@ onUnmounted(() => {
   border-radius: 12px;
   padding: 20px 24px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* LaTeX Math Styles */
+.description-present-content .katex {
+  font-size: 1.1em;
+}
+
+.description-present-content .katex-display {
+  margin: 8px 0;
+  text-align: center;
+}
+
+.description-present-content .katex-error {
+  color: #ef4444 !important;
+  background: rgba(239, 68, 68, 0.1);
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+/* Fallback LaTeX styling when KaTeX isn't loaded */
+.description-present-content .latex-inline {
+  font-family: 'Times New Roman', serif;
+  font-style: italic;
+  color: #1f2937;
+  background: rgba(59, 130, 246, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 1em;
+}
+
+.description-present-content .latex-display {
+  display: block;
+  font-family: 'Times New Roman', serif;
+  font-style: italic;
+  color: #1f2937;
+  background: rgba(59, 130, 246, 0.1);
+  padding: 8px 12px;
+  border-radius: 6px;
+  text-align: center;
+  margin: 8px 0;
+  font-size: 1.1em;
 }
 
 /* Present Mode Zoom Toolbar */
