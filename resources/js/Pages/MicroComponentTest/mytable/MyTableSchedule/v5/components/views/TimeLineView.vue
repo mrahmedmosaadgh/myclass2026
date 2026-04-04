@@ -1,5 +1,8 @@
 <template>
   <div class="timeline-view">
+    <!-- KaTeX CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+    
     <div class="timeline-controls">
       <div class="control-group">
         <label class="control-label">Select Stages:</label>
@@ -37,6 +40,9 @@
           </button>
           <button @click="removeAllUserEvents" class="btn-clear-events" v-if="userEvents.length > 0">
             Clear All
+          </button>
+          <button @click="showLatexHelp = true" class="btn-latex-help">
+            LaTeX Help
           </button>
         </div>
       </div>
@@ -82,18 +88,48 @@
                 'break-period': timeSlot.type === 'break',
                 'activity-period': timeSlot.type === 'activity',
                 'has-content': hasPeriodContent(timeSlot, stage.id, selectedDay),
-                'has-nafs': hasNafs(timeSlot, stage.id, selectedDay)
+                'has-nafs': hasNafs(timeSlot, stage.id, selectedDay),
+                'editing': isEditingPeriod(timeSlot.id, stage.id, selectedDay)
               }"
               :style="{
                 top: `${getTimePosition(timeSlot.startMin)}px`,
                 height: `${getTimeHeight(timeSlot.startMin, timeSlot.endMin)}px`,
                 backgroundColor: getPeriodColor(timeSlot, stage.id, selectedDay)
               }"
+              @dblclick="startEditingPeriod(timeSlot, stage.id, selectedDay)"
             >
-              <div class="period-content">
-                <div class="period-title">{{ getPeriodTitle(timeSlot, stage.id, selectedDay) }}</div>
-                <div class="period-teacher">{{ getPeriodTeacher(timeSlot, stage.id, selectedDay) }}</div>
+              <!-- Edit Mode -->
+              <div v-if="isEditingPeriod(timeSlot.id, stage.id, selectedDay)" class="period-edit-mode">
+                <div class="edit-form">
+                  <input 
+                    v-model="editingPeriod.subject"
+                    type="text" 
+                    placeholder="Subject"
+                    class="edit-input edit-subject"
+                    @keyup.esc="cancelEditingPeriod"
+                    @keyup.enter="saveEditingPeriod"
+                  >
+                  <input 
+                    v-model="editingPeriod.teacher"
+                    type="text" 
+                    placeholder="Teacher"
+                    class="edit-input edit-teacher"
+                    @keyup.esc="cancelEditingPeriod"
+                    @keyup.enter="saveEditingPeriod"
+                  >
+                  <div class="edit-actions">
+                    <button @click="saveEditingPeriod" class="edit-btn save-btn">✓</button>
+                    <button @click="cancelEditingPeriod" class="edit-btn cancel-btn">×</button>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Display Mode -->
+              <div v-else class="period-content">
+                <div class="period-title" v-html="getPeriodTitleWithMath(timeSlot, stage.id, selectedDay)"></div>
+                <div class="period-teacher" v-html="getPeriodTeacherWithMath(timeSlot, stage.id, selectedDay)"></div>
                 <div v-if="hasNafs(timeSlot, stage.id, selectedDay)" class="nafs-indicator">N</div>
+                <div class="edit-hint">Double-click to edit</div>
               </div>
               
               <!-- Progress indicator for current period -->
@@ -115,7 +151,7 @@
               }"
             >
               <div class="user-event-content">
-                <div class="user-event-title">{{ userEvent.title }}</div>
+                <div class="user-event-title" v-html="renderLatexMath(userEvent.title)"></div>
                 <div class="user-event-time">{{ userEvent.startTime }} - {{ userEvent.endTime }}</div>
                 <button @click="removeUserEvent(userEvent.id)" class="btn-remove-event">×</button>
               </div>
@@ -138,7 +174,8 @@
         <form @submit.prevent="addUserEvent">
           <div class="form-group">
             <label>Event Title:</label>
-            <input v-model="newEvent.title" type="text" placeholder="e.g., Meeting, Study time" required>
+            <input v-model="newEvent.title" type="text" placeholder="e.g., Meeting, Study time, or $E=mc^2$" required>
+            <small class="latex-hint">Use $...$ for inline math: $x^2 + y^2 = z^2$</small>
           </div>
           
           <div class="form-group">
@@ -182,11 +219,75 @@
         </form>
       </div>
     </div>
+
+    <!-- LaTeX Help Dialog -->
+    <div v-if="showLatexHelp" class="dialog-overlay" @click="showLatexHelp = false">
+      <div class="dialog-content latex-help-content" @click.stop>
+        <h3>LaTeX Math Syntax Help</h3>
+        <div class="latex-examples">
+          <div class="example-section">
+            <h4>Inline Math (single $)</h4>
+            <div class="example-item">
+              <code>$x^2 + y^2 = z^2$</code>
+              <div class="rendered-example" v-html="renderLatexMath('$x^2 + y^2 = z^2$')"></div>
+            </div>
+            <div class="example-item">
+              <code>$E = mc^2$</code>
+              <div class="rendered-example" v-html="renderLatexMath('$E = mc^2$')"></div>
+            </div>
+            <div class="example-item">
+              <code>$\\frac{a}{b}$</code>
+              <div class="rendered-example" v-html="renderLatexMath('$\\frac{a}{b}$')"></div>
+            </div>
+          </div>
+          
+          <div class="example-section">
+            <h4>Display Math (double $$)</h4>
+            <div class="example-item">
+              <code>$$\\sum_{i=1}^{n} x_i$$</code>
+              <div class="rendered-example" v-html="renderLatexMath('$$\\sum_{i=1}^{n} x_i$$')"></div>
+            </div>
+            <div class="example-item">
+              <code>$$\\int_{0}^{\\infty} e^{-x} dx$$</code>
+              <div class="rendered-example" v-html="renderLatexMath('$$\\int_{0}^{\\infty} e^{-x} dx$$')"></div>
+            </div>
+          </div>
+          
+          <div class="example-section">
+            <h4>Common Symbols</h4>
+            <div class="symbols-grid">
+              <div class="symbol-item">
+                <code>\\alpha</code> → <span v-html="renderLatexMath('$\\alpha$')"></span>
+              </div>
+              <div class="symbol-item">
+                <code>\\beta</code> → <span v-html="renderLatexMath('$\\beta$')"></span>
+              </div>
+              <div class="symbol-item">
+                <code>\\pi</code> → <span v-html="renderLatexMath('$\\pi$')"></span>
+              </div>
+              <div class="symbol-item">
+                <code>\\infty</code> → <span v-html="renderLatexMath('$\\infty$')"></span>
+              </div>
+              <div class="symbol-item">
+                <code>\\sqrt{x}</code> → <span v-html="renderLatexMath('$\\sqrt{x}$')"></span>
+              </div>
+              <div class="symbol-item">
+                <code>\\pm</code> → <span v-html="renderLatexMath('$\\pm$')"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" @click="showLatexHelp = false" class="btn-cancel">Close</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { useAppStore } from '../../composables/useAppStore.js';
 import { useTimingResolver } from '../../composables/useTimingResolver.js';
 import defaultTimingData from '../../schedule_timing.json';
@@ -270,12 +371,24 @@ let timeUpdateInterval = null;
 // User Events State
 const userEvents = ref([]);
 const showAddEventDialog = ref(false);
+const showLatexHelp = ref(false);
 const newEvent = ref({
   title: '',
   stageId: '',
   startTime: '',
   endTime: '',
   color: '#8b5cf6'
+});
+
+// Editing State
+const editingPeriod = ref({
+  timeSlotId: null,
+  stageId: null,
+  dayId: null,
+  subject: '',
+  teacher: '',
+  originalSubject: '',
+  originalTeacher: ''
 });
 
 // Available colors for user events
@@ -566,6 +679,142 @@ const loadUserEvents = () => {
   }
 };
 
+// Period Editing Functions
+const isEditingPeriod = (timeSlotId, stageId, dayId) => {
+  const actualDayId = dayId === 'today' ? getTodayDayId() : dayId;
+  return editingPeriod.value.timeSlotId === timeSlotId && 
+         editingPeriod.value.stageId === stageId && 
+         editingPeriod.value.dayId === actualDayId;
+};
+
+const startEditingPeriod = (timeSlot, stageId, dayId) => {
+  const actualDayId = dayId === 'today' ? getTodayDayId() : dayId;
+  const currentSubject = getPeriodSubject(timeSlot, stageId, dayId);
+  const currentTeacher = getPeriodTeacher(timeSlot, stageId, dayId);
+  
+  editingPeriod.value = {
+    timeSlotId: timeSlot.id,
+    stageId: stageId,
+    dayId: actualDayId,
+    subject: currentSubject || '',
+    teacher: currentTeacher || '',
+    originalSubject: currentSubject || '',
+    originalTeacher: currentTeacher || ''
+  };
+  
+  // Focus on the subject input after DOM update
+  nextTick(() => {
+    const subjectInput = document.querySelector('.edit-subject');
+    if (subjectInput) {
+      subjectInput.focus();
+      subjectInput.select();
+    }
+  });
+};
+
+const saveEditingPeriod = () => {
+  const { timeSlotId, stageId, dayId, subject, teacher, originalSubject, originalTeacher } = editingPeriod.value;
+  
+  // Only update if something changed
+  if (subject !== originalSubject || teacher !== originalTeacher) {
+    updatePeriodData(timeSlotId, stageId, dayId, subject, teacher);
+  }
+  
+  // Reset editing state
+  editingPeriod.value = {
+    timeSlotId: null,
+    stageId: null,
+    dayId: null,
+    subject: '',
+    teacher: '',
+    originalSubject: '',
+    originalTeacher: ''
+  };
+};
+
+const cancelEditingPeriod = () => {
+  editingPeriod.value = {
+    timeSlotId: null,
+    stageId: null,
+    dayId: null,
+    subject: '',
+    teacher: '',
+    originalSubject: '',
+    originalTeacher: ''
+  };
+};
+
+const updatePeriodData = (timeSlotId, stageId, dayId, newSubject, newTeacher) => {
+  const scheduleData = store.scheduleData.value;
+  
+  if (!Array.isArray(scheduleData)) {
+    console.warn('No schedule data available for editing');
+    return;
+  }
+  
+  // Find the day schedule
+  const daySchedule = scheduleData.find(item => item.day === dayId || item.dayIndex === getDayIndexFromId(dayId));
+  
+  if (daySchedule && daySchedule.classes) {
+    // Find the period to update
+    const period = daySchedule.classes.find(p => p.p === timeSlotId);
+    
+    if (period) {
+      // Update the period data
+      if (newSubject.trim()) {
+        period.sub = newSubject.trim();
+      } else {
+        delete period.sub;
+      }
+      
+      if (newTeacher.trim()) {
+        // Update teacher in the school timetable
+        updateTeacherAssignment(stageId, dayId, timeSlotId, newTeacher.trim());
+      }
+      
+      // Save to store
+      store.updateScheduleData(scheduleData);
+      
+      // Reinitialize color map to reflect changes
+      initializeColorMap();
+    }
+  }
+};
+
+const updateTeacherAssignment = (stageId, dayId, timeSlotId, teacherName) => {
+  const schoolTimetable = store.schoolTimetable.value;
+  const stageData = schoolTimetable.stages?.[stageId];
+  
+  if (stageData && stageData.teachers && Array.isArray(stageData.teachers)) {
+    // Find existing teacher assignment for this period
+    let teacherFound = false;
+    
+    for (const teacher of stageData.teachers) {
+      const assignments = teacher.assignments?.[dayId];
+      if (assignments && assignments[timeSlotId]) {
+        // Update existing assignment
+        assignments[timeSlotId] = teacherName;
+        teacherFound = true;
+        break;
+      }
+    }
+    
+    // If no existing assignment found, create a new one
+    if (!teacherFound) {
+      if (!stageData.teachers[0].assignments) {
+        stageData.teachers[0].assignments = {};
+      }
+      if (!stageData.teachers[0].assignments[dayId]) {
+        stageData.teachers[0].assignments[dayId] = {};
+      }
+      stageData.teachers[0].assignments[dayId][timeSlotId] = teacherName;
+    }
+    
+    // Update school timetable in store
+    store.updateSchoolTimetable(schoolTimetable);
+  }
+};
+
 // Lifecycle
 onMounted(() => {
   updateCurrentTime();
@@ -576,6 +825,8 @@ onMounted(() => {
   initializeColorMap();
   // Load user events
   loadUserEvents();
+  // Load KaTeX for math rendering
+  loadKaTeX();
 });
 
 onUnmounted(() => {
@@ -583,6 +834,74 @@ onUnmounted(() => {
     clearInterval(timeUpdateInterval);
   }
 });
+
+// KaTeX Math Rendering
+const loadKaTeX = () => {
+  // Load KaTeX script
+  const script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js';
+  script.integrity = 'sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUbKyIyUH';
+  script.crossOrigin = 'anonymous';
+  script.onload = () => {
+    console.log('KaTeX loaded successfully');
+  };
+  document.head.appendChild(script);
+};
+
+const renderLatexMath = (text) => {
+  if (!text || typeof text !== 'string') return text;
+  
+  // Check if text contains LaTeX patterns (between $...$ or $$...$$)
+  const latexPattern = /\$\$([^$]+)\$\$|\$([^$]+)\$/g;
+  
+  if (!latexPattern.test(text)) return text;
+  
+  // Reset regex lastIndex
+  latexPattern.lastIndex = 0;
+  
+  let rendered = text;
+  const matches = [];
+  let match;
+  
+  // Collect all matches
+  while ((match = latexPattern.exec(text)) !== null) {
+    matches.push({
+      full: match[0],
+      latex: match[1] || match[2],
+      displayMode: !!match[1] // $$...$$ is display mode
+    });
+  }
+  
+  // Replace each LaTeX expression with rendered math
+  matches.forEach((matchInfo) => {
+    try {
+      if (typeof katex !== 'undefined') {
+        const renderedMath = katex.renderToString(matchInfo.latex, {
+          displayMode: matchInfo.displayMode,
+          throwOnError: false,
+          errorColor: '#ef4444'
+        });
+        rendered = rendered.replace(matchInfo.full, renderedMath);
+      }
+    } catch (error) {
+      console.warn('LaTeX rendering error:', error);
+      // Keep original text if rendering fails
+    }
+  });
+  
+  return rendered;
+};
+
+// Enhanced period content functions with LaTeX support
+const getPeriodTitleWithMath = (timeSlot, stageId, dayId) => {
+  const title = getPeriodTitle(timeSlot, stageId, dayId);
+  return renderLatexMath(title);
+};
+
+const getPeriodTeacherWithMath = (timeSlot, stageId, dayId) => {
+  const teacher = getPeriodTeacher(timeSlot, stageId, dayId);
+  return renderLatexMath(teacher);
+};
 </script>
 
 <style scoped>
@@ -818,6 +1137,91 @@ onUnmounted(() => {
   border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
+.period-block.editing {
+  z-index: 10;
+  box-shadow: 0 0 0 3px #3b82f6, 0 4px 20px rgba(59, 130, 246, 0.4);
+  transform: scale(1.05);
+}
+
+/* Period Edit Mode */
+.period-edit-mode {
+  padding: 8px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.edit-input {
+  padding: 4px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: #1f2937;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.edit-input:focus {
+  border-color: #3b82f6;
+  background: rgba(255, 255, 255, 1);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+.edit-input::placeholder {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.edit-btn {
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.save-btn {
+  background: #10b981;
+  color: white;
+}
+
+.save-btn:hover {
+  background: #059669;
+  transform: scale(1.1);
+}
+
+.cancel-btn {
+  background: #ef4444;
+  color: white;
+}
+
+.cancel-btn:hover {
+  background: #dc2626;
+  transform: scale(1.1);
+}
+
 .period-block.has-content {
   color: white;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
@@ -918,6 +1322,82 @@ onUnmounted(() => {
   font-weight: 700;
   text-transform: uppercase;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.edit-hint {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  background: rgba(59, 130, 246, 0.9);
+  color: white;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 0.45rem;
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.period-block:hover .edit-hint {
+  opacity: 1;
+}
+
+/* KaTeX Math Styles */
+.period-content .katex {
+  font-size: 0.9em;
+}
+
+.period-content .katex-display {
+  margin: 2px 0;
+  text-align: center;
+}
+
+.period-content .katex-error {
+  color: #ef4444 !important;
+  background: rgba(239, 68, 68, 0.1);
+  padding: 1px 2px;
+  border-radius: 2px;
+  font-size: 0.8em;
+}
+
+/* Ensure math doesn't break layout */
+.period-title .katex,
+.period-teacher .katex {
+  display: inline-block;
+  vertical-align: middle;
+  line-height: 1;
+}
+
+/* Adjust math size for small period blocks */
+.period-block.has-content .katex {
+  font-size: 0.8em;
+}
+
+/* Dark mode support for KaTeX */
+@media (prefers-color-scheme: dark) {
+  .period-content .katex {
+    color: #f1f5f9;
+  }
+  
+  .period-content .katex .frac-line {
+    border-bottom-color: #94a3b8;
+  }
+  
+  .period-content .katex .sqrt > .root {
+    border-top-color: #94a3b8;
+  }
+  
+  .period-content .katex .overline {
+    border-top-color: #94a3b8;
+  }
+  
+  .period-content .katex .underline {
+    border-bottom-color: #94a3b8;
+  }
 }
 
 /* Progress Indicator */
@@ -1321,6 +1801,115 @@ onUnmounted(() => {
 
 .btn-add:hover {
   background: #2563eb;
+}
+
+/* LaTeX Help Button */
+.btn-latex-help {
+  background: #8b5cf6;
+  color: white;
+  border: none;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-latex-help:hover {
+  background: #7c3aed;
+  transform: translateY(-1px);
+}
+
+/* LaTeX Hint */
+.latex-hint {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-style: italic;
+}
+
+/* LaTeX Help Dialog */
+.latex-help-content {
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.latex-examples {
+  margin: 1.5rem 0;
+}
+
+.example-section {
+  margin-bottom: 2rem;
+}
+
+.example-section h4 {
+  margin: 0 0 1rem 0;
+  color: #1f2937;
+  font-size: 1rem;
+  font-weight: 600;
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 0.5rem;
+}
+
+.example-item {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: #f9fafb;
+  border-radius: 6px;
+  border-left: 4px solid #3b82f6;
+}
+
+.example-item code {
+  display: block;
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  color: #1f2937;
+  background: #f3f4f6;
+  padding: 0.5rem;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.rendered-example {
+  font-size: 1.1rem;
+  color: #374151;
+  padding: 0.5rem;
+  background: white;
+  border-radius: 4px;
+  border: 1px solid #e5e7eb;
+  text-align: center;
+}
+
+.symbols-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+}
+
+.symbol-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  background: #f9fafb;
+  border-radius: 4px;
+  border: 1px solid #e5e7eb;
+}
+
+.symbol-item code {
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  color: #1f2937;
+}
+
+.symbol-item span {
+  font-size: 1rem;
+  font-weight: 500;
 }
 @media (max-width: 768px) {
   .timeline-controls {
