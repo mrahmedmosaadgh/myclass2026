@@ -1,0 +1,98 @@
+{
+  "default": [
+    {
+      "id": 1,
+      "title": "Period 1",
+      "type": "lesson",
+      "start": "09:00",
+      "end": "09:30"
+    },
+    {
+      "id": 2,
+      "title": "Period 2",
+      "type": "lesson",
+      "start": "09:30",
+      "end": "10:00"
+    },
+    {
+      "id": "b1",
+      "title": "First Break",
+      "type": "break",
+      "start": "10:00",
+      "end": "10:30"
+    },
+    {
+      "id": 3,
+      "title": "Period 3",
+      "type": "lesson",
+      "start": "10:30",
+      "end": "11:00"
+    },
+    {
+      "id": 4,
+      "title": "Period 4",
+      "type": "lesson",
+      "start": "11:00",
+      "end": "11:30"
+    },
+    {
+      "id": "b2",
+      "title": "Second Break",
+      "type": "break",
+      "start": "11:30",
+      "end": "12:00"
+    },
+    {
+      "id": 5,
+      "title": "Period 5",
+      "type": "lesson",
+      "start": "12:00",
+      "end": "12:25"
+    },
+    {
+      "id": 6,
+      "title": "Period 6",
+      "type": "lesson",
+      "start": "12:25",
+      "end": "12:50"
+    }
+  ],
+  "autoApplyToAll": true,
+  "appliedStages": ["prim", "middle", "sec"],
+  "appliedDays": ["d1", "d2", "d3", "d4", "d5", "d6"],
+  "overrides": {
+    "prim": {
+      "default": null,
+      "days": {
+        "d1": null,
+        "d2": null,
+        "d3": null,
+        "d4": null,
+        "d5": null,
+        "d6": null
+      }
+    },
+    "middle": {
+      "default": null,
+      "days": {
+        "d1": null,
+        "d2": null,
+        "d3": null,
+        "d4": null,
+        "d5": null,
+        "d6": null
+      }
+    },
+    "sec": {
+      "default": null,
+      "days": {
+        "d1": null,
+        "d2": null,
+        "d3": null,
+        "d4": null,
+        "d5": null,
+        "d6": null
+      }
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "default": ["prim", "middle", "sec"],
+  "labels": {
+    "prim": "Primary",
+    "middle": "Middle",
+    "sec": "Secondary"
+  }
+}

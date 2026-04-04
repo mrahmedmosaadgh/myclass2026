@@ -435,6 +435,9 @@ include dirname(__DIR__).'/routes/schedule_app_v3.php';
 // Include Schedule App V4 Routes
 include dirname(__DIR__).'/routes/schedule_app_v4.php';
 
+// Include Schedule App V7 Routes (Authenticated)
+include dirname(__DIR__).'/routes/schedule_app_v7.php';
+
 // Schedule App V3 Routes (TEMPORARY - directly in web.php for testing)
 Route::get('/my-fly-schedule-app/v3', function () {
     return Inertia::render('MicroComponentTest/mytable/MyTableSchedule/v3/StandaloneScheduleAppV3');

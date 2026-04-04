@@ -1,0 +1,72 @@
+[
+  {
+    "day": "Sunday",
+    "dayIndex": 0,
+    "classes": [
+      { "p": 1, "sub": "7A" },
+      { "p": 2, "sub": "" },
+      { "p": 3, "sub": "4A" },
+      { "p": 4, "sub": "" },
+      { "p": 5, "sub": "5B" },
+      { "p": 6, "sub": "5A" },
+      { "p": 7, "sub": "" },
+      { "p": 8, "sub": "" }
+    ]
+  },
+  {
+    "day": "Monday",
+    "dayIndex": 1,
+    "classes": [
+      { "p": 1, "sub": "7A", "nafs": true },
+      { "p": 2, "sub": "" },
+      { "p": 3, "sub": "" },
+      { "p": 4, "sub": "5B" },
+      { "p": 5, "sub": "" },
+      { "p": 6, "sub": "4A" },
+      { "p": 7, "sub": "7A" },
+      { "p": 8, "sub": "5A" }
+    ]
+  },
+  {
+    "day": "Tuesday",
+    "dayIndex": 2,
+    "classes": [
+      { "p": 1, "sub": "" },
+      { "p": 2, "sub": "" },
+      { "p": 3, "sub": "5A", "nafs": true },
+      { "p": 4, "sub": "" },
+      { "p": 5, "sub": "5B" },
+      { "p": 6, "sub": "4A" },
+      { "p": 7, "sub": "7A" },
+      { "p": 8, "sub": "" }
+    ]
+  },
+  {
+    "day": "Wednesday",
+    "dayIndex": 3,
+    "classes": [
+      { "p": 1, "sub": "" },
+      { "p": 2, "sub": "" },
+      { "p": 3, "sub": "" },
+      { "p": 4, "sub": "5B" },
+      { "p": 5, "sub": "7A" },
+      { "p": 6, "sub": "" },
+      { "p": 7, "sub": "5A" },
+      { "p": 8, "sub": "" }
+    ]
+  },
+  {
+    "day": "Thursday",
+    "dayIndex": 4,
+    "classes": [
+      { "p": 1, "sub": "" },
+      { "p": 2, "sub": "" },
+      { "p": 3, "sub": "4A", "nafs": true },
+      { "p": 4, "sub": "4A" },
+      { "p": 5, "sub": "5B", "nafs": true },
+      { "p": 6, "sub": "" },
+      { "p": 7, "sub": "5A" },
+      { "p": 8, "sub": "" }
+    ]
+  }
+]

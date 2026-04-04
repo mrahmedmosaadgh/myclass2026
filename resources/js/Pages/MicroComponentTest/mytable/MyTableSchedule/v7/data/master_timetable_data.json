@@ -1,0 +1,571 @@
+{
+  "stages": {
+    "prim": {
+      "label": "Primary",
+      "days": {
+        "d1": {
+          "teachers": [
+            {
+              "id": "pt1",
+              "name": "Ahmed Hassan",
+              "assignments": {
+                "d1": {
+                  "1": { "class": "1A", "subject": "Math" },
+                  "2": { "class": "1B", "subject": "Math" },
+                  "b1": null,
+                  "3": { "class": "2A", "subject": "Math" },
+                  "4": { "class": "2B", "subject": "Math" },
+                  "b2": null,
+                  "5": { "class": "3A", "subject": "Math" },
+                  "6": { "class": "3B", "subject": "Math" }
+                }
+              }
+            },
+            {
+              "id": "pt2",
+              "name": "Fatima Al-Rashid",
+              "assignments": {
+                "d1": {
+                  "1": { "class": "1A", "subject": "Arabic" },
+                  "2": { "class": "1B", "subject": "Arabic" },
+                  "b1": null,
+                  "3": { "class": "2A", "subject": "Arabic" },
+                  "4": { "class": "2B", "subject": "Arabic" },
+                  "b2": null,
+                  "5": { "class": "3A", "subject": "Arabic" },
+                  "6": null
+                }
+              }
+            },
+            {
+              "id": "pt3",
+              "name": "Mohammed Khalid",
+              "assignments": {
+                "d1": {
+                  "1": { "class": "1A", "subject": "English" },
+                  "2": null,
+                  "b1": null,
+                  "3": { "class": "2A", "subject": "English" },
+                  "4": null,
+                  "b2": null,
+                  "5": { "class": "3A", "subject": "English" },
+                  "6": { "class": "3B", "subject": "English" }
+                }
+              }
+            },
+            {
+              "id": "pt4",
+              "name": "Aisha Mahmoud",
+              "assignments": {
+                "d1": {
+                  "1": null,
+                  "2": { "class": "1B", "subject": "Science" },
+                  "b1": null,
+                  "3": null,
+                  "4": { "class": "2B", "subject": "Science" },
+                  "b2": null,
+                  "5": null,
+                  "6": { "class": "3B", "subject": "Science" }
+                }
+              }
+            },
+            {
+              "id": "pt5",
+              "name": "Omar Ibrahim",
+              "assignments": {
+                "d1": {
+                  "1": { "class": "1A", "subject": "Islamic" },
+                  "2": { "class": "1B", "subject": "Islamic" },
+                  "b1": null,
+                  "3": { "class": "2A", "subject": "Islamic" },
+                  "4": { "class": "2B", "subject": "Islamic" },
+                  "b2": null,
+                  "5": { "class": "3A", "subject": "Islamic" },
+                  "6": { "class": "3B", "subject": "Islamic" }
+                }
+              }
+            }
+          ]
+        },
+        "d2": {
+          "teachers": [
+            {
+              "id": "pt1",
+              "name": "Ahmed Hassan",
+              "assignments": {
+                "d2": {
+                  "1": { "class": "1B", "subject": "Math" },
+                  "2": { "class": "1A", "subject": "Math" },
+                  "b1": null,
+                  "3": { "class": "2B", "subject": "Math" },
+                  "4": { "class": "2A", "subject": "Math" },
+                  "b2": null,
+                  "5": { "class": "3B", "subject": "Math" },
+                  "6": { "class": "3A", "subject": "Math" }
+                }
+              }
+            },
+            {
+              "id": "pt2",
+              "name": "Fatima Al-Rashid",
+              "assignments": {
+                "d2": {
+                  "1": { "class": "1B", "subject": "Arabic" },
+                  "2": { "class": "1A", "subject": "Arabic" },
+                  "b1": null,
+                  "3": { "class": "2B", "subject": "Arabic" },
+                  "4": { "class": "2A", "subject": "Arabic" },
+                  "b2": null,
+                  "5": { "class": "3B", "subject": "Arabic" },
+                  "6": { "class": "3A", "subject": "Arabic" }
+                }
+              }
+            }
+          ]
+        },
+        "d3": {
+          "teachers": [
+            {
+              "id": "pt1",
+              "name": "Ahmed Hassan",
+              "assignments": {
+                "d3": {
+                  "1": { "class": "1C", "subject": "Math" },
+                  "2": { "class": "1D", "subject": "Math" },
+                  "b1": null,
+                  "3": { "class": "2C", "subject": "Math" },
+                  "4": { "class": "2D", "subject": "Math" },
+                  "b2": null,
+                  "5": { "class": "3C", "subject": "Math" },
+                  "6": { "class": "3D", "subject": "Math" }
+                }
+              }
+            }
+          ]
+        },
+        "d4": {
+          "teachers": [
+            {
+              "id": "pt1",
+              "name": "Ahmed Hassan",
+              "assignments": {
+                "d4": {
+                  "1": { "class": "1E", "subject": "Math" },
+                  "2": { "class": "1F", "subject": "Math" },
+                  "b1": null,
+                  "3": { "class": "2E", "subject": "Math" },
+                  "4": { "class": "2F", "subject": "Math" },
+                  "b2": null,
+                  "5": { "class": "3E", "subject": "Math" },
+                  "6": { "class": "3F", "subject": "Math" }
+                }
+              }
+            }
+          ]
+        },
+        "d5": {
+          "teachers": [
+            {
+              "id": "pt1",
+              "name": "Ahmed Hassan",
+              "assignments": {
+                "d5": {
+                  "1": { "class": "1G", "subject": "Math" },
+                  "2": { "class": "1H", "subject": "Math" },
+                  "b1": null,
+                  "3": { "class": "2G", "subject": "Math" },
+                  "4": { "class": "2H", "subject": "Math" },
+                  "b2": null,
+                  "5": { "class": "3G", "subject": "Math" },
+                  "6": { "class": "3H", "subject": "Math" }
+                }
+              }
+            }
+          ]
+        },
+        "d6": {
+          "teachers": [
+            {
+              "id": "pt1",
+              "name": "Ahmed Hassan",
+              "assignments": {
+                "d6": {
+                  "1": null,
+                  "2": null,
+                  "b1": null,
+                  "3": null,
+                  "4": null,
+                  "b2": null,
+                  "5": null,
+                  "6": null
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "middle": {
+      "label": "Middle",
+      "days": {
+        "d1": {
+          "teachers": [
+            {
+              "id": "mt1",
+              "name": "Khaled Al-Saud",
+              "assignments": {
+                "d1": {
+                  "1": { "class": "4A", "subject": "Math" },
+                  "2": { "class": "4B", "subject": "Math" },
+                  "b1": null,
+                  "3": { "class": "5A", "subject": "Math" },
+                  "4": { "class": "5B", "subject": "Math" },
+                  "b2": null,
+                  "5": { "class": "6A", "subject": "Math" },
+                  "6": { "class": "6B", "subject": "Math" }
+                }
+              }
+            },
+            {
+              "id": "mt2",
+              "name": "Noura Ahmed",
+              "assignments": {
+                "d1": {
+                  "1": { "class": "4A", "subject": "Physics" },
+                  "2": { "class": "4B", "subject": "Physics" },
+                  "b1": null,
+                  "3": { "class": "5A", "subject": "Physics" },
+                  "4": { "class": "5B", "subject": "Physics" },
+                  "b2": null,
+                  "5": { "class": "6A", "subject": "Physics" },
+                  "6": { "class": "6B", "subject": "Physics" }
+                }
+              }
+            },
+            {
+              "id": "mt3",
+              "name": "Salem Abdullah",
+              "assignments": {
+                "d1": {
+                  "1": { "class": "4A", "subject": "Chemistry" },
+                  "2": null,
+                  "b1": null,
+                  "3": { "class": "5A", "subject": "Chemistry" },
+                  "4": null,
+                  "b2": null,
+                  "5": { "class": "6A", "subject": "Chemistry" },
+                  "6": null
+                }
+              }
+            },
+            {
+              "id": "mt4",
+              "name": "Layla Mohammed",
+              "assignments": {
+                "d1": {
+                  "1": null,
+                  "2": { "class": "4B", "subject": "Biology" },
+                  "b1": null,
+                  "3": null,
+                  "4": { "class": "5B", "subject": "Biology" },
+                  "b2": null,
+                  "5": null,
+                  "6": { "class": "6B", "subject": "Biology" }
+                }
+              }
+            }
+          ]
+        },
+        "d2": {
+          "teachers": [
+            {
+              "id": "mt1",
+              "name": "Khaled Al-Saud",
+              "assignments": {
+                "d2": {
+                  "1": { "class": "4B", "subject": "Math" },
+                  "2": { "class": "4A", "subject": "Math" },
+                  "b1": null,
+                  "3": { "class": "5B", "subject": "Math" },
+                  "4": { "class": "5A", "subject": "Math" },
+                  "b2": null,
+                  "5": { "class": "6B", "subject": "Math" },
+                  "6": { "class": "6A", "subject": "Math" }
+                }
+              }
+            }
+          ]
+        },
+        "d3": {
+          "teachers": [
+            {
+              "id": "mt1",
+              "name": "Khaled Al-Saud",
+              "assignments": {
+                "d3": {
+                  "1": { "class": "4C", "subject": "Math" },
+                  "2": { "class": "4D", "subject": "Math" },
+                  "b1": null,
+                  "3": { "class": "5C", "subject": "Math" },
+                  "4": { "class": "5D", "subject": "Math" },
+                  "b2": null,
+                  "5": { "class": "6C", "subject": "Math" },
+                  "6": { "class": "6D", "subject": "Math" }
+                }
+              }
+            }
+          ]
+        },
+        "d4": {
+          "teachers": [
+            {
+              "id": "mt1",
+              "name": "Khaled Al-Saud",
+              "assignments": {
+                "d4": {
+                  "1": { "class": "4E", "subject": "Math" },
+                  "2": { "class": "4F", "subject": "Math" },
+                  "b1": null,
+                  "3": { "class": "5E", "subject": "Math" },
+                  "4": { "class": "5F", "subject": "Math" },
+                  "b2": null,
+                  "5": { "class": "6E", "subject": "Math" },
+                  "6": { "class": "6F", "subject": "Math" }
+                }
+              }
+            }
+          ]
+        },
+        "d5": {
+          "teachers": [
+            {
+              "id": "mt1",
+              "name": "Khaled Al-Saud",
+              "assignments": {
+                "d5": {
+                  "1": { "class": "4G", "subject": "Math" },
+                  "2": { "class": "4H", "subject": "Math" },
+                  "b1": null,
+                  "3": { "class": "5G", "subject": "Math" },
+                  "4": { "class": "5H", "subject": "Math" },
+                  "b2": null,
+                  "5": { "class": "6G", "subject": "Math" },
+                  "6": { "class": "6H", "subject": "Math" }
+                }
+              }
+            }
+          ]
+        },
+        "d6": {
+          "teachers": [
+            {
+              "id": "mt1",
+              "name": "Khaled Al-Saud",
+              "assignments": {
+                "d6": {
+                  "1": null,
+                  "2": null,
+                  "b1": null,
+                  "3": null,
+                  "4": null,
+                  "b2": null,
+                  "5": null,
+                  "6": null
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "sec": {
+      "label": "Secondary",
+      "days": {
+        "d1": {
+          "teachers": [
+            {
+              "id": "st1",
+              "name": "Dr. Mahmoud Ali",
+              "assignments": {
+                "d1": {
+                  "1": { "class": "7A", "subject": "Advanced Math" },
+                  "2": { "class": "7B", "subject": "Advanced Math" },
+                  "b1": null,
+                  "3": { "class": "8A", "subject": "Advanced Math" },
+                  "4": { "class": "8B", "subject": "Advanced Math" },
+                  "b2": null,
+                  "5": { "class": "9A", "subject": "Advanced Math" },
+                  "6": { "class": "9B", "subject": "Advanced Math" }
+                }
+              }
+            },
+            {
+              "id": "st2",
+              "name": "Prof. Sara Khaled",
+              "assignments": {
+                "d1": {
+                  "1": { "class": "7A", "subject": "Physics" },
+                  "2": { "class": "7B", "subject": "Physics" },
+                  "b1": null,
+                  "3": { "class": "8A", "subject": "Physics" },
+                  "4": { "class": "8B", "subject": "Physics" },
+                  "b2": null,
+                  "5": { "class": "9A", "subject": "Physics" },
+                  "6": { "class": "9B", "subject": "Physics" }
+                }
+              }
+            },
+            {
+              "id": "st3",
+              "name": "Dr. Omar Hassan",
+              "assignments": {
+                "d1": {
+                  "1": { "class": "7A", "subject": "Chemistry" },
+                  "2": null,
+                  "b1": null,
+                  "3": { "class": "8A", "subject": "Chemistry" },
+                  "4": null,
+                  "b2": null,
+                  "5": { "class": "9A", "subject": "Chemistry" },
+                  "6": null
+                }
+              }
+            },
+            {
+              "id": "st4",
+              "name": "Dr. Aisha Mohammed",
+              "assignments": {
+                "d1": {
+                  "1": null,
+                  "2": { "class": "7B", "subject": "Biology" },
+                  "b1": null,
+                  "3": null,
+                  "4": { "class": "8B", "subject": "Biology" },
+                  "b2": null,
+                  "5": null,
+                  "6": { "class": "9B", "subject": "Biology" }
+                }
+              }
+            },
+            {
+              "id": "st5",
+              "name": "Prof. Nasser Ahmed",
+              "assignments": {
+                "d1": {
+                  "1": { "class": "7A", "subject": "Computer Science" },
+                  "2": { "class": "7B", "subject": "Computer Science" },
+                  "b1": null,
+                  "3": { "class": "8A", "subject": "Computer Science" },
+                  "4": { "class": "8B", "subject": "Computer Science" },
+                  "b2": null,
+                  "5": { "class": "9A", "subject": "Computer Science" },
+                  "6": { "class": "9B", "subject": "Computer Science" }
+                }
+              }
+            }
+          ]
+        },
+        "d2": {
+          "teachers": [
+            {
+              "id": "st1",
+              "name": "Dr. Mahmoud Ali",
+              "assignments": {
+                "d2": {
+                  "1": { "class": "7B", "subject": "Advanced Math" },
+                  "2": { "class": "7A", "subject": "Advanced Math" },
+                  "b1": null,
+                  "3": { "class": "8B", "subject": "Advanced Math" },
+                  "4": { "class": "8A", "subject": "Advanced Math" },
+                  "b2": null,
+                  "5": { "class": "9B", "subject": "Advanced Math" },
+                  "6": { "class": "9A", "subject": "Advanced Math" }
+                }
+              }
+            }
+          ]
+        },
+        "d3": {
+          "teachers": [
+            {
+              "id": "st1",
+              "name": "Dr. Mahmoud Ali",
+              "assignments": {
+                "d3": {
+                  "1": { "class": "7C", "subject": "Advanced Math" },
+                  "2": { "class": "7D", "subject": "Advanced Math" },
+                  "b1": null,
+                  "3": { "class": "8C", "subject": "Advanced Math" },
+                  "4": { "class": "8D", "subject": "Advanced Math" },
+                  "b2": null,
+                  "5": { "class": "9C", "subject": "Advanced Math" },
+                  "6": { "class": "9D", "subject": "Advanced Math" }
+                }
+              }
+            }
+          ]
+        },
+        "d4": {
+          "teachers": [
+            {
+              "id": "st1",
+              "name": "Dr. Mahmoud Ali",
+              "assignments": {
+                "d4": {
+                  "1": { "class": "7E", "subject": "Advanced Math" },
+                  "2": { "class": "7F", "subject": "Advanced Math" },
+                  "b1": null,
+                  "3": { "class": "8E", "subject": "Advanced Math" },
+                  "4": { "class": "8F", "subject": "Advanced Math" },
+                  "b2": null,
+                  "5": { "class": "9E", "subject": "Advanced Math" },
+                  "6": { "class": "9F", "subject": "Advanced Math" }
+                }
+              }
+            }
+          ]
+        },
+        "d5": {
+          "teachers": [
+            {
+              "id": "st1",
+              "name": "Dr. Mahmoud Ali",
+              "assignments": {
+                "d5": {
+                  "1": { "class": "7G", "subject": "Advanced Math" },
+                  "2": { "class": "7H", "subject": "Advanced Math" },
+                  "b1": null,
+                  "3": { "class": "8G", "subject": "Advanced Math" },
+                  "4": { "class": "8H", "subject": "Advanced Math" },
+                  "b2": null,
+                  "5": { "class": "9G", "subject": "Advanced Math" },
+                  "6": { "class": "9H", "subject": "Advanced Math" }
+                }
+              }
+            }
+          ]
+        },
+        "d6": {
+          "teachers": [
+            {
+              "id": "st1",
+              "name": "Dr. Mahmoud Ali",
+              "assignments": {
+                "d6": {
+                  "1": null,
+                  "2": null,
+                  "b1": null,
+                  "3": null,
+                  "4": null,
+                  "b2": null,
+                  "5": null,
+                  "6": null
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}
