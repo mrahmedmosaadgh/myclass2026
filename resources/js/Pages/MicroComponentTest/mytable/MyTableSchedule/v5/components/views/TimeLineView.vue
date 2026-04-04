@@ -49,6 +49,14 @@
     </div>
 
     <div class="timeline-container">
+      <!-- Debug Info -->
+      <div class="debug-info" style="padding: 10px; background: #f0f0f0; margin-bottom: 10px; font-size: 12px;">
+        <div>TimeSlots count: {{ timeSlots.length }}</div>
+        <div>DisplayStages count: {{ displayStages.length }}</div>
+        <div>Selected day: {{ selectedDay }}</div>
+        <div>Store initialized: {{ store.isInitialized.value }}</div>
+      </div>
+      
       <!-- Header Row -->
       <div class="timeline-header">
         <div class="time-column-header">Time</div>
@@ -287,9 +295,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick, inject } from 'vue';
 import { useAppStore } from '../../composables/useAppStore.js';
-import { useTimingResolver } from '../../composables/useTimingResolver.js';
 import defaultTimingData from '../../schedule_timing.json';
 
 // Color schemes from TableViewV2
@@ -307,6 +314,9 @@ const props = defineProps({
 });
 
 const store = useAppStore();
+
+// Inject resolved time slots from parent
+const resolvedTimeSlots = inject('resolvedTimeSlots', ref([]));
 
 // Color system from TableViewV2
 const currentColorScheme = computed(() => colorSchemes.default);
@@ -409,16 +419,28 @@ const displayStages = computed(() => {
   return allStages.filter(stage => selectedStages.value.includes(stage.id));
 });
 
-// Create timing resolver for the timeline
-const { resolvedTimeSlots } = useTimingResolver(
-  computed(() => store.timingsConfig),
-  computed(() => 'prim'), // Use primary timing as fallback
-  computed(() => selectedDay.value === 'today' ? getTodayDayId() : selectedDay.value),
-  defaultTimingData
-);
-
 const timeSlots = computed(() => {
-  return resolvedTimeSlots.value || [];
+  const slots = resolvedTimeSlots.value || [];
+  console.log('TimeLineView - timeSlots:', slots);
+  console.log('TimeLineView - displayStages:', displayStages.value);
+  console.log('TimeLineView - scheduleData:', store.scheduleData.value);
+  
+  // Fallback data if no slots are provided
+  if (slots.length === 0) {
+    console.log('Using fallback timing data');
+    return [
+      { id: 1, title: 'Period 1', type: 'lesson', start: '09:00', end: '09:30', startMin: 540, endMin: 570 },
+      { id: 2, title: 'Period 2', type: 'lesson', start: '09:30', end: '10:00', startMin: 570, endMin: 600 },
+      { id: 'b1', title: 'First Break', type: 'break', start: '10:00', end: '10:30', startMin: 600, endMin: 630 },
+      { id: 3, title: 'Period 3', type: 'lesson', start: '10:30', end: '11:00', startMin: 630, endMin: 660 },
+      { id: 4, title: 'Period 4', type: 'lesson', start: '11:00', end: '11:30', startMin: 660, endMin: 690 },
+      { id: 'b2', title: 'Second Break', type: 'break', start: '11:30', end: '12:00', startMin: 690, endMin: 720 },
+      { id: 5, title: 'Period 5', type: 'lesson', start: '12:00', end: '12:25', startMin: 720, endMin: 745 },
+      { id: 6, title: 'Period 6', type: 'lesson', start: '12:25', end: '12:50', startMin: 745, endMin: 770 }
+    ];
+  }
+  
+  return slots;
 });
 
 // Generate hours for the timeline (6:00 to 22:00)
@@ -688,6 +710,7 @@ const isEditingPeriod = (timeSlotId, stageId, dayId) => {
 };
 
 const startEditingPeriod = (timeSlot, stageId, dayId) => {
+  console.log('Double-click detected!', { timeSlot, stageId, dayId });
   const actualDayId = dayId === 'today' ? getTodayDayId() : dayId;
   const currentSubject = getPeriodSubject(timeSlot, stageId, dayId);
   const currentTeacher = getPeriodTeacher(timeSlot, stageId, dayId);
