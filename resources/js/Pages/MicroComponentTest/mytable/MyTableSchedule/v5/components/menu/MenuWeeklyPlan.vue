@@ -410,6 +410,10 @@ watch(() => weekTitle.value, (newTitle) => {
   padding: 1rem;
   max-height: 100vh;
   overflow-y: auto;
+  width: 100%;
+  min-width: 100%;
+  color: #333;
+  background: #fff;
 }
 
 .menu-header {
@@ -423,6 +427,7 @@ watch(() => weekTitle.value, (newTitle) => {
   margin: 0 0 0.25rem 0;
   font-size: 1.25rem;
   font-weight: 600;
+  color: #333;
 }
 
 .section-desc {
@@ -476,6 +481,7 @@ watch(() => weekTitle.value, (newTitle) => {
   font-weight: 500;
   min-width: 120px;
   text-align: center;
+  color: #333;
 }
 
 .week-title-input {
@@ -508,6 +514,7 @@ watch(() => weekTitle.value, (newTitle) => {
   cursor: pointer;
   border-radius: 4px;
   font-size: 0.875rem;
+  color: #333;
 }
 
 .class-btn:hover {
@@ -536,6 +543,7 @@ watch(() => weekTitle.value, (newTitle) => {
 .editor-header h4 {
   margin: 0;
   font-size: 1.125rem;
+  color: #333;
 }
 
 .slot-actions {
@@ -611,6 +619,8 @@ watch(() => weekTitle.value, (newTitle) => {
   border-radius: 4px;
   padding: 0.375rem;
   font-size: 0.8125rem;
+  color: #333;
+  background: #fff;
 }
 
 .field-input.small {
@@ -655,6 +665,7 @@ watch(() => weekTitle.value, (newTitle) => {
 
 .dialog-header h4 {
   margin: 0;
+  color: #333;
 }
 
 .import-options {
@@ -665,6 +676,7 @@ watch(() => weekTitle.value, (newTitle) => {
   display: block;
   margin-bottom: 0.5rem;
   font-size: 0.875rem;
+  color: #333;
 }
 
 .import-methods {
@@ -676,6 +688,7 @@ watch(() => weekTitle.value, (newTitle) => {
 .import-method h5 {
   margin: 0 0 0.5rem 0;
   font-size: 1rem;
+  color: #333;
 }
 
 .json-textarea {
@@ -686,6 +699,8 @@ watch(() => weekTitle.value, (newTitle) => {
   font-family: monospace;
   font-size: 0.75rem;
   resize: vertical;
+  color: #333;
+  background: #fff;
 }
 
 .file-input {
