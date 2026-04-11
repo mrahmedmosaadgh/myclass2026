@@ -107,6 +107,11 @@
         <!-- Stage Columns -->
         <div v-for="stage in displayStages" :key="stage.id" class="stage-column-modern">
           <div class="stage-content-modern">
+            <!-- Debug: Show stage info -->
+            <div style="position: absolute; top: 10px; left: 10px; background: red; color: white; padding: 2px 5px; font-size: 10px; z-index: 100;">
+              {{ stage.id }} - {{ timeSlots.length }} slots
+            </div>
+            
             <!-- Period Blocks positioned by actual time -->
             <div 
               v-for="timeSlot in timeSlots" 
@@ -156,8 +161,8 @@
               
               <!-- Display Mode -->
               <div v-else class="period-content-modern" :key="mathRenderKey">
-                <div class="period-title-modern" v-html="getPeriodTitleWithMath(timeSlot, stage.id, selectedDay) || 'No content'"></div>
-                <div class="period-teacher-modern" v-html="getPeriodTeacherWithMath(timeSlot, stage.id, selectedDay) || 'No teacher'"></div>
+                <div class="period-title-modern" v-html="getPeriodTitleWithMath(timeSlot, stage.id, selectedDay)"></div>
+                <div class="period-teacher-modern" v-html="getPeriodTeacherWithMath(timeSlot, stage.id, selectedDay)"></div>
                 <div v-if="hasNafs(timeSlot, stage.id, selectedDay)" class="nafs-indicator-modern">
                   <svg class="nafs-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
@@ -460,25 +465,23 @@ const displayStages = computed(() => {
 });
 
 const timeSlots = computed(() => {
-  const slots = resolvedTimeSlots.value || [];
-  console.log('TimeLineView - timeSlots:', slots);
-  console.log('TimeLineView - displayStages:', displayStages.value);
-  console.log('TimeLineView - scheduleData:', store.scheduleData.value);
+  // Always provide fallback data to ensure timeline shows immediately
+  console.log('TimeLineView - Computing timeSlots');
   
-  // Fallback data if no slots are provided
-  if (slots.length === 0) {
-    console.log('Using fallback timing data');
-    return [
-      { id: 1, title: 'Period 1', type: 'lesson', start: '09:00', end: '09:30', startMin: 540, endMin: 570 },
-      { id: 2, title: 'Period 2', type: 'lesson', start: '09:30', end: '10:00', startMin: 570, endMin: 600 },
-      { id: 'b1', title: 'First Break', type: 'break', start: '10:00', end: '10:30', startMin: 600, endMin: 630 },
-      { id: 3, title: 'Period 3', type: 'lesson', start: '10:30', end: '11:00', startMin: 630, endMin: 660 },
-      { id: 4, title: 'Period 4', type: 'lesson', start: '11:00', end: '11:30', startMin: 660, endMin: 690 },
-      { id: 'b2', title: 'Second Break', type: 'break', start: '11:30', end: '12:00', startMin: 690, endMin: 720 },
-      { id: 5, title: 'Period 5', type: 'lesson', start: '12:00', end: '12:25', startMin: 720, endMin: 745 },
-      { id: 6, title: 'Period 6', type: 'lesson', start: '12:25', end: '12:50', startMin: 745, endMin: 770 }
-    ];
-  }
+  const fallbackData = [
+    { id: 1, title: 'Period 1', type: 'lesson', start: '09:00', end: '09:30', startMin: 540, endMin: 570 },
+    { id: 2, title: 'Period 2', type: 'lesson', start: '09:30', end: '10:00', startMin: 570, endMin: 600 },
+    { id: 'b1', title: 'First Break', type: 'break', start: '10:00', end: '10:30', startMin: 600, endMin: 630 },
+    { id: 3, title: 'Period 3', type: 'lesson', start: '10:30', end: '11:00', startMin: 630, endMin: 660 },
+    { id: 4, title: 'Period 4', type: 'lesson', start: '11:00', end: '11:30', startMin: 660, endMin: 690 },
+    { id: 'b2', title: 'Second Break', type: 'break', start: '11:30', end: '12:00', startMin: 690, endMin: 720 },
+    { id: 5, title: 'Period 5', type: 'lesson', start: '12:00', end: '12:25', startMin: 720, endMin: 745 },
+    { id: 6, title: 'Period 6', type: 'lesson', start: '12:25', end: '12:50', startMin: 745, endMin: 770 }
+  ];
+  
+  const slots = resolvedTimeSlots.value || fallbackData;
+  console.log('TimeLineView - timeSlots result:', slots);
+  console.log('TimeLineView - displayStages:', displayStages.value);
   
   return slots;
 });
@@ -985,7 +988,14 @@ const getPeriodTitleWithMath = (timeSlot, stageId, dayId) => {
   console.log('Original title:', title);
   const rendered = renderLatexMath(title);
   console.log('Rendered title:', rendered);
-  return rendered || 'Fallback Title: $x^2$';
+  
+  // Always provide fallback content
+  if (!rendered || rendered.trim() === '') {
+    const fallbackTitle = `${timeSlot.title} - $E=mc^2$`;
+    return renderLatexMath(fallbackTitle);
+  }
+  
+  return rendered;
 };
 
 const getPeriodTeacherWithMath = (timeSlot, stageId, dayId) => {
@@ -994,7 +1004,14 @@ const getPeriodTeacherWithMath = (timeSlot, stageId, dayId) => {
   console.log('Original teacher:', teacher);
   const rendered = renderLatexMath(teacher);
   console.log('Rendered teacher:', rendered);
-  return rendered || 'Fallback Teacher: Dr. Test';
+  
+  // Always provide fallback content
+  if (!rendered || rendered.trim() === '') {
+    const fallbackTeacher = `Dr. Smith - $$\\frac{a}{b}$$`;
+    return renderLatexMath(fallbackTeacher);
+  }
+  
+  return rendered;
 };
 
 // Computed property to trigger re-render when KaTeX loads
@@ -1272,6 +1289,10 @@ const mathRenderKey = computed(() => katexLoaded.value);
   padding: 1rem;
   z-index: 20;
   box-shadow: 2px 0 16px rgba(0, 0, 0, 0.1);
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .time-header-content {
@@ -1296,6 +1317,10 @@ const mathRenderKey = computed(() => katexLoaded.value);
   padding: 1rem;
   z-index: 15;
   box-shadow: 0 2px 16px rgba(0, 0, 0, 0.1);
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .stage-header-content {
@@ -1378,11 +1403,14 @@ const mathRenderKey = computed(() => katexLoaded.value);
   position: relative;
   min-width: 200px;
   flex: 1;
+  background: white;
+  border-right: 1px solid #e5e7eb;
 }
 
 .stage-content-modern {
   position: relative;
   height: 100%;
+  min-height: 1920px;
 }
 
 /* Modern Period Blocks */
