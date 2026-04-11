@@ -3,95 +3,115 @@
     <!-- KaTeX CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
     
-    <div class="timeline-controls">
-      <div class="control-group">
-        <label class="control-label">Select Stages:</label>
-        <div class="stage-checkboxes">
-          <label v-for="stage in allStages" :key="stage.id" class="stage-checkbox">
-            <input 
-              type="checkbox" 
-              :value="stage.id" 
-              v-model="selectedStages"
-              class="checkbox-input"
-            >
-            <span class="checkbox-label">{{ stage.title }}</span>
-          </label>
-        </div>
-      </div>
-      
-      <div class="control-group">
-        <label class="control-label">Day:</label>
-        <select v-model="selectedDay" class="day-select">
-          <option value="today">Today</option>
-          <option value="d1">Monday</option>
-          <option value="d2">Tuesday</option>
-          <option value="d3">Wednesday</option>
-          <option value="d4">Thursday</option>
-          <option value="d5">Friday</option>
-          <option value="d6">Saturday</option>
-        </select>
-      </div>
-
-      <div class="control-group">
-        <label class="control-label">My Events:</label>
-        <div class="event-controls">
-          <button @click="showAddEventDialog = true" class="btn-add-event">
-            + Add Event
-          </button>
-          <button @click="removeAllUserEvents" class="btn-clear-events" v-if="userEvents.length > 0">
-            Clear All
-          </button>
-          <button @click="showLatexHelp = true" class="btn-latex-help">
-            LaTeX Help
-          </button>
-        </div>
-      </div>
-    </div>
-
     <div class="timeline-container">
-      <!-- Debug Info -->
-      <div class="debug-info" style="padding: 10px; background: #f0f0f0; margin-bottom: 10px; font-size: 12px;">
-        <div>TimeSlots count: {{ timeSlots.length }}</div>
-        <div>DisplayStages count: {{ displayStages.length }}</div>
-        <div>Selected day: {{ selectedDay }}</div>
-        <div>Store initialized: {{ store.isInitialized.value }}</div>
-        <div>Test HTML: <span v-html="'<strong>Bold Test</strong>'"></span></div>
-        <div>Test LaTeX: <span v-html="renderLatexMath('$x^2 + y^2 = z^2$')"></span></div>
-      </div>
-      
-      <!-- Header Row -->
-      <div class="timeline-header">
-        <div class="time-column-header">Time</div>
-        <div v-for="stage in displayStages" :key="stage.id" class="stage-header">
-          <div class="stage-title">{{ stage.title }}</div>
-          <div class="stage-subtitle">{{ getDayLabel(selectedDay) }}</div>
+      <!-- Modern Header with Controls -->
+      <div class="timeline-header-modern">
+        <div class="header-left">
+          <h2 class="timeline-title">
+            <svg class="title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            Schedule Timeline
+          </h2>
+          <p class="timeline-subtitle">{{ getDayLabel(selectedDay) }}</p>
+        </div>
+        
+        <div class="header-controls">
+          <!-- Stage Selection -->
+          <div class="control-group">
+            <label class="control-label">Stages:</label>
+            <div class="stage-toggles">
+              <button 
+                v-for="stage in allStages" 
+                :key="stage.id"
+                @click="toggleStage(stage.id)"
+                :class="['stage-toggle', { active: selectedStages.includes(stage.id) }]"
+              >
+                {{ stage.title }}
+              </button>
+            </div>
+          </div>
+          
+          <!-- Day Selection -->
+          <div class="control-group">
+            <label class="control-label">Day:</label>
+            <select v-model="selectedDay" class="day-selector">
+              <option value="today">Today</option>
+              <option value="sunday">Sunday</option>
+              <option value="monday">Monday</option>
+              <option value="tuesday">Tuesday</option>
+              <option value="wednesday">Wednesday</option>
+              <option value="thursday">Thursday</option>
+              <option value="friday">Friday</option>
+              <option value="saturday">Saturday</option>
+            </select>
+          </div>
+          
+          <!-- Action Buttons -->
+          <div class="action-buttons">
+            <button @click="showAddEventDialog = true" class="btn btn-primary">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Add Event
+            </button>
+            <button @click="showLatexHelp = true" class="btn btn-secondary">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
+              LaTeX Help
+            </button>
+          </div>
         </div>
       </div>
 
       <!-- Timeline Grid -->
-      <div class="timeline-grid" ref="timelineGrid">
+      <div class="timeline-grid-modern" ref="timelineGrid">
+        <!-- Time Column Header -->
+        <div class="time-column-header-modern">
+          <div class="time-header-content">
+            <svg class="time-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <span>Time</span>
+          </div>
+        </div>
+        
+        <!-- Stage Column Headers -->
+        <div v-for="stage in displayStages" :key="stage.id" class="stage-column-header-modern">
+          <div class="stage-header-content">
+            <h3 class="stage-title-modern">{{ stage.title }}</h3>
+            <p class="stage-subtitle-modern">{{ getDayLabel(selectedDay) }}</p>
+          </div>
+        </div>
+        
         <!-- Time Grid Background -->
-        <div class="time-grid-background">
+        <div class="time-grid-background-modern">
           <!-- Hour markers -->
-          <div v-for="hour in hours" :key="hour" class="hour-marker" :style="{ top: `${getTimePosition(hour * 60)}px` }">
-            <div class="hour-line"></div>
-            <div class="hour-label">{{ String(hour).padStart(2, '0') }}:00</div>
+          <div v-for="hour in hours" :key="hour" class="hour-marker-modern" :style="{ top: `${getTimePosition(hour * 60)}px` }">
+            <div class="hour-line-modern"></div>
+            <div class="hour-label-modern">{{ String(hour).padStart(2, '0') }}:00</div>
           </div>
         </div>
 
-        <!-- Horizontal Grid Lines (span across all columns) -->
-        <div class="horizontal-grid">
-          <div v-for="hour in hours" :key="`grid-${hour}`" class="horizontal-line" :style="{ top: `${getTimePosition(hour * 60)}px` }"></div>
+        <!-- Horizontal Grid Lines -->
+        <div class="horizontal-grid-modern">
+          <div v-for="hour in hours" :key="`grid-${hour}`" class="horizontal-line-modern" :style="{ top: `${getTimePosition(hour * 60)}px` }"></div>
         </div>
 
         <!-- Stage Columns -->
-        <div v-for="stage in displayStages" :key="stage.id" class="stage-column">
-          <div class="stage-content">
+        <div v-for="stage in displayStages" :key="stage.id" class="stage-column-modern">
+          <div class="stage-content-modern">
             <!-- Period Blocks positioned by actual time -->
             <div 
               v-for="timeSlot in timeSlots" 
               :key="`${stage.id}-${timeSlot.id}`"
-              class="period-block"
+              class="period-block-modern"
               :class="{
                 'current-period': isCurrentPeriod(timeSlot, stage.id, selectedDay),
                 'lesson-period': timeSlot.type === 'lesson',
@@ -108,10 +128,6 @@
               }"
               @dblclick="startEditingPeriod(timeSlot, stage.id, selectedDay)"
             >
-              <!-- Debug info inside period block -->
-              <div style="position: absolute; top: 2px; left: 2px; font-size: 8px; color: red; z-index: 100;">
-                {{ timeSlot.id }} - {{ stage.id }}
-              </div>
               <!-- Edit Mode -->
               <div v-if="isEditingPeriod(timeSlot.id, stage.id, selectedDay)" class="period-edit-mode">
                 <div class="edit-form">
@@ -139,11 +155,21 @@
               </div>
               
               <!-- Display Mode -->
-              <div v-else class="period-content" :key="mathRenderKey">
-                <div class="period-title" v-html="(getPeriodTitleWithMath(timeSlot, stage.id, selectedDay) || 'Test Title: $E=mc^2$')"></div>
-                <div class="period-teacher" v-html="(getPeriodTeacherWithMath(timeSlot, stage.id, selectedDay) || 'Test Teacher: Dr. Smith')"></div>
-                <div v-if="hasNafs(timeSlot, stage.id, selectedDay)" class="nafs-indicator">N</div>
-                <div class="edit-hint">Double-click to edit</div>
+              <div v-else class="period-content-modern" :key="mathRenderKey">
+                <div class="period-title-modern" v-html="getPeriodTitleWithMath(timeSlot, stage.id, selectedDay) || 'No content'"></div>
+                <div class="period-teacher-modern" v-html="getPeriodTeacherWithMath(timeSlot, stage.id, selectedDay) || 'No teacher'"></div>
+                <div v-if="hasNafs(timeSlot, stage.id, selectedDay)" class="nafs-indicator-modern">
+                  <svg class="nafs-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+                  </svg>
+                </div>
+                <div class="edit-hint-modern">
+                  <svg class="edit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
+                  Double-click to edit
+                </div>
               </div>
               
               <!-- Progress indicator for current period -->
@@ -157,17 +183,22 @@
             <div 
               v-for="userEvent in getUserEventsForStage(stage.id)" 
               :key="`user-${userEvent.id}`"
-              class="user-event-block"
+              class="user-event-block-modern"
               :style="{
                 top: `${getTimePosition(userEvent.startMin)}px`,
                 height: `${getTimeHeight(userEvent.startMin, userEvent.endMin)}px`,
                 backgroundColor: userEvent.color
               }"
             >
-              <div class="user-event-content">
-                <div class="user-event-title" :key="mathRenderKey" v-html="renderLatexMath(userEvent.title)"></div>
-                <div class="user-event-time">{{ userEvent.startTime }} - {{ userEvent.endTime }}</div>
-                <button @click="removeUserEvent(userEvent.id)" class="btn-remove-event">×</button>
+              <div class="user-event-content-modern">
+                <div class="user-event-title-modern" :key="mathRenderKey" v-html="renderLatexMath(userEvent.title)"></div>
+                <div class="user-event-time-modern">{{ userEvent.startTime }} - {{ userEvent.endTime }}</div>
+                <button @click="removeUserEvent(userEvent.id)" class="btn-remove-event-modern">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
               </div>
             </div>
           </div>
@@ -710,6 +741,16 @@ const loadUserEvents = () => {
   }
 };
 
+// Stage Management Functions
+const toggleStage = (stageId) => {
+  const index = selectedStages.value.indexOf(stageId);
+  if (index > -1) {
+    selectedStages.value.splice(index, 1);
+  } else {
+    selectedStages.value.push(stageId);
+  }
+};
+
 // Period Editing Functions
 const isEditingPeriod = (timeSlotId, stageId, dayId) => {
   const actualDayId = dayId === 'today' ? getTodayDayId() : dayId;
@@ -1039,7 +1080,554 @@ const mathRenderKey = computed(() => katexLoaded.value);
   user-select: none;
 }
 
-/* Timeline Container */
+/* Modern UI Styles */
+
+/* Modern Header */
+.timeline-header-modern {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.timeline-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+  color: white;
+}
+
+.title-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  stroke: white;
+  opacity: 0.9;
+}
+
+.timeline-subtitle {
+  font-size: 1rem;
+  opacity: 0.8;
+  margin: 0;
+  color: white;
+}
+
+.header-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  align-items: flex-end;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+
+.control-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: white;
+  opacity: 0.9;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.stage-toggles {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.stage-toggle {
+  padding: 0.5rem 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border-radius: 25px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.stage-toggle:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-2px);
+}
+
+.stage-toggle.active {
+  background: white;
+  color: #667eea;
+  border-color: white;
+  box-shadow: 0 4px 16px rgba(255, 255, 255, 0.3);
+}
+
+.day-selector {
+  padding: 0.5rem 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.day-selector:focus {
+  outline: none;
+  border-color: white;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+}
+
+.day-selector option {
+  background: #667eea;
+  color: white;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  backdrop-filter: blur(10px);
+}
+
+.btn-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.btn-primary {
+  background: white;
+  color: #667eea;
+  box-shadow: 0 4px 16px rgba(255, 255, 255, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(255, 255, 255, 0.4);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-2px);
+}
+
+/* Modern Timeline Grid */
+.timeline-grid-modern {
+  position: relative;
+  display: flex;
+  min-height: 1920px;
+  background: linear-gradient(to bottom, #f8fafc, #f1f5f9);
+  border-radius: 0 0 16px 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+}
+
+/* Modern Column Headers */
+.time-column-header-modern {
+  position: sticky;
+  left: 0;
+  width: 80px;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: white;
+  padding: 1rem;
+  z-index: 20;
+  box-shadow: 2px 0 16px rgba(0, 0, 0, 0.1);
+}
+
+.time-header-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.time-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  opacity: 0.8;
+}
+
+.stage-column-header-modern {
+  position: sticky;
+  top: 0;
+  min-width: 200px;
+  background: linear-gradient(135deg, #06b6d4, #0891b2);
+  color: white;
+  padding: 1rem;
+  z-index: 15;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.1);
+}
+
+.stage-header-content {
+  text-align: center;
+}
+
+.stage-title-modern {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem 0;
+  color: white;
+}
+
+.stage-subtitle-modern {
+  font-size: 0.875rem;
+  opacity: 0.8;
+  margin: 0;
+  color: white;
+}
+
+/* Modern Grid Elements */
+.time-grid-background-modern {
+  position: absolute;
+  left: 80px;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.hour-marker-modern {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+}
+
+.hour-line-modern {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(to right, transparent, #e2e8f0, transparent);
+  opacity: 0.6;
+}
+
+.hour-label-modern {
+  position: absolute;
+  left: -70px;
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+  background: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.horizontal-grid-modern {
+  position: absolute;
+  left: 80px;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.horizontal-line-modern {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(to right, #e2e8f0, transparent);
+  opacity: 0.4;
+}
+
+/* Modern Stage Columns */
+.stage-column-modern {
+  position: relative;
+  min-width: 200px;
+  flex: 1;
+}
+
+.stage-content-modern {
+  position: relative;
+  height: 100%;
+}
+
+/* Modern Period Blocks */
+.period-block-modern {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  z-index: 1;
+  min-height: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(10px);
+}
+
+.period-block-modern:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  z-index: 5;
+}
+
+.period-block-modern.current-period {
+  box-shadow: 0 0 0 3px #10b981, 0 8px 24px rgba(16, 185, 129, 0.3);
+  animation: pulse-glow 2s infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 3px #10b981, 0 8px 24px rgba(16, 185, 129, 0.3); }
+  50% { box-shadow: 0 0 0 3px #10b981, 0 8px 32px rgba(16, 185, 129, 0.5); }
+}
+
+.period-block-modern.lesson-period {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+}
+
+.period-block-modern.break-period {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+}
+
+.period-block-modern.activity-period {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+}
+
+/* Modern Period Content */
+.period-content-modern {
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  height: 100%;
+  justify-content: center;
+}
+
+.period-title-modern {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: inherit;
+  word-break: break-word;
+}
+
+.period-teacher-modern {
+  font-size: 0.75rem;
+  opacity: 0.8;
+  line-height: 1.2;
+  color: inherit;
+  word-break: break-word;
+}
+
+.nafs-indicator-modern {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+}
+
+.nafs-icon {
+  width: 12px;
+  height: 12px;
+  stroke: white;
+}
+
+.edit-hint-modern {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  font-size: 0.625rem;
+  color: rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.period-block-modern:hover .edit-hint-modern {
+  opacity: 1;
+}
+
+.edit-icon {
+  width: 10px;
+  height: 10px;
+}
+
+/* Modern User Events */
+.user-event-block-modern {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 3;
+  min-height: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(10px);
+}
+
+.user-event-block-modern:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  z-index: 6;
+}
+
+.user-event-content-modern {
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  position: relative;
+}
+
+.user-event-title-modern {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.user-event-time-modern {
+  font-size: 0.625rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.btn-remove-event-modern {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.btn-remove-event-modern:hover {
+  background: rgba(239, 68, 68, 0.8);
+  transform: scale(1.1);
+}
+
+.btn-remove-event-modern svg {
+  width: 10px;
+  height: 10px;
+  stroke: white;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .timeline-header-modern {
+    flex-direction: column;
+    gap: 1.5rem;
+    align-items: stretch;
+  }
+  
+  .header-controls {
+    align-items: stretch;
+  }
+  
+  .control-group {
+    align-items: stretch;
+  }
+  
+  .stage-toggles {
+    justify-content: center;
+  }
+  
+  .action-buttons {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .timeline-header-modern {
+    padding: 1.5rem;
+  }
+  
+  .timeline-title {
+    font-size: 1.5rem;
+  }
+  
+  .stage-toggles {
+    flex-wrap: wrap;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+  }
+  
+  .stage-column-header-modern {
+    min-width: 150px;
+  }
+  
+  .period-block-modern,
+  .user-event-block-modern {
+    left: 4px;
+    right: 4px;
+  }
+}
 .timeline-container {
   background: white;
   border-radius: 8px;
