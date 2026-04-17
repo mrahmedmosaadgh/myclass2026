@@ -83,11 +83,12 @@ while true; do
   echo "║  11) Database: Run migrations on Hostinger ║"
   echo "║  ──────────────────────────────────────  ║"
   echo "║  12) Route Check: Local + Hostinger      ║"
-  echo "║  13) Exit                               ║"
+  echo "║  13) Routes: Sync to Hostinger          ║"
+  echo "║  14) Exit                               ║"
   echo "╚══════════════════════════════════════════╝"
   echo ""
 
-  read -p "Choose an option (1-13): " CHOICE
+  read -p "Choose an option (1-14): " CHOICE
   echo ""
 
   case "$CHOICE" in
@@ -231,13 +232,17 @@ while true; do
       ;;
       
     13)
+      echo "Routes: Sync to Hostinger"
+      ;;
+      
+    14)
       echo "Bye 👋"
       exit 0
       ;;
 
     
     *)
-      echo "❌ Invalid choice. Please enter 1-13."
+      echo "❌ Invalid choice. Please enter 1-14."
       ;;
   esac
 
