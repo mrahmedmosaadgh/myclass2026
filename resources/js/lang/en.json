@@ -666,13 +666,18 @@
         "rendered": "Rendered"
       },
       "structure": {
-        "title": "Exam Structure"
+        "title": "Exam Structure",
+        "addSection": "Add Section",
+        "untitledSection": "Untitled Section"
       },
       "editor": {
+        "section": "Section Editor",
+        "question": "Question Editor",
         "placeholder": "Enter exam content here..."
       },
       "validation": {
         "title": "Validation Results",
+        "errors": "Errors",
         "warnings": "Warnings",
         "infos": "Info",
         "scopes": {
@@ -704,6 +709,15 @@
         "manual": "Manual",
         "auto": "Auto",
         "hybrid": "Hybrid"
+      },
+      "section": {
+        "title": "Section Title",
+        "instructions": "Instructions"
+      },
+      "question": {
+        "type": "Question Type",
+        "marks": "Marks",
+        "prompt": "Question Prompt"
       },
       "overflowStrategies": {
         "moveToNextPage": "Move to Next Page",

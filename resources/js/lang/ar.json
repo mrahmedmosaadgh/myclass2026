@@ -668,13 +668,18 @@
         "rendered": "معروض"
       },
       "structure": {
-        "title": "هيكل الامتحان"
+        "title": "هيكل الامتحان",
+        "addSection": "إضافة قسم",
+        "untitledSection": "قسم بدون عنوان"
       },
       "editor": {
+        "section": "محرر القسم",
+        "question": "محرر السؤال",
         "placeholder": "أدخل محتوى الامتحان هنا..."
       },
       "validation": {
         "title": "نتائج التحقق",
+        "errors": "أخطاء",
         "warnings": "تحذيرات",
         "infos": "معلومات",
         "scopes": {
@@ -706,6 +711,15 @@
         "manual": "يدوي",
         "auto": "تلقائي",
         "hybrid": "مختلط"
+      },
+      "section": {
+        "title": "عنوان القسم",
+        "instructions": "التعليمات"
+      },
+      "question": {
+        "type": "نوع السؤال",
+        "marks": "الدرجات",
+        "prompt": "نص السؤال"
       },
       "overflowStrategies": {
         "moveToNextPage": "نقل إلى الصفحة التالية",
