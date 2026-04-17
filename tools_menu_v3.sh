@@ -75,6 +75,7 @@ declare -a MENU_OPTIONS=(
   "Server: Delete remote build files"
   "Database: Run migrations on Hostinger"
   "Route Check: Local + Hostinger"
+  "Routes: Sync to Hostinger"
   "Exit"
 )
 
@@ -267,6 +268,19 @@ execute_action() {
       echo "✅ Route check completed."
       ;;
     13)
+      echo "Routes: Sync to Hostinger"
+      echo ""
+      if [ ! -f "./sync_routes_to_hostinger.sh" ]; then
+        echo "Error: sync_routes_to_hostinger.sh script not found!"
+        echo "Please ensure the script exists in the project root."
+        return
+      fi
+      
+      acquire_lock || return
+      run_script ./sync_routes_to_hostinger.sh
+      release_lock
+      ;;
+    14)
       echo "Bye 👋"
       exit 0
       ;;

@@ -233,6 +233,16 @@ while true; do
       
     13)
       echo "Routes: Sync to Hostinger"
+      echo ""
+      if [ ! -f "./sync_routes_to_hostinger.sh" ]; then
+        echo "Error: sync_routes_to_hostinger.sh script not found!"
+        echo "Please ensure the script exists in the project root."
+        continue
+      fi
+      
+      acquire_lock || continue
+      run_script ./sync_routes_to_hostinger.sh
+      release_lock
       ;;
       
     14)
