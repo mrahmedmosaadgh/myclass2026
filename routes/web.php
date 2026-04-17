@@ -26,15 +26,15 @@ use Spatie\Permission\Models\Role;
 // Include Classroom Records v1 Routes
 include dirname(__DIR__).'/routes/myclass2026/cr/web.php';
 
-// Include Exam Ready To Print Routes
-include dirname(__DIR__).'/routes/myclass2026/exam_ready_to_print.php';
-
 // Domain-based Routing for QudratPro
 Route::domain('qudratpro.com')->group(function () {
     require base_path('routes/qudrat/web.php');
     
     // Include Remote Control System Routes (inside domain)
     include dirname(__DIR__).'/routes/myclass2026/remote_control.php';
+    
+    // Include Exam Ready To Print Routes (inside domain)
+    include dirname(__DIR__).'/routes/myclass2026/exam_ready_to_print.php';
 
     // // Include Schedule App V5 Routes (inside domain)
     // include dirname(__DIR__).'/routes/schedule_app_v5.php';

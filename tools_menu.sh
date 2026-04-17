@@ -81,11 +81,13 @@ while true; do
   echo "║  10) Server: Delete remote build files    ║"
   echo "║  ──────────────────────────────────────  ║"
   echo "║  11) Database: Run migrations on Hostinger ║"
-  echo "║  12) Exit                               ║"
+  echo "║  ──────────────────────────────────────  ║"
+  echo "║  12) Route Check: Local + Hostinger      ║"
+  echo "║  13) Exit                               ║"
   echo "╚══════════════════════════════════════════╝"
   echo ""
 
-  read -p "Choose an option (1-12): " CHOICE
+  read -p "Choose an option (1-13): " CHOICE
   echo ""
 
   case "$CHOICE" in
@@ -194,13 +196,48 @@ while true; do
       ;;
 
     12)
+      echo "🔍 Route Check: Local + Hostinger"
+      echo ""
+      read -p "Enter route to check (e.g., '/api/test' or 'submit-answer'): " ROUTE_TO_CHECK
+      
+      if [ -z "$ROUTE_TO_CHECK" ]; then
+        echo "❌ No route specified. Please provide a route path."
+        continue
+      fi
+      
+      echo ""
+      echo "📍 Checking route: $ROUTE_TO_CHECK"
+      echo "─────────────────────────────────────────"
+      
+      # Local route check
+      echo "🏠 Local Route Check:"
+      if command -v php >/dev/null 2>&1; then
+        php artisan route:list | grep -i "$ROUTE_TO_CHECK" || echo "⚠️  Route '$ROUTE_TO_CHECK' not found locally"
+      else
+        echo "⚠️  PHP not available for local route check"
+      fi
+      
+      echo ""
+      
+      # Hostinger route check
+      echo "🌐 Hostinger Route Check:"
+      test_ssh || continue
+      ssh -p "$SSH_PORT" "$SSH_CONN" "cd $REMOTE_DIR \
+        && echo \"--- Checking for route: $ROUTE_TO_CHECK ---\" \
+        && php artisan route:list | grep -i \"$ROUTE_TO_CHECK\" || echo \"⚠️  Route \\\"$ROUTE_TO_CHECK\\\" not found on Hostinger\""
+      
+      echo ""
+      echo "✅ Route check completed."
+      ;;
+      
+    13)
       echo "Bye 👋"
       exit 0
       ;;
 
     
     *)
-      echo "❌ Invalid choice. Please enter 1-12."
+      echo "❌ Invalid choice. Please enter 1-13."
       ;;
   esac
 
