@@ -649,5 +649,68 @@
       "topN": "Top {n}",
       "studentOf": "Student {current} of {total}"
     }
+  },
+  "exam": {
+    "readyToPrint": {
+      "title": "Exam Ready To Print",
+      "validate": "Validate",
+      "approve": "Approve",
+      "render": "Render",
+      "print": "Print",
+      "printPreview": "Print Preview",
+      "dirty": "Modified",
+      "lifecycle": {
+        "draft": "Draft",
+        "validated": "Validated",
+        "approved": "Approved",
+        "rendered": "Rendered"
+      },
+      "structure": {
+        "title": "Exam Structure"
+      },
+      "editor": {
+        "placeholder": "Enter exam content here..."
+      },
+      "validation": {
+        "title": "Validation Results",
+        "warnings": "Warnings",
+        "infos": "Info",
+        "scopes": {
+          "exam": "Exam"
+        }
+      },
+      "settings": {
+        "title": "Print Settings",
+        "pageSetup": "Page Setup",
+        "paperSize": "Paper Size",
+        "margins": "Margins",
+        "headerHeight": "Header Height",
+        "footerHeight": "Footer Height",
+        "header": "Header",
+        "headerMode": "Header Mode",
+        "footer": "Footer",
+        "pageNumbering": "Page Numbering",
+        "layout": "Layout",
+        "paginationMode": "Pagination Mode",
+        "overflowStrategy": "Overflow Strategy"
+      },
+      "headerModes": {
+        "none": "None",
+        "firstPageOnly": "First Page Only",
+        "allPages": "All Pages",
+        "customPerPage": "Custom Per Page"
+      },
+      "paginationModes": {
+        "manual": "Manual",
+        "auto": "Auto",
+        "hybrid": "Hybrid"
+      },
+      "overflowStrategies": {
+        "moveToNextPage": "Move to Next Page",
+        "splitAllowed": "Split Allowed",
+        "scaleDown": "Scale Down",
+        "rejectAtValidation": "Reject at Validation"
+      }
+    }
   }
 }

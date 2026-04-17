@@ -651,5 +651,68 @@
       "topN": "أفضل {n}",
       "studentOf": "طالب {current} من {total}"
     }
+  },
+  "exam": {
+    "readyToPrint": {
+      "title": "امتحان جاهز للطباعة",
+      "validate": "تحقق",
+      "approve": "موافقة",
+      "render": "عرض",
+      "print": "طباعة",
+      "printPreview": "معاينة الطباعة",
+      "dirty": "معدل",
+      "lifecycle": {
+        "draft": "مسودة",
+        "validated": "تم التحقق",
+        "approved": "موافق عليه",
+        "rendered": "معروض"
+      },
+      "structure": {
+        "title": "هيكل الامتحان"
+      },
+      "editor": {
+        "placeholder": "أدخل محتوى الامتحان هنا..."
+      },
+      "validation": {
+        "title": "نتائج التحقق",
+        "warnings": "تحذيرات",
+        "infos": "معلومات",
+        "scopes": {
+          "exam": "امتحان"
+        }
+      },
+      "settings": {
+        "title": "إعدادات الطباعة",
+        "pageSetup": "إعداد الصفحة",
+        "paperSize": "حجم الورق",
+        "margins": "الهوامش",
+        "headerHeight": "ارتفاع الرأس",
+        "footerHeight": "ارتفاع التذييل",
+        "header": "الرأس",
+        "headerMode": "وضع الرأس",
+        "footer": "التذييل",
+        "pageNumbering": "ترقيم الصفحات",
+        "layout": "التخطيط",
+        "paginationMode": "وضع ترقيم الصفحات",
+        "overflowStrategy": "استراتيجية الفائض"
+      },
+      "headerModes": {
+        "none": "لا شيء",
+        "firstPageOnly": "الصفحة الأولى فقط",
+        "allPages": "جميع الصفحات",
+        "customPerPage": "مخصص لكل صفحة"
+      },
+      "paginationModes": {
+        "manual": "يدوي",
+        "auto": "تلقائي",
+        "hybrid": "مختلط"
+      },
+      "overflowStrategies": {
+        "moveToNextPage": "نقل إلى الصفحة التالية",
+        "splitAllowed": "السماح بالتقسيم",
+        "scaleDown": "تصغير",
+        "rejectAtValidation": "رفض عند التحقق"
+      }
+    }
   }
 }
