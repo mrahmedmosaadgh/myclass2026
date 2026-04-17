@@ -22,10 +22,17 @@ DEPLOY_LOCK="/tmp/myclass2026_deploy.lock"
 acquire_lock() {
   if [ -f "$DEPLOY_LOCK" ]; then
     OTHER_PID=$(cat "$DEPLOY_LOCK")
+    if [ "$OTHER_PID" = "$$" ]; then
+      return 0
+    fi
+
     if ps -p "$OTHER_PID" > /dev/null 2>&1; then
-      echo "🛑  ERROR: Another deployment/write task is already running (PID: $OTHER_PID)."
-      echo "   Please wait for it to finish or close the other terminal."
-      return 1
+      OTHER_CMD=$(ps -p "$OTHER_PID" -o command= 2>/dev/null | head -n 1)
+      if echo "$OTHER_CMD" | grep -Eq "tools_menu(_v3)?\\.sh|update(_.*)?\\.sh|sync_routes_to_hostinger\\.sh"; then
+        echo "🛑  ERROR: Another deployment/write task is already running (PID: $OTHER_PID)."
+        echo "   Please wait for it to finish or close the other terminal."
+        return 1
+      fi
     fi
   fi
   echo $$ > "$DEPLOY_LOCK"
