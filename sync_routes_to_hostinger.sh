@@ -6,16 +6,17 @@
 # This script copies the routes folder to Hostinger server
 # ============================================================
 
-# Source SSH configuration from tools_menu.sh
-source ./tools_menu.sh 2>/dev/null || {
-  echo "Could not source tools_menu.sh configuration"
-  echo "Using default SSH settings..."
+set -u
+
+# Reuse SSH configuration from environment (exported by tools_menu*.sh).
+# Do NOT source tools_menu.sh here because it runs an interactive menu.
+if [ -z "${SSH_USER:-}" ] || [ -z "${SSH_HOST:-}" ] || [ -z "${SSH_PORT:-}" ] || [ -z "${REMOTE_DIR:-}" ] || [ -z "${SSH_CONN:-}" ]; then
   export SSH_USER="u474447882"
   export SSH_HOST="62.72.37.122"
   export SSH_PORT="65002"
   export REMOTE_DIR="~/domains/qudratpro.com/public_html"
   export SSH_CONN="${SSH_USER}@${SSH_HOST}"
-}
+fi
 
 # Function to test SSH connection
 test_ssh() {

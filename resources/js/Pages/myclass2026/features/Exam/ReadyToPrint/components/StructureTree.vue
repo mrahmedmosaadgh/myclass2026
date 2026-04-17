@@ -81,7 +81,7 @@ function selectSection(sectionId) {
 
 function addSection() {
   store.addSection({
-    title: t('exam.readyToPrint.structure.newSection'),
+    title: t('exam.readyToPrint.structure.newSection', 'New Section'),
   })
 }
 

@@ -30,8 +30,15 @@ acquire_lock() {
       OTHER_CMD=$(ps -p "$OTHER_PID" -o command= 2>/dev/null | head -n 1)
       if echo "$OTHER_CMD" | grep -Eq "tools_menu(_v3)?\\.sh|update(_.*)?\\.sh|sync_routes_to_hostinger\\.sh"; then
         echo "🛑  ERROR: Another deployment/write task is already running (PID: $OTHER_PID)."
-        echo "   Please wait for it to finish or close the other terminal."
-        return 1
+        echo "   Command: $OTHER_CMD"
+        read -p "Force stop PID $OTHER_PID and continue? (y/N): " KILL_CONFIRM
+        if [ "$KILL_CONFIRM" = "y" ] || [ "$KILL_CONFIRM" = "Y" ]; then
+          kill "$OTHER_PID" 2>/dev/null || true
+          rm -f "$DEPLOY_LOCK" 2>/dev/null || true
+        else
+          echo "   Please wait for it to finish or close the other terminal."
+          return 1
+        fi
       fi
     fi
   fi

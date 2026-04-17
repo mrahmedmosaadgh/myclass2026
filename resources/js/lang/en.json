@@ -668,6 +668,7 @@
       "structure": {
         "title": "Exam Structure",
         "addSection": "Add Section",
+        "newSection": "New Section",
         "untitledSection": "Untitled Section"
       },
       "editor": {

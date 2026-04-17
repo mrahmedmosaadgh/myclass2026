@@ -670,6 +670,7 @@
       "structure": {
         "title": "هيكل الامتحان",
         "addSection": "إضافة قسم",
+        "newSection": "قسم جديد",
         "untitledSection": "قسم بدون عنوان"
       },
       "editor": {

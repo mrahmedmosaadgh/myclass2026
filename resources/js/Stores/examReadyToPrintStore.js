@@ -141,13 +141,19 @@ export const useExamReadyToPrintStore = defineStore('examReadyToPrint', {
         },
 
         addSection(partial) {
-            if (this.lifecycle.locked) return
+            // Allow adding sections even when locked, but reset to draft
+            if (this.lifecycle.locked) {
+                this.setLifecycleStatus('draft')
+            }
             this.exam.sections.push(createSection(partial))
             this.markDirty()
         },
 
         updateSection(sectionId, patch) {
-            if (this.lifecycle.locked) return
+            // Allow updating sections even when locked, but reset to draft
+            if (this.lifecycle.locked) {
+                this.setLifecycleStatus('draft')
+            }
             const idx = this.exam.sections.findIndex(s => s.id === sectionId)
             if (idx === -1) return
             this.exam.sections[idx] = { ...this.exam.sections[idx], ...patch }
@@ -155,14 +161,20 @@ export const useExamReadyToPrintStore = defineStore('examReadyToPrint', {
         },
 
         removeSection(sectionId) {
-            if (this.lifecycle.locked) return
+            // Allow removing sections even when locked, but reset to draft
+            if (this.lifecycle.locked) {
+                this.setLifecycleStatus('draft')
+            }
             this.exam.sections = this.exam.sections.filter(s => s.id !== sectionId)
             if (this.selection.sectionId === sectionId) this.selection = { sectionId: null, questionId: null }
             this.markDirty()
         },
 
         addQuestion(sectionId, partial) {
-            if (this.lifecycle.locked) return
+            // Allow adding questions even when locked, but reset to draft
+            if (this.lifecycle.locked) {
+                this.setLifecycleStatus('draft')
+            }
             const section = this.exam.sections.find(s => s.id === sectionId)
             if (!section) return
             section.questions.push(createQuestion(partial))
@@ -170,7 +182,10 @@ export const useExamReadyToPrintStore = defineStore('examReadyToPrint', {
         },
 
         updateQuestion(sectionId, questionId, patch) {
-            if (this.lifecycle.locked) return
+            // Allow updating questions even when locked, but reset to draft
+            if (this.lifecycle.locked) {
+                this.setLifecycleStatus('draft')
+            }
             const section = this.exam.sections.find(s => s.id === sectionId)
             if (!section) return
             const idx = (section.questions ?? []).findIndex(q => q.id === questionId)
@@ -180,7 +195,10 @@ export const useExamReadyToPrintStore = defineStore('examReadyToPrint', {
         },
 
         removeQuestion(sectionId, questionId) {
-            if (this.lifecycle.locked) return
+            // Allow removing questions even when locked, but reset to draft
+            if (this.lifecycle.locked) {
+                this.setLifecycleStatus('draft')
+            }
             const section = this.exam.sections.find(s => s.id === sectionId)
             if (!section) return
             section.questions = (section.questions ?? []).filter(q => q.id !== questionId)
