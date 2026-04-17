@@ -80,6 +80,9 @@ function selectSection(sectionId) {
 }
 
 function addSection() {
+  console.log('StructureTree: addSection clicked')
+  console.log('Current lifecycle status:', store.lifecycle.status)
+  console.log('Is locked:', store.lifecycle.locked)
   store.addSection({
     title: t('exam.readyToPrint.structure.newSection', 'New Section'),
   })

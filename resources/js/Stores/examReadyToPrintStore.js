@@ -141,12 +141,20 @@ export const useExamReadyToPrintStore = defineStore('examReadyToPrint', {
         },
 
         addSection(partial) {
+            console.log('Store: addSection called with:', partial)
+            console.log('Store: current lifecycle:', this.lifecycle)
+            console.log('Store: is locked:', this.lifecycle.locked)
             // Allow adding sections even when locked, but reset to draft
             if (this.lifecycle.locked) {
+                console.log('Store: was locked, resetting to draft')
                 this.setLifecycleStatus('draft')
             }
-            this.exam.sections.push(createSection(partial))
+            const newSection = createSection(partial)
+            console.log('Store: created section:', newSection)
+            this.exam.sections.push(newSection)
+            console.log('Store: sections after add:', this.exam.sections)
             this.markDirty()
+            console.log('Store: marked dirty, lifecycle now:', this.lifecycle)
         },
 
         updateSection(sectionId, patch) {
