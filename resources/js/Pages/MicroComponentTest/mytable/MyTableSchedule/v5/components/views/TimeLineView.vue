@@ -112,6 +112,13 @@
               {{ stage.id }} - {{ timeSlots.length }} slots
             </div>
             
+            <!-- Test Period Blocks - Always visible -->
+            <div 
+              style="position: absolute; top: 100px; left: 8px; right: 8px; height: 60px; background: linear-gradient(135deg, #3b82f6, #2563eb); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; z-index: 10;"
+            >
+              Test Period Block
+            </div>
+            
             <!-- Period Blocks positioned by actual time -->
             <div 
               v-for="timeSlot in timeSlots" 
@@ -337,9 +344,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick, inject } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick, inject, watch } from 'vue';
 import { useAppStore } from '../../composables/useAppStore.js';
+import { useTimelineAuth } from '../../composables/useTimelineAuth.js';
+import { useTimelineSync } from '../../composables/useTimelineSync.js';
 import defaultTimingData from '../../schedule_timing.json';
+
+// Authentication & Sync
+const { isAuthenticated, user, displayName } = useTimelineAuth();
+const { timelineData, saveTimelineData, syncData, isOnline, isSyncing } = useTimelineSync();
 
 // Color schemes from TableViewV2
 const colorSchemes = {
@@ -468,6 +481,26 @@ const timeSlots = computed(() => {
   // Always provide fallback data to ensure timeline shows immediately
   console.log('TimeLineView - Computing timeSlots');
   
+  // Try to load user's personal schedule data first
+  if (isAuthenticated.value && timelineData.value?.data?.schedule) {
+    const personalSchedule = timelineData.value.data.schedule;
+    console.log('Loading personal schedule:', personalSchedule);
+    
+    // Transform personal schedule data to timeline format
+    const personalSlots = transformPersonalSchedule(personalSchedule);
+    if (personalSlots.length > 0) {
+      console.log('Using personal schedule data');
+      return personalSlots;
+    }
+  }
+  
+  // Try to use injected schedule data
+  if (resolvedTimeSlots.value && resolvedTimeSlots.value.length > 0) {
+    console.log('Using injected schedule data');
+    return resolvedTimeSlots.value;
+  }
+  
+  // Fallback to default timing data
   const fallbackData = [
     { id: 1, title: 'Period 1', type: 'lesson', start: '09:00', end: '09:30', startMin: 540, endMin: 570 },
     { id: 2, title: 'Period 2', type: 'lesson', start: '09:30', end: '10:00', startMin: 570, endMin: 600 },
@@ -479,12 +512,54 @@ const timeSlots = computed(() => {
     { id: 6, title: 'Period 6', type: 'lesson', start: '12:25', end: '12:50', startMin: 745, endMin: 770 }
   ];
   
-  const slots = resolvedTimeSlots.value || fallbackData;
-  console.log('TimeLineView - timeSlots result:', slots);
-  console.log('TimeLineView - displayStages:', displayStages.value);
-  
-  return slots;
+  console.log('Using fallback timing data');
+  return fallbackData;
 });
+
+// Transform personal schedule data to timeline format
+function transformPersonalSchedule(personalSchedule) {
+  try {
+    const slots = [];
+    
+    // Check if personal schedule has the expected structure
+    if (personalSchedule.periods && Array.isArray(personalSchedule.periods)) {
+      personalSchedule.periods.forEach((period, index) => {
+        const startTime = period.start || '09:00';
+        const endTime = period.end || '09:30';
+        const startMin = timeToMinutes(startTime);
+        const endMin = timeToMinutes(endTime);
+        
+        slots.push({
+          id: period.id || index + 1,
+          title: period.title || period.name || `Period ${index + 1}`,
+          type: period.type || 'lesson',
+          start: startTime,
+          end: endTime,
+          startMin: startMin,
+          endMin: endMin,
+          subject: period.subject || period.sub || '',
+          teacher: period.teacher || '',
+          room: period.room || ''
+        });
+      });
+    }
+    
+    // Add breaks if not present
+    if (slots.length > 0 && !slots.find(s => s.type === 'break')) {
+      const breaks = [
+        { id: 'b1', title: 'First Break', type: 'break', start: '10:00', end: '10:30', startMin: 600, endMin: 630 },
+        { id: 'b2', title: 'Second Break', type: 'break', start: '11:30', end: '12:00', startMin: 690, endMin: 720 }
+      ];
+      slots.push(...breaks);
+    }
+    
+    console.log('Transformed personal schedule:', slots);
+    return slots;
+  } catch (error) {
+    console.error('Error transforming personal schedule:', error);
+    return [];
+  }
+}
 
 // Generate hours for the timeline (6:00 to 22:00)
 const hours = computed(() => {
@@ -543,6 +618,13 @@ const getActualDayId = () => {
 
 const getPeriodTitle = (timeSlot, stageId, dayId) => {
   const actualDayId = dayId === 'today' ? getTodayDayId() : dayId;
+  
+  // Use personal schedule data if available
+  if (timeSlot.subject && timeSlot.subject !== '') {
+    return `${timeSlot.title} - ${timeSlot.subject}`;
+  }
+  
+  // Fallback to schedule data from store
   const scheduleData = store.scheduleData.value;
   
   if (!Array.isArray(scheduleData)) {
@@ -564,6 +646,13 @@ const getPeriodTitle = (timeSlot, stageId, dayId) => {
 
 const getPeriodSubject = (timeSlot, stageId, dayId) => {
   const actualDayId = dayId === 'today' ? getTodayDayId() : dayId;
+  
+  // Use personal schedule data if available
+  if (timeSlot.subject && timeSlot.subject !== '') {
+    return timeSlot.subject;
+  }
+  
+  // Fallback to schedule data from store
   const scheduleData = store.scheduleData.value;
   
   if (!Array.isArray(scheduleData)) {
@@ -576,6 +665,60 @@ const getPeriodSubject = (timeSlot, stageId, dayId) => {
     const period = daySchedule.classes.find(p => p.p === timeSlot.id);
     if (period && period.sub) {
       return period.sub;
+    }
+  }
+  
+  return '';
+};
+
+const getPeriodTeacher = (timeSlot, stageId, dayId) => {
+  const actualDayId = dayId === 'today' ? getTodayDayId() : dayId;
+  
+  // Use personal schedule data if available
+  if (timeSlot.teacher && timeSlot.teacher !== '') {
+    return timeSlot.teacher;
+  }
+  
+  // Fallback to schedule data from store
+  const scheduleData = store.scheduleData.value;
+  
+  if (!Array.isArray(scheduleData)) {
+    return '';
+  }
+  
+  const daySchedule = scheduleData.find(item => item.day === actualDayId || item.dayIndex === getDayIndexFromId(actualDayId));
+  
+  if (daySchedule && daySchedule.classes) {
+    const period = daySchedule.classes.find(p => p.p === timeSlot.id);
+    if (period && period.teacher) {
+      return period.teacher;
+    }
+  }
+  
+  return '';
+};
+
+const getPeriodRoom = (timeSlot, stageId, dayId) => {
+  const actualDayId = dayId === 'today' ? getTodayDayId() : dayId;
+  
+  // Use personal schedule data if available
+  if (timeSlot.room && timeSlot.room !== '') {
+    return timeSlot.room;
+  }
+  
+  // Fallback to schedule data from store
+  const scheduleData = store.scheduleData.value;
+  
+  if (!Array.isArray(scheduleData)) {
+    return '';
+  }
+  
+  const daySchedule = scheduleData.find(item => item.day === actualDayId || item.dayIndex === getDayIndexFromId(actualDayId));
+  
+  if (daySchedule && daySchedule.classes) {
+    const period = daySchedule.classes.find(p => p.p === timeSlot.id);
+    if (period && period.room) {
+      return period.room;
     }
   }
   
@@ -603,24 +746,6 @@ const hasNafs = (timeSlot, stageId, dayId) => {
   }
   
   return false;
-};
-
-const getPeriodTeacher = (timeSlot, stageId, dayId) => {
-  const actualDayId = dayId === 'today' ? getTodayDayId() : dayId;
-  const schoolTimetable = store.schoolTimetable.value;
-  const stageData = schoolTimetable.stages?.[stageId];
-  
-  // Handle the nested structure with teachers and assignments
-  if (stageData && stageData.teachers && Array.isArray(stageData.teachers)) {
-    for (const teacher of stageData.teachers) {
-      const assignments = teacher.assignments?.[actualDayId];
-      if (assignments && assignments[timeSlot.id]) {
-        return teacher.name;
-      }
-    }
-  }
-  
-  return '';
 };
 
 const hasPeriodContent = (timeSlot, stageId, dayId) => {
@@ -904,13 +1029,65 @@ onMounted(() => {
   // Load KaTeX for math rendering
   loadKaTeX();
   
-  // Listen for KaTeX load event to re-render
-  window.addEventListener('katex-loaded', () => {
-    // Force re-render by updating reactive variable
-    katexLoaded.value = true;
-    console.log('KaTeX loaded, re-rendering components');
-  });
+  // Load user data if authenticated
+  if (isAuthenticated.value) {
+    loadUserData();
+  }
 });
+
+// Watch for authentication changes
+watch(isAuthenticated, (authenticated) => {
+  if (authenticated) {
+    loadUserData();
+  }
+});
+
+// Watch for data changes and auto-save
+watch([selectedStages, selectedDay, userEvents], () => {
+  if (isAuthenticated.value) {
+    saveUserData();
+  }
+}, { deep: true });
+
+// Load user data from sync system
+function loadUserData() {
+  if (timelineData.value?.data) {
+    const userData = timelineData.value.data;
+    
+    // Load user events
+    if (userData.events) {
+      userEvents.value = userData.events;
+    }
+    
+    // Load user settings
+    if (userData.settings) {
+      if (userData.settings.selectedStages) {
+        selectedStages.value = userData.settings.selectedStages;
+      }
+      if (userData.settings.selectedDay) {
+        selectedDay.value = userData.settings.selectedDay;
+      }
+    }
+  }
+}
+
+// Save user data to sync system
+async function saveUserData() {
+  if (!isAuthenticated.value) return;
+  
+  const userData = {
+    events: userEvents.value,
+    settings: {
+      selectedStages: selectedStages.value,
+      selectedDay: selectedDay.value,
+      theme: 'light',
+      language: 'en'
+    },
+    lastUpdated: new Date().toISOString()
+  };
+  
+  await saveTimelineData(userData);
+}
 
 onUnmounted(() => {
   if (timeUpdateInterval) {
@@ -1283,6 +1460,7 @@ const mathRenderKey = computed(() => katexLoaded.value);
 .time-column-header-modern {
   position: sticky;
   left: 0;
+  top: 0;
   width: 80px;
   background: linear-gradient(135deg, #4f46e5, #7c3aed);
   color: white;
@@ -1311,6 +1489,7 @@ const mathRenderKey = computed(() => katexLoaded.value);
 .stage-column-header-modern {
   position: sticky;
   top: 0;
+  left: 80px;
   min-width: 200px;
   background: linear-gradient(135deg, #06b6d4, #0891b2);
   color: white;
@@ -1346,9 +1525,10 @@ const mathRenderKey = computed(() => katexLoaded.value);
   position: absolute;
   left: 80px;
   right: 0;
-  top: 0;
+  top: 60px;
   bottom: 0;
   pointer-events: none;
+  background: white;
 }
 
 .hour-marker-modern {
@@ -1384,7 +1564,7 @@ const mathRenderKey = computed(() => katexLoaded.value);
   position: absolute;
   left: 80px;
   right: 0;
-  top: 0;
+  top: 60px;
   bottom: 0;
   pointer-events: none;
 }
@@ -1405,6 +1585,7 @@ const mathRenderKey = computed(() => katexLoaded.value);
   flex: 1;
   background: white;
   border-right: 1px solid #e5e7eb;
+  margin-top: 60px;
 }
 
 .stage-content-modern {
@@ -1423,13 +1604,15 @@ const mathRenderKey = computed(() => katexLoaded.value);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
   z-index: 1;
-  min-height: 24px;
+  min-height: 40px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   border: 1px solid rgba(0, 0, 0, 0.08);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   backdrop-filter: blur(10px);
+  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  color: white !important;
 }
 
 .period-block-modern:hover {
@@ -1449,18 +1632,18 @@ const mathRenderKey = computed(() => katexLoaded.value);
 }
 
 .period-block-modern.lesson-period {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-  color: white;
+  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  color: white !important;
 }
 
 .period-block-modern.break-period {
-  background: linear-gradient(135deg, #10b981, #059669);
-  color: white;
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  color: white !important;
 }
 
 .period-block-modern.activity-period {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  color: white;
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  color: white !important;
 }
 
 /* Modern Period Content */

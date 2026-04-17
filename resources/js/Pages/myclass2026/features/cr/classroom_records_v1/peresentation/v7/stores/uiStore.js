@@ -8,9 +8,11 @@ export const useUIStore = defineStore('ui', () => {
   const isAIPasteDialogOpen = ref(false);
   const isGroupQuizGeneratorOpen = ref(false);
   const showDistributionModal = ref(false);
+  const isSlideNavVisible = ref(true);
   const lastPointer = ref({ x: 150, y: 150 });
   const pasteOffset = ref(0);
   const zoomLevel = ref(100); // Zoom percentage (50-200)
+  const presentModeLayout = ref('single'); // 'single' | 'continuous'
 
   function selectElement(id) {
     if (!isEditMode.value) return;
@@ -24,6 +26,14 @@ export const useUIStore = defineStore('ui', () => {
   function toggleMode() {
     isEditMode.value = !isEditMode.value;
     if (!isEditMode.value) clearSelection();
+  }
+
+  function togglePresentModeLayout() {
+    presentModeLayout.value = presentModeLayout.value === 'continuous' ? 'single' : 'continuous';
+  }
+
+  function toggleSlideNav() {
+    isSlideNavVisible.value = !isSlideNavVisible.value;
   }
 
   function updateLastPointer(x, y) {
@@ -63,12 +73,16 @@ export const useUIStore = defineStore('ui', () => {
     isAIPasteDialogOpen,
     isGroupQuizGeneratorOpen,
     showDistributionModal,
+    isSlideNavVisible,
     lastPointer,
     pasteOffset,
     zoomLevel,
+    presentModeLayout,
     selectElement,
     clearSelection,
     toggleMode,
+    togglePresentModeLayout,
+    toggleSlideNav,
     updateLastPointer,
     incrementPasteOffset,
     zoomIn,

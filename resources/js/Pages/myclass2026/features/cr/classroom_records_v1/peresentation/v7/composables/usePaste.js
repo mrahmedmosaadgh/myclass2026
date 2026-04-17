@@ -136,11 +136,12 @@ export function usePaste() {
   }
 
   function createHTMLElement(rawHtml) {
+    // Convert HTML content to math element with MD and HTML support
     const html = rawHtml || '<div style="padding:10px; background:#fef08a; border-radius:4px;"><strong>Custom HTML</strong></div>';
     finishPaste({
       ...getBaseProps(),
-      type: 'html',
-      content: sanitizeHTML(html),
+      type: 'math',
+      content: html,
       width: 300,
       height: 100
     });

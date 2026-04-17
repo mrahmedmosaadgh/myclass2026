@@ -1,20 +1,39 @@
 <script setup>
-import { computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useDrawingStore } from '../../stores/drawingStore';
-import { useDrawingCanvas } from '../../composables/drawing/useDrawingCanvas';
+import { useDrawingEngine } from '../../composables/drawing/useDrawingEngine';
+import { setupCanvas } from '../../composables/drawing/canvasRenderer';
 
-const emit = defineEmits(['draw']);
+const props = defineProps({
+  scale: {
+    type: Number,
+    default: 1
+  }
+});
+
+const emit = defineEmits(['draw', 'strokeEnd']);
 
 const drawingStore = useDrawingStore();
+const canvasRef = ref(null);
+let renderer;
 
-const { canvasRef, laserPosition, scheduleDraw } = useDrawingCanvas({
-  emitDrawEvent: (payload) => emit('draw', payload)
-});
+const {
+  strokes,
+  currentStroke,
+  startStroke,
+  addPoint,
+  endStroke,
+  undo,
+  redo,
+  clear
+} = useDrawingEngine();
 
 const overlayClasses = computed(() => ({
   'is-active': drawingStore.isDrawingMode,
   'has-grid': drawingStore.showGrid
 }));
+
+const laserPosition = ref(null);
 
 const laserStyle = computed(() => {
   if (!laserPosition.value) return {};
@@ -22,6 +41,10 @@ const laserStyle = computed(() => {
     transform: `translate(${laserPosition.value.x}px, ${laserPosition.value.y}px)`
   };
 });
+
+function clearLaser() {
+  laserPosition.value = null;
+}
 
 function handleDoubleClick() {
   if (!drawingStore.isDrawingMode) {
@@ -36,8 +59,79 @@ function handleOverlayClick(event) {
   }
 }
 
+// =========================
+// POINTER EVENTS
+// =========================
+function getPoint(e) {
+  const rect = canvasRef.value.getBoundingClientRect();
+  const scale = props.scale || 1;
+  return {
+    x: (e.clientX - rect.left) / scale,
+    y: (e.clientY - rect.top) / scale
+  };
+}
+
+function onPointerDown(e) {
+  if (!drawingStore.isDrawingMode) return;
+
+  if (drawingStore.activeTool === 'laser') {
+    laserPosition.value = getPoint(e);
+    return;
+  }
+
+  canvasRef.value.setPointerCapture(e.pointerId);
+
+  const style = {
+    type: drawingStore.activeTool,
+    color: drawingStore.strokeColor,
+    width: drawingStore.brushSize,
+    opacity: drawingStore.activeTool === 'highlighter' ? drawingStore.highlighterOpacity / 100 : drawingStore.strokeOpacity / 100
+  };
+
+  startStroke(getPoint(e), style);
+}
+
+function onPointerMove(e) {
+  if (!currentStroke.value) return;
+  addPoint(getPoint(e));
+  draw();
+}
+
+function onPointerUp() {
+  if (!currentStroke.value) return;
+  endStroke();
+  draw();
+  emit('strokeEnd', strokes.value);
+  emit('draw', { type: 'stroke', strokes: strokes.value });
+}
+
+function onPointerCancel() {
+  if (!currentStroke.value) return;
+  endStroke();
+  draw();
+}
+
+function onPointerMoveLaser(e) {
+  if (drawingStore.activeTool === 'laser' && drawingStore.isDrawingMode) {
+    laserPosition.value = getPoint(e);
+  }
+}
+
+// =========================
+// RENDER LOOP
+// =========================
+function draw() {
+  if (!renderer) return;
+  
+  renderer.render(strokes.value, currentStroke.value);
+  
+  if (drawingStore.showGrid) {
+    renderer.drawGrid(20, '#e5e7eb', 0.5);
+  }
+}
+
 function refreshCanvas() {
-  scheduleDraw();
+  draw();
 }
 
 function handleTouchStart(event) {
@@ -64,7 +158,76 @@ function handleTouchEnd(event) {
   }
 }
 
-defineExpose({ refreshCanvas });
+// =========================
+// LIFECYCLE
+// =========================
+const onWindowResize = () => {
+  if (!renderer) return;
+  renderer.resize(props.scale);
+  draw();
+};
+
+onMounted(() => {
+  renderer = setupCanvas(canvasRef.value);
+  renderer.resize(props.scale);
+
+  draw();
+
+  window.addEventListener('resize', onWindowResize);
+
+  canvasRef.value.addEventListener('pointerdown', onPointerDown);
+  canvasRef.value.addEventListener('pointermove', onPointerMove);
+  canvasRef.value.addEventListener('pointerup', onPointerUp);
+  canvasRef.value.addEventListener('pointercancel', onPointerCancel);
+  canvasRef.value.addEventListener('lostpointercapture', onPointerCancel);
+  canvasRef.value.addEventListener('pointermove', onPointerMoveLaser);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('resize', onWindowResize);
+
+  if (!canvasRef.value) return;
+  canvasRef.value.removeEventListener('pointerdown', onPointerDown);
+  canvasRef.value.removeEventListener('pointermove', onPointerMove);
+  canvasRef.value.removeEventListener('pointerup', onPointerUp);
+  canvasRef.value.removeEventListener('pointercancel', onPointerCancel);
+  canvasRef.value.removeEventListener('lostpointercapture', onPointerCancel);
+  canvasRef.value.removeEventListener('pointermove', onPointerMoveLaser);
+});
+
+watch(strokes, draw, { deep: true });
+
+watch(
+  () => [drawingStore.showGrid, drawingStore.isDrawingMode],
+  () => {
+    if (!drawingStore.isDrawingMode) {
+      clearLaser();
+    }
+    draw();
+  }
+);
+
+watch(
+  () => drawingStore.activeTool,
+  (tool) => {
+    if (tool !== 'laser') {
+      clearLaser();
+    }
+  }
+);
+
+watch(
+  () => props.scale,
+  () => {
+    if (!renderer) return;
+    renderer.resize(props.scale);
+    draw();
+  }
+);
+
+// Expose controls for external use
+defineExpose({ undo, redo, clear, refreshCanvas });
+
 </script>
 
 <template>

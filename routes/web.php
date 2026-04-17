@@ -26,6 +26,9 @@ use Spatie\Permission\Models\Role;
 // Include Classroom Records v1 Routes
 include dirname(__DIR__).'/routes/myclass2026/cr/web.php';
 
+// Include Exam Ready To Print Routes
+include dirname(__DIR__).'/routes/myclass2026/exam_ready_to_print.php';
+
 // Domain-based Routing for QudratPro
 Route::domain('qudratpro.com')->group(function () {
     require base_path('routes/qudrat/web.php');
@@ -437,6 +440,21 @@ include dirname(__DIR__).'/routes/schedule_app_v4.php';
 
 // Include Schedule App V7 Routes (Authenticated)
 include dirname(__DIR__).'/routes/schedule_app_v7.php';
+
+// Include Timeline Authentication Routes
+include dirname(__DIR__).'/routes/timeline_auth.php';
+
+// Timeline Authentication Routes
+Route::get('/timeline/login', function () {
+    return Inertia::render('MicroComponentTest/mytable/MyTableSchedule/v5/pages/TimelineLogin');
+})->withoutMiddleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->name('timeline.login');
+
+// Protected Timeline Routes
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/my-fly-schedule-app/ver5', function () {
+        return Inertia::render('MicroComponentTest/mytable/MyTableSchedule/v5/ScheduleAppV5');
+    })->name('schedule.app.v5.auth');
+});
 
 // Schedule App V3 Routes (TEMPORARY - directly in web.php for testing)
 Route::get('/my-fly-schedule-app/v3', function () {

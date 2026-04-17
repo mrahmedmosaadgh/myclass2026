@@ -1,4 +1,5 @@
 <script setup>
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { usePresentationStore } from '../stores/presentationStore';
 import { useUIStore } from '../stores/uiStore';
 import ElementNode from './ElementNode.vue';
@@ -7,10 +8,25 @@ import DrawingCanvasOverlay from './drawing/DrawingCanvasOverlay.vue';
 const presentation = usePresentationStore();
 const ui = useUIStore();
 
+const SLIDE_BASE_WIDTH = 1000;
+const wrapperRef = ref(null);
+const wrapperWidth = ref(0);
+let resizeObserver;
+
+const fitScale = computed(() => {
+  const w = wrapperWidth.value || window.innerWidth;
+  return w > 0 ? w / SLIDE_BASE_WIDTH : 1;
+});
+
+const canvasScale = computed(() => {
+  return fitScale.value * (ui.zoomLevel / 100);
+});
+
 function capturePointer(e) {
   const rect = e.currentTarget.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
+  const scale = canvasScale.value || 1;
+  const x = (e.clientX - rect.left) / scale;
+  const y = (e.clientY - rect.top) / scale;
   ui.updateLastPointer(x, y);
 }
 
@@ -21,27 +37,38 @@ function handleCanvasMousedown(e) {
 
 function calculateWrapperHeight() {
   const baseHeight = presentation.currentSlide?.height || 600;
-  const baseWidth = ui.isEditMode ? 1000 : window.innerWidth;
-  const zoomFactor = ui.zoomLevel / 100;
-  
-  // Calculate the scaled dimensions
-  const scaledHeight = baseHeight * zoomFactor;
-  const scaledWidth = baseWidth * zoomFactor;
-  
-  // Return the maximum of scaled dimensions to ensure proper scrolling space
+  const scaledHeight = baseHeight * (canvasScale.value || 1);
   return Math.max(scaledHeight, window.innerHeight * 0.8);
 }
+
+onMounted(() => {
+  if (!wrapperRef.value) return;
+  wrapperWidth.value = wrapperRef.value.clientWidth || window.innerWidth;
+  resizeObserver = new ResizeObserver((entries) => {
+    const entry = entries[0];
+    if (entry?.contentRect?.width) {
+      wrapperWidth.value = entry.contentRect.width;
+    }
+  });
+  resizeObserver.observe(wrapperRef.value);
+});
+
+onUnmounted(() => {
+  if (resizeObserver && wrapperRef.value) {
+    resizeObserver.unobserve(wrapperRef.value);
+  }
+});
 </script>
 
 <template>
-  <div class="canvas-wrapper" :class="{ 'present-mode': !ui.isEditMode }" :style="{ height: calculateWrapperHeight() + 'px' }">
+  <div ref="wrapperRef" class="canvas-wrapper" :class="{ 'present-mode': !ui.isEditMode }" :style="{ height: calculateWrapperHeight() + 'px' }">
     <div
       class="canvas"
       :class="{ 'present-mode-canvas': !ui.isEditMode }"
       :style="{ 
-        width: ui.isEditMode ? '1000px' : '100%',
+        width: SLIDE_BASE_WIDTH + 'px',
         height: (presentation.currentSlide?.height || 600) + 'px',
-        transform: `scale(${ui.zoomLevel / 100})`,
+        transform: `scale(${canvasScale})`,
         transformOrigin: 'top left',
         backgroundColor: 'white' // White background for slide
       }"
@@ -53,7 +80,7 @@ function calculateWrapperHeight() {
         :element="el"
       />
 
-      <DrawingCanvasOverlay />
+      <DrawingCanvasOverlay :scale="canvasScale" />
     </div>
 
     <!-- Dynamic Height Extension UI -->

@@ -1,12 +1,18 @@
 <script setup>
 import { ref, watch, onMounted, nextTick } from 'vue';
 import katex from 'katex';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 import 'katex/dist/katex.min.css';
 
 const props = defineProps({
   content: {
     type: String,
     default: '1. $$ \\frac{2}{3} + \\frac{1}{3} $$'
+  },
+  placeholder: {
+    type: String,
+    default: 'Type Math Equations using $ \\frac{...} $ (inline) or $$ \\frac{...} $$ (display)...'
   },
   isEditMode: {
     type: Boolean,
@@ -19,70 +25,75 @@ const isEditing = ref(false);
 const rawText = ref(props.content);
 const viewerRef = ref(null);
 
-function renderKatex() {
+function renderContent() {
   if (!viewerRef.value) return;
-  
-  let processed = props.content;
+
+  let processed = props.content || '';
   const mathTokens = [];
-  
-  // TOKENIZE MATH: Process formulas and replace with placeholders (so Markdown/BR rules don't break complex Math layout)
-  const renderDisplay = (match, formula) => {
-    try {
-      const rendered = katex.renderToString(formula, { displayMode: true, throwOnError: false });
-      mathTokens.push(rendered);
-      return `__MATH_TOKEN_${mathTokens.length - 1}__`;
-    } catch (e) {
-      return `<strong style="color:red">Syntax Error: ${e.message}</strong>`;
-    }
+
+  // =========================
+  // 1. EXTRACT LATEX
+  // =========================
+  const replaceMath = (regex, displayMode) => {
+    processed = processed.replace(regex, (_, formula) => {
+      try {
+        const html = katex.renderToString(formula.trim(), {
+          displayMode,
+          throwOnError: false
+        });
+        mathTokens.push(html);
+        return `@@MATH_${mathTokens.length - 1}@@`;
+      } catch (e) {
+        return `<span style="color:red">LaTeX Error</span>`;
+      }
+    });
   };
 
-  const renderInline = (match, formula) => {
-    try {
-      const rendered = katex.renderToString(formula, { displayMode: false, throwOnError: false });
-      mathTokens.push(rendered);
-      return `__MATH_TOKEN_${mathTokens.length - 1}__`;
-    } catch (e) {
-      return `<strong style="color:red">Syntax Error: ${e.message}</strong>`;
-    }
-  };
+  replaceMath(/\$\$([\s\S]*?)\$\$/g, true);
+  replaceMath(/\\\[([\s\S]*?)\\\]/g, true);
+  replaceMath(/\$([^\$]+)\$/g, false);
+  replaceMath(/\\\(([\s\S]*?)\\\)/g, false);
 
-  // Display Math: $$ ... $$ or \[ ... \]
-  processed = processed.replace(/\$\$([\s\S]*?)\$\$/g, renderDisplay);
-  processed = processed.replace(/\\\[([\s\S]*?)\\\]/g, renderDisplay);
-
-  // Inline Math: $ ... $ or \( ... \)
-  processed = processed.replace(/\$([^\$]+)\$/g, renderInline);
-  processed = processed.replace(/\\\(([\s\S]*?)\\\)/g, renderInline);
-  
-  // PROCESS MARKDOWN (Safe from Math)
-  processed = processed.replace(/^### (.*$)/gim, '<h3 style="margin: 8px 0; font-size: 1.25em; font-weight: bold; color: inherit;">$1</h3>');
-  processed = processed.replace(/^## (.*$)/gim, '<h2 style="margin: 8px 0; font-size: 1.5em; font-weight: bold; color: inherit;">$1</h2>');
-  processed = processed.replace(/^# (.*$)/gim, '<h1 style="margin: 8px 0; font-size: 2em; font-weight: bold; color: inherit;">$1</h1>');
-  processed = processed.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-  processed = processed.replace(/^---$/gim, '<hr style="border: 0; border-top: 2px dashed currentColor; opacity: 0.3; margin: 15px 0;">');
-
-  // Collapse excess trailing newlines strictly following structural tags to prevent huge gaping holes
-  processed = processed.replace(/(<h[1-3][^>]*>.*?<\/h[1-3]>)\n/gi, '$1');
-  processed = processed.replace(/(<hr[^>]*>)\n/gi, '$1');
-
-  // Convert standard newlines to HTML br for normal text structural layout
-  processed = processed.replace(/\n/g, '<br>');
-
-  // INJECT MATH HTML BACK IN
-  mathTokens.forEach((token, index) => {
-    processed = processed.replace(`__MATH_TOKEN_${index}__`, token);
+  // =========================
+  // 2. MARKDOWN -> HTML
+  // =========================
+  marked.setOptions({
+    breaks: true,
+    gfm: true
   });
 
-  viewerRef.value.innerHTML = processed;
+  let html = marked.parse(processed);
+
+  // =========================
+  // 3. SANITIZE HTML
+  // =========================
+  html = DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: [
+      'b','i','em','strong','a','p','br','ul','ol','li',
+      'code','pre','blockquote','h1','h2','h3','h4',
+      'table','thead','tbody','tr','th','td',
+      'span','div','img','hr'
+    ],
+    ALLOWED_ATTR: ['href','src','alt','title','style','class']
+  });
+
+  // =========================
+  // 4. RESTORE LATEX
+  // =========================
+  mathTokens.forEach((token, i) => {
+    html = html.replace(`@@MATH_${i}@@`, token);
+  });
+
+  viewerRef.value.innerHTML = html;
 }
 
 onMounted(() => {
-  renderKatex();
+  renderContent();
 });
 
 watch(() => props.content, (newVal) => {
   rawText.value = newVal;
-  renderKatex();
+  renderContent();
 });
 
 function handleMousedown(e) {
@@ -118,7 +129,7 @@ function handleBlur() {
   isEditing.value = false;
   emit('update', rawText.value);
   nextTick(() => {
-    renderKatex();
+    renderContent();
   });
 }
 </script>
@@ -134,17 +145,26 @@ function handleBlur() {
       v-if="isEditing"
       v-model="rawText"
       class="math-editor"
+      @contextmenu.prevent
       @blur="handleBlur"
       @keydown.stop
-      placeholder="Type Math Equations using $$ \frac{...} $$..."
+      :placeholder="props.placeholder"
       autofocus
     ></textarea>
     
-    <div 
-      v-else 
-      ref="viewerRef" 
-      class="math-viewer"
-    ></div>
+    <div v-else>
+      <div
+        v-if="!props.content"
+        class="math-placeholder"
+      >
+        {{ props.placeholder }}
+      </div>
+      <div 
+        v-else
+        ref="viewerRef" 
+        class="math-viewer"
+      ></div>
+    </div>
   </div>
 </template>
 
@@ -165,6 +185,7 @@ function handleBlur() {
   padding: 8px;
   border-radius: 4px;
   outline: none;
+  -webkit-touch-callout: none;
 }
 
 .math-editor:focus {
@@ -179,5 +200,18 @@ function handleBlur() {
   overflow: hidden;
   color: inherit;
   pointer-events: none; /* So dragging is perfectly reliable */
+}
+
+.math-placeholder {
+  width: 100%;
+  min-height: 60px;
+  padding: 12px;
+  border: 2px dashed #d1d5db;
+  border-radius: 8px;
+  background: #f9fafb;
+  color: #9ca3af;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  user-select: none;
 }
 </style>

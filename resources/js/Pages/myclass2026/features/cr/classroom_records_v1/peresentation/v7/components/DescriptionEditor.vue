@@ -1,7 +1,6 @@
 <script setup>
-import { ref, nextTick, watch } from 'vue';
-import { renderMath as renderMathUtil } from '@/Utils/katex';
-import './utils/mathAIHelper'; // Load AI helper
+import { computed, ref, watch } from 'vue';
+import EditableMath from './EditableMath.vue';
 
 // Props
 const props = defineProps({
@@ -45,24 +44,17 @@ const emit = defineEmits(['update:modelValue', 'save', 'cancel', 'toggle-present
 // State
 const isEditing = ref(false);
 const content = ref(props.modelValue || '');
-const editor = ref(null);
-const isRenderMode = ref(false);
+
+const editableMathPlaceholder = computed(() => props.placeholder);
 
 // Functions
 function startEditing() {
   content.value = props.modelValue || '';
   isEditing.value = true;
-  isRenderMode.value = false;
-  nextTick(() => {
-    if (editor.value) {
-      editor.value.innerHTML = typeof content.value === 'string' ? content.value : String(content.value || '');
-      editor.value.focus();
-    }
-  });
 }
 
-function updateContent(event) {
-  content.value = typeof event.target.innerHTML === 'string' ? event.target.innerHTML : String(event.target.innerHTML || '');
+function updateContent(value) {
+  content.value = typeof value === 'string' ? value : String(value || '');
   emit('update:modelValue', content.value);
 }
 
@@ -87,173 +79,6 @@ function clear() {
   emit('clear');
   content.value = '';
   emit('update:modelValue', '');
-}
-
-// Enhanced markdown rendering with math support
-function renderMarkdown() {
-  if (!content.value) return;
-  
-  let markdownContent = content.value;
-  
-  // Basic markdown parsing
-  markdownContent = markdownContent
-    // Headers
-    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-    // Bold
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    // Italic
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    // Code blocks
-    .replace(/```([^`]+)```/g, '<pre><code>$1</code></pre>')
-    // Inline code
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    // Lists
-    .replace(/^\* (.+)$/gim, '<li>$1</li>')
-    .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
-    // Line breaks
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/\n/g, '<br>');
-  
-  // Wrap in paragraph if not already wrapped
-  if (!markdownContent.startsWith('<')) {
-    markdownContent = `<p>${markdownContent}</p>`;
-  }
-  
-  // Apply math rendering
-  markdownContent = renderMathUtil(markdownContent);
-  
-  // Update editor content
-  if (editor.value) {
-    editor.value.innerHTML = markdownContent;
-    isRenderMode.value = true;
-  }
-}
-
-// Math rendering function
-function renderMath() {
-  if (!content.value) return;
-  
-  const mathContent = renderMathUtil(content.value);
-  
-  if (editor.value) {
-    editor.value.innerHTML = mathContent;
-    isRenderMode.value = true;
-  }
-}
-
-// Toggle between edit and render mode
-function toggleRenderMode() {
-  if (isRenderMode.value) {
-    // Switch back to edit mode
-    isRenderMode.value = false;
-    if (editor.value) {
-      editor.value.innerHTML = content.value;
-    }
-  } else {
-    // Switch to render mode
-    renderMarkdown();
-  }
-}
-
-// AI-powered math assistance
-async function assistWithMath() {
-  if (!window.aiAssistant) {
-    console.warn('AI Assistant not available');
-    return;
-  }
-  
-  const selection = window.getSelection();
-  const selectedText = selection.toString().trim();
-  
-  if (selectedText) {
-    try {
-      const result = await window.aiAssistant.assistWithMath(selectedText);
-      if (result && result.suggestion) {
-        // Replace selected text with AI suggestion
-        const range = selection.getRangeAt(0);
-        range.deleteContents();
-        
-        // Create a text node with the suggestion
-        const textNode = document.createTextNode(result.suggestion);
-        range.insertNode(textNode);
-        
-        // Update the content
-        updateContent({ target: editor.value });
-        
-        // Show visual feedback
-        if (editor.value) {
-          editor.value.style.backgroundColor = '#f0f9ff';
-          setTimeout(() => {
-            if (editor.value) {
-              editor.value.style.backgroundColor = '';
-            }
-          }, 1000);
-        }
-        
-        console.log('AI Assistant suggestion:', result.description);
-      }
-    } catch (err) {
-      console.error('AI math assistance failed:', err);
-    }
-  } else {
-    // If no text is selected, show a helpful hint
-    const hint = '💡 Select text and click AI to get math assistance. Try: "quadratic", "pythagorean", or type LaTeX like $x^2 + y^2 = r^2$';
-    
-    // Create a temporary hint element
-    const hintEl = document.createElement('div');
-    hintEl.textContent = hint;
-    hintEl.style.cssText = `
-      position: absolute;
-      top: -40px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #1f2937;
-      color: white;
-      padding: 8px 12px;
-      border-radius: 6px;
-      font-size: 0.75rem;
-      white-space: nowrap;
-      z-index: 1000;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    `;
-    
-    // Position hint near the AI button
-    const aiBtn = editor.value?.parentElement?.querySelector('.ai-btn');
-    if (aiBtn) {
-      aiBtn.style.position = 'relative';
-      aiBtn.appendChild(hintEl);
-      
-      // Remove hint after 3 seconds
-      setTimeout(() => {
-        if (hintEl.parentNode) {
-          hintEl.parentNode.removeChild(hintEl);
-        }
-      }, 3000);
-    }
-  }
-}
-
-// Keyboard shortcuts
-function handleKeyboardShortcuts(event) {
-  if (isEditing.value && !isRenderMode.value) {
-    // Ctrl/Cmd + Enter: Render markdown
-    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
-      event.preventDefault();
-      renderMarkdown();
-    }
-    // Ctrl/Cmd + Shift + M: AI assistance
-    if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === 'M') {
-      event.preventDefault();
-      assistWithMath();
-    }
-    // Ctrl/Cmd + Shift + P: Toggle preview mode
-    if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === 'P') {
-      event.preventDefault();
-      toggleRenderMode();
-    }
-  }
 }
 
 // Watch for external model value changes
@@ -285,68 +110,24 @@ watch(() => props.modelValue, (newValue) => {
     <!-- Display state -->
     <div v-else-if="!isEditing && modelValue" 
          class="description-display" 
-         @click="editable && startEditing()"
-         v-html="modelValue">
+         @click="editable && startEditing()">
+      <EditableMath
+        :content="modelValue"
+        :is-edit-mode="false"
+        :placeholder="editableMathPlaceholder"
+      />
     </div>
     
     <!-- Edit state -->
     <div v-else class="description-edit">
       <div class="description-editor-wrapper">
-        <div 
-          ref="editor"
-          :contenteditable="editable && !isRenderMode"
-          @input="!isRenderMode && updateContent($event)"
-          @blur="!isRenderMode && save()"
-          @keyup.escape="!isRenderMode && cancel()"
-          @keydown="handleKeyboardShortcuts"
-          :class="['description-editor', { 'render-mode': isRenderMode }]"
-          :style="{ minHeight, maxHeight }"
-          :placeholder="`${placeholder}
-
-💡 Try: $x^2 + y^2 = r^2$ for inline math or $$\\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$$ for display math
-
-📝 Markdown: # Header, **bold**, *italic*, \`code\`, * list items
-
-🤖 Select text + click AI for math help
-
-⌨️  Shortcuts: Ctrl+Enter (render), Ctrl+Shift+M (AI), Ctrl+Shift+P (preview)`"
-        ></div>
-        <div class="description-toolbar" v-if="editable">
-          <button @click="toggleRenderMode" :class="['toolbar-btn', { 'active': isRenderMode }]" :title="isRenderMode ? 'Switch to Edit Mode' : 'Switch to Render Mode'">
-            <svg v-if="!isRenderMode" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-            </svg>
-            <svg v-else xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-            </svg>
-            {{ isRenderMode ? 'Edit' : 'Preview' }}
-          </button>
-          <button @click="renderMarkdown" class="toolbar-btn" title="Render Markdown & Math">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-            </svg>
-            Render
-          </button>
-          <button @click="assistWithMath" class="toolbar-btn ai-btn" title="AI Math Assistant">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-            </svg>
-            AI
-          </button>
-          <div class="toolbar-separator"></div>
-          <button @click="save" class="toolbar-btn btn-save" title="Save">
-            ✓
-          </button>
-          <button @click="cancel" class="toolbar-btn btn-cancel" title="Cancel">
-            ✕
-          </button>
+        <div class="description-editor" :style="{ minHeight, maxHeight }">
+          <EditableMath
+            :content="content"
+            :is-edit-mode="editable"
+            :placeholder="editableMathPlaceholder"
+            @update="(val) => { updateContent(val); save(); }"
+          />
         </div>
       </div>
     </div>

@@ -367,7 +367,7 @@ onUnmounted(() => {
           Text
         </button>
         
-        <button @click="() => { addMath(); showAddElementDropdown = false; }" title="Add Math Formula">
+        <button @click="() => { addMath(); showAddElementDropdown = false; }" title="Add Math Formula (with Markdown & HTML support)">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5h-7l-3 14H4"></path><path d="M14 10h5"></path><path d="M14 14h5"></path></svg>
           Math
         </button>
@@ -382,11 +382,7 @@ onUnmounted(() => {
           Shape
         </button>
 
-        <button @click="() => { addHtml(); showAddElementDropdown = false; }" title="Add HTML Block">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
-          HTML
-        </button>
-        
+                
         <button @click="() => { addLeaderboard(); showAddElementDropdown = false; }" title="Add Live Leaderboard Slide">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20v-6M6 20V10M18 20V4"></path></svg>
           Podium

@@ -6,6 +6,7 @@ import { useGameStore } from './stores/gameStore';
 import { useClipboardStore } from './stores/clipboardStore';
 import { usePaste } from './composables/usePaste';
 import EditorCanvas from './components/EditorCanvas.vue';
+import SlideCanvasReadonly from './components/SlideCanvasReadonly.vue';
 import Toolbar from './components/Toolbar.vue';
 import SlideNavigationBar from './components/SlideNavigationBar.vue';
 import PresentationNavBar from './components/PresentationNavBar.vue';
@@ -36,6 +37,28 @@ const slideContextMenu = ref({
   x: 0,
   y: 0
 });
+
+let prevPrintState = null;
+
+function handleBeforePrint() {
+  prevPrintState = {
+    isEditMode: ui.isEditMode,
+    presentModeLayout: ui.presentModeLayout,
+    zoomLevel: ui.zoomLevel
+  };
+
+  ui.isEditMode = false;
+  ui.presentModeLayout = 'continuous';
+  ui.resetZoom();
+}
+
+function handleAfterPrint() {
+  if (!prevPrintState) return;
+  ui.isEditMode = prevPrintState.isEditMode;
+  ui.presentModeLayout = prevPrintState.presentModeLayout;
+  ui.zoomLevel = prevPrintState.zoomLevel;
+  prevPrintState = null;
+}
 
 function handleSlideContextMenu(e) {
   if (!ui.isEditMode) return;
@@ -268,6 +291,8 @@ onMounted(() => {
   document.addEventListener('paste', handlePaste);
   document.addEventListener('keydown', handleKeydown);
   document.addEventListener('click', closeSlideContextMenu);
+  window.addEventListener('beforeprint', handleBeforePrint);
+  window.addEventListener('afterprint', handleAfterPrint);
   
   console.log(`[${timestamp}] V7 Builder - event listeners added`);
 });
@@ -276,6 +301,8 @@ onUnmounted(() => {
   document.removeEventListener('paste', handlePaste);
   document.removeEventListener('keydown', handleKeydown);
   document.removeEventListener('click', closeSlideContextMenu);
+  window.removeEventListener('beforeprint', handleBeforePrint);
+  window.removeEventListener('afterprint', handleAfterPrint);
 });
 </script>
 
@@ -303,11 +330,27 @@ onUnmounted(() => {
 
     <!-- Description Display in Present Mode (Above Slides) -->
     <div v-if="!ui.isEditMode && presentation.description && presentation.showDescriptionInPresentMode !== false" class="description-present-container">
-      <div class="description-present-content" v-html="presentation.description"></div>
+      <DescriptionEditor
+        :model-value="presentation.description"
+        :editable="false"
+        :show-placeholder="false"
+        :show-present-mode-toggle="false"
+      />
     </div>
 
     <!-- Zoom Toolbar for Present Mode -->
     <div v-if="!ui.isEditMode" class="present-mode-zoom-toolbar">
+      <button @click="ui.togglePresentModeLayout()" class="zoom-btn" :title="ui.presentModeLayout === 'continuous' ? 'Switch to Single Slide View' : 'Switch to Continuous Slides View'">
+        <svg v-if="ui.presentModeLayout === 'continuous'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="3" y1="9" x2="21" y2="9"></line>
+          <line x1="9" y1="21" x2="9" y2="9"></line>
+        </svg>
+        <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <rect x="7" y="7" width="10" height="10" rx="1" ry="1"></rect>
+        </svg>
+      </button>
       <button @click="ui.zoomIn()" class="zoom-btn" title="Zoom In (Ctrl +)">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="11" cy="11" r="8"></circle>
@@ -332,12 +375,35 @@ onUnmounted(() => {
       </button>
     </div>
 
-    <div class="editor-layout">
+    <div class="editor-layout" :class="{ 'slide-nav-hidden': !ui.isSlideNavVisible }">
       <!-- Sidebar Navigation -->
-      <SlideNavigationBar />
+      <SlideNavigationBar v-if="ui.isSlideNavVisible" />
+
+      <button
+        v-else
+        class="slide-nav-toggle"
+        @click="ui.toggleSlideNav()"
+        title="Show slides"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
 
       <!-- Canvas Area -->
-      <EditorCanvas />
+      <div class="canvas-area">
+        <EditorCanvas v-if="ui.isEditMode || ui.presentModeLayout === 'single'" />
+        <div v-else class="continuous-slides">
+          <div
+            v-for="(slide, idx) in presentation.slides"
+            :key="slide.id"
+            class="continuous-slide"
+          >
+            <div class="continuous-slide-label">Slide {{ idx + 1 }}</div>
+            <SlideCanvasReadonly :slide="slide" />
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Modals & Overlays -->
@@ -402,6 +468,73 @@ onUnmounted(() => {
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
+.canvas-area {
+  width: 100%;
+}
+
+.continuous-slides {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding: 12px 0;
+}
+
+.continuous-slide {
+  width: 100%;
+}
+
+.continuous-slide-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  margin: 0 0 8px 6px;
+}
+
+@media print {
+  @page {
+    margin: 10mm;
+  }
+
+  /* Hide UI chrome */
+  :global(.presentation-nav-bar),
+  :global(.slide-nav-bar),
+  :global(.present-mode-zoom-toolbar),
+  :global(.drawing-fab),
+  :global(.presentation-hud),
+  :global(.drawing-toolbar) {
+    display: none !important;
+  }
+
+  /* Flatten app container */
+  .v5-container {
+    padding: 0 !important;
+    background: white !important;
+    min-height: auto !important;
+  }
+
+  .v5-container.has-fixed-description {
+    padding-top: 0 !important;
+  }
+
+  /* Ensure continuous slides print cleanly */
+  .continuous-slides {
+    gap: 0 !important;
+    padding: 0 !important;
+  }
+
+  .continuous-slide {
+    page-break-after: always;
+    break-after: page;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .continuous-slide-label {
+    display: none !important;
+  }
+}
+
 /* Add space for fixed description in present mode */
 .v5-container.has-fixed-description {
   padding-top: 200px; /* Space for nav + description */
@@ -414,6 +547,33 @@ onUnmounted(() => {
   margin: 0 auto;
   align-items: flex-start;
   justify-content: center;
+}
+
+.editor-layout.slide-nav-hidden {
+  justify-content: center;
+}
+
+.slide-nav-toggle {
+  position: sticky;
+  top: 90px;
+  align-self: flex-start;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  color: #374151;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.slide-nav-toggle:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
 }
 
 @media (max-width: 1024px) {
