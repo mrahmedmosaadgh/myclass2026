@@ -13,6 +13,12 @@ const wrapperRef = ref(null);
 const wrapperWidth = ref(0);
 let resizeObserver;
 
+// Rectangle drawing state
+const isDrawingRect = ref(false);
+const drawStartPos = ref({ x: 0, y: 0 });
+const drawCurrentPos = ref({ x: 0, y: 0 });
+const tempRect = ref(null);
+
 const fitScale = computed(() => {
   const w = wrapperWidth.value || window.innerWidth;
   return w > 0 ? w / SLIDE_BASE_WIDTH : 1;
@@ -28,12 +34,90 @@ function capturePointer(e) {
   const x = (e.clientX - rect.left) / scale;
   const y = (e.clientY - rect.top) / scale;
   ui.updateLastPointer(x, y);
+  return { x, y };
 }
 
 function handleCanvasMousedown(e) {
-  capturePointer(e);
+  const pos = capturePointer(e);
+
+  // If in rectangle drawing mode, start drawing
+  if (ui.isDrawRectangleMode && ui.isEditMode) {
+    isDrawingRect.value = true;
+    drawStartPos.value = { ...pos };
+    drawCurrentPos.value = { ...pos };
+    return;
+  }
+
   ui.clearSelection();
 }
+
+function handleCanvasMousemove(e) {
+  if (!isDrawingRect.value) return;
+
+  const rect = e.currentTarget.getBoundingClientRect();
+  const scale = canvasScale.value || 1;
+  const x = (e.clientX - rect.left) / scale;
+  const y = (e.clientY - rect.top) / scale;
+  drawCurrentPos.value = { x, y };
+}
+
+function handleCanvasMouseup(e) {
+  if (!isDrawingRect.value) return;
+
+  isDrawingRect.value = false;
+
+  // Calculate rectangle dimensions
+  const x = Math.min(drawStartPos.value.x, drawCurrentPos.value.x);
+  const y = Math.min(drawStartPos.value.y, drawCurrentPos.value.y);
+  const width = Math.abs(drawCurrentPos.value.x - drawStartPos.value.x);
+  const height = Math.abs(drawCurrentPos.value.y - drawStartPos.value.y);
+
+  // Only create if rectangle has meaningful size (min 20x20)
+  if (width >= 20 && height >= 20) {
+    // Create rectangle element with toggle visibility (shown-clickable with 0.05 hidden opacity)
+    const element = {
+      id: 'el-' + Date.now() + Math.floor(Math.random() * 1000),
+      type: 'rectangle',
+      x: x,
+      y: y,
+      width: width,
+      height: height,
+      zIndex: presentation.currentSlide?.elements?.length + 1 || 1,
+      visibilityOption: 'shown-clickable',
+      isVisible: true,
+      hiddenOpacity: 0.05,
+      bgColor: '#93c5fd'
+    };
+
+    presentation.addElement(element);
+    ui.selectElement(element.id);
+  }
+
+  // Exit drawing mode after creating rectangle
+  ui.setDrawRectangleMode(false);
+}
+
+// Computed style for the temporary drawing rectangle
+const tempRectStyle = computed(() => {
+  if (!isDrawingRect.value) return null;
+
+  const x = Math.min(drawStartPos.value.x, drawCurrentPos.value.x);
+  const y = Math.min(drawStartPos.value.y, drawCurrentPos.value.y);
+  const width = Math.abs(drawCurrentPos.value.x - drawStartPos.value.x);
+  const height = Math.abs(drawCurrentPos.value.y - drawStartPos.value.y);
+
+  return {
+    position: 'absolute',
+    left: x + 'px',
+    top: y + 'px',
+    width: width + 'px',
+    height: height + 'px',
+    border: '2px dashed #10b981',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    pointerEvents: 'none',
+    zIndex: 10000
+  };
+});
 
 function calculateWrapperHeight() {
   const baseHeight = presentation.currentSlide?.height || 600;
