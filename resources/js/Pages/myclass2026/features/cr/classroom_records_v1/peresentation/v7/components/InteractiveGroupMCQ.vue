@@ -1,9 +1,10 @@
 <script setup>
-import { ref, computed, onUnmounted } from 'vue';
+import { ref, computed, onUnmounted, nextTick } from 'vue';
 import { useQuasar } from 'quasar';
 import EditableMath from './EditableMath.vue';
 import { useGameStore } from '../stores/gameStore';
 import { Html5QrcodeScanner, Html5Qrcode } from 'html5-qrcode';
+import QrCode from '@/Components/Common/QrCode.vue';
 
 const props = defineProps({
   element: Object,
@@ -19,6 +20,8 @@ const isInteractive = ref(false); // Controls if the buttons accept clicks
 const activeGroupId = ref(null); // The group currently selected by teacher to answer
 const isQrScanning = ref(false); // State for QR overlay
 const isPracticeMode = ref(false); // Practice mode bypasses group selection
+const isPrintQrOpen = ref(false);
+const printAreaRef = ref(null);
 let html5QrCode = null;
 
 // Simple Web Audio API helper
@@ -219,10 +222,71 @@ async function toggleQrScanner() {
     };
 
     const onScanSuccess = (decodedText) => {
-      const targetGroup = gameStore.groups.find(g => g.id == decodedText || g.name.toLowerCase() === decodedText.toLowerCase());
-      if (targetGroup && !isGraded.value) {
-         playSound('hover');
-         activeGroupId.value = targetGroup.id;
+      if (isGraded.value) return;
+
+      const raw = String(decodedText || '').trim();
+      if (!raw) return;
+
+      const normalized = raw.toLowerCase().replace(/\s+/g, '');
+      const match = normalized.match(/^g(\d+)[-_]([a-z])$/i);
+
+      if (match) {
+        const groupToken = match[1];
+        const choiceToken = match[2];
+
+        const targetGroup = gameStore.groups.find(g => String(g.id) === String(groupToken));
+        const choiceId = String(choiceToken).toUpperCase();
+        const optionExists = !!props.element?.questionData?.options?.some(o => String(o.id).toUpperCase() === choiceId);
+
+        if (!targetGroup) {
+          $q.notify({
+            type: 'warning',
+            message: `Unknown group in QR: g${groupToken}`,
+            position: 'top'
+          });
+          return;
+        }
+
+        if (!optionExists) {
+          $q.notify({
+            type: 'warning',
+            message: `Unknown choice in QR: ${choiceId}`,
+            position: 'top'
+          });
+          return;
+        }
+
+        if (!isInteractive.value) {
+          $q.notify({
+            type: 'warning',
+            message: 'Unlock interaction first, then scan again.',
+            position: 'top'
+          });
+          return;
+        }
+
+        gameStore.logGroupAnswer(props.element.id, targetGroup.id, choiceId);
+        playSound('hover');
+        activeGroupId.value = null;
+
+        $q.notify({
+          type: 'positive',
+          message: `${targetGroup.name} -> ${choiceId}`,
+          position: 'top'
+        });
+        stopQrScanner();
+        return;
+      }
+
+      const targetGroup = gameStore.groups.find(
+        g => String(g.id) === raw || String(g.name || '').toLowerCase() === raw.toLowerCase()
+      );
+
+      if (targetGroup) {
+        playSound('hover');
+        activeGroupId.value = targetGroup.id;
+        stopQrScanner();
+        return;
       }
     };
 
@@ -252,6 +316,121 @@ function stopQrScanner() {
      }).catch(err => console.warn(err));
   }
   isQrScanning.value = false;
+}
+
+const printOptionIds = computed(() => {
+  const ids = (props.element?.questionData?.options || []).map(o => String(o.id).toUpperCase());
+  const unique = Array.from(new Set(ids));
+  if (unique.length >= 4) return unique.slice(0, 4);
+  return ['A', 'B', 'C', 'D'];
+});
+
+function getQrPayload(groupId, optId) {
+  return `g${groupId}_${String(optId).toLowerCase()}`;
+}
+
+async function openPrintQr() {
+  isPrintQrOpen.value = true;
+  await nextTick();
+}
+
+function closePrintQr() {
+  isPrintQrOpen.value = false;
+}
+
+async function printAllGroupQrs() {
+  await nextTick();
+
+  const root = printAreaRef.value;
+  if (!root) return;
+
+  const items = Array.from(root.querySelectorAll('[data-qr-item="1"]'));
+  const blocks = [];
+
+  for (const el of items) {
+    const canvas = el.querySelector('canvas');
+    if (!canvas) continue;
+
+    let dataUrl = '';
+    try {
+      dataUrl = canvas.toDataURL('image/png');
+    } catch (e) {
+      continue;
+    }
+
+    blocks.push({
+      groupName: el.getAttribute('data-group-name') || '',
+      optId: el.getAttribute('data-opt-id') || '',
+      payload: el.getAttribute('data-payload') || '',
+      dataUrl
+    });
+  }
+
+  if (blocks.length === 0) {
+    $q.notify({ type: 'warning', message: 'QR codes not ready yet. Try again.', position: 'top' });
+    return;
+  }
+
+  const win = window.open('', '_blank');
+  if (!win) {
+    $q.notify({ type: 'negative', message: 'Popup blocked. Allow popups to print.', position: 'top' });
+    return;
+  }
+
+  const css = `
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 16px; }
+      h1 { margin: 0 0 12px; font-size: 18px; }
+      .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+      .card { border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px; display: flex; gap: 10px; align-items: center; }
+      .meta { flex: 1; min-width: 0; }
+      .g { font-weight: 800; font-size: 14px; }
+      .o { margin-top: 2px; font-weight: 700; font-size: 13px; }
+      .p { margin-top: 6px; font-size: 11px; color: #6b7280; word-break: break-all; }
+      img { width: 110px; height: 110px; image-rendering: pixelated; }
+      @media print { body { margin: 0; } }
+    </style>
+  `;
+
+  const html = `
+    <html>
+      <head>
+        <title>Group QR Codes</title>
+        ${css}
+      </head>
+      <body>
+        <h1>Group QR Codes</h1>
+        <div class="grid">
+          ${blocks.map(b => `
+            <div class="card">
+              <img src="${b.dataUrl}" alt="${b.payload}" />
+              <div class="meta">
+                <div class="g">${escapeHtml(b.groupName)}</div>
+                <div class="o">Choice: ${escapeHtml(String(b.optId).toUpperCase())}</div>
+                <div class="p">${escapeHtml(b.payload)}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        <script>
+          window.onload = () => { window.print(); };
+        <\/script>
+      </body>
+    </html>
+  `;
+
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
 }
 
 onUnmounted(() => {
@@ -349,6 +528,9 @@ function getOptionClass(optId) {
       <div v-if="!isEditMode && isInteractive" class="group-sidebar">
          <div class="sidebar-header">
            <h3>👥 Select Group</h3>
+           <button @click.stop="openPrintQr" class="qr-btn" title="Print QR codes for all groups">
+             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+           </button>
            <button @click.stop="toggleQrScanner" class="qr-btn" :class="{ 'qr-active': isQrScanning }" title="Scan Group QR Card">
              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
            </button>
@@ -450,6 +632,48 @@ function getOptionClass(optId) {
              Target Selected: <strong>{{ gameStore.groups.find(g => g.id === activeGroupId)?.name }}</strong>
           </div>
        </div>
+    </div>
+
+    <div v-if="isPrintQrOpen" class="qr-modal-backdrop" @click.stop="closePrintQr">
+      <div class="qr-modal qr-print-modal" @click.stop>
+        <div class="qr-modal-header">
+          <h4>Print Group QR Codes</h4>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button class="print-btn" @click="printAllGroupQrs">Print</button>
+            <button @click="closePrintQr">✕</button>
+          </div>
+        </div>
+        <div class="qr-print-body" ref="printAreaRef">
+          <div
+            v-for="g in gameStore.groups"
+            :key="'print-g-' + g.id"
+            class="qr-print-group"
+          >
+            <div class="qr-print-group-title" :style="{ borderColor: g.color }">
+              <span class="qr-dot" :style="{ backgroundColor: g.color }"></span>
+              <strong>{{ g.name }}</strong>
+            </div>
+
+            <div class="qr-print-grid">
+              <div
+                v-for="optId in printOptionIds"
+                :key="'print-' + g.id + '-' + optId"
+                class="qr-print-item"
+                data-qr-item="1"
+                :data-group-name="g.name"
+                :data-opt-id="optId"
+                :data-payload="getQrPayload(g.id, optId)"
+              >
+                <QrCode :value="getQrPayload(g.id, optId)" :size="110" level="H" />
+                <div class="qr-print-meta">
+                  <div class="qr-choice">{{ optId }}</div>
+                  <div class="qr-payload">{{ getQrPayload(g.id, optId) }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -773,6 +997,72 @@ function getOptionClass(optId) {
   display: flex;
   flex-direction: column;
 }
+.qr-print-modal {
+  width: min(920px, 95vw);
+  max-height: min(90vh, 820px);
+}
+.qr-print-body {
+  padding: 12px;
+  overflow: auto;
+}
+.qr-print-group {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 12px;
+}
+.qr-print-group-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid;
+  margin-bottom: 10px;
+  color: #0f172a;
+}
+.qr-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+.qr-print-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.qr-print-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 8px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.qr-print-meta {
+  width: 100%;
+  text-align: center;
+}
+.qr-choice {
+  font-weight: 800;
+  color: #0f172a;
+}
+.qr-payload {
+  font-size: 11px;
+  color: #64748b;
+  word-break: break-all;
+}
+.print-btn {
+  background: #16a34a;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+}
+.print-btn:hover { background: #15803d; }
 .qr-modal-header {
   display: flex;
   justify-content: space-between;
