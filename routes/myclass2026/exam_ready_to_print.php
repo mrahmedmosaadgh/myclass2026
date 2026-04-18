@@ -16,7 +16,7 @@ Route::prefix('exam/ready-to-print')->name('exam.ready-to-print.')->group(functi
     
     // Main Ready-To-Print builder page
     Route::get('/builder', function () {
-        return Inertia::render('myclass2026/features/Exam/ReadyToPrint/Builder');
+        return Inertia::render('myclass2026/features/Exam/ReadyToPrint/TestBuilder');
     })->name('builder');
     
 });
