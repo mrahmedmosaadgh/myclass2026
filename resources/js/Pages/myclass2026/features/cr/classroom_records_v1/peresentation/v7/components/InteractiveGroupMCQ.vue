@@ -998,12 +998,15 @@ function getOptionClass(optId) {
   flex-direction: column;
 }
 .qr-print-modal {
-  width: min(920px, 95vw);
-  max-height: min(90vh, 820px);
+  width: 100vw;
+  height: 100vh;
+  max-height: 100vh;
+  border-radius: 0;
 }
 .qr-print-body {
   padding: 12px;
   overflow: auto;
+  flex: 1;
 }
 .qr-print-group {
   border: 1px solid #e2e8f0;
@@ -1070,6 +1073,9 @@ function getOptionClass(optId) {
   padding: 12px 16px;
   background: #f8fafc;
   border-bottom: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 .qr-modal-header h4 { margin: 0; color: #0f172a; font-size: 1rem; }
 .qr-modal-header button { background: transparent; border: none; font-size: 1.2rem; cursor: pointer; color: #64748b; }
