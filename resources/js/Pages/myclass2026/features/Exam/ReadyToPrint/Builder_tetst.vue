@@ -1,198 +1,60 @@
 <template>
-  <div class="exam-builder-page">
-    <!-- Header with lifecycle badge and actions -->
-    <div class="builder-header">
-      <div class="header-left">
-        <h1>{{ $t('exam.readyToPrint.title') }}</h1>
-        <q-badge
-          :color="lifecycleBadgeColor"
-          :label="$t(`exam.readyToPrint.lifecycle.${lifecycle.status}`)"
-          class="lifecycle-badge"
-        />
-        <q-badge
-          v-if="lifecycle.dirty"
-          color="orange"
-          :label="$t('exam.readyToPrint.dirty')"
-        />
-      </div>
-      <div class="header-actions">
-        <q-btn
-          :label="$t('exam.readyToPrint.validate')"
-          color="primary"
-          @click="validateExam"
-          :loading="validating"
-        />
-        <q-btn
-          v-if="canApprove"
-          :label="$t('exam.readyToPrint.approve')"
-          color="positive"
-          @click="approveExam"
-        />
-        <q-btn
-          v-if="canRender"
-          :label="$t('exam.readyToPrint.render')"
-          color="secondary"
-          @click="generateSnapshot"
-        />
-        <q-btn
-          v-if="renderSnapshot.id"
-          :label="$t('exam.readyToPrint.print')"
-          color="dark"
-          @click="openPrintPreview"
-        />
-
-             <q-btn
-          
-          :label="$t('exam.readyToPrint.print')"
-          color="dark"
-          @click="openPrintPreview"
-        />
-        <q-btn
-          v-if="renderSnapshot.id"
-          label="Fullscreen Print"
-          color="primary"
-          icon="fullscreen"
-          @click="openFullscreenPrint"
-        />
-      </div>
+  <div class="exam-test-page">
+    <!-- Simple header with print button -->
+    <div class="test-header">
+      <h1>Math Questions Test</h1>
+      <q-btn
+        label="Fullscreen Print"
+        color="primary"
+        icon="fullscreen"
+        @click="openFullscreenPrint"
+      />
     </div>
 
-    <!-- Main layout: left tree, center editor, right settings -->
-    <div class="builder-main">
-      <!-- Left: Structure tree -->
-      <div class="builder-left">
-        <StructureTree />
-      </div>
-
-      <!-- Center: Context editor -->
-      <div class="builder-center">
-        <ContextEditor />
-      </div>
-
-      <!-- Right: Print & layout settings -->
-      <div class="builder-right">
-        <PrintSettings />
-      </div>
+    <!-- Questions display -->
+    <div class="questions-container">
+      <QuestionDisplay 
+        v-for="(question, index) in sampleQuestions"
+        :key="question.id"
+        :question="question"
+        :question-number="index + 1"
+        :show-answer-area="true"
+      />
     </div>
-
-    <!-- Bottom: Validation panel -->
-    <div v-if="validation.items.length" class="builder-bottom">
-      <ValidationPanel />
-    </div>
-
-    <!-- Print preview dialog -->
-    <q-dialog v-model="printPreviewOpen" maximized>
-      <q-card>
-        <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">{{ $t('exam.readyToPrint.printPreview') }}</div>
-          <q-space />
-          <q-btn icon="close" flat round dense v-close-popup />
-        </q-card-section>
-        <q-separator />
-        <q-card-section class="print-preview-container">
-          <PrintPreview v-if="renderSnapshot.id" />
-          <PrintPreview   />
-        </q-card-section>
-      </q-card>
-    </q-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useExamReadyToPrintStore } from '@/Stores/examReadyToPrintStore'
-import { usePaginationEngine } from './composables/usePaginationEngine.js'
-import StructureTree from './components/StructureTree.vue'
-import ContextEditor from './components/ContextEditor.vue'
-import PrintSettings from './components/PrintSettings.vue'
-import ValidationPanel from './components/ValidationPanel.vue'
-import PrintPreview from './components/PrintPreview.vue'
+import { ref } from 'vue'
+import QuestionDisplay from './components/QuestionDisplay.vue'
 
-const { t } = useI18n()
-const store = useExamReadyToPrintStore()
-
-const printPreviewOpen = ref(false)
-const validating = ref(false)
-
-const lifecycle = computed(() => store.lifecycle)
-const validation = computed(() => store.validation)
-const renderSnapshot = computed(() => store.renderSnapshot)
-const canApprove = computed(() => store.canApprove)
-const canRender = computed(() => store.canRender)
-
-const lifecycleBadgeColor = computed(() => {
-  switch (lifecycle.value.status) {
-    case 'draft': return 'grey'
-    case 'validated': return 'blue'
-    case 'approved': return 'green'
-    case 'rendered': return 'purple'
-    default: return 'grey'
+// Sample questions with math expressions
+const sampleQuestions = ref([
+  {
+    id: 1,
+    type: 'short_answer',
+    marks: 2,
+    content: {
+      prompt: 'What is the sum of $2 \\frac{1}{5}$ and $1 \\frac{2}{5}$?'
+    }
+  },
+  {
+    id: 2,
+    type: 'short_answer', 
+    marks: 3,
+    content: {
+      prompt: 'Calculate: $\\frac{3}{4} + \\frac{2}{3} = ?$'
+    }
+  },
+  {
+    id: 3,
+    type: 'short_answer',
+    marks: 1,
+    content: {
+      prompt: 'Simplify: $\\sqrt{16} + \\sqrt{9}$'
+    }
   }
-})
-
-async function validateExam() {
-  validating.value = true
-  try {
-    // Run pagination engine to detect layout issues
-    const { generateRenderSnapshot } = usePaginationEngine(computed(() => store.exam))
-    const result = generateRenderSnapshot()
-    
-    const validationItems = []
-    
-    if (!result.success) {
-      validationItems.push({
-        severity: 'error',
-        scope: 'exam',
-        message: result.error,
-      })
-    } else {
-      validationItems.push({
-        severity: 'info',
-        scope: 'exam',
-        message: `Layout validated: ${result.snapshot.pages.length} pages, ${result.snapshot.totalBlocks} blocks`,
-      })
-    }
-    
-    // Basic schema checks
-    if (!store.exam.examMeta.title) {
-      validationItems.push({
-        severity: 'warn',
-        scope: 'exam',
-        message: 'Exam title is missing',
-      })
-    }
-    
-    if (store.exam.sections.length === 0) {
-      validationItems.push({
-        severity: 'warn',
-        scope: 'exam',
-        message: 'No sections defined',
-      })
-    }
-    
-    store.setValidationReport({
-      items: validationItems,
-      ranAt: new Date().toISOString()
-    })
-    
-    if (validationItems.every(x => x.severity !== 'error')) {
-      store.markValidated()
-    }
-  } finally {
-    validating.value = false
-  }
-}
-
-function approveExam() {
-  store.approve()
-}
-
-function generateSnapshot() {
-  const { generateRenderSnapshot } = usePaginationEngine(computed(() => store.exam))
-  const result = generateRenderSnapshot()
-  
-  if (result.success) {
+])
     store.setRenderedSnapshot(result.snapshot)
   } else {
     // Show error to user
