@@ -67,14 +67,17 @@ Route::get('/my-fly-schedule-app/v7/manifest.webmanifest', function () {
 
 // App Icon (authenticated)
 Route::get('/my-fly-schedule-app/v7/icon.png', function () {
-    $iconPath = resource_path('js/Pages/MicroComponentTest/mytable/MyTableSchedule/v7/icon.png');
+    $iconPath = public_path('my-fly-schedule-app/v7/icon.png');
+    if (!file_exists($iconPath)) {
+        $iconPath = public_path('icon.png');
+    }
     if (!file_exists($iconPath)) {
         abort(404);
     }
-    
+
     return response()->file($iconPath)
         ->header('Cache-Control', 'public, max-age=86400');
-})->middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->name('schedule.app.v7.icon');
+})->name('schedule.app.v7.icon');
 
 // Service Worker (authenticated)
 Route::get('/my-fly-schedule-app/v7-sw.js', function () {

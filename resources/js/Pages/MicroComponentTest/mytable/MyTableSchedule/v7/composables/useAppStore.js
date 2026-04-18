@@ -63,7 +63,8 @@ export function createAppStore() {
 
   const selectedStage = ref('prim');
   const selectedDay = ref('d1');
-  const currentViewMode = ref('card');
+  const currentViewMode = ref('tablev3');
+  const showTodayOnly = ref(false);
 
   const testTimeEnabled = ref(false);
   const testDayIndex = ref(0);
@@ -184,6 +185,7 @@ export function createAppStore() {
       await db.saveSetting('selectedStage', selectedStage.value);
       await db.saveSetting('selectedDay', selectedDay.value);
       await db.saveSetting('currentViewMode', currentViewMode.value);
+      await db.saveSetting('showTodayOnly', showTodayOnly.value);
       await db.saveSetting('testTimeConfig', {
         enabled: testTimeEnabled.value,
         dayIndex: testDayIndex.value,
@@ -200,6 +202,7 @@ export function createAppStore() {
       selectedStage: selectedStage.value,
       selectedDay: selectedDay.value,
       currentViewMode: currentViewMode.value,
+      showTodayOnly: showTodayOnly.value,
       scheduleData: toRaw(scheduleData.value),
       lastModified: Date.now()
     };
@@ -233,6 +236,12 @@ export function createAppStore() {
   const setViewMode = async (mode) => {
     currentViewMode.value = mode;
     await db.saveSetting('currentViewMode', mode);
+    pushCloudSnapshot();
+  };
+
+  const setShowTodayOnly = async (value) => {
+    showTodayOnly.value = !!value;
+    await db.saveSetting('showTodayOnly', showTodayOnly.value);
     pushCloudSnapshot();
   };
 
@@ -356,6 +365,10 @@ export function createAppStore() {
 
       const savedViewMode = await db.getSetting('currentViewMode');
       if (savedViewMode) currentViewMode.value = savedViewMode;
+      else currentViewMode.value = 'tablev3';
+
+      const savedShowTodayOnly = await db.getSetting('showTodayOnly');
+      if (savedShowTodayOnly != null) showTodayOnly.value = !!savedShowTodayOnly;
 
       const savedTestTime = await db.getSetting('testTimeConfig');
       if (savedTestTime) {
@@ -388,6 +401,9 @@ export function createAppStore() {
         }
         if (pullResult.data.currentViewMode) {
           currentViewMode.value = pullResult.data.currentViewMode;
+        }
+        if (typeof pullResult.data.showTodayOnly !== 'undefined') {
+          showTodayOnly.value = !!pullResult.data.showTodayOnly;
         }
         await saveSettingsToIDB();
       } else if (pullResult.success && pullResult.source === 'local') {
@@ -431,6 +447,7 @@ export function createAppStore() {
     selectedStage: readonly(selectedStage),
     selectedDay: readonly(selectedDay),
     currentViewMode: readonly(currentViewMode),
+    showTodayOnly: readonly(showTodayOnly),
     testTimeEnabled: readonly(testTimeEnabled),
     testDayIndex: readonly(testDayIndex),
     testTimeValue: readonly(testTimeValue),
@@ -455,6 +472,7 @@ export function createAppStore() {
     setSelectedStage,
     setSelectedDay,
     setViewMode,
+    setShowTodayOnly,
     setScheduleData,
     setSchoolTimetable,
     setTestTimeConfig,

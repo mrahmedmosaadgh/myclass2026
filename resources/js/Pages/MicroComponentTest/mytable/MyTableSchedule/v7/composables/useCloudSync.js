@@ -40,7 +40,13 @@ export function useCloudSync() {
     error.value = '';
 
     try {
-      const response = await axios.post('/api/schedule-app-v7/save-data', data, {
+      const payload = {
+        schedule_data: data,
+        last_modified: String(Date.now()),
+        version: '7.0'
+      };
+
+      const response = await axios.post('/api/schedule-app-v7/save-data', payload, {
         headers: {
           'Accept': 'application/json',
           'X-Requested-With': 'XMLHttpRequest'
@@ -95,7 +101,18 @@ export function useCloudSync() {
         lastSyncTime.value = Date.now();
         syncStatus.value = 'synced';
         syncMessage.value = 'Loaded from cloud';
-        return { success: true, data: result.data };
+
+        const raw = result.data;
+        const serverScheduleData = raw?.schedule_data ?? raw?.data?.schedule_data ?? raw?.data ?? raw;
+        const serverLastModified = Number(raw?.last_modified ?? raw?.data?.last_modified ?? 0);
+
+        return {
+          success: true,
+          data: {
+            ...serverScheduleData,
+            lastModified: serverLastModified || Date.now()
+          }
+        };
       }
 
       throw new Error(result.error || 'Load failed');
@@ -113,6 +130,61 @@ export function useCloudSync() {
       return { success: false, error: e.message };
     } finally {
       isSyncing.value = false;
+    }
+  };
+
+  /**
+   * Backward-compatible wrapper used by the app store.
+   * @param {number} localLastModified
+   * @returns {Object} { success, source: 'server'|'local', data? }
+   */
+  const pullFromServer = async (localLastModified = 0) => {
+    const result = await loadData();
+
+    if (!result.success) {
+      if (result.error === 'offline' || result.error === 'no_data') {
+        return { success: true, source: 'local' };
+      }
+      return { success: false, error: result.error };
+    }
+
+    const serverData = result.data;
+    const serverLastModified = Number(serverData?.lastModified || 0);
+
+    if (serverLastModified > Number(localLastModified || 0)) {
+      return { success: true, source: 'server', data: serverData };
+    }
+
+    return { success: true, source: 'local', data: serverData };
+  };
+
+  /**
+   * Backward-compatible wrapper used by the app store.
+   * @param {Object} snapshot
+   * @returns {Object} { success, error? }
+   */
+  const pushToServer = async (snapshot) => {
+    return saveData(snapshot);
+  };
+
+  /**
+   * Backward-compatible wrapper used by the app store.
+   * @param {Array} pending
+   * @param {Function} markSynced
+   */
+  const processQueue = async (pending = [], markSynced = null) => {
+    if (!Array.isArray(pending) || pending.length === 0) return;
+    for (const item of pending) {
+      try {
+        if (item?.action === 'save-snapshot') {
+          const res = await pushToServer(item.data);
+          if (res?.success && typeof markSynced === 'function' && item?.id != null) {
+            await markSynced(item.id);
+          }
+        }
+      } catch (e) {
+        // Keep item pending; next sync attempt will retry.
+      }
     }
   };
 
@@ -267,6 +339,9 @@ export function useCloudSync() {
     saveData,
     loadData,
     syncData,
+    pullFromServer,
+    pushToServer,
+    processQueue,
     getBackups,
     exportData,
     clearData

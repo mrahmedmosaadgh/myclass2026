@@ -32,6 +32,7 @@ const viewModes = [
   { id: 'card', icon: '🃏', label: 'Card View', desc: 'Cards per day with live period indicator' },
   { id: 'table', icon: '📊', label: 'Table View', desc: 'Full week table with all periods' },
   { id: 'tablev2', icon: '📈', label: 'Table View V2', desc: 'Days as rows, periods as columns with color coding' },
+  { id: 'tablev3', icon: '📅', label: 'Table View V3', desc: 'Days as columns, periods as rows with color coding' },
   { id: 'timeline', icon: '⏰', label: 'Timeline View', desc: 'Vertical timeline with day/stage columns' },
   { id: 'list', icon: '📋', label: 'List View', desc: 'Compact scrollable list layout' },
   { id: 'master', icon: '🏫', label: 'School Timetable', desc: 'Full school timetable with teachers' }

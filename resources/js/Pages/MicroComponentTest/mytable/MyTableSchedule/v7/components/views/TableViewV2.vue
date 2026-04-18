@@ -21,7 +21,7 @@
         </thead>
         <tbody>
           <tr
-            v-for="day in scheduleDays"
+            v-for="day in visibleDays"
             :key="day.dayIndex"
             class="day-row"
             :class="{ active: isCurrentDay(day.dayIndex) }"
@@ -280,6 +280,21 @@ const scheduleDays = computed(() => {
     ...d,
     dayIndex: d.dayIndex ?? 0
   }));
+});
+
+const visibleDays = computed(() => {
+  if (!store.showTodayOnly.value) return scheduleDays.value;
+
+  const selectedDay = store.selectedDay.value;
+  const map = { d1: 0, d2: 1, d3: 2, d4: 3, d5: 4, d6: 5 };
+  const selectedIndex = map[selectedDay];
+
+  const match = scheduleDays.value.find(d => d.dayIndex === selectedIndex);
+  if (match) return [match];
+
+  const current = store.testTimeEnabled.value ? store.testDayIndex.value : store.currentDayIndex.value;
+  const fallback = scheduleDays.value.find(d => d.dayIndex === current);
+  return fallback ? [fallback] : scheduleDays.value.slice(0, 1);
 });
 
 // Fallback time slots in case inject fails

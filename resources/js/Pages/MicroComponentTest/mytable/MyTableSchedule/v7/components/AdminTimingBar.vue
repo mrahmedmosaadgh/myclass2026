@@ -36,7 +36,7 @@
     </div>
 
     <div class="timing-actions">
-      <button class="action-btn" @click="goToToday">
+      <button class="action-btn" :class="{ active: store.showTodayOnly.value }" @click="toggleToday">
         📅 Today
       </button>
     </div>
@@ -79,9 +79,14 @@ const setDay = async (day) => {
   await store.setSelectedDay(day);
 };
 
-const goToToday = () => {
-  const todayId = store.dayIndexToId(new Date().getDay());
-  setDay(todayId);
+const toggleToday = async () => {
+  const next = !store.showTodayOnly.value;
+  await store.setShowTodayOnly(next);
+
+  if (next) {
+    const todayId = store.dayIndexToId(new Date().getDay());
+    await setDay(todayId);
+  }
 };
 </script>
 
@@ -183,6 +188,12 @@ const goToToday = () => {
   border-color: #cbd5e1;
 }
 
+.action-btn.active {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: white;
+}
+
 @media (max-width: 640px) {
   .admin-timing-bar {
     padding: 0.5rem;
@@ -245,6 +256,12 @@ const goToToday = () => {
   .action-btn:hover {
     background: #475569;
     border-color: #64748b;
+  }
+
+  .action-btn.active {
+    background: #3b82f6;
+    border-color: #3b82f6;
+    color: white;
   }
 }
 </style>
