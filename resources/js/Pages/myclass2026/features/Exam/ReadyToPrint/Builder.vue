@@ -41,7 +41,12 @@
           @click="openPrintPreview"
         />
 
-        
+             <q-btn
+          
+          :label="$t('exam.readyToPrint.print')"
+          color="dark"
+          @click="openPrintPreview"
+        />
         <q-btn
           v-if="renderSnapshot.id"
           label="Fullscreen Print"
