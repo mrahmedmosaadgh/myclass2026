@@ -13,6 +13,7 @@ export const useUIStore = defineStore('ui', () => {
   const pasteOffset = ref(0);
   const zoomLevel = ref(100); // Zoom percentage (50-200)
   const presentModeLayout = ref('single'); // 'single' | 'continuous'
+  const isDrawRectangleMode = ref(false); // Click-and-drag rectangle drawing mode
 
   function selectElement(id) {
     if (!isEditMode.value) return;
@@ -66,6 +67,14 @@ export const useUIStore = defineStore('ui', () => {
     zoomLevel.value = Math.max(50, Math.min(200, level));
   }
 
+  function toggleDrawRectangleMode() {
+    isDrawRectangleMode.value = !isDrawRectangleMode.value;
+  }
+
+  function setDrawRectangleMode(value) {
+    isDrawRectangleMode.value = value;
+  }
+
   return {
     selectedElementId,
     isEditMode,
@@ -78,6 +87,7 @@ export const useUIStore = defineStore('ui', () => {
     pasteOffset,
     zoomLevel,
     presentModeLayout,
+    isDrawRectangleMode,
     selectElement,
     clearSelection,
     toggleMode,
@@ -88,6 +98,8 @@ export const useUIStore = defineStore('ui', () => {
     zoomIn,
     zoomOut,
     resetZoom,
-    setZoom
+    setZoom,
+    toggleDrawRectangleMode,
+    setDrawRectangleMode
   };
 });

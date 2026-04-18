@@ -38,33 +38,11 @@
 
           <!-- Question -->
           <div v-else-if="block.type === 'question'" class="content-question">
-            <div class="question-header">
-              <span class="question-number">{{ getQuestionNumber(block) }}</span>
-              <span class="question-marks">[{{ block.question.marks }}]</span>
-            </div>
-            <div class="question-prompt">
-              {{ block.question.content?.prompt }}
-            </div>
-            <div class="answer-area">
-              <div v-if="block.question.type === 'text'" class="answer-lines">
-                <div class="answer-line"></div>
-                <div class="answer-line"></div>
-                <div class="answer-line"></div>
-              </div>
-              <div v-else-if="block.question.type === 'essay'" class="answer-essay">
-                <div class="answer-essay-box"></div>
-              </div>
-              <div v-else-if="block.question.type === 'mcq'" class="answer-mcq">
-                <div v-for="i in 4" :key="i" class="mcq-option">
-                  <span class="option-label">{{ String.fromCharCode(64 + i) }}.</span>
-                  <div class="option-space"></div>
-                </div>
-              </div>
-              <div v-else-if="block.question.type === 'true_false'" class="answer-truefalse">
-                <div class="tf-option">True</div>
-                <div class="tf-option">False</div>
-              </div>
-            </div>
+            <QuestionDisplay 
+              :question="block.question"
+              :question-number="getQuestionNumber(block)"
+              :show-answer-area="true"
+            />
           </div>
 
           <!-- Spacer -->
@@ -99,6 +77,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useExamReadyToPrintStore } from '@/Stores/examReadyToPrintStore'
+import QuestionDisplay from './QuestionDisplay.vue'
 
 const { t } = useI18n()
 const store = useExamReadyToPrintStore()

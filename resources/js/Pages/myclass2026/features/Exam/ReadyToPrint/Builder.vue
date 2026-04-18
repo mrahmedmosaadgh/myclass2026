@@ -40,6 +40,13 @@
           color="dark"
           @click="openPrintPreview"
         />
+        <q-btn
+          v-if="renderSnapshot.id"
+          label="Fullscreen Print"
+          color="primary"
+          icon="fullscreen"
+          @click="openFullscreenPrint"
+        />
       </div>
     </div>
 
@@ -188,6 +195,88 @@ function generateSnapshot() {
 
 function openPrintPreview() {
   printPreviewOpen.value = true
+}
+
+function openFullscreenPrint() {
+  // Open fullscreen print preview in new window
+  const printWindow = window.open('', '_blank', 'width=800,height=1100,scrollbars=yes,resizable=yes')
+  
+  if (printWindow) {
+    const html = generatePrintHTML()
+    printWindow.document.write(html)
+    printWindow.document.close()
+    printWindow.focus()
+  }
+}
+
+function generatePrintHTML() {
+  let html = '<!DOCTYPE html><html><head><title>Exam Print Preview</title>'
+  html += '<script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"><\/script>'
+  html += '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">'
+  html += '<style>@page { size: A4; margin: 12mm; } body { font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.5; margin: 0; padding: 20px; } .question { margin-bottom: 24pt; page-break-inside: avoid; } .question-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8pt; font-weight: bold; } .question-content { margin-bottom: 12pt; } .answer-area { border-top: 1px solid #ddd; padding-top: 8pt; margin-top: 12pt; } .answer-line { height: 20pt; border-bottom: 1px solid #eee; margin-bottom: 8pt; } @media print { body { padding: 0; } <\/style>'
+  html += '<\/head><body>'
+  html += '<h1>' + (store.exam.title || 'Exam') + '<\/h1>'
+  html += generatePrintContent()
+  html += '<\/body><\/html>'
+  return html
+}
+
+function generatePrintContent() {
+  if (!store.renderSnapshot?.pages) return '<p>No content to print</p>'
+  
+  let questionNumber = 1
+  let html = ''
+  
+  for (const page of store.renderSnapshot.pages) {
+    for (const block of page.blocks) {
+      if (block.type === 'question') {
+        html += '<div class="question">' +
+          '<div class="question-header">' +
+            '<span>Question ' + questionNumber + '</span>' +
+            '<span>' + (block.data.marks || 1) + ' marks</span>' +
+          '</div>' +
+          '<div class="question-content">' + renderMathContent(block.data.content?.prompt || '') + '</div>' +
+          '<div class="answer-area">' +
+            '<div class="answer-line"></div>' +
+            '<div class="answer-line"></div>' +
+            '<div class="answer-line"></div>' +
+          '</div>' +
+        '</div>'
+        questionNumber++
+      } else if (block.type === 'section') {
+        html += '<h2>' + (block.data.title || 'Section') + '</h2>'
+        if (block.data.instructions) {
+          html += '<p>' + block.data.instructions + '</p>'
+        }
+      }
+    }
+  }
+  
+  return html
+}
+
+function renderMathContent(content) {
+  if (!content) return ''
+  
+  // Replace LaTeX math expressions with rendered math
+  content = content.replace(/\$\$([^$]+)\$\$/g, (match, math) => {
+    try {
+      return katex.renderToString(math, { throwOnError: false })
+    } catch (e) {
+      return match
+    }
+  })
+  
+  // Replace inline math expressions
+  content = content.replace(/\$([^$]+)\$/g, (match, math) => {
+    try {
+      return katex.renderToString(math, { throwOnError: false })
+    } catch (e) {
+      return match
+    }
+  })
+  
+  return content
 }
 </script>
 
