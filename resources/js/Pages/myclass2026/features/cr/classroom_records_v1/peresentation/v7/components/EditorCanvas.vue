@@ -145,7 +145,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div ref="wrapperRef" class="canvas-wrapper" :class="{ 'present-mode': !ui.isEditMode }" :style="{ height: calculateWrapperHeight() + 'px' }">
+  <div ref="wrapperRef" class="canvas-wrapper" :class="{ 'present-mode': !ui.isEditMode, 'draw-rect-mode': ui.isDrawRectangleMode }" :style="{ height: calculateWrapperHeight() + 'px' }">
     <div
       class="canvas"
       :class="{ 'present-mode-canvas': !ui.isEditMode }"
@@ -157,12 +157,18 @@ onUnmounted(() => {
         backgroundColor: 'white' // White background for slide
       }"
       @mousedown.self="handleCanvasMousedown"
+      @mousemove.self="handleCanvasMousemove"
+      @mouseup.self="handleCanvasMouseup"
+      @mouseleave.self="handleCanvasMouseup"
     >
       <ElementNode
         v-for="el in presentation.currentSlide.elements"
         :key="el.id"
         :element="el"
       />
+
+      <!-- Temporary drawing rectangle -->
+      <div v-if="isDrawingRect && tempRectStyle" :style="tempRectStyle"></div>
 
       <DrawingCanvasOverlay :scale="canvasScale" />
     </div>
@@ -236,5 +242,10 @@ onUnmounted(() => {
   color: #111827;
   border-color: #9ca3af;
   transform: translateY(1px);
+}
+
+/* Drawing mode cursor indicator */
+.draw-rect-mode .canvas {
+  cursor: crosshair;
 }
 </style>

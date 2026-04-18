@@ -40,6 +40,8 @@
           color="dark"
           @click="openPrintPreview"
         />
+
+        
         <q-btn
           v-if="renderSnapshot.id"
           label="Fullscreen Print"
