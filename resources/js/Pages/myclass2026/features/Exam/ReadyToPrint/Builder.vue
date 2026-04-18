@@ -91,6 +91,7 @@
         <q-separator />
         <q-card-section class="print-preview-container">
           <PrintPreview v-if="renderSnapshot.id" />
+          <PrintPreview   />
         </q-card-section>
       </q-card>
     </q-dialog>
