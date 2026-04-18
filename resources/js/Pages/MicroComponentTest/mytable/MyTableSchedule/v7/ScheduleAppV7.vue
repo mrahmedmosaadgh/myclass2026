@@ -88,7 +88,7 @@ const store = createAppStore();
 provideAppStore(store);
 
 // ── Cloud Sync ──
-const { syncStatus, syncData, saveData, loadData } = useCloudSync();
+const { syncStatus, syncData, loadData } = useCloudSync();
 
 // ── PWA state ──
 const manifestHref = '/my-fly-schedule-app/v7/manifest.webmanifest';
@@ -190,7 +190,7 @@ const setupAutoSave = () => {
   saveTimer.value = setInterval(async () => {
     if (isAuthenticated.value && store.isInitialized.value) {
       try {
-        await saveData();
+        await store.pushCloudSnapshot();
       } catch (err) {
         console.error('Auto-save failed:', err);
       }

@@ -63,7 +63,7 @@ Route::get('/my-fly-schedule-app/v7/manifest.webmanifest', function () {
     return response()->json($manifest)
         ->header('Content-Type', 'application/manifest+json')
         ->header('Cache-Control', 'public, max-age=86400');
-})->middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->name('schedule.app.v7.manifest');
+})->name('schedule.app.v7.manifest');
 
 // App Icon (authenticated)
 Route::get('/my-fly-schedule-app/v7/icon.png', function () {
@@ -89,7 +89,7 @@ Route::get('/my-fly-schedule-app/v7-sw.js', function () {
     return response()->file($swPath)
         ->header('Content-Type', 'application/javascript')
         ->header('Cache-Control', 'no-cache');
-})->middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->name('schedule.app.v7.service-worker');
+})->name('schedule.app.v7.service-worker');
 
 // API Routes (Authenticated - User must be logged in)
 Route::prefix('api/schedule-app-v7')->middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {

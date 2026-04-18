@@ -36,6 +36,7 @@
     </div>
 
     <div class="timing-actions">
+      <PeriodSummary />
       <button class="action-btn" :class="{ active: store.showTodayOnly.value }" @click="toggleToday">
         📅 Today
       </button>
@@ -46,6 +47,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useAppStore } from '../composables/useAppStore';
+import PeriodSummary from './PeriodSummary.vue';
 
 const store = useAppStore();
 
@@ -168,6 +170,7 @@ const toggleToday = async () => {
 .timing-actions {
   display: flex;
   gap: 0.5rem;
+  align-items: center;
 }
 
 .action-btn {
