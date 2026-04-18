@@ -55,17 +55,6 @@ const sampleQuestions = ref([
     }
   }
 ])
-    store.setRenderedSnapshot(result.snapshot)
-  } else {
-    // Show error to user
-    console.error('Render failed:', result.error)
-    // You might want to show this in the UI
-  }
-}
-
-function openPrintPreview() {
-  printPreviewOpen.value = true
-}
 
 function openFullscreenPrint() {
   // Open fullscreen print preview in new window
@@ -80,48 +69,30 @@ function openFullscreenPrint() {
 }
 
 function generatePrintHTML() {
-  let html = '<!DOCTYPE html><html><head><title>Exam Print Preview</title>'
+  let html = '<!DOCTYPE html><html><head><title>Math Questions Print</title>'
   html += '<script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"><\/script>'
   html += '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">'
   html += '<style>@page { size: A4; margin: 12mm; } body { font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.5; margin: 0; padding: 20px; } .question { margin-bottom: 24pt; page-break-inside: avoid; } .question-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8pt; font-weight: bold; } .question-content { margin-bottom: 12pt; } .answer-area { border-top: 1px solid #ddd; padding-top: 8pt; margin-top: 12pt; } .answer-line { height: 20pt; border-bottom: 1px solid #eee; margin-bottom: 8pt; } @media print { body { padding: 0; } <\/style>'
   html += '<\/head><body>'
-  html += '<h1>' + (store.exam.title || 'Exam') + '<\/h1>'
-  html += generatePrintContent()
+  html += '<h1>Math Questions Test<\/h1>'
+  
+  // Add questions
+  sampleQuestions.value.forEach((question, index) => {
+    html += '<div class="question">'
+      html += '<div class="question-header">'
+      html += '<span>Question ' + (index + 1) + '<\/span>'
+      html += '<span>' + question.marks + ' marks<\/span>'
+      html += '<\/div>'
+      html += '<div class="question-content">' + renderMathContent(question.content.prompt) + '<\/div>'
+      html += '<div class="answer-area">'
+      html += '<div class="answer-line"><\/div>'
+      html += '<div class="answer-line"><\/div>'
+      html += '<div class="answer-line"><\/div>'
+      html += '<\/div>'
+      html += '<\/div>'
+  })
+  
   html += '<\/body><\/html>'
-  return html
-}
-
-function generatePrintContent() {
-  if (!store.renderSnapshot?.pages) return '<p>No content to print</p>'
-  
-  let questionNumber = 1
-  let html = ''
-  
-  for (const page of store.renderSnapshot.pages) {
-    for (const block of page.blocks) {
-      if (block.type === 'question') {
-        html += '<div class="question">' +
-          '<div class="question-header">' +
-            '<span>Question ' + questionNumber + '</span>' +
-            '<span>' + (block.data.marks || 1) + ' marks</span>' +
-          '</div>' +
-          '<div class="question-content">' + renderMathContent(block.data.content?.prompt || '') + '</div>' +
-          '<div class="answer-area">' +
-            '<div class="answer-line"></div>' +
-            '<div class="answer-line"></div>' +
-            '<div class="answer-line"></div>' +
-          '</div>' +
-        '</div>'
-        questionNumber++
-      } else if (block.type === 'section') {
-        html += '<h2>' + (block.data.title || 'Section') + '</h2>'
-        if (block.data.instructions) {
-          html += '<p>' + block.data.instructions + '</p>'
-        }
-      }
-    }
-  }
-  
   return html
 }
 
@@ -151,98 +122,34 @@ function renderMathContent(content) {
 </script>
 
 <style scoped>
-.exam-builder-page {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
+.exam-test-page {
+  min-height: 100vh;
   background: #fafafa;
+  padding: 20px;
 }
 
-.builder-header {
+.test-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
+  margin-bottom: 24px;
   background: white;
-  border-bottom: 1px solid #e0e0e0;
+  padding: 16px 24px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.header-left h1 {
+.test-header h1 {
   margin: 0;
   font-size: 24px;
   font-weight: 600;
+  color: #333;
 }
 
-.lifecycle-badge {
-  font-weight: 500;
-}
-
-.header-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.builder-main {
-  flex: 1;
-  display: flex;
-  overflow: hidden;
-}
-
-.builder-left {
-  width: 280px;
+.questions-container {
   background: white;
-  border-right: 1px solid #e0e0e0;
-  overflow-y: auto;
-}
-
-.builder-center {
-  flex: 1;
-  background: white;
-  overflow-y: auto;
-}
-
-.builder-right {
-  width: 320px;
-  background: white;
-  border-left: 1px solid #e0e0e0;
-  overflow-y: auto;
-}
-
-.builder-bottom {
-  background: white;
-  border-top: 1px solid #e0e0e0;
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.print-preview-container {
-  height: calc(100vh - 120px);
-  overflow: auto;
-  background: #f5f5f5;
-}
-
-@media print {
-  .exam-builder-page {
-    height: auto;
-  }
-
-  .builder-header,
-  .builder-left,
-  .builder-right,
-  .builder-bottom {
-    display: none;
-  }
-
-  .builder-center {
-    width: 100%;
-    height: auto;
-    overflow: visible;
-  }
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 </style>
