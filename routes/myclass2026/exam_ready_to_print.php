@@ -19,4 +19,9 @@ Route::prefix('exam/ready-to-print')->name('exam.ready-to-print.')->group(functi
         return Inertia::render('myclass2026/features/Exam/ReadyToPrint/TestBuilder');
     })->name('builder');
     
+    // Test builder page for question display testing
+    Route::get('/test-builder', function () {
+        return Inertia::render('myclass2026/features/Exam/ReadyToPrint/Builder_tetst');
+    })->name('test-builder');
+    
 });
