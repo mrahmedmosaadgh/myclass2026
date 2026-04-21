@@ -32,9 +32,6 @@ Route::domain('qudratpro.com')->group(function () {
     
     // Include Remote Control System Routes (inside domain)
     include dirname(__DIR__).'/routes/myclass2026/remote_control.php';
-    
-    // Include Exam Ready To Print Routes (inside domain)
-    include dirname(__DIR__).'/routes/myclass2026/exam_ready_to_print.php';
 
     // // Include Schedule App V5 Routes (inside domain)
     // include dirname(__DIR__).'/routes/schedule_app_v5.php';
@@ -75,6 +72,9 @@ Route::domain('qudratpro.com')->group(function () {
     Route::get('/page-views/count', [\App\Http\Controllers\PageViewController::class, 'getCount'])->name('page-views.count');
 });
 
+// Include Exam Ready To Print Routes (for local development)
+include dirname(__DIR__).'/routes/myclass2026/exam_ready_to_print.php';
+
 Route::get('/sitemap.xml', [App\Http\Controllers\SitemapController::class, 'index']);
 
 // Domain-based Routing for Local Development (Testing)
@@ -101,75 +101,6 @@ Route::prefix('exam/ready-to-print')->name('exam.ready-to-print.local.')->group(
     
     // API routes for user-specific data storage
     Route::prefix('api')->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class])->group(function () {
-        // Load user-specific questions and settings
-        Route::get('/load-data', function () {
-            $userId = auth()->id() ?? session()->getId();
-            $filePath = public_path("data/exam-ready-to-print-v2-{$userId}.json");
-            
-            if (!file_exists($filePath)) {
-                // Return default structure if file doesn't exist
-                return response()->json([
-                    'questions' => [],
-                    'settings' => [
-                        'examTitle' => '',
-                        'printHeader' => [
-                            'enabled' => false,
-                            'autoFit' => true,
-                            'mode' => 'html',
-                            'height' => 60,
-                            'extraMarginBottom' => 0,
-                            'html' => '',
-                            'imageUrl' => '',
-                            'imageFit' => 'contain'
-                        ],
-                        'printFooter' => [
-                            'enabled' => false,
-                            'autoFit' => true,
-                            'mode' => 'html',
-                            'height' => 40,
-                            'extraMarginBottom' => 0,
-                            'html' => '',
-                            'imageUrl' => '',
-                            'imageFit' => 'contain',
-                            'showPageNumbers' => false,
-                            'pageNumberPosition' => 'bottom-center',
-                            'pageNumberFormat' => 'page',
-                            'pageNumberFontSize' => 10,
-                            'pageNumberColor' => '#000000'
-                        ]
-                    ],
-                    'firstPage' => [
-                        'enabled' => false,
-                        'type' => 'title',
-                        'title' => '',
-                        'subtitle' => '',
-                        'titleAlignment' => 'center',
-                        'coverTitle' => '',
-                        'coverDescription' => '',
-                        'coverImage' => '',
-                        'customContent' => '',
-                        'skipPageNumber' => true,
-                        'pageBreakAfter' => true
-                    ],
-                    'lastPage' => [
-                        'enabled' => false,
-                        'type' => 'message',
-                        'title' => 'End of Exam',
-                        'message' => 'Thank you for completing the exam.',
-                        'alignment' => 'center',
-                        'showTotalMarks' => false,
-                        'showCompletionTime' => false,
-                        'customContent' => '',
-                        'skipPageNumber' => false,
-                        'pageBreakBefore' => true
-                    ]
-                ]);
-            }
-            
-            $data = json_decode(file_get_contents($filePath), true);
-            return response()->json($data);
-        })->name('api.load-data');
-        
         // Save user-specific questions and settings
         Route::post('/save-data', function () {
             $userId = auth()->id() ?? session()->getId();
@@ -681,8 +612,6 @@ Route::get('/simple-focus-app-offline', function () {
     return Inertia::render('myclass2026/features/simple_focus_app_offline/ver1/Index');
 })->name('simple-focus-app-offline.v1');
 
-// API routes for exam ready-to-print (middleware-free for testing)
-Route::prefix('exam/ready-to-print/api')->group(function () {
     // Load user-specific questions and settings
     Route::get('/load-data', function () {
         $userId = auth()->id() ?? session()->getId();
@@ -755,8 +684,7 @@ Route::prefix('exam/ready-to-print/api')->group(function () {
         file_put_contents($filePath, json_encode($data, JSON_PRETTY_PRINT));
         
         return response()->json(['success' => true]);
-    })->name('api.save-data');
-});
+    });
 
 // Simple Focus App Offline v2 (public, no-auth standalone app)
 Route::get('/simple-focus-app-offline/v2', function () {

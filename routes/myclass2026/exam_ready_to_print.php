@@ -41,26 +41,110 @@ Route::prefix('exam/ready-to-print')->name('exam.ready-to-print.')->group(functi
                 return response()->json([
                     'questions' => [],
                     'settings' => [
-                        'examTitle' => '',
+                        'examTitle' => [
+                            'enabled' => true,
+                            'text' => 'Math Questions Test'
+                        ],
+                        'showMarksPerQuestion' => true,
                         'printHeader' => [
                             'enabled' => false,
                             'autoFit' => true,
+                            'heightPt' => 120,
+                            'pageMarginTopMm' => 0,
                             'mode' => 'html',
-                            'height' => 60,
-                            'extraMarginBottom' => 0,
+                            'templateId' => 'custom',
                             'html' => '',
                             'imageUrl' => '',
-                            'imageFit' => 'contain'
+                            'imageFit' => 'contain',
+                            'template1' => [
+                                'schoolName' => 'AL-MUTAQADIMAH SCHOOLS (Al-Tadamon International School)',
+                                'period' => 'first Academic period 2025 - 2026',
+                                'grade' => '4',
+                                'subject' => 'Math',
+                                'examType' => 'V1',
+                                'gender' => 'Boys'
+                            ]
                         ],
                         'printFooter' => [
                             'enabled' => false,
                             'autoFit' => true,
+                            'heightPt' => 90,
+                            'pageMarginBottomMm' => 0,
                             'mode' => 'html',
-                            'height' => 40,
-                            'extraMarginBottom' => 0,
                             'html' => '',
                             'imageUrl' => '',
-                            'imageFit' => 'contain'
+                            'imageFit' => 'contain',
+                            'showPageNumbers' => false,
+                            'pageNumberPosition' => 'bottom-center',
+                            'pageNumberFormat' => 'page',
+                            'pageNumberFontSize' => 10,
+                            'pageNumberColor' => '#000000'
+                        ],
+                        'firstPage' => [
+                            'enabled' => false,
+                            'type' => 'title',
+                            'title' => '',
+                            'subtitle' => '',
+                            'titleAlignment' => 'center',
+                            'coverTitle' => '',
+                            'coverDescription' => '',
+                            'coverImage' => '',
+                            'customContent' => '',
+                            'skipPageNumber' => true,
+                            'pageBreakAfter' => true
+                        ],
+                        'lastPage' => [
+                            'enabled' => false,
+                            'type' => 'message',
+                            'title' => 'End of Exam',
+                            'message' => 'Thank you for completing the exam.',
+                            'alignment' => 'center',
+                            'showTotalMarks' => false,
+                            'showCompletionTime' => false,
+                            'customContent' => '',
+                            'skipPageNumber' => false,
+                            'pageBreakBefore' => true
+                        ],
+                        'questionSeparator' => [
+                            'enabled' => false,
+                            'lineStyle' => 'solid',
+                            'color' => '#1f3a5a',
+                            'thicknessPt' => 1,
+                            'spaceBeforePt' => 8,
+                            'spaceAfterPt' => 12
+                        ],
+                        'mcqOptions' => [
+                            'columns' => 1,
+                            'optionGapPt' => 6,
+                            'labelGapPt' => 8,
+                            'labelStyle' => 'letter',
+                            'customLabelTemplate' => '{letter})',
+                            'checkboxStyle' => 'box',
+                            'checkboxShowLabel' => false,
+                            'checkboxLabelType' => 'letter',
+                            'labelFontSizePt' => 0,
+                            'optionFontSizePt' => 0,
+                            'labelBold' => false,
+                            'optionBold' => false
+                        ],
+                        'sectionTotal' => [
+                            'template' => 'text',
+                            'prefix' => 'Total:',
+                            'suffix' => 'marks',
+                            'placement' => 'normal',
+                            'offsetXPt' => 0,
+                            'offsetYPt' => 0,
+                            'boxTopHeightPt' => 22
+                        ],
+                        'questionNumbering' => [
+                            'style' => 'question',
+                            'startAt' => 1,
+                            'prefix' => '',
+                            'suffix' => '',
+                            'customTemplate' => '{n}',
+                            'inlineWithText' => false,
+                            'inlineGap' => 8,
+                            'pageBreaksBefore' => []
                         ]
                     ]
                 ]);

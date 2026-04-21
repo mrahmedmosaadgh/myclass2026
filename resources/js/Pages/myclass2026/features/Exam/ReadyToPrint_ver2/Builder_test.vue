@@ -2117,6 +2117,7 @@ async function savePageState() {
       questions: sampleQuestions.value,
       settings: {
         examTitle: pageOptions.value.examTitle,
+        showMarksPerQuestion: pageOptions.value.showMarksPerQuestion,
         printHeader: pageOptions.value.printHeader,
         printFooter: pageOptions.value.printFooter,
         firstPage: pageOptions.value.firstPage,
