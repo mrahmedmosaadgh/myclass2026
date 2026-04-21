@@ -136,11 +136,12 @@ function collectCurrentStyles() {
 
 function printHtmlViaIframe(html) {
   const iframe = document.createElement('iframe')
+  // Off-screen but real A4 width (794px ≈ A4 at 96dpi) so offsetHeight measurement works.
   iframe.style.position = 'fixed'
-  iframe.style.right = '0'
-  iframe.style.bottom = '0'
-  iframe.style.width = '0'
-  iframe.style.height = '0'
+  iframe.style.left = '-9999px'
+  iframe.style.top = '0'
+  iframe.style.width = '794px'
+  iframe.style.height = '1px'
   iframe.style.border = '0'
   iframe.setAttribute('aria-hidden', 'true')
 
@@ -155,34 +156,39 @@ function printHtmlViaIframe(html) {
   iframe.onload = () => {
     const win = iframe.contentWindow
     const doc = iframe.contentDocument
-    if (!win || !doc) {
-      cleanup()
-      return
-    }
+    if (!win || !doc) { cleanup(); return }
 
     const doPrint = () => {
-      try {
-        win.focus()
-        win.print()
-      } catch (e) {
-        console.error('Print failed', e)
-      }
+      try { win.focus(); win.print() } catch (e) { console.error('Print failed', e) }
       setTimeout(cleanup, 1500)
     }
 
-    // Wait for fonts (KaTeX, etc.) to load before printing.
-    // Falls back to a fixed delay if the Fonts API is unavailable.
+    // 1. Wait for fonts (KaTeX etc.)
     const fontsReady = doc.fonts ? doc.fonts.ready : Promise.resolve()
-    const timeout = new Promise(resolve => setTimeout(resolve, 1200))
 
-    Promise.race([fontsReady, timeout])
-      .then(doPrint)
-      .catch(doPrint)
+    // 2. Wait for __printReady signal from the header measurement script.
+    //    If undefined → no header script injected → resolve immediately.
+    const printReady = new Promise(resolve => {
+      if (win.__printReady === undefined) { resolve(); return }
+      if (win.__printReady === true) { resolve(); return }
+      let elapsed = 0
+      const timer = setInterval(() => {
+        elapsed += 50
+        if (win.__printReady === true || elapsed >= 2000) { clearInterval(timer); resolve() }
+      }, 50)
+    })
+
+    // Hard cap: 2.5s then print whatever we have
+    const timeout = new Promise(resolve => setTimeout(resolve, 2500))
+
+    Promise.race([Promise.all([fontsReady, printReady]), timeout])
+      .then(doPrint).catch(doPrint)
   }
 
   document.body.appendChild(iframe)
   iframe.srcdoc = String(html || '')
 }
+
 
 function buildV3Html(baseHtml) {
   const parts = String(baseHtml).split(/<body[^>]*>/i)

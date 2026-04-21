@@ -2034,7 +2034,10 @@ function generatePrintHTML() {
   const headerHeightPt = Number.isFinite(headerHeightRaw) && headerHeightRaw > 0 ? headerHeightRaw : 120
   const hasHeaderContent = headerMode === 'image' ? !!headerImageUrl.trim() : !!headerHtml.trim()
   const bodyPadPx = headerEnabled && hasHeaderContent ? 0 : 20
-  const bodyPadTopPt = (headerEnabled && hasHeaderContent && !headerAutoFit) ? headerHeightPt : 0
+  // padding-top is now handled dynamically via the measurement script + @page margin-top override
+  const staticPageMarginTopMm = (headerEnabled && hasHeaderContent && !headerAutoFit)
+    ? Math.ceil(headerHeightPt * 25.4 / 72) + 3  // pt → mm
+    : (headerEnabled && hasHeaderContent ? 30 : 0)  // 30mm safe initial estimate for autoFit
   const sep = pageOptions.value?.questionSeparator || {}
   const sepEnabled = !!sep.enabled
   const sepStyle = String(sep.lineStyle || 'solid')
@@ -2049,11 +2052,13 @@ function generatePrintHTML() {
     'margin-top:' + sepBeforePt + 'pt; margin-bottom:' + sepAfterPt + 'pt; border-bottom:' + sepThicknessPt + 'pt ' + sepStyle + ' ' + sepColor + ';'
 
   html += '<style>'
-  html += '@page { size: A4; margin: 12mm; }'
-  html += ' body { font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.5; margin: 0; padding: ' + bodyPadPx + 'px; padding-top: ' + bodyPadTopPt + 'pt; }'
+  html += '@page { size: A4; margin: 12mm; margin-top: ' + staticPageMarginTopMm + 'mm; }'
+  html += ' body { font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.5; margin: 0; padding: ' + bodyPadPx + 'px; }'
   html += ' h1 { margin: 0 0 14pt; font-size: 22pt; }'
   html += ' h2 { margin: 14pt 0 6pt; font-size: 15pt; text-decoration: underline; }'
-  html += ' .print-header { position: fixed; top: 12mm; left: 12mm; right: 12mm; z-index: 999; background: white; overflow: hidden; }'
+  // Header: top:0 so it touches the very top of the physical page.
+  // box-sizing+padding:0 12mm aligns it horizontally with the content area (matching @page side margins).
+  html += ' .print-header { position: fixed; top: 0; left: 0; right: 0; z-index: 999; background: white; overflow: hidden; box-sizing: border-box; padding: 0 12mm; }'
   html += ' .section-header { position: relative; }'
   html += ' .section-instructions { margin: 0 0 6pt; font-weight: 600; }'
   html += ' .section-total-text { margin: 0 0 10pt; color: #444; font-size: 11pt; }'
@@ -2081,6 +2086,34 @@ function generatePrintHTML() {
   html += ' .page-break { page-break-before: always; height: 0; }'
   html += '</style>'
   html += '</head><body>'
+
+  // Runtime measurement script:
+  // - Waits for all images to fully load (so header image has its real height)
+  // - Measures the header element's actual height
+  // - Overrides @page margin-top with the exact measured value (px → mm)
+  // - Signals __printReady = true so the iframe printer knows it's safe to call win.print()
+  if (headerEnabled && hasHeaderContent) {
+    html += '<script>(function(){'
+    html += '  window.__printReady = false;'
+    html += '  function doMeasure(){'
+    html += '    var h = document.getElementById("printHeaderRoot");'
+    html += '    if (!h) { window.__printReady = true; return; }'
+    html += '    var heightPx = h.offsetHeight;'
+    html += '    var mm = Math.ceil(heightPx * 25.4 / 96) + 3;'
+    html += '    var s = document.createElement("style");'
+    html += '    s.textContent = "@page { margin-top: " + mm + "mm; }";'
+    html += '    document.head.appendChild(s);'
+    html += '    window.__printReady = true;'
+    html += '  }'
+    html += '  window.addEventListener("load", function(){'
+    html += '    var imgs = document.querySelectorAll("img");'
+    html += '    if (!imgs.length) { doMeasure(); return; }'
+    html += '    var total = imgs.length, done = 0;'
+    html += '    function onDone(){ if (++done >= total) doMeasure(); }'
+    html += '    [].forEach.call(imgs, function(img){ if(img.complete){ onDone(); } else { img.onload = img.onerror = onDone; } });'
+    html += '  });'
+    html += '})();<' + '/script>\n'
+  }
 
 
   if (headerEnabled && hasHeaderContent) {
