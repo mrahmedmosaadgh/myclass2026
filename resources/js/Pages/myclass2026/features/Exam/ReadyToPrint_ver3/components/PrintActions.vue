@@ -77,6 +77,18 @@ const props = defineProps({
   initialMethod: {
     type: String,
     default: 'v1'
+  },
+  examTitle: {
+    type: String,
+    default: ''
+  },
+  examSubject: {
+    type: String,
+    default: ''
+  },
+  examGrade: {
+    type: String,
+    default: ''
   }
 })
 
@@ -108,6 +120,41 @@ const methodOptions = computed(() => [
   { label: 'Print V3 – popup auto', value: 'v3' },
   { label: 'Print V4 – iframe + injected styles', value: 'v4' }
 ])
+
+function generatePrintFileName() {
+  const parts = []
+  
+  // Add exam title if available
+  if (props.examTitle) {
+    parts.push(props.examTitle)
+  }
+  
+  // Add subject if available
+  if (props.examSubject) {
+    parts.push(props.examSubject)
+  }
+  
+  // Add grade if available
+  if (props.examGrade) {
+    parts.push(props.examGrade)
+  }
+  
+  // Add date
+  const now = new Date()
+  const dateStr = now.toISOString().split('T')[0] // YYYY-MM-DD
+  parts.push(dateStr)
+  
+  // If no parts, use default
+  if (parts.length === 0) {
+    return 'Exam'
+  }
+  
+  // Join with hyphens and sanitize
+  return parts
+    .join(' - ')
+    .replace(/[<>:"/\\|?*]/g, '') // Remove invalid filename characters
+    .substring(0, 200) // Limit length
+}
 
 function openPopupWindow() {
   const w = window.open('', '_blank', 'width=800,height=1100,scrollbars=yes,resizable=yes')
@@ -330,6 +377,9 @@ async function downloadPDF() {
     // Generate the HTML content
     const html = props.generatePrintHtml()
     
+    // Generate improved filename
+    const fileName = generatePrintFileName()
+    
     // Create a new window for printing
     const printWindow = window.open('', '_blank')
     if (!printWindow) {
@@ -341,7 +391,7 @@ async function downloadPDF() {
       '<!DOCTYPE html>',
       '<html>',
       '<head>',
-      '<title>Exam PDF</title>',
+      '<title>' + fileName + '</title>',
       '<style>',
       '@media print {',
       '@page { size: A4; margin: 0; }',
