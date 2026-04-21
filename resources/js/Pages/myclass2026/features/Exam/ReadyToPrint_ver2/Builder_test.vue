@@ -57,6 +57,14 @@
       @change="handleHeaderImageFile"
     />
 
+    <input
+      ref="footerImageFileInput"
+      type="file"
+      accept="image/*"
+      style="display: none"
+      @change="handleFooterImageFile"
+    />
+
     <div class="sections-summary" v-if="sections.length">
       <div class="section-chip" v-for="s in sections" :key="s.id">
         <span class="section-chip-title">{{ s.title }}</span>
@@ -170,6 +178,7 @@
         >
           <q-tab name="general" icon="tune" label="General" />
           <q-tab name="header" icon="view_headline" label="Header" />
+          <q-tab name="footer" icon="horizontal_rule" label="Footer" />
           <q-tab name="numbering" icon="format_list_numbered" label="Numbering" />
           <q-tab name="sections" icon="category" label="Sections" />
           <q-tab name="sectionTotal" icon="summarize" label="Section Total" />
@@ -491,6 +500,146 @@
                   </div>
                 </q-card-section>
               </q-card>
+            </div>
+          </q-tab-panel>
+
+          <q-tab-panel name="footer">
+            <div class="options-grid">
+              <q-toggle
+                v-model="pageOptions.printFooter.enabled"
+                label="Repeat footer on every printed page"
+                @update:model-value="savePageState"
+              />
+
+              <q-toggle
+                v-if="pageOptions.printFooter.enabled"
+                v-model="pageOptions.printFooter.autoFit"
+                label="Auto-fit footer height (recommended)"
+                @update:model-value="savePageState"
+              />
+
+              <q-select
+                v-if="pageOptions.printFooter.enabled"
+                dense
+                outlined
+                :options="[
+                  { label: 'HTML', value: 'html' },
+                  { label: 'Image', value: 'image' }
+                ]"
+                emit-value
+                map-options
+                v-model="pageOptions.printFooter.mode"
+                label="Footer type"
+                @update:model-value="savePageState"
+              />
+
+              <q-input
+                v-if="pageOptions.printFooter.enabled"
+                dense
+                outlined
+                type="number"
+                v-model.number="pageOptions.printFooter.heightPt"
+                label="Footer height (pt) — used when Auto-fit is off"
+                @blur="savePageState"
+              />
+
+              <q-input
+                v-if="pageOptions.printFooter.enabled"
+                dense
+                outlined
+                type="number"
+                min="0"
+                v-model.number="pageOptions.printFooter.pageMarginBottomMm"
+                label="Extra bottom margin (mm) — space between content and footer"
+                hint="0 = automatic. Increase to push content further up."
+                @blur="savePageState"
+              />
+
+              <div v-if="pageOptions.printFooter.enabled && pageOptions.printFooter.mode === 'image'" class="row items-center q-col-gutter-sm">
+                <div class="col-auto">
+                  <q-btn
+                    color="primary"
+                    icon="image"
+                    label="Choose Image"
+                    @click="triggerFooterImageFile"
+                  />
+                </div>
+                <div class="col-auto">
+                  <q-btn
+                    flat
+                    color="primary"
+                    icon="content_paste"
+                    label="Paste Image"
+                    @click="pasteFooterImage"
+                  />
+                </div>
+                <div class="col-auto">
+                  <q-btn
+                    flat
+                    color="primary"
+                    icon="link"
+                    label="Paste URL"
+                    @click="pasteFooterImageUrl"
+                  />
+                </div>
+                <div class="col-auto">
+                  <q-btn
+                    v-if="pageOptions.printFooter.imageUrl"
+                    flat
+                    color="negative"
+                    icon="delete"
+                    label="Remove"
+                    @click="removeFooterImage"
+                  />
+                </div>
+              </div>
+
+              <q-input
+                v-if="pageOptions.printFooter.enabled && pageOptions.printFooter.mode === 'image'"
+                dense
+                outlined
+                v-model="pageOptions.printFooter.imageUrl"
+                label="Footer image URL / Data URL"
+                @blur="savePageState"
+              />
+
+              <q-select
+                v-if="pageOptions.printFooter.enabled && pageOptions.printFooter.mode === 'image'"
+                dense
+                outlined
+                :options="[
+                  { label: 'Contain', value: 'contain' },
+                  { label: 'Cover', value: 'cover' },
+                  { label: 'Fill', value: 'fill' }
+                ]"
+                emit-value
+                map-options
+                v-model="pageOptions.printFooter.imageFit"
+                label="Image fit"
+                @update:model-value="savePageState"
+              />
+
+              <q-input
+                v-if="pageOptions.printFooter.enabled && pageOptions.printFooter.mode !== 'image'"
+                outlined
+                type="textarea"
+                v-model="pageOptions.printFooter.html"
+                label="Footer HTML (paste here)"
+                rows="8"
+                @blur="savePageState"
+              />
+
+              <div v-if="pageOptions.printFooter.enabled && pageOptions.printFooter.mode !== 'image'" class="row items-center q-col-gutter-sm">
+                <div class="col-auto">
+                  <q-btn
+                    flat
+                    color="primary"
+                    icon="content_paste"
+                    label="Paste HTML"
+                    @click="pasteFooterHtml"
+                  />
+                </div>
+              </div>
             </div>
           </q-tab-panel>
 
@@ -1087,7 +1236,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { renderToString } from 'katex'
 import QuestionDisplay from './components/QuestionDisplay.vue'
 import SectionTotalMark from './components/SectionTotalMark.vue'
@@ -1176,6 +1325,16 @@ const pageOptions = ref({
       examType: 'V1',
       gender: 'Boys'
     }
+  },
+  printFooter: {
+    enabled: false,
+    autoFit: true,
+    heightPt: 90,
+    pageMarginBottomMm: 0,
+    mode: 'html',
+    html: '',
+    imageUrl: '',
+    imageFit: 'contain'
   },
   questionSeparator: {
     enabled: false,
@@ -1334,7 +1493,7 @@ watch(
   { deep: true }
 )
 
-function saveHeaderTemplate1() {
+async function saveHeaderTemplate1() {
   pageOptions.value.printHeader.template1 = {
     schoolName: pageOptions.value.printHeader.template1.schoolName,
     period: pageOptions.value.printHeader.template1.period,
@@ -1347,15 +1506,89 @@ function saveHeaderTemplate1() {
   if (pageOptions.value?.printHeader?.templateId === 'exam_header_v1' && pageOptions.value?.printHeader?.mode === 'html') {
     pageOptions.value.printHeader.html = buildTemplate1HTML(pageOptions.value.printHeader.template1)
   }
-  savePageState()
+  await savePageState()
 }
 
 const headerImageFileInput = ref(null)
+
+const footerImageFileInput = ref(null)
 
 function triggerHeaderImageFile() {
   if (headerImageFileInput.value) {
     headerImageFileInput.value.value = ''
     headerImageFileInput.value.click()
+  }
+}
+
+function triggerFooterImageFile() {
+  if (footerImageFileInput.value) {
+    footerImageFileInput.value.value = ''
+    footerImageFileInput.value.click()
+  }
+}
+
+async function handleFooterImageFile(event) {
+  try {
+    const file = event?.target?.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = async () => {
+      pageOptions.value.printFooter.imageUrl = String(reader.result || '')
+      await savePageState()
+    }
+    reader.readAsDataURL(file)
+  } catch (e) {
+    console.error('Footer image load failed', e)
+  }
+}
+
+async function pasteFooterImage() {
+  try {
+    const items = await navigator.clipboard.read()
+    for (const item of items) {
+      const type = item.types.find(t => t.startsWith('image/'))
+      if (!type) continue
+      const blob = await item.getType(type)
+      const dataUrl = await new Promise((resolve, reject) => {
+        const r = new FileReader()
+        r.onload = () => resolve(String(r.result || ''))
+        r.onerror = reject
+        r.readAsDataURL(blob)
+      })
+      pageOptions.value.printFooter.imageUrl = dataUrl
+      await savePageState()
+      return
+    }
+  } catch (e) {
+    console.error('Paste footer image failed', e)
+  }
+}
+
+async function pasteFooterImageUrl() {
+  try {
+    const text = await navigator.clipboard.readText()
+    if (!text) return
+    pageOptions.value.printFooter.imageUrl = String(text)
+    await savePageState()
+  } catch (e) {
+    console.error('Paste footer image url failed', e)
+  }
+}
+
+async function removeFooterImage() {
+  pageOptions.value.printFooter.imageUrl = ''
+  await savePageState()
+}
+
+async function pasteFooterHtml() {
+  try {
+    const text = await navigator.clipboard.readText()
+    if (!text) return
+    pageOptions.value.printFooter.html = String(text)
+    await savePageState()
+  } catch (e) {
+    console.error('Paste footer html failed', e)
   }
 }
 
@@ -1365,9 +1598,9 @@ async function handleHeaderImageFile(event) {
     if (!file) return
 
     const reader = new FileReader()
-    reader.onload = () => {
+    reader.onload = async () => {
       pageOptions.value.printHeader.imageUrl = String(reader.result || '')
-      savePageState()
+      await savePageState()
     }
     reader.readAsDataURL(file)
   } catch (e) {
@@ -1376,9 +1609,9 @@ async function handleHeaderImageFile(event) {
   }
 }
 
-function removeHeaderImage() {
+async function removeHeaderImage() {
   pageOptions.value.printHeader.imageUrl = ''
-  savePageState()
+  await savePageState()
 }
 
 async function pasteHeaderImageUrlFromClipboard() {
@@ -1389,7 +1622,7 @@ async function pasteHeaderImageUrlFromClipboard() {
       return
     }
     pageOptions.value.printHeader.imageUrl = String(text).trim()
-    savePageState()
+    await savePageState()
   } catch (e) {
     console.error('Paste header URL failed', e)
     alert('Clipboard paste blocked. Please allow clipboard permission or paste manually.')
@@ -1410,9 +1643,9 @@ async function pasteHeaderImageFromClipboard() {
 
       const blob = await item.getType(imgType)
       const reader = new FileReader()
-      reader.onload = () => {
+      reader.onload = async () => {
         pageOptions.value.printHeader.imageUrl = String(reader.result || '')
-        savePageState()
+        await savePageState()
       }
       reader.readAsDataURL(blob)
       return
@@ -1433,7 +1666,7 @@ async function pasteHeaderHtmlFromClipboard() {
       return
     }
     pageOptions.value.printHeader.html = String(text)
-    savePageState()
+    await savePageState()
   } catch (e) {
     console.error('Paste header HTML failed', e)
     alert('Clipboard paste blocked. Please allow clipboard permission or paste manually.')
@@ -1464,7 +1697,7 @@ function isPageBreakBefore(question) {
   return !!map[qid]
 }
 
-function togglePageBreakBefore(question) {
+async function togglePageBreakBefore(question) {
   const qid = String(question?.id)
   if (!qid) return
   const current = pageOptions.value.questionNumbering.pageBreaksBefore || {}
@@ -1475,7 +1708,7 @@ function togglePageBreakBefore(question) {
     next[qid] = true
   }
   pageOptions.value.questionNumbering.pageBreaksBefore = next
-  savePageState()
+  await savePageState()
 }
 
 function togglePageBreakAfter(question) {
@@ -1557,14 +1790,22 @@ function resetAIState() {
   pasteError.value = ''
 }
 
-function loadPageState() {
+async function loadPageState() {
   try {
-    const raw = localStorage.getItem(PAGE_STATE_KEY)
-    if (!raw) return
-    const parsed = JSON.parse(raw)
-    if (parsed?.pageOptions) pageOptions.value = { ...pageOptions.value, ...parsed.pageOptions }
-    if (Array.isArray(parsed?.sections) && parsed.sections.length > 0) sections.value = parsed.sections
-    if (parsed?.questionSectionMap && typeof parsed.questionSectionMap === 'object') questionSectionMap.value = parsed.questionSectionMap
+    const response = await fetch('/exam/ready-to-print/api/load-data')
+    const data = await response.json()
+    
+    if (data?.questions) sampleQuestions.value = data.questions
+    if (data?.settings) {
+      pageOptions.value = { ...pageOptions.value, ...data.settings }
+    }
+    
+    // Ensure every question has a section
+    const defaultSectionId = sections.value[0]?.id
+    sampleQuestions.value.forEach(q => {
+      const qid = String(q?.id)
+      if (defaultSectionId && !questionSectionMap.value[qid]) questionSectionMap.value[qid] = defaultSectionId
+    })
   } catch (e) {
     console.error('Failed to load page state', e)
   }
@@ -1612,35 +1853,50 @@ async function pasteQuestionImageFromClipboard() {
   }
 }
 
-function savePageState() {
+async function savePageState() {
   try {
-    localStorage.setItem(
-      PAGE_STATE_KEY,
-      JSON.stringify({
-        pageOptions: pageOptions.value,
-        sections: sections.value,
-        questionSectionMap: questionSectionMap.value
-      })
-    )
+    const data = {
+      questions: sampleQuestions.value,
+      settings: {
+        examTitle: pageOptions.value.examTitle,
+        printHeader: pageOptions.value.printHeader,
+        printFooter: pageOptions.value.printFooter,
+        // Include other important settings as needed
+        questionNumbering: pageOptions.value.questionNumbering,
+        sectionTotal: pageOptions.value.sectionTotal,
+        questionSeparator: pageOptions.value.questionSeparator,
+        mcqOptions: pageOptions.value.mcqOptions,
+        pageLayout: pageOptions.value.pageLayout
+      }
+    }
+    
+    await fetch('/exam/ready-to-print/api/save-data', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': page.props.csrf_token || ''
+      },
+      body: JSON.stringify(data)
+    })
   } catch (e) {
     console.error('Failed to save page state', e)
   }
 }
 
-function addSection() {
+async function addSection() {
   const id = 'sec_' + Date.now()
   sections.value.push({ id, title: 'New Section', instructions: '' })
-  savePageState()
+  await savePageState()
 }
 
-function removeSection(sectionId) {
+async function removeSection(sectionId) {
   if (sections.value.length <= 1) return
   const fallback = sections.value.find(s => s.id !== sectionId)?.id
   sections.value = sections.value.filter(s => s.id !== sectionId)
   Object.keys(questionSectionMap.value).forEach(qid => {
     if (questionSectionMap.value[qid] === sectionId) questionSectionMap.value[qid] = fallback
   })
-  savePageState()
+  await savePageState()
 }
 
 function getQuestionSectionId(question) {
@@ -1648,10 +1904,10 @@ function getQuestionSectionId(question) {
   return questionSectionMap.value[qid] || sections.value[0]?.id
 }
 
-function setQuestionSection(question, sectionId) {
+async function setQuestionSection(question, sectionId) {
   const qid = String(question?.id)
   questionSectionMap.value[qid] = sectionId
-  savePageState()
+  await savePageState()
 }
 
 function sectionTotalMarks(sectionId) {
@@ -2058,6 +2314,21 @@ function generatePrintHTML() {
   })()
   // Initial height for the spacer (gets overridden by accurate pixel measurement at runtime)
   const initialSpacerPt = headerAutoFit ? 100 : headerHeightPt
+
+  const footerEnabled = !!pageOptions.value?.printFooter?.enabled
+  const footerMode = String(pageOptions.value?.printFooter?.mode || 'html')
+  const footerHtml = String(pageOptions.value?.printFooter?.html || '')
+  const footerImageUrl = String(pageOptions.value?.printFooter?.imageUrl || '')
+  const footerImageFit = String(pageOptions.value?.printFooter?.imageFit || 'contain')
+  const footerAutoFit = pageOptions.value?.printFooter?.autoFit !== false
+  const footerHeightRaw = Number(pageOptions.value?.printFooter?.heightPt)
+  const footerHeightPt = Number.isFinite(footerHeightRaw) && footerHeightRaw > 0 ? footerHeightRaw : 90
+  const hasFooterContent = footerMode === 'image' ? !!footerImageUrl.trim() : !!footerHtml.trim()
+  const extraFooterMarginMm = (() => {
+    const v = Number(pageOptions.value?.printFooter?.pageMarginBottomMm)
+    return Number.isFinite(v) && v > 0 ? v : 0
+  })()
+  const initialFooterSpacerPt = footerAutoFit ? 80 : footerHeightPt
   
   const sep = pageOptions.value?.questionSeparator || {}
   const sepEnabled = !!sep.enabled
@@ -2079,6 +2350,7 @@ function generatePrintHTML() {
   html += ' h2 { margin: 14pt 0 6pt; font-size: 15pt; text-decoration: underline; }'
   // Header: touches the top of the physical page printable area.
   html += ' .print-header { position: fixed; top: 0; left: 0; right: 0; z-index: 999; background: white; overflow: hidden; box-sizing: border-box; padding: 0 0; }'
+  html += ' .print-footer { position: fixed; bottom: 0; left: 0; right: 0; z-index: 999; background: white; overflow: hidden; box-sizing: border-box; padding: 0 0; }'
   // Basic reset for the layout table
   html += ' table.print-layout { width: 100%; border: none; border-spacing: 0; border-collapse: collapse; }'
   html += ' table.print-layout td { padding: 0; border: none; vertical-align: top; }'
@@ -2116,16 +2388,26 @@ function generatePrintHTML() {
   // - Measures the exact height of the header
   // - Applies that height + extraMargin to the #headerSpacer inside the <thead>
   // - This safely pushes content down on EVERY printed page.
-  if (headerEnabled && hasHeaderContent) {
+  if ((headerEnabled && hasHeaderContent) || (footerEnabled && hasFooterContent)) {
     html += '<script>(function(){'
     html += '  window.__printReady = false;'
     html += '  function doMeasure(){'
-    html += '    var h = document.getElementById("printHeaderRoot");'
-    html += '    var s = document.getElementById("headerSpacer");'
-    html += '    if (!h || !s) { window.__printReady = true; return; }'
-    html += '    var heightPx = h.offsetHeight;'
-    html += '    var extraPx = Math.ceil(' + extraMarginMm + ' * 96 / 25.4);'
-    html += '    s.style.height = (heightPx + extraPx) + "px";'
+    html += '    try {'
+    html += '      var h = document.getElementById("printHeaderRoot");'
+    html += '      var hs = document.getElementById("headerSpacer");'
+    html += '      if (h && hs) {'
+    html += '        var hPx = h.offsetHeight;'
+    html += '        var hExtraPx = Math.ceil(' + extraMarginMm + ' * 96 / 25.4);'
+    html += '        hs.style.height = (hPx + hExtraPx) + "px";'
+    html += '      }'
+    html += '      var f = document.getElementById("printFooterRoot");'
+    html += '      var fs = document.getElementById("footerSpacer");'
+    html += '      if (f && fs) {'
+    html += '        var fPx = f.offsetHeight;'
+    html += '        var fExtraPx = Math.ceil(' + extraFooterMarginMm + ' * 96 / 25.4);'
+    html += '        fs.style.height = (fPx + fExtraPx) + "px";'
+    html += '      }'
+    html += '    } catch(e) {}'
     html += '    window.__printReady = true;'
     html += '  }'
     html += '  window.addEventListener("load", function(){'
@@ -2148,6 +2430,17 @@ function generatePrintHTML() {
       )
       : headerHtml
     html += '<div id="printHeaderRoot" class="print-header" style="' + (headerAutoFit ? '' : ('height:' + headerHeightPt + 'pt;')) + '">' + headerInner + '</div>'
+  }
+
+  if (footerEnabled && hasFooterContent) {
+    const footerInner = footerMode === 'image'
+      ? (
+        footerAutoFit
+          ? ('<img src="' + footerImageUrl + '" style="width:100%; height:auto; object-fit:contain; display:block;" />')
+          : ('<img src="' + footerImageUrl + '" style="width:100%; height:100%; object-fit:' + footerImageFit + '; display:block;" />')
+      )
+      : footerHtml
+    html += '<div id="printFooterRoot" class="print-footer" style="' + (footerAutoFit ? '' : ('height:' + footerHeightPt + 'pt;')) + '">' + footerInner + '</div>'
   }
 
   // The master layout table forces the header spacer to repeat on every printed page
@@ -2267,7 +2560,16 @@ function generatePrintHTML() {
     })
   })
   
-  html += '</td></tr></tbody></table>'
+  html += '</td></tr></tbody>'
+
+  if (footerEnabled && hasFooterContent) {
+    html += '<tfoot><tr><td>'
+    const extraPt = Math.ceil(extraFooterMarginMm * 72 / 25.4)
+    html += '<div id="footerSpacer" style="height: ' + (initialFooterSpacerPt + extraPt) + 'pt;"></div>'
+    html += '</td></tr></tfoot>'
+  }
+
+  html += '</table>'
   html += '</body></html>'
   return html
 }
@@ -2337,8 +2639,18 @@ function getPrintAnswerLines(question) {
   return 4
 }
 
-onMounted(() => {
-  loadPageState()
+// Watch for changes and auto-save
+watch(
+  [sampleQuestions, pageOptions],
+  async () => {
+    await nextTick()
+    await savePageState()
+  },
+  { deep: true }
+)
+
+onMounted(async () => {
+  await loadPageState()
 })
 </script>
 
