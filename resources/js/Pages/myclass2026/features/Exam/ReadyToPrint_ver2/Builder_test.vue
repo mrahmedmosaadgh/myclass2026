@@ -1,4 +1,5 @@
 <template>
+  <Head :title="pageTitle" />
   <div class="exam-test-page">
     <!-- Modern sticky toolbar -->
     <div class="modern-toolbar">
@@ -1565,6 +1566,13 @@ const pasteError = ref('')
 const firstLastPageOpen = ref(false)
 const optionsOpen = ref(false)
 const settingsTab = ref('general')
+// Computed page title for Head component
+const pageTitle = computed(() => {
+  return pageOptions.value.examTitle?.enabled && pageOptions.value.examTitle?.text
+    ? pageOptions.value.examTitle.text
+    : 'Exam Builder - Ready to Print'
+})
+
 const pageOptions = ref({
   examTitle: {
     enabled: true,
@@ -2707,7 +2715,7 @@ function generatePrintHTML() {
   html += ' .page-number-content[data-format="page-slash"]::after { content: counter(page) " / " counter(pages); }'
   html += ' .page-number-content[data-format="fraction"]::after { content: counter(page) " / " counter(pages); }'
   html += ' @media screen { .page-number-content::after, .page-number-content[data-format]::after { content: attr(data-preview); } }'
-  html += ' @media print { .page-number-content::after, .page-number-content[data-format]::after { content: ""; } }'
+  html += ' @media print { .page-number-content::after, .page-number-content[data-format]::after { content: ""; } .abs-page-number { display: block !important; } }'
   html += ' .abs-page-number { position: absolute; z-index: 5000; font-family: Arial, sans-serif; pointer-events: none; }'
   html += '</style>'
   html += '</head><body>'
@@ -2811,7 +2819,9 @@ function generatePrintHTML() {
     html += '    window.__printReady = true;'
     html += '  }'
     html += '  try { window.addEventListener("beforeprint", injectAbsPageNumbers); } catch(e) {}'
-    html += '  window.addEventListener("load", function(){'
+  html += '  // Also run immediately for more reliable page number injection'
+  html += '  setTimeout(injectAbsPageNumbers, 100);'
+  html += '  window.addEventListener("load", function(){'
     html += '    var imgs = document.querySelectorAll("img");'
     html += '    if (!imgs.length) { doMeasure(); return; }'
     html += '    var total = imgs.length, done = 0;'
