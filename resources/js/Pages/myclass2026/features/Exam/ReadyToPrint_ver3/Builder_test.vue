@@ -2176,7 +2176,7 @@ function resetAIState() {
 
 async function loadPageState() {
   try {
-    const response = await fetch('/exam/ready-to-print/api/load-data')
+    const response = await fetch('/exam/ready-to-print/api/load-data-v3')
     const data = await response.json()
     
     if (data?.questions) sampleQuestions.value = data.questions
@@ -2186,6 +2186,11 @@ async function loadPageState() {
       if (pageOptions.value.printFooter) {
         pageOptions.value.printFooter.enabled = true
         pageOptions.value.printFooter.showPageNumbers = true
+      }
+      // Restore page breaks if they exist
+      if (data?.pageBreaks && typeof data.pageBreaks === 'object') {
+        if (!pageOptions.value.questionNumbering) pageOptions.value.questionNumbering = {}
+        pageOptions.value.questionNumbering.pageBreaksBefore = data.pageBreaks
       }
     }
     
@@ -2247,22 +2252,24 @@ async function savePageState() {
     const data = {
       questions: sampleQuestions.value,
       settings: {
+        // Include ALL pageOptions to ensure nothing is lost
         examTitle: pageOptions.value.examTitle,
         showMarksPerQuestion: pageOptions.value.showMarksPerQuestion,
         printHeader: pageOptions.value.printHeader,
         printFooter: pageOptions.value.printFooter,
         firstPage: pageOptions.value.firstPage,
         lastPage: pageOptions.value.lastPage,
-        // Include other important settings as needed
         questionNumbering: pageOptions.value.questionNumbering,
         sectionTotal: pageOptions.value.sectionTotal,
         questionSeparator: pageOptions.value.questionSeparator,
         mcqOptions: pageOptions.value.mcqOptions,
         pageLayout: pageOptions.value.pageLayout
-      }
+      },
+      // Also save page breaks separately for easy access
+      pageBreaks: pageOptions.value.questionNumbering?.pageBreaksBefore || {}
     }
     
-    await fetch('/exam/ready-to-print/api/save-data', {
+    await fetch('/exam/ready-to-print/api/save-data-v3', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
