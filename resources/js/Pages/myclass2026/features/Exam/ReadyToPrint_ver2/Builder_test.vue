@@ -2585,7 +2585,12 @@ function generatePrintHTML() {
   const footerAutoFit = pageOptions.value?.printFooter?.autoFit !== false
   const footerHeightRaw = Number(pageOptions.value?.printFooter?.heightPt)
   const footerHeightPt = Number.isFinite(footerHeightRaw) && footerHeightRaw > 0 ? footerHeightRaw : 90
-  const hasFooterContent = footerMode === 'image' ? !!footerImageUrl.trim() : !!footerHtml.trim()
+  const hasFooterContent = footerMode === 'image' ? !!footerImageUrl.trim() : !!footerHtml.trim() || showPageNumbers
+  const showPageNumbers = !!pageOptions.value?.printFooter?.showPageNumbers
+  const pageNumberPosition = String(pageOptions.value?.printFooter?.pageNumberPosition || 'bottom-center')
+  const pageNumberFormat = String(pageOptions.value?.printFooter?.pageNumberFormat || 'page')
+  const pageNumberFontSize = Number(pageOptions.value?.printFooter?.pageNumberFontSize) || 10
+  const pageNumberColor = String(pageOptions.value?.printFooter?.pageNumberColor || '#000000')
   const extraFooterMarginMm = (() => {
     const v = Number(pageOptions.value?.printFooter?.pageMarginBottomMm)
     return Number.isFinite(v) && v > 0 ? v : 0
@@ -2642,6 +2647,8 @@ function generatePrintHTML() {
   html += ' .answer-area { border-top: 1px solid #ccc; margin-top: 10pt; padding-top: 8pt; }'
   html += ' .answer-line { border-bottom: 1px solid #ccc; height: 18pt; margin-bottom: 6pt; }'
   html += ' .page-break { page-break-before: always; height: 0; }'
+  html += ' .page-number { position: absolute; z-index: 1000; }'
+  html += ' .page-number-content { }'
   html += '</style>'
   html += '</head><body>'
 
@@ -2670,6 +2677,46 @@ function generatePrintHTML() {
     html += '        fs.style.height = (fPx + fExtraPx) + "px";'
     html += '      }'
     html += '    } catch(e) {}'
+    
+    // Handle page numbers
+    if (' + showPageNumbers + ') {
+      try {
+        var pageNumbers = document.querySelectorAll(".page-number-content");
+        var format = "' + pageNumberFormat + '";
+        
+        function updatePageNumbers() {
+          var totalPages = Math.ceil(document.body.scrollHeight / window.innerHeight);
+          pageNumbers.forEach(function(el, index) {
+            var pageNum = index + 1;
+            var text = "";
+            
+            switch(format) {
+              case "page":
+                text = String(pageNum);
+                break;
+              case "page-of":
+                text = pageNum + " of " + totalPages;
+                break;
+              case "page-slash":
+                text = pageNum + "/" + totalPages;
+                break;
+              case "fraction":
+                text = pageNum + "/" + totalPages;
+                break;
+              default:
+                text = String(pageNum);
+            }
+            
+            el.textContent = text;
+          });
+        }
+        
+        // Update page numbers after layout is ready
+        setTimeout(updatePageNumbers, 100);
+        window.addEventListener("resize", updatePageNumbers);
+      } catch(e) {}
+    }
+    
     html += '    window.__printReady = true;'
     html += '  }'
     html += '  window.addEventListener("load", function(){'
@@ -2695,13 +2742,36 @@ function generatePrintHTML() {
   }
 
   if (footerEnabled && hasFooterContent) {
-    const footerInner = footerMode === 'image'
-      ? (
-        footerAutoFit
-          ? ('<img src="' + footerImageUrl + '" style="width:100%; height:auto; object-fit:contain; display:block;" />')
-          : ('<img src="' + footerImageUrl + '" style="width:100%; height:100%; object-fit:' + footerImageFit + '; display:block;" />')
-      )
-      : footerHtml
+    let footerInner = ''
+    if (footerMode === 'image') {
+      footerInner = footerAutoFit
+        ? ('<img src="' + footerImageUrl + '" style="width:100%; height:auto; object-fit:contain; display:block;" />')
+        : ('<img src="' + footerImageUrl + '" style="width:100%; height:100%; object-fit:' + footerImageFit + '; display:block;" />')
+    } else {
+      footerInner = footerHtml
+    }
+    
+    // Add page numbers if enabled
+    if (showPageNumbers) {
+      const positionStyles = {
+        'bottom-left': 'text-align:left; left:12mm; right:auto;',
+        'bottom-center': 'text-align:center; left:0; right:0;',
+        'bottom-right': 'text-align:right; right:12mm; left:auto;',
+        'top-left': 'text-align:left; left:12mm; right:auto; top:0;',
+        'top-center': 'text-align:center; left:0; right:0; top:0;',
+        'top-right': 'text-align:right; right:12mm; left:auto; top:0;'
+      }
+      
+      const position = pageNumberPosition.includes('top') ? 'top' : 'bottom'
+      const style = positionStyles[pageNumberPosition] || positionStyles['bottom-center']
+      
+      const pageNumberHtml = '<div class="page-number" style="position:absolute; ' + position + ':0; ' + style + ' font-size:' + pageNumberFontSize + 'pt; color:' + pageNumberColor + '; padding:8mm 12mm;">' +
+        '<span class="page-number-content"></span>' +
+        '</div>'
+      
+      footerInner += pageNumberHtml
+    }
+    
     html += '<div id="printFooterRoot" class="print-footer" style="' + (footerAutoFit ? '' : ('height:' + footerHeightPt + 'pt;')) + '">' + footerInner + '</div>'
   }
 
