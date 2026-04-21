@@ -2673,7 +2673,7 @@ function generatePrintHTML() {
 
   html += '<style>'
   html += '@page { size: A4; margin: 12mm; }'
-  html += ' body { font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.5; margin: 0; padding: ' + bodyPadPx + 'px; }'
+  html += ' body { font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.5; margin: 0; padding: ' + bodyPadPx + 'px; counter-reset: page 0 pages 0; }'
   html += ' h1 { margin: 0 0 14pt; font-size: 22pt; }'
   html += ' h2 { margin: 14pt 0 6pt; font-size: 15pt; text-decoration: underline; }'
   // Header: touches the top of the physical page printable area.
@@ -2707,7 +2707,7 @@ function generatePrintHTML() {
   html += ' .question-inline-number { margin-right: ' + inlineGapPt + 'pt; }'
   html += ' .answer-area { border-top: 1px solid #ccc; margin-top: 10pt; padding-top: 8pt; }'
   html += ' .answer-line { border-bottom: 1px solid #ccc; height: 18pt; margin-bottom: 6pt; }'
-  html += ' .page-break { page-break-before: always; height: 0; }'
+  html += ' .page-break { page-break-before: always; height: 0; counter-increment: page 1; }'
   html += ' .page-number { position: absolute; z-index: 1000; }'
   html += ' .page-number-content::after { content: counter(page); }'
   html += ' .page-number-content[data-format="page"]::after { content: counter(page); }'
@@ -2726,109 +2726,111 @@ function generatePrintHTML() {
   // - Applies that height + extraMargin to the #headerSpacer inside the <thead>
   // - This safely pushes content down on EVERY printed page.
   if ((headerEnabled && hasHeaderContent) || (footerEnabled && hasFooterContent)) {
-    html += '<script>(function(){'
-    html += '  window.__printReady = false;'
-    html += '  function injectAbsPageNumbers(){'
-    html += '    try {'
-    html += '      var ENABLE = ' + (showPageNumbers ? 'true' : 'false') + ';'
-    html += '      if (!ENABLE) return;'
-    html += '      function mmToPx(mm){'
-    html += '        var d = document.createElement("div");'
-    html += '        d.style.cssText = "position:absolute;left:-9999px;top:0;height:" + mm + "mm;width:1px;";'
-    html += '        document.body.appendChild(d);'
-    html += '        var px = d.getBoundingClientRect().height || d.offsetHeight || 0;'
-    html += '        d.remove();'
-    html += '        return Math.max(1, px);'
-    html += '      }'
-    html += '      var PAGE_MARGIN_MM = 12;'
-    html += '      var PAGE_H = mmToPx(297 - (PAGE_MARGIN_MM * 2));'
-    html += '      var MARGIN = 0;'
-    html += '      var docH = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);'
-    html += '      var np = Math.max(1, Math.ceil(docH / PAGE_H));'
-    html += '      // Printing pagination can create a final page even if scrollHeight is slightly smaller than an exact multiple.'
-    html += '      // Add a small buffer to avoid missing the last page label.'
-    html += '      if ((docH % PAGE_H) > (PAGE_H * 0.05)) np = np + 1;'
-    html += '      try { document.body.style.minHeight = (np * PAGE_H) + "px"; } catch(e) {}'
-    html += '      var fmt = "' + pageNumberFormat + '";'
-    html += '      var pos = "' + pageNumberPosition + '";'
-    html += '      var fontPt = ' + pageNumberFontSize + ';'
-    html += '      var color = "' + pageNumberColor + '";'
-    html += '      var footerH = 0;'
-    html += '      try { var f = document.getElementById("printFooterRoot"); if (f) footerH = f.getBoundingClientRect().height || f.offsetHeight || 0; } catch(e) {}'
-    html += '      var existing = document.querySelectorAll(".abs-page-number");'
-    html += '      for (var k = 0; k < existing.length; k++) existing[k].remove();'
-    html += '      for (var i = 1; i <= np; i++) {'
-    html += '        var t = "";'
-    html += '        if (fmt === "page") t = String(i);'
-    html += '        else if (fmt === "page-of") t = "Page " + i + " of " + np;'
-    html += '        else if (fmt === "page-slash") t = "Page " + i + " / " + np;'
-    html += '        else t = i + " / " + np;'
-    html += '        var el = document.createElement("div");'
-    html += '        el.className = "abs-page-number";'
-    html += '        el.textContent = t;'
-    html += '        el.style.fontSize = fontPt + "pt";'
-    html += '        el.style.color = color;'
-    html += '        var pageTop = (i - 1) * PAGE_H;'
-    html += '        var pageBottom = i * PAGE_H;'
-    html += '        var top = (pageBottom - MARGIN) - 18;'
-    html += '        if (footerH > 0 && pos.indexOf("bottom") === 0) { top = (pageBottom - MARGIN) - Math.min(footerH, 80) + 10; }'
-    html += '        if (pos.indexOf("top") === 0) top = pageTop + MARGIN + 10;'
-    html += '        el.style.top = top + "px";'
-    html += '        if (pos.indexOf("left") !== -1) { el.style.left = "0"; el.style.right = "auto"; el.style.textAlign = "left"; }'
-    html += '        else if (pos.indexOf("right") !== -1) { el.style.right = "0"; el.style.left = "auto"; el.style.textAlign = "right"; }'
-    html += '        else { el.style.left = "0"; el.style.right = "0"; el.style.textAlign = "center"; }'
-    html += '        document.body.appendChild(el);'
-    html += '      }'
-    html += '    } catch(e) {}'
-    html += '  }'
-    html += '  function doMeasure(){'
-    html += '    try {'
-    html += '      var h = document.getElementById("printHeaderRoot");'
-    html += '      var hs = document.getElementById("headerSpacer");'
-    html += '      if (h && hs) {'
-    html += '        var hPx = h.offsetHeight;'
-    html += '        var hExtraPx = Math.ceil(' + extraMarginMm + ' * 96 / 25.4);'
-    html += '        hs.style.height = (hPx + hExtraPx) + "px";'
-    html += '      }'
-    html += '      if (' + (footerEnabled && hasFooterContent && footerReserveSpace ? 'true' : 'false') + ') {'
-    html += '        var f = document.getElementById("printFooterRoot");'
-    html += '        var fs = document.getElementById("footerSpacer");'
-    html += '        if (f && fs) {'
-    html += '          var fPx = f.offsetHeight;'
-    html += '          var fExtraPx = Math.ceil(' + extraFooterMarginMm + ' * 96 / 25.4);'
-    html += '          fs.style.height = (fPx + fExtraPx) + "px";'
-    html += '        }'
-    html += '      }'
-
-    html += '      try {'
-    html += '        var els = document.querySelectorAll(".page-number-content");'
-    html += '        if (els && els.length) {'
-    html += '          var total = Math.max(1, Math.ceil(document.documentElement.scrollHeight / window.innerHeight));'
-    html += '          var fmt = "' + pageNumberFormat + '";'
-    html += '          var pageNum = 1;'
-    html += '          var preview = "";'
-    html += '          if (fmt === "page") preview = String(pageNum);'
-    html += '          else if (fmt === "page-of") preview = "Page " + pageNum + " of " + total;'
-    html += '          else if (fmt === "page-slash") preview = "Page " + pageNum + " / " + total;'
-    html += '          else preview = pageNum + " / " + total;'
-    html += '          els.forEach(function(el){ el.setAttribute("data-preview", preview); });'
-    html += '        }'
-    html += '      } catch(e) {}'
-
-    html += '    } catch(e) {}'
-    html += '    window.__printReady = true;'
-    html += '  }'
-    html += '  try { window.addEventListener("beforeprint", injectAbsPageNumbers); } catch(e) {}'
-  html += '  // Also run immediately for more reliable page number injection'
-  html += '  setTimeout(injectAbsPageNumbers, 100);'
-  html += '  window.addEventListener("load", function(){'
-    html += '    var imgs = document.querySelectorAll("img");'
-    html += '    if (!imgs.length) { doMeasure(); return; }'
-    html += '    var total = imgs.length, done = 0;'
-    html += '    function onDone(){ if (++done >= total) doMeasure(); }'
-    html += '    [].forEach.call(imgs, function(img){ if(img.complete){ onDone(); } else { img.onload = img.onerror = onDone; } });'
-    html += '  });'
-    html += '})();<' + '/script>\n'
+    var scriptContent = "(function(){";
+scriptContent += "window.__printReady = false;";
+scriptContent += "function injectAbsPageNumbers(){";
+scriptContent += "try {";
+scriptContent += "var ENABLE = " + (showPageNumbers ? 'true' : 'false') + ";";
+scriptContent += "console.log('Page numbers enabled:', ENABLE);";
+scriptContent += "if (!ENABLE) { console.log('Page numbers disabled, returning'); return; }";
+scriptContent += "function mmToPx(mm){";
+scriptContent += "var d = document.createElement('div');";
+scriptContent += "d.style.cssText = \"position:absolute;left:-9999px;top:0;height:\" + mm + \"mm;width:1px;\";";
+scriptContent += "document.body.appendChild(d);";
+scriptContent += "var px = d.getBoundingClientRect().height || d.offsetHeight || 0;";
+scriptContent += "d.remove();";
+scriptContent += "return Math.max(1, px);";
+scriptContent += "}";
+scriptContent += "var PAGE_MARGIN_MM = 12;";
+scriptContent += "var PAGE_H = mmToPx(297 - (PAGE_MARGIN_MM * 2));";
+scriptContent += "var MARGIN = 0;";
+scriptContent += "var docH = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);";
+scriptContent += "var np = Math.max(1, Math.ceil(docH / PAGE_H));";
+scriptContent += "console.log('Document height:', docH, 'px, Page height:', PAGE_H, 'px, Calculated pages:', np);";
+scriptContent += "if ((docH % PAGE_H) > (PAGE_H * 0.05)) np = np + 1;";
+scriptContent += "console.log('Final page count after buffer:', np);";
+scriptContent += "try { document.body.style.minHeight = (np * PAGE_H) + 'px'; } catch(e) {}";
+scriptContent += "var fmt = '" + pageNumberFormat + "';";
+scriptContent += "var pos = '" + pageNumberPosition + "';";
+scriptContent += "var fontPt = " + pageNumberFontSize + ";";
+scriptContent += "var color = '" + pageNumberColor + "';";
+scriptContent += "var footerH = 0;";
+scriptContent += "try { var f = document.getElementById('printFooterRoot'); if (f) footerH = f.getBoundingClientRect().height || f.offsetHeight || 0; } catch(e) {}";
+scriptContent += "var existing = document.querySelectorAll('.abs-page-number');";
+scriptContent += "for (var k = 0; k < existing.length; k++) existing[k].remove();";
+scriptContent += "for (var i = 1; i <= np; i++) {";
+scriptContent += "var t = '';";
+scriptContent += "if (fmt === 'page') t = String(i);";
+scriptContent += "else if (fmt === 'page-of') t = 'Page ' + i + ' of ' + np;";
+scriptContent += "else if (fmt === 'page-slash') t = 'Page ' + i + ' / ' + np;";
+scriptContent += "else t = i + ' / ' + np;";
+scriptContent += "console.log('Creating page number', i, 'with text:', t);";
+scriptContent += "var el = document.createElement('div');";
+scriptContent += "el.className = 'abs-page-number';";
+scriptContent += "el.textContent = t;";
+scriptContent += "el.style.fontSize = fontPt + 'pt';";
+scriptContent += "el.style.color = color;";
+scriptContent += "console.log('Created element:', el);";
+scriptContent += "var pageTop = (i - 1) * PAGE_H;";
+scriptContent += "var pageBottom = i * PAGE_H;";
+scriptContent += "var top = (pageBottom - MARGIN) - 18;";
+scriptContent += "if (footerH > 0 && pos.indexOf('bottom') === 0) { top = (pageBottom - MARGIN) - Math.min(footerH, 80) + 10; }";
+scriptContent += "if (pos.indexOf('top') === 0) top = pageTop + MARGIN + 10;";
+scriptContent += "el.style.top = top + 'px';";
+scriptContent += "if (pos.indexOf('left') !== -1) { el.style.left = '0'; el.style.right = 'auto'; el.style.textAlign = 'left'; }";
+scriptContent += "else if (pos.indexOf('right') !== -1) { el.style.right = '0'; el.style.left = 'auto'; el.style.textAlign = 'right'; }";
+scriptContent += "else { el.style.left = '0'; el.style.right = '0'; el.style.textAlign = 'center'; }";
+scriptContent += "document.body.appendChild(el);";
+scriptContent += "console.log('Added page number element to body, total elements:', document.querySelectorAll('.abs-page-number').length);";
+scriptContent += "}";
+scriptContent += "} catch(e) {}";
+scriptContent += "}";
+scriptContent += "function doMeasure(){";
+scriptContent += "try {";
+scriptContent += "var h = document.getElementById('printHeaderRoot');";
+scriptContent += "var hs = document.getElementById('headerSpacer');";
+scriptContent += "if (h && hs) {";
+scriptContent += "var hPx = h.offsetHeight;";
+scriptContent += "var hExtraPx = Math.ceil(" + extraMarginMm + " * 96 / 25.4);";
+scriptContent += "hs.style.height = (hPx + hExtraPx) + 'px';";
+scriptContent += "}";
+scriptContent += "if (" + (footerEnabled && hasFooterContent && footerReserveSpace ? 'true' : 'false') + ") {";
+scriptContent += "var f = document.getElementById('printFooterRoot');";
+scriptContent += "var fs = document.getElementById('footerSpacer');";
+scriptContent += "if (f && fs) {";
+scriptContent += "var fPx = f.offsetHeight;";
+scriptContent += "var fExtraPx = Math.ceil(" + extraFooterMarginMm + " * 96 / 25.4);";
+scriptContent += "fs.style.height = (fPx + fExtraPx) + 'px';";
+scriptContent += "}";
+scriptContent += "}";
+scriptContent += "try {";
+scriptContent += "var els = document.querySelectorAll('.page-number-content');";
+scriptContent += "if (els && els.length) {";
+scriptContent += "var total = Math.max(1, Math.ceil(document.documentElement.scrollHeight / window.innerHeight));";
+scriptContent += "var fmt = '" + pageNumberFormat + "';";
+scriptContent += "var pageNum = 1;";
+scriptContent += "var preview = '';";
+scriptContent += "if (fmt === 'page') preview = String(pageNum);";
+scriptContent += "else if (fmt === 'page-of') preview = 'Page ' + pageNum + ' of ' + total;";
+scriptContent += "else if (fmt === 'page-slash') preview = 'Page ' + pageNum + ' / ' + total;";
+scriptContent += "else preview = pageNum + ' / ' + total;";
+scriptContent += "els.forEach(function(el){ el.setAttribute('data-preview', preview); });";
+scriptContent += "}";
+scriptContent += "} catch(e) {}";
+scriptContent += "} catch(e) {}";
+scriptContent += "window.__printReady = true;";
+scriptContent += "}";
+scriptContent += "try { window.addEventListener('beforeprint', injectAbsPageNumbers); } catch(e) {}";
+scriptContent += "setTimeout(injectAbsPageNumbers, 100);";
+scriptContent += "window.addEventListener('load', function(){";
+scriptContent += "var imgs = document.querySelectorAll('img');";
+scriptContent += "if (!imgs.length) { doMeasure(); return; }";
+scriptContent += "var total = imgs.length, done = 0;";
+scriptContent += "function onDone(){ if (++done >= total) doMeasure(); }";
+scriptContent += "[].forEach.call(imgs, function(img){ if(img.complete){ onDone(); } else { img.onload = img.onerror = onDone; } });";
+scriptContent += "});";
+scriptContent += "})();";
+    html += '<script>' + scriptContent + '<\/script>';
   }
 
 
@@ -2836,8 +2838,8 @@ function generatePrintHTML() {
     const headerInner = headerMode === 'image'
       ? (
         headerAutoFit
-          ? ('<img src="' + headerImageUrl + '" style="width:100%; height:auto; object-fit:contain; display:block;" />')
-          : ('<img src="' + headerImageUrl + '" style="width:100%; height:100%; object-fit:' + headerImageFit + '; display:block;" />')
+          ? ('<img src="' + headerImageUrl + '" style="width:100%; height:auto; object-fit:contain; display:block;">')
+          : ('<img src="' + headerImageUrl + '" style="width:100%; height:100%; object-fit:' + headerImageFit + '; display:block;">')
       )
       : headerHtml
     html += '<div id="printHeaderRoot" class="print-header" style="' + (headerAutoFit ? '' : ('height:' + headerHeightPt + 'pt;')) + '">' + headerInner + '</div>'
@@ -2847,8 +2849,8 @@ function generatePrintHTML() {
     const footerContentHtml = footerMode === 'image'
       ? (
         footerAutoFit
-          ? ('<img src="' + footerImageUrl + '" style="width:100%; height:auto; object-fit:contain; display:block;" />')
-          : ('<img src="' + footerImageUrl + '" style="width:100%; height:100%; object-fit:' + footerImageFit + '; display:block;" />')
+          ? ('<img src="' + footerImageUrl + '" style="width:100%; height:auto; object-fit:contain; display:block;">')
+          : ('<img src="' + footerImageUrl + '" style="width:100%; height:100%; object-fit:' + footerImageFit + '; display:block;">')
       )
       : ('<div class="footer-text" style="font-size:' + footerTextFontSizePt + 'pt; color:' + footerTextColor + ';">' + footerHtml + '</div>')
 
