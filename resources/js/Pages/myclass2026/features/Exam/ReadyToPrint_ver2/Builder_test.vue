@@ -47,6 +47,20 @@
           </q-btn>
         </div>
 
+        <!-- First/Last Page Group -->
+        <div class="toolbar-group">
+          <q-btn
+            flat
+            round
+            color="purple"
+            icon="auto_stories"
+            size="md"
+            @click="firstLastPageOpen = true"
+          >
+            <q-tooltip>First/Last Page</q-tooltip>
+          </q-btn>
+        </div>
+
         <!-- Settings Group -->
         <div class="toolbar-group">
           <q-btn
@@ -208,7 +222,6 @@
           inline-label
         >
           <q-tab name="general" icon="tune" label="General" />
-          <q-tab name="firstPage" icon="description" label="First Page" />
           <q-tab name="header" icon="view_headline" label="Header" />
           <q-tab name="footer" icon="horizontal_rule" label="Footer" />
           <q-tab name="numbering" icon="format_list_numbered" label="Numbering" />
@@ -219,13 +232,6 @@
         <q-separator />
 
         <q-tab-panels v-model="settingsTab" animated>
-          <q-tab-panel name="general">
-            <FirstPageSettings
-              :model-value="pageOptions.firstPage"
-              @update:model-value="(value) => { pageOptions.firstPage = value; savePageState() }"
-            />
-          </q-tab-panel>
-
           <q-tab-panel name="general">
             <div class="options-grid">
               <q-toggle
@@ -1351,6 +1357,105 @@
       </q-card-actions>
     </q-card>
   </q-dialog>
+
+  <!-- First/Last Page Fullscreen Dialog -->
+  <q-dialog
+    v-model="firstLastPageOpen"
+    maximized
+    transition-show="slide-up"
+    transition-hide="slide-down"
+  >
+    <q-card class="first-last-page-dialog">
+      <q-card-section class="row items-center q-pb-none">
+        <div class="text-h6">
+          <q-icon name="auto_stories" class="q-mr-sm" />
+          First & Last Page Management
+        </div>
+        <q-space />
+        <q-btn icon="close" flat round dense v-close-popup />
+      </q-card-section>
+
+      <q-separator />
+
+      <q-card-section class="scroll">
+        <div class="row q-col-gutter-lg">
+          <!-- First Page Section -->
+          <div class="col-12 col-md-6">
+            <div class="page-section">
+              <div class="section-header">
+                <q-icon name="first_page" size="24px" color="primary" />
+                <span class="section-title">First Page</span>
+              </div>
+              
+              <FirstPageSettings
+                :model-value="pageOptions.firstPage"
+                @update:model-value="(value) => { pageOptions.firstPage = value; savePageState() }"
+              />
+            </div>
+          </div>
+
+          <!-- Last Page Section -->
+          <div class="col-12 col-md-6">
+            <div class="page-section">
+              <div class="section-header">
+                <q-icon name="last_page" size="24px" color="secondary" />
+                <span class="section-title">Last Page</span>
+              </div>
+              
+              <LastPageSettings
+                :model-value="pageOptions.lastPage"
+                @update:model-value="(value) => { pageOptions.lastPage = value; savePageState() }"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Preview Section -->
+        <div class="row q-mt-lg">
+          <div class="col-12">
+            <div class="preview-section">
+              <div class="section-header">
+                <q-icon name="preview" size="24px" color="accent" />
+                <span class="section-title">Preview</span>
+              </div>
+              
+              <div class="preview-container">
+                <div class="preview-page first-page-preview" v-if="pageOptions.firstPage.enabled">
+                  <div class="preview-label">First Page</div>
+                  <div class="preview-content">
+                    <div v-if="pageOptions.firstPage.type === 'title'" class="title-preview">
+                      <h1>{{ pageOptions.firstPage.title || 'Title' }}</h1>
+                      <h2 v-if="pageOptions.firstPage.subtitle">{{ pageOptions.firstPage.subtitle }}</h2>
+                    </div>
+                    <div v-else-if="pageOptions.firstPage.type === 'cover'" class="cover-preview">
+                      <h1>{{ pageOptions.firstPage.coverTitle || 'Cover Title' }}</h1>
+                      <p>{{ pageOptions.firstPage.coverDescription || 'Description' }}</p>
+                      <img v-if="pageOptions.firstPage.coverImage" :src="pageOptions.firstPage.coverImage" class="cover-image" />
+                    </div>
+                    <div v-else class="custom-preview" v-html="pageOptions.firstPage.customContent || 'Custom content'"></div>
+                  </div>
+                </div>
+                
+                <div class="preview-page last-page-preview" v-if="pageOptions.lastPage.enabled">
+                  <div class="preview-label">Last Page</div>
+                  <div class="preview-content">
+                    <h2>{{ pageOptions.lastPage.title || 'End of Exam' }}</h2>
+                    <p>{{ pageOptions.lastPage.message || 'Thank you for completing the exam.' }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </q-card-section>
+
+      <q-separator />
+
+      <q-card-actions align="right">
+        <q-btn flat color="primary" @click="firstLastPageOpen = false">Done</q-btn>
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
 </template>
 
 <script setup>
@@ -1361,6 +1466,7 @@ import QuestionDisplay from './components/QuestionDisplay.vue'
 import SectionTotalMark from './components/SectionTotalMark.vue'
 import PrintActions from './components/PrintActions.vue'
 import FirstPageSettings from './components/FirstPageSettings.vue'
+import LastPageSettings from './components/LastPageSettings.vue'
 import { renderSectionTotalHTML } from './utils/sectionTotalTemplates'
 import { formatQuestionLabel } from './utils/questionNumbering'
  
@@ -1420,7 +1526,7 @@ const aiResponse = ref('')
 const parsedQuestions = ref([])
 const selectedQuestions = ref([])
 const pasteError = ref('')
-
+const firstLastPageOpen = ref(false)
 const optionsOpen = ref(false)
 const settingsTab = ref('general')
 const pageOptions = ref({
@@ -1475,6 +1581,18 @@ const pageOptions = ref({
     customContent: '',
     skipPageNumber: true,
     pageBreakAfter: true
+  },
+  lastPage: {
+    enabled: false,
+    type: 'message',
+    title: 'End of Exam',
+    message: 'Thank you for completing the exam.',
+    alignment: 'center',
+    showTotalMarks: false,
+    showCompletionTime: false,
+    customContent: '',
+    skipPageNumber: false,
+    pageBreakBefore: true
   },
   questionSeparator: {
     enabled: false,
@@ -2002,6 +2120,7 @@ async function savePageState() {
         printHeader: pageOptions.value.printHeader,
         printFooter: pageOptions.value.printFooter,
         firstPage: pageOptions.value.firstPage,
+        lastPage: pageOptions.value.lastPage,
         // Include other important settings as needed
         questionNumbering: pageOptions.value.questionNumbering,
         sectionTotal: pageOptions.value.sectionTotal,
@@ -3133,5 +3252,136 @@ onMounted(async () => {
     max-width: 100vw;
     max-height: 100vh;
   }
+}
+
+/* First/Last Page Dialog Styles */
+.first-last-page-dialog {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.page-section {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.preview-section {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
+}
+
+.preview-container {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.preview-page {
+  flex: 1;
+  min-width: 300px;
+  max-width: 400px;
+  background: #f8f9fa;
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  padding: 20px;
+  position: relative;
+  min-height: 400px;
+}
+
+.preview-label {
+  position: absolute;
+  top: -12px;
+  left: 20px;
+  background: #1976d2;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.first-page-preview .preview-label {
+  background: #1976d2;
+}
+
+.last-page-preview .preview-label {
+  background: #9c27b0;
+}
+
+.preview-content {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.title-preview h1 {
+  font-size: 24px;
+  margin-bottom: 16px;
+  color: #333;
+}
+
+.title-preview h2 {
+  font-size: 18px;
+  color: #666;
+  margin: 0;
+}
+
+.cover-preview h1 {
+  font-size: 28px;
+  margin-bottom: 16px;
+  color: #333;
+}
+
+.cover-preview p {
+  font-size: 16px;
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.cover-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.custom-preview {
+  font-size: 16px;
+  color: #333;
+  line-height: 1.6;
+}
+
+.last-page-preview h2 {
+  font-size: 22px;
+  margin-bottom: 16px;
+  color: #333;
+}
+
+.last-page-preview p {
+  font-size: 16px;
+  color: #666;
+  margin: 0;
 }
 </style>

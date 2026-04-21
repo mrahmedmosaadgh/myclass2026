@@ -150,6 +150,18 @@ Route::prefix('exam/ready-to-print')->name('exam.ready-to-print.local.')->group(
                         'customContent' => '',
                         'skipPageNumber' => true,
                         'pageBreakAfter' => true
+                    ],
+                    'lastPage' => [
+                        'enabled' => false,
+                        'type' => 'message',
+                        'title' => 'End of Exam',
+                        'message' => 'Thank you for completing the exam.',
+                        'alignment' => 'center',
+                        'showTotalMarks' => false,
+                        'showCompletionTime' => false,
+                        'customContent' => '',
+                        'skipPageNumber' => false,
+                        'pageBreakBefore' => true
                     ]
                 ]);
             }
