@@ -44,6 +44,13 @@
                 <q-item-section>Generate Full Exam with AI</q-item-section>
               </q-item>
 
+              <q-item clickable v-close-popup @click="openAIChatDialog">
+                <q-item-section avatar>
+                  <q-icon name="chat" />
+                </q-item-section>
+                <q-item-section>AI Chat Exam Generation</q-item-section>
+              </q-item>
+
               <q-item clickable v-close-popup @click="triggerImportFile">
                 <q-item-section avatar>
                   <q-icon name="upload_file" />
@@ -738,7 +745,28 @@
                         @blur="savePageState"
                       />
 
-                      <div v-if="pageOptions.printFooter.mode !== 'image'" class="row items-center q-col-gutter-sm">
+                      <q-separator class="q-my-md" />
+
+                      <div class="text-subtitle2 q-mb-sm">Last Page Footer</div>
+                      
+                      <q-toggle
+                        v-model="pageOptions.printFooter.useLastPageText"
+                        label="Use different footer text on last page"
+                        @update:model-value="savePageState"
+                      />
+
+                      <q-input
+                        v-if="pageOptions.printFooter.useLastPageText"
+                        outlined
+                        type="textarea"
+                        v-model="pageOptions.printFooter.lastPageText"
+                        label="Last page footer text (replaces regular footer text)"
+                        hint="This text will appear only on the last page instead of the regular footer text"
+                        rows="4"
+                        @blur="savePageState"
+                      />
+
+                      <div v-if="pageOptions.printFooter.mode !== 'image'" class="row items-center q-col-gutter-sm q-mt-md">
                         <div class="col-12 col-md-6">
                           <q-input
                             dense
@@ -971,6 +999,31 @@
                   :disable="sections.length <= 1"
                   @click="removeSection(s.id)"
                 />
+              </div>
+              
+              <!-- Section formatting options -->
+              <div class="section-formatting q-mt-md">
+                <div class="text-subtitle2 q-mb-sm">Section Formatting</div>
+                <div class="section-row" v-for="s in sections" :key="s.id">
+                  <q-toggle
+                    dense
+                    v-model="s.lineBefore"
+                    label="Line before"
+                    @update:model-value="savePageState"
+                  />
+                  <q-toggle
+                    dense
+                    v-model="s.lineAfter"
+                    label="Line after"
+                    @update:model-value="savePageState"
+                  />
+                  <q-toggle
+                    dense
+                    v-model="s.pageBreakBefore"
+                    label="Page break before"
+                    @update:model-value="savePageState"
+                  />
+                </div>
               </div>
             </div>
 
@@ -1517,6 +1570,87 @@
       </q-card-section>
     </q-card>
   </q-dialog>
+
+  <!-- AI Chat Dialog -->
+  <q-dialog v-model="aiChatDialogOpen" maximized transition-show="slide-up" transition-hide="slide-down">
+    <q-card class="q-pa-md">
+      <q-card-section class="row items-center q-pb-none">
+        <div class="text-h6">AI Chat Exam Generation</div>
+        <q-space />
+        <q-btn flat round dense icon="close" v-close-popup />
+      </q-card-section>
+
+      <q-card-section>
+        <!-- API Key Configuration -->
+        <q-input
+          v-model="aiApiKey"
+          label="OpenAI API Key"
+          type="password"
+          outlined
+          hint="Your API key is stored locally in your browser"
+          class="q-mb-md"
+        />
+
+        <q-select
+          v-model="aiModel"
+          label="AI Model"
+          :options="['gpt-4', 'gpt-3.5-turbo']"
+          outlined
+          class="q-mb-md"
+        />
+
+        <!-- Chat Messages -->
+        <div class="chat-container q-mb-md" style="height: 400px; overflow-y: auto;">
+          <div
+            v-for="(message, index) in aiChatMessages"
+            :key="index"
+            :class="['chat-message', message.role === 'user' ? 'user-message' : 'ai-message']"
+            class="q-pa-md q-mb-sm"
+          >
+            <div class="message-sender q-mb-xs">
+              <q-icon :name="message.role === 'user' ? 'person' : 'smart_toy'" class="q-mr-xs" />
+              {{ message.role === 'user' ? 'You' : 'AI Assistant' }}
+            </div>
+            <div class="message-content q-markdown-body">
+              <q-markdown :source="message.content" />
+            </div>
+          </div>
+          <div v-if="aiLoading" class="q-pa-md">
+            <q-spinner color="primary" size="2em" />
+            <span class="q-ml-sm">AI is thinking...</span>
+          </div>
+        </div>
+
+        <!-- Chat Input -->
+        <div class="row q-col-gutter-sm">
+          <div class="col">
+            <q-input
+              v-model="aiChatInput"
+              label="Type your message..."
+              outlined
+              @keyup.enter="sendAIMessage"
+              :disable="aiLoading"
+            />
+          </div>
+          <div class="col-auto">
+            <q-btn
+              @click="sendAIMessage"
+              color="primary"
+              icon="send"
+              :disable="aiLoading || !aiChatInput.trim()"
+              round
+            />
+          </div>
+        </div>
+
+        <!-- Action Buttons when exam is generated -->
+        <div v-if="conversationMode === 'review' && generatedExamData" class="q-mt-md">
+          <q-btn @click="acceptGeneratedExam" color="positive" icon="check" label="Accept Exam" class="q-mr-sm" />
+          <q-btn @click="regenerateExam" color="secondary" icon="refresh" label="Regenerate" />
+        </div>
+      </q-card-section>
+    </q-card>
+  </q-dialog>
   </div>
 
   <input
@@ -1826,6 +1960,16 @@ const examConfig = ref({
 })
 const currentSectionIndex = ref(0)
 const missingInfoPrompts = ref([])
+
+// AI Chat Integration State
+const aiChatDialogOpen = ref(false)
+const aiChatMessages = ref([])
+const aiChatInput = ref('')
+const aiApiKey = ref('')
+const aiModel = ref('gpt-4')
+const aiLoading = ref(false)
+const conversationMode = ref('exam_generation') // 'exam_generation' or 'question_asking'
+const generatedExamData = ref(null)
 const optionsOpen = ref(false)
 const settingsTab = ref('general')
 const footerSettingsTab = ref('layout')
@@ -1891,7 +2035,9 @@ const pageOptions = ref({
     pageNumberFormat: 'page',
     pageNumberFontSize: 10,
     pageNumberColor: '#000000',
-    applyOffsetToPageNumbers: false
+    applyOffsetToPageNumbers: false,
+    lastPageText: '',
+    useLastPageText: false
   },
   firstPage: {
     enabled: false,
@@ -2328,7 +2474,17 @@ const mcqLabelStyles = [
 ]
 
 const sections = ref([
-  { id: 'sec_default', title: 'Choose the correct answer :-', instructions: '' }
+  { 
+    id: 'sec_default', 
+    title: 'Choose the correct answer :-', 
+    instructions: '',
+    lineBefore: false,
+    lineAfter: false,
+    pageBreakBefore: false,
+    lineStyle: 'solid',
+    lineThickness: 1,
+    lineColor: '#000000'
+  }
 ])
 
 const questionSectionMap = ref({})
@@ -2483,7 +2639,17 @@ async function savePageState() {
 
 async function addSection() {
   const id = 'sec_' + Date.now()
-  sections.value.push({ id, title: 'New Section', instructions: '' })
+  sections.value.push({ 
+    id, 
+    title: 'New Section', 
+    instructions: '',
+    lineBefore: false,
+    lineAfter: false,
+    pageBreakBefore: false,
+    lineStyle: 'solid',
+    lineThickness: 1,
+    lineColor: '#000000'
+  })
   await savePageState()
 }
 
@@ -2865,6 +3031,193 @@ function processFullExamResponse() {
     console.error('Failed to process exam response:', error)
     alert('Failed to process exam response. Please check the JSON format.')
   }
+}
+
+// AI Chat Integration Functions
+function openAIChatDialog() {
+  aiChatDialogOpen.value = true
+  aiChatMessages.value = [
+    {
+      role: 'assistant',
+      content: 'Hello! I can help you generate a complete exam. Please provide me with the exam details (title, subject, grade level, duration, total marks) and sections you want to include. I\'ll ask you for any missing information if needed.'
+    }
+  ]
+  aiChatInput.value = ''
+  conversationMode.value = 'exam_generation'
+  generatedExamData.value = null
+}
+
+async function sendAIMessage() {
+  const message = aiChatInput.value.trim()
+  if (!message || aiLoading.value) return
+
+  // Add user message to chat
+  aiChatMessages.value.push({
+    role: 'user',
+    content: message
+  })
+  aiChatInput.value = ''
+  aiLoading.value = true
+
+  try {
+    // Check if API key is provided
+    if (!aiApiKey.value) {
+      aiChatMessages.value.push({
+        role: 'assistant',
+        content: 'Please provide your OpenAI API key in the settings to use AI generation.'
+      })
+      aiLoading.value = false
+      return
+    }
+
+    // Prepare conversation history for API
+    const messages = [
+      {
+        role: 'system',
+        content: `You are an expert exam generator. Your task is to help users create complete exams with sections and questions.
+        
+When the user provides exam information:
+1. Analyze what information is provided
+2. If critical information is missing (exam title, subject, grade level, duration, total marks, or section details), ask the user for it specifically
+3. If all information is complete, generate a complete exam in JSON format
+4. The JSON should include: examTitle, examSubject, examGrade, examDuration, totalMarks, and sections array with questions
+5. Each question should have: id, type, marks, content with prompt and options (if applicable)
+6. Question types: "short_answer", "multiple_choice", "true_false", "essay", "fill_in_blank"
+7. Use LaTeX notation for math: $x^2$ for inline, $$\\frac{a}{b}$$ for display
+8. Do NOT include citations or source markers like [cite: 219] anywhere in the text
+
+If you need to ask questions, be specific and ask one question at a time.
+When you have all the information, return the complete JSON with a message saying "Here is your complete exam:" followed by the JSON.`
+      },
+      ...aiChatMessages.value
+    ]
+
+    // Call OpenAI API
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${aiApiKey.value}`
+      },
+      body: JSON.stringify({
+        model: aiModel.value,
+        messages: messages,
+        temperature: 0.7,
+        max_tokens: 4000
+      })
+    })
+
+    const data = await response.json()
+
+    if (data.error) {
+      throw new Error(data.error.message)
+    }
+
+    const aiMessage = data.choices[0].message.content
+    aiChatMessages.value.push({
+      role: 'assistant',
+      content: aiMessage
+    })
+
+    // Check if AI provided a complete exam JSON
+    if (aiMessage.includes('Here is your complete exam:') || aiMessage.includes('```json')) {
+      try {
+        // Extract JSON from message
+        const jsonMatch = aiMessage.match(/```json\n?([\s\S]*?)\n?```/) || aiMessage.match(/\{[\s\S]*\}/)
+        if (jsonMatch) {
+          const jsonStr = jsonMatch[1] || jsonMatch[0]
+          const examData = JSON.parse(jsonStr)
+          generatedExamData.value = examData
+          conversationMode.value = 'review'
+        }
+      } catch (e) {
+        console.error('Failed to parse exam JSON:', e)
+      }
+    }
+
+  } catch (error) {
+    console.error('AI API error:', error)
+    aiChatMessages.value.push({
+      role: 'assistant',
+      content: `Error: ${error.message}. Please check your API key and try again.`
+    })
+  } finally {
+    aiLoading.value = false
+  }
+}
+
+function acceptGeneratedExam() {
+  if (!generatedExamData.value) {
+    alert('No exam data to accept.')
+    return
+  }
+
+  try {
+    const examData = generatedExamData.value
+
+    // Update exam title
+    if (examData.examTitle) {
+      pageOptions.value.examTitle.text = examData.examTitle
+      pageOptions.value.examTitle.enabled = true
+    }
+
+    // Process sections and questions
+    if (examData.sections && Array.isArray(examData.sections)) {
+      const newSections = []
+      const newQuestions = []
+      const newQuestionSectionMap = {}
+      let questionIdCounter = 1
+
+      examData.sections.forEach((section, sectionIndex) => {
+        const sectionId = `section_${Date.now()}_${sectionIndex}`
+        newSections.push({
+          id: sectionId,
+          title: section.title || `Section ${sectionIndex + 1}`,
+          description: section.description || '',
+          totalMarks: section.totalMarks || 0
+        })
+
+        if (section.questions && Array.isArray(section.questions)) {
+          section.questions.forEach((question) => {
+            const questionId = questionIdCounter++
+            newQuestions.push({
+              id: questionId,
+              type: question.type || 'short_answer',
+              marks: question.marks || 1,
+              content: question.content || { prompt: '' }
+            })
+            newQuestionSectionMap[questionId] = sectionId
+          })
+        }
+      })
+
+      sections.value = newSections
+      sampleQuestions.value = newQuestions
+      questionSectionMap.value = newQuestionSectionMap
+    }
+
+    // Save the generated data
+    savePageState()
+    
+    // Close dialog
+    aiChatDialogOpen.value = false
+    
+    // Show success message
+    alert('Exam generated successfully!')
+  } catch (error) {
+    console.error('Failed to process exam data:', error)
+    alert('Failed to process exam data. Please try again.')
+  }
+}
+
+function regenerateExam() {
+  conversationMode.value = 'exam_generation'
+  generatedExamData.value = null
+  aiChatMessages.value.push({
+    role: 'user',
+    content: 'Please regenerate the exam with different questions.'
+  })
+  sendAIMessage()
 }
 
 function validateAndPreview() {
@@ -3362,6 +3715,17 @@ scriptContent += "else preview = pageNum + ' / ' + total;";
 scriptContent += "els.forEach(function(el){ el.setAttribute('data-preview', preview); });";
 scriptContent += "}";
 scriptContent += "} catch(e) {}";
+scriptContent += "try {";
+scriptContent += "if (typeof useLastPageText !== 'undefined' && useLastPageText && lastPageText) {";
+scriptContent += "var footerTexts = document.querySelectorAll('.footer-text');";
+scriptContent += "if (footerTexts && footerTexts.length) {";
+scriptContent += "footerTexts.forEach(function(el, index) {";
+scriptContent += "if (index === footerTexts.length - 1) {";
+scriptContent += "el.innerHTML = lastPageText;";
+scriptContent += "}";
+scriptContent += "});";
+scriptContent += "}";
+scriptContent += "}";
 scriptContent += "} catch(e) {}";
 scriptContent += "window.__printReady = true;";
 scriptContent += "}";
@@ -3391,6 +3755,9 @@ scriptContent += "})();";
   }
 
   if (footerEnabled && hasFooterContent) {
+    const useLastPageText = !!pageOptions.value?.printFooter?.useLastPageText
+    const lastPageText = String(pageOptions.value?.printFooter?.lastPageText || '')
+    
     const footerContentHtml = footerMode === 'image'
       ? (
         footerAutoFit
@@ -3402,6 +3769,13 @@ scriptContent += "})();";
     const footerBorderStyle = footerTopBorder ? 'border-top:1px solid rgba(0,0,0,0.25);' : ''
 
     let footerInner = footerContentHtml
+    
+    // Add last page text support
+    if (useLastPageText && lastPageText && footerMode !== 'image') {
+      scriptContent += "var useLastPageText = " + useLastPageText + ";"
+      scriptContent += "var lastPageText = '" + lastPageText.replace(/'/g, "\\'") + "';"
+      scriptContent += "var regularFooterText = '" + footerHtml.replace(/'/g, "\\'") + "';"
+    }
 
     if (showPageNumbers) {
       const positionStyles = {
@@ -3468,6 +3842,19 @@ scriptContent += "})();";
     const sectionQuestions = sampleQuestions.value.filter(q => getQuestionSectionId(q) === section.id)
     if (sectionQuestions.length === 0) return
 
+    // Add page break before section if enabled
+    if (section.pageBreakBefore) {
+      html += '<div class="page-break"></div>'
+    }
+
+    // Add line before section if enabled
+    if (section.lineBefore) {
+      const lineStyle = section.lineStyle || 'solid'
+      const lineThickness = section.lineThickness || 1
+      const lineColor = section.lineColor || '#000000'
+      html += '<div class="section-line-before" style="border-top: ' + lineThickness + 'px ' + lineStyle + ' ' + lineColor + '; margin-bottom: 10pt;"></div>'
+    }
+
     html += '<div class="section-header">'
     html += '<h2>' + renderMathContent(section.title) + '</h2>'
     if (section.instructions) {
@@ -3475,6 +3862,14 @@ scriptContent += "})();";
     }
     html += renderSectionTotalHTML(sectionTotalMarks(section.id), pageOptions.value.sectionTotal)
     html += '</div>'
+
+    // Add line after section if enabled
+    if (section.lineAfter) {
+      const lineStyle = section.lineStyle || 'solid'
+      const lineThickness = section.lineThickness || 1
+      const lineColor = section.lineColor || '#000000'
+      html += '<div class="section-line-after" style="border-bottom: ' + lineThickness + 'px ' + lineStyle + ' ' + lineColor + '; margin-top: 10pt;"></div>'
+    }
 
     sectionQuestions.forEach((question) => {
       globalIndex += 1
@@ -3711,6 +4106,43 @@ onMounted(async () => {
 .section-chip-marks {
   color: #666;
   font-size: 0.9em;
+}
+
+/* AI Chat Styles */
+.chat-container {
+  background: #f5f5f5;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.chat-message {
+  border-radius: 8px;
+  max-width: 80%;
+}
+
+.user-message {
+  background: #e3f2fd;
+  margin-left: auto;
+  border: 1px solid #bbdefb;
+}
+
+.ai-message {
+  background: white;
+  margin-right: auto;
+  border: 1px solid #e0e0e0;
+}
+
+.message-sender {
+  font-weight: 600;
+  font-size: 0.9em;
+  color: #666;
+  display: flex;
+  align-items: center;
+}
+
+.message-content {
+  word-wrap: break-word;
+  line-height: 1.6;
 }
 
 .questions-container {
