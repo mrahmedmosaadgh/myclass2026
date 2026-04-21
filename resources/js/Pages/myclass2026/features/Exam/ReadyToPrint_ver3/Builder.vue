@@ -276,13 +276,52 @@ store.markDirty = function() {
 }
 
 function generatePrintHTML() {
+  const printFooter = store.exam.printFooter || {}
+  const bottomOffsetMm = Number(printFooter.bottomOffsetMm) || 0
+  const applyOffsetToPageNumbers = !!printFooter.applyOffsetToPageNumbers
+  
   let html = '<!DOCTYPE html><html><head><title>Exam Print Preview</title>'
   html += '<script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"><\/script>'
   html += '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">'
-  html += '<style>@page { size: A4; margin: 12mm; } body { font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.5; margin: 0; padding: 20px; } .question { margin-bottom: 24pt; page-break-inside: avoid; } .question-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8pt; font-weight: bold; } .question-content { margin-bottom: 12pt; } .answer-area { border-top: 1px solid #ddd; padding-top: 8pt; margin-top: 12pt; } .answer-line { height: 20pt; border-bottom: 1px solid #eee; margin-bottom: 8pt; } @media print { body { padding: 0; } <\/style>'
+  
+  // Add footer styles with offset support
+  let footerStyles = '.print-footer { position: fixed; bottom: 0; left: 0; right: 0; z-index: 999; background: transparent; overflow: hidden; box-sizing: border-box; padding: 0 0; }'
+  if (bottomOffsetMm !== 0) {
+    footerStyles = '.print-footer { position: fixed; bottom: ' + bottomOffsetMm + 'mm; left: 0; right: 0; z-index: 999; background: transparent; overflow: hidden; box-sizing: border-box; padding: 0 0; }'
+  }
+  
+  html += '<style>@page { size: A4; margin: 12mm; } body { font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.5; margin: 0; padding: 20px; } .question { margin-bottom: 24pt; page-break-inside: avoid; } .question-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8pt; font-weight: bold; } .question-content { margin-bottom: 12pt; } .answer-area { border-top: 1px solid #ddd; padding-top: 8pt; margin-top: 12pt; } .answer-line { height: 20pt; border-bottom: 1px solid #eee; margin-bottom: 8pt; } ' + footerStyles + ' @media print { body { padding: 0; } <\/style>'
   html += '<\/head><body>'
   html += '<h1>' + (store.exam.title || 'Exam') + '<\/h1>'
   html += generatePrintContent()
+  
+  // Add footer if enabled
+  if (printFooter.enabled) {
+    const pageNumberPosition = printFooter.pageNumberPosition || 'bottom-center'
+    const position = pageNumberPosition.includes('top') ? 'top' : 'bottom'
+    const positionStyles = {
+      'bottom-left': 'text-align:left; left:12mm; right:auto;',
+      'bottom-center': 'text-align:center; left:0; right:0;',
+      'bottom-right': 'text-align:right; right:12mm; left:auto;',
+      'top-left': 'text-align:left; left:12mm; right:auto; top:0;',
+      'top-center': 'text-align:center; left:0; right:0; top:0;',
+      'top-right': 'text-align:right; right:12mm; left:auto; top:0;'
+    }
+    const style = positionStyles[pageNumberPosition] || positionStyles['bottom-center']
+    
+    // Apply offset to page numbers if enabled
+    const pageNumberOffsetStyle = (applyOffsetToPageNumbers && bottomOffsetMm !== 0) ? 
+      (position + ':' + bottomOffsetMm + 'mm;') : ''
+    
+    html += '<div class="print-footer">'
+    if (printFooter.showPageNumbers) {
+      html += '<div class="page-number" style="position:absolute; ' + position + ':0; ' + style + ' font-size:10pt; color:#000000; padding:8mm 12mm; ' + pageNumberOffsetStyle + '">'
+      html += '<span class="page-number-content">Page <span class="current-page"></span></span>'
+      html += '</div>'
+    }
+    html += '</div>'
+  }
+  
   html += '<\/body><\/html>'
   return html
 }

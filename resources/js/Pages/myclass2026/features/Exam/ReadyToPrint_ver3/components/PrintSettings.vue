@@ -99,16 +99,54 @@
     <div class="settings-section">
       <h4>{{ $t('exam.readyToPrint.settings.footer') }}</h4>
       <q-form class="settings-form">
-        <q-select
-          v-model="footerConfig.pageNumbering"
-          :options="pageNumberingOptions"
-          :label="$t('exam.readyToPrint.settings.pageNumbering')"
-          outlined
-          dense
-          emit-value
-          map-options
-          @update:model-value="updateFooterConfig"
+        <q-toggle
+          v-model="printFooter.enabled"
+          label="Enable footer on every page"
+          @update:model-value="updatePrintFooter"
         />
+        
+        <template v-if="printFooter.enabled">
+          <q-toggle
+            v-model="printFooter.reserveSpace"
+            label="Reserve space for footer"
+            @update:model-value="updatePrintFooter"
+          />
+          
+          <q-toggle
+            v-model="printFooter.showPageNumbers"
+            label="Show page numbers"
+            @update:model-value="updatePrintFooter"
+          />
+          
+          <q-input
+            v-model.number="printFooter.bottomOffsetMm"
+            type="number"
+            label="Footer bottom offset (mm)"
+            hint="0 = bottom edge. Positive values move footer down, negative values move it up."
+            outlined
+            dense
+            @update:model-value="updatePrintFooter"
+          />
+          
+          <q-toggle
+            v-if="printFooter.showPageNumbers"
+            v-model="printFooter.applyOffsetToPageNumbers"
+            label="Apply footer offset to page numbers"
+            @update:model-value="updatePrintFooter"
+          />
+          
+          <q-select
+            v-if="printFooter.showPageNumbers"
+            v-model="printFooter.pageNumberPosition"
+            :options="pageNumberPositionOptions"
+            label="Page number position"
+            outlined
+            dense
+            emit-value
+            map-options
+            @update:model-value="updatePrintFooter"
+          />
+        </template>
       </q-form>
     </div>
 
@@ -156,6 +194,17 @@ const headerConfig = reactive({ ...store.exam.headerConfig })
 const footerConfig = reactive({ ...store.exam.footerConfig })
 const layoutDefaults = reactive({ ...store.exam.layoutDefaults })
 
+// Print footer settings for advanced placement
+const printFooter = reactive({
+  enabled: true,
+  reserveSpace: true,
+  showPageNumbers: true,
+  bottomOffsetMm: 0,
+  applyOffsetToPageNumbers: false,
+  pageNumberPosition: 'bottom-center',
+  ...store.exam.printFooter
+})
+
 const paperOptions = [
   { label: 'A4', value: 'A4' },
   { label: 'Letter', value: 'Letter' },
@@ -172,6 +221,15 @@ const pageNumberingOptions = [
   { label: 'X of Y', value: 'x_of_y' },
   { label: 'X / Y', value: 'x_slash_y' },
   { label: 'Page X', value: 'page_x' },
+]
+
+const pageNumberPositionOptions = [
+  { label: 'Bottom Left', value: 'bottom-left' },
+  { label: 'Bottom Center', value: 'bottom-center' },
+  { label: 'Bottom Right', value: 'bottom-right' },
+  { label: 'Top Left', value: 'top-left' },
+  { label: 'Top Center', value: 'top-center' },
+  { label: 'Top Right', value: 'top-right' }
 ]
 
 const paginationModeOptions = [
@@ -199,6 +257,11 @@ function updateHeaderConfig() {
 
 function updateFooterConfig() {
   store.exam.footerConfig = { ...footerConfig }
+  store.markDirty()
+}
+
+function updatePrintFooter() {
+  store.exam.printFooter = { ...printFooter }
   store.markDirty()
 }
 

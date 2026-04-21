@@ -30,6 +30,14 @@ const createEmptyExam = () => ({
         continuationMessage: 'Continue',
         endMessage: 'End',
     },
+    printFooter: {
+        enabled: true,
+        reserveSpace: true,
+        showPageNumbers: true,
+        bottomOffsetMm: 0,
+        applyOffsetToPageNumbers: false,
+        pageNumberPosition: 'bottom-center',
+    },
     layoutDefaults: {
         paginationMode: 'hybrid',
         overflowStrategy: 'move_to_next_page',
