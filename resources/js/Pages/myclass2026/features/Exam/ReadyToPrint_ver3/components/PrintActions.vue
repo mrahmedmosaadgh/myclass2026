@@ -33,6 +33,16 @@
 
     <div class="col-auto">
       <q-btn
+        label="Download PDF"
+        color="secondary"
+        icon="picture_as_pdf"
+        @click="downloadPDF"
+        :loading="pdfGenerating"
+      />
+    </div>
+
+    <div class="col-auto">
+      <q-btn
         label="Fullscreen"
         color="grey-7"
         icon="fullscreen"
@@ -73,6 +83,7 @@ const props = defineProps({
 const emit = defineEmits(['update:method', 'update:extraMarginMm'])
 
 const livePreviewRef = ref(null)
+const pdfGenerating = ref(false)
 
 const PRINT_METHOD_KEY = 'exam_ready_to_print_print_method_v1'
 
@@ -309,6 +320,99 @@ function printV4() {
 
 function openLivePreview() {
   livePreviewRef.value?.show(props.extraMarginMm)
+}
+
+async function downloadPDF() {
+  if (pdfGenerating.value) return
+  pdfGenerating.value = true
+  
+  try {
+    // Dynamically import heavy PDF libraries only when needed
+    const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+      import('html2canvas'),
+      import('jspdf')
+    ])
+    
+    // Create a hidden container for rendering
+    const container = document.createElement('div')
+    container.style.position = 'fixed'
+    container.style.left = '-9999px'
+    container.style.top = '0'
+    container.style.width = '794px' // A4 width at 96dpi
+    container.style.background = 'white'
+    container.style.overflow = 'hidden'
+    container.setAttribute('aria-hidden', 'true')
+    
+    // Generate the HTML content
+    const html = props.generatePrintHtml()
+    container.innerHTML = html
+    
+    document.body.appendChild(container)
+    
+    // Wait for content to render
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    // Get the container dimensions
+    const containerRect = container.getBoundingClientRect()
+    const totalHeight = container.scrollHeight
+    
+    // A4 dimensions in pixels (at 96dpi)
+    const a4Width = 794
+    const a4Height = 1123 // A4 height at 96dpi
+    
+    // Calculate number of pages needed
+    const totalPages = Math.ceil(totalHeight / a4Height)
+    
+    // Create PDF
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'px',
+      format: [a4Width, a4Height]
+    })
+    
+    // Capture each page
+    for (let page = 0; page < totalPages; page++) {
+      const yOffset = page * a4Height
+      
+      // Create canvas for this page
+      const canvas = await html2canvas(container, {
+        width: a4Width,
+        height: a4Height,
+        x: 0,
+        y: yOffset,
+        scale: 2, // Higher quality
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff'
+      })
+      
+      const imgData = canvas.toDataURL('image/jpeg', 0.95)
+      
+      if (page > 0) {
+        pdf.addPage()
+      }
+      
+      pdf.addImage(imgData, 'JPEG', 0, 0, a4Width, a4Height)
+    }
+    
+    // Generate filename
+    const filename = `Exam_${new Date().toISOString().slice(0, 10)}.pdf`
+    
+    // Download PDF
+    pdf.save(filename)
+    
+  } catch (error) {
+    console.error('PDF generation failed:', error)
+    alert('PDF generation failed. Please try again.')
+  } finally {
+    pdfGenerating.value = false
+    // Clean up container
+    try {
+      if (container && container.parentNode) {
+        container.parentNode.removeChild(container)
+      }
+    } catch (e) {}
+  }
 }
 
 function print() {
