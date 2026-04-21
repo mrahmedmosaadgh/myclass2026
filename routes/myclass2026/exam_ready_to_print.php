@@ -47,7 +47,7 @@ Route::prefix('exam/ready-to-print')->name('exam.ready-to-print.')->group(functi
                         ],
                         'showMarksPerQuestion' => true,
                         'printHeader' => [
-                            'enabled' => false,
+                            'enabled' => true,
                             'autoFit' => true,
                             'heightPt' => 120,
                             'pageMarginTopMm' => 0,
@@ -66,7 +66,7 @@ Route::prefix('exam/ready-to-print')->name('exam.ready-to-print.')->group(functi
                             ]
                         ],
                         'printFooter' => [
-                            'enabled' => false,
+                            'enabled' => true,
                             'autoFit' => true,
                             'heightPt' => 90,
                             'pageMarginBottomMm' => 0,
@@ -74,14 +74,19 @@ Route::prefix('exam/ready-to-print')->name('exam.ready-to-print.')->group(functi
                             'html' => '',
                             'imageUrl' => '',
                             'imageFit' => 'contain',
-                            'showPageNumbers' => false,
+                            'textFontSizePt' => 12,
+                            'textColor' => '#000000',
+                            'reserveSpace' => true,
+                            'singleLine' => false,
+                            'showTopBorder' => false,
+                            'showPageNumbers' => true,
                             'pageNumberPosition' => 'bottom-center',
                             'pageNumberFormat' => 'page',
                             'pageNumberFontSize' => 10,
                             'pageNumberColor' => '#000000'
                         ],
                         'firstPage' => [
-                            'enabled' => false,
+                            'enabled' => true,
                             'type' => 'title',
                             'title' => '',
                             'subtitle' => '',
@@ -94,7 +99,7 @@ Route::prefix('exam/ready-to-print')->name('exam.ready-to-print.')->group(functi
                             'pageBreakAfter' => true
                         ],
                         'lastPage' => [
-                            'enabled' => false,
+                            'enabled' => true,
                             'type' => 'message',
                             'title' => 'End of Exam',
                             'message' => 'Thank you for completing the exam.',
@@ -106,7 +111,7 @@ Route::prefix('exam/ready-to-print')->name('exam.ready-to-print.')->group(functi
                             'pageBreakBefore' => true
                         ],
                         'questionSeparator' => [
-                            'enabled' => false,
+                            'enabled' => true,
                             'lineStyle' => 'solid',
                             'color' => '#1f3a5a',
                             'thicknessPt' => 1,

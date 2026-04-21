@@ -11,70 +11,6 @@
       </div>
       
       <div class="toolbar-right">
-        <!-- Import/Export Group -->
-        <div class="toolbar-group">
-          <q-btn
-            flat
-            round
-            color="primary"
-            icon="smart_toy"
-            size="md"
-            @click="openAIDialog"
-          >
-            <q-tooltip>Import AI Questions</q-tooltip>
-          </q-btn>
-          
-          <q-btn
-            flat
-            round
-            color="secondary"
-            icon="upload_file"
-            size="md"
-            @click="triggerImportFile"
-          >
-            <q-tooltip>Import JSON</q-tooltip>
-          </q-btn>
-          
-          <q-btn
-            flat
-            round
-            color="secondary"
-            icon="download"
-            size="md"
-            @click="exportToJson"
-          >
-            <q-tooltip>Export JSON</q-tooltip>
-          </q-btn>
-        </div>
-
-        <!-- First/Last Page Group -->
-        <div class="toolbar-group">
-          <q-btn
-            flat
-            round
-            color="purple"
-            icon="auto_stories"
-            size="md"
-            @click="firstLastPageOpen = true"
-          >
-            <q-tooltip>First/Last Page</q-tooltip>
-          </q-btn>
-        </div>
-
-        <!-- Settings Group -->
-        <div class="toolbar-group">
-          <q-btn
-            flat
-            round
-            color="grey-7"
-            icon="tune"
-            size="md"
-            @click="optionsOpen = true"
-          >
-            <q-tooltip>Settings</q-tooltip>
-          </q-btn>
-        </div>
-
         <!-- Print Actions -->
         <div class="toolbar-group">
           <PrintActions
@@ -82,6 +18,55 @@
             :extra-margin-mm="pageOptions.printHeader.pageMarginTopMm ?? 0"
             @update:extra-margin-mm="(v) => { pageOptions.printHeader.pageMarginTopMm = v; savePageState() }"
           />
+        </div>
+
+        <!-- Import/Export Group -->
+        <div class="toolbar-group">
+          <q-btn-dropdown
+            flat
+            color="white"
+            icon="more_vert"
+            dropdown-icon=""
+          >
+            <q-list style="min-width: 220px">
+              <q-item clickable v-close-popup @click="openAIDialog">
+                <q-item-section avatar>
+                  <q-icon name="smart_toy" />
+                </q-item-section>
+                <q-item-section>Import AI Questions</q-item-section>
+              </q-item>
+
+              <q-item clickable v-close-popup @click="triggerImportFile">
+                <q-item-section avatar>
+                  <q-icon name="upload_file" />
+                </q-item-section>
+                <q-item-section>Import JSON</q-item-section>
+              </q-item>
+
+              <q-item clickable v-close-popup @click="exportToJson">
+                <q-item-section avatar>
+                  <q-icon name="download" />
+                </q-item-section>
+                <q-item-section>Export JSON</q-item-section>
+              </q-item>
+
+              <q-separator />
+
+              <q-item clickable v-close-popup @click="firstLastPageOpen = true">
+                <q-item-section avatar>
+                  <q-icon name="auto_stories" />
+                </q-item-section>
+                <q-item-section>First / Last Page</q-item-section>
+              </q-item>
+
+              <q-item clickable v-close-popup @click="optionsOpen = true">
+                <q-item-section avatar>
+                  <q-icon name="tune" />
+                </q-item-section>
+                <q-item-section>Settings</q-item-section>
+              </q-item>
+            </q-list>
+          </q-btn-dropdown>
         </div>
       </div>
     </div>
@@ -558,6 +543,27 @@
 
               <q-toggle
                 v-if="pageOptions.printFooter.enabled"
+                v-model="pageOptions.printFooter.reserveSpace"
+                label="Reserve space for footer (recommended)"
+                @update:model-value="savePageState"
+              />
+
+              <q-toggle
+                v-if="pageOptions.printFooter.enabled"
+                v-model="pageOptions.printFooter.singleLine"
+                label="Single-line footer (content + page number)"
+                @update:model-value="savePageState"
+              />
+
+              <q-toggle
+                v-if="pageOptions.printFooter.enabled"
+                v-model="pageOptions.printFooter.showTopBorder"
+                label="Show a line above footer"
+                @update:model-value="savePageState"
+              />
+
+              <q-toggle
+                v-if="pageOptions.printFooter.enabled"
                 v-model="pageOptions.printFooter.autoFit"
                 label="Auto-fit footer height (recommended)"
                 @update:model-value="savePageState"
@@ -752,6 +758,36 @@
                 rows="8"
                 @blur="savePageState"
               />
+
+              <div v-if="pageOptions.printFooter.enabled && pageOptions.printFooter.mode !== 'image'" class="row items-center q-col-gutter-sm">
+                <div class="col-12 col-md-6">
+                  <q-input
+                    dense
+                    outlined
+                    type="number"
+                    v-model.number="pageOptions.printFooter.textFontSizePt"
+                    label="Footer text font size (pt)"
+                    @blur="savePageState"
+                  />
+                </div>
+                <div class="col-12 col-md-6">
+                  <q-select
+                    dense
+                    outlined
+                    :options="[
+                      { label: 'Black', value: '#000000' },
+                      { label: 'Dark Gray', value: '#333333' },
+                      { label: 'Gray', value: '#666666' },
+                      { label: 'Light Gray', value: '#999999' }
+                    ]"
+                    emit-value
+                    map-options
+                    v-model="pageOptions.printFooter.textColor"
+                    label="Footer text color"
+                    @update:model-value="savePageState"
+                  />
+                </div>
+              </div>
 
               <div v-if="pageOptions.printFooter.enabled && pageOptions.printFooter.mode !== 'image'" class="row items-center q-col-gutter-sm">
                 <div class="col-auto">
@@ -1555,7 +1591,7 @@ const pageOptions = ref({
     }
   },
   printFooter: {
-    enabled: false,
+    enabled: true,
     autoFit: true,
     heightPt: 90,
     pageMarginBottomMm: 0,
@@ -1563,7 +1599,12 @@ const pageOptions = ref({
     html: '',
     imageUrl: '',
     imageFit: 'contain',
-    showPageNumbers: false,
+    textFontSizePt: 12,
+    textColor: '#000000',
+    reserveSpace: true,
+    singleLine: false,
+    showTopBorder: false,
+    showPageNumbers: true,
     pageNumberPosition: 'bottom-center',
     pageNumberFormat: 'page',
     pageNumberFontSize: 10,
@@ -2580,13 +2621,20 @@ function generatePrintHTML() {
   const footerEnabled = !!pageOptions.value?.printFooter?.enabled
   const footerMode = String(pageOptions.value?.printFooter?.mode || 'html')
   const footerHtml = String(pageOptions.value?.printFooter?.html || '')
+  const footerTextFontSizePt = Number(pageOptions.value?.printFooter?.textFontSizePt) || 12
+  const footerTextColor = String(pageOptions.value?.printFooter?.textColor || '#000000')
   const footerImageUrl = String(pageOptions.value?.printFooter?.imageUrl || '')
   const footerImageFit = String(pageOptions.value?.printFooter?.imageFit || 'contain')
   const footerAutoFit = pageOptions.value?.printFooter?.autoFit !== false
   const footerHeightRaw = Number(pageOptions.value?.printFooter?.heightPt)
   const footerHeightPt = Number.isFinite(footerHeightRaw) && footerHeightRaw > 0 ? footerHeightRaw : 90
-  const hasFooterContent = footerMode === 'image' ? !!footerImageUrl.trim() : !!footerHtml.trim() || showPageNumbers
   const showPageNumbers = !!pageOptions.value?.printFooter?.showPageNumbers
+  const footerReserveSpace = pageOptions.value?.printFooter?.reserveSpace !== false
+  const footerSingleLine = pageOptions.value?.printFooter?.singleLine === true
+  const footerTopBorder = pageOptions.value?.printFooter?.showTopBorder === true
+  const hasFooterContent = footerMode === 'image'
+    ? !!footerImageUrl.trim()
+    : (!!footerHtml.trim() || showPageNumbers)
   const pageNumberPosition = String(pageOptions.value?.printFooter?.pageNumberPosition || 'bottom-center')
   const pageNumberFormat = String(pageOptions.value?.printFooter?.pageNumberFormat || 'page')
   const pageNumberFontSize = Number(pageOptions.value?.printFooter?.pageNumberFontSize) || 10
@@ -2648,7 +2696,14 @@ function generatePrintHTML() {
   html += ' .answer-line { border-bottom: 1px solid #ccc; height: 18pt; margin-bottom: 6pt; }'
   html += ' .page-break { page-break-before: always; height: 0; }'
   html += ' .page-number { position: absolute; z-index: 1000; }'
-  html += ' .page-number-content { }'
+  html += ' .page-number-content::after { content: counter(page); }'
+  html += ' .page-number-content[data-format="page"]::after { content: counter(page); }'
+  html += ' .page-number-content[data-format="page-of"]::after { content: "Page " counter(page) " of " counter(pages); }'
+  html += ' .page-number-content[data-format="page-slash"]::after { content: counter(page) " / " counter(pages); }'
+  html += ' .page-number-content[data-format="fraction"]::after { content: counter(page) " / " counter(pages); }'
+  html += ' @media screen { .page-number-content::after, .page-number-content[data-format]::after { content: attr(data-preview); } }'
+  html += ' @media print { .page-number-content::after, .page-number-content[data-format]::after { content: ""; } }'
+  html += ' .abs-page-number { position: absolute; z-index: 5000; font-family: Arial, sans-serif; pointer-events: none; }'
   html += '</style>'
   html += '</head><body>'
 
@@ -2660,6 +2715,59 @@ function generatePrintHTML() {
   if ((headerEnabled && hasHeaderContent) || (footerEnabled && hasFooterContent)) {
     html += '<script>(function(){'
     html += '  window.__printReady = false;'
+    html += '  function injectAbsPageNumbers(){'
+    html += '    try {'
+    html += '      var ENABLE = ' + (showPageNumbers ? 'true' : 'false') + ';'
+    html += '      if (!ENABLE) return;'
+    html += '      function mmToPx(mm){'
+    html += '        var d = document.createElement("div");'
+    html += '        d.style.cssText = "position:absolute;left:-9999px;top:0;height:" + mm + "mm;width:1px;";'
+    html += '        document.body.appendChild(d);'
+    html += '        var px = d.getBoundingClientRect().height || d.offsetHeight || 0;'
+    html += '        d.remove();'
+    html += '        return Math.max(1, px);'
+    html += '      }'
+    html += '      var PAGE_MARGIN_MM = 12;'
+    html += '      var PAGE_H = mmToPx(297 - (PAGE_MARGIN_MM * 2));'
+    html += '      var MARGIN = 0;'
+    html += '      var docH = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);'
+    html += '      var np = Math.max(1, Math.ceil(docH / PAGE_H));'
+    html += '      // Printing pagination can create a final page even if scrollHeight is slightly smaller than an exact multiple.'
+    html += '      // Add a small buffer to avoid missing the last page label.'
+    html += '      if ((docH % PAGE_H) > (PAGE_H * 0.05)) np = np + 1;'
+    html += '      try { document.body.style.minHeight = (np * PAGE_H) + "px"; } catch(e) {}'
+    html += '      var fmt = "' + pageNumberFormat + '";'
+    html += '      var pos = "' + pageNumberPosition + '";'
+    html += '      var fontPt = ' + pageNumberFontSize + ';'
+    html += '      var color = "' + pageNumberColor + '";'
+    html += '      var footerH = 0;'
+    html += '      try { var f = document.getElementById("printFooterRoot"); if (f) footerH = f.getBoundingClientRect().height || f.offsetHeight || 0; } catch(e) {}'
+    html += '      var existing = document.querySelectorAll(".abs-page-number");'
+    html += '      for (var k = 0; k < existing.length; k++) existing[k].remove();'
+    html += '      for (var i = 1; i <= np; i++) {'
+    html += '        var t = "";'
+    html += '        if (fmt === "page") t = String(i);'
+    html += '        else if (fmt === "page-of") t = "Page " + i + " of " + np;'
+    html += '        else if (fmt === "page-slash") t = "Page " + i + " / " + np;'
+    html += '        else t = i + " / " + np;'
+    html += '        var el = document.createElement("div");'
+    html += '        el.className = "abs-page-number";'
+    html += '        el.textContent = t;'
+    html += '        el.style.fontSize = fontPt + "pt";'
+    html += '        el.style.color = color;'
+    html += '        var pageTop = (i - 1) * PAGE_H;'
+    html += '        var pageBottom = i * PAGE_H;'
+    html += '        var top = (pageBottom - MARGIN) - 18;'
+    html += '        if (footerH > 0 && pos.indexOf("bottom") === 0) { top = (pageBottom - MARGIN) - Math.min(footerH, 80) + 10; }'
+    html += '        if (pos.indexOf("top") === 0) top = pageTop + MARGIN + 10;'
+    html += '        el.style.top = top + "px";'
+    html += '        if (pos.indexOf("left") !== -1) { el.style.left = "0"; el.style.right = "auto"; el.style.textAlign = "left"; }'
+    html += '        else if (pos.indexOf("right") !== -1) { el.style.right = "0"; el.style.left = "auto"; el.style.textAlign = "right"; }'
+    html += '        else { el.style.left = "0"; el.style.right = "0"; el.style.textAlign = "center"; }'
+    html += '        document.body.appendChild(el);'
+    html += '      }'
+    html += '    } catch(e) {}'
+    html += '  }'
     html += '  function doMeasure(){'
     html += '    try {'
     html += '      var h = document.getElementById("printHeaderRoot");'
@@ -2669,56 +2777,35 @@ function generatePrintHTML() {
     html += '        var hExtraPx = Math.ceil(' + extraMarginMm + ' * 96 / 25.4);'
     html += '        hs.style.height = (hPx + hExtraPx) + "px";'
     html += '      }'
-    html += '      var f = document.getElementById("printFooterRoot");'
-    html += '      var fs = document.getElementById("footerSpacer");'
-    html += '      if (f && fs) {'
-    html += '        var fPx = f.offsetHeight;'
-    html += '        var fExtraPx = Math.ceil(' + extraFooterMarginMm + ' * 96 / 25.4);'
-    html += '        fs.style.height = (fPx + fExtraPx) + "px";'
+    html += '      if (' + (footerEnabled && hasFooterContent && footerReserveSpace ? 'true' : 'false') + ') {'
+    html += '        var f = document.getElementById("printFooterRoot");'
+    html += '        var fs = document.getElementById("footerSpacer");'
+    html += '        if (f && fs) {'
+    html += '          var fPx = f.offsetHeight;'
+    html += '          var fExtraPx = Math.ceil(' + extraFooterMarginMm + ' * 96 / 25.4);'
+    html += '          fs.style.height = (fPx + fExtraPx) + "px";'
+    html += '        }'
     html += '      }'
+
+    html += '      try {'
+    html += '        var els = document.querySelectorAll(".page-number-content");'
+    html += '        if (els && els.length) {'
+    html += '          var total = Math.max(1, Math.ceil(document.documentElement.scrollHeight / window.innerHeight));'
+    html += '          var fmt = "' + pageNumberFormat + '";'
+    html += '          var pageNum = 1;'
+    html += '          var preview = "";'
+    html += '          if (fmt === "page") preview = String(pageNum);'
+    html += '          else if (fmt === "page-of") preview = "Page " + pageNum + " of " + total;'
+    html += '          else if (fmt === "page-slash") preview = "Page " + pageNum + " / " + total;'
+    html += '          else preview = pageNum + " / " + total;'
+    html += '          els.forEach(function(el){ el.setAttribute("data-preview", preview); });'
+    html += '        }'
+    html += '      } catch(e) {}'
+
     html += '    } catch(e) {}'
-    
-    // Handle page numbers
-    if (' + showPageNumbers + ') {
-      try {
-        var pageNumbers = document.querySelectorAll(".page-number-content");
-        var format = "' + pageNumberFormat + '";
-        
-        function updatePageNumbers() {
-          var totalPages = Math.ceil(document.body.scrollHeight / window.innerHeight);
-          pageNumbers.forEach(function(el, index) {
-            var pageNum = index + 1;
-            var text = "";
-            
-            switch(format) {
-              case "page":
-                text = String(pageNum);
-                break;
-              case "page-of":
-                text = pageNum + " of " + totalPages;
-                break;
-              case "page-slash":
-                text = pageNum + "/" + totalPages;
-                break;
-              case "fraction":
-                text = pageNum + "/" + totalPages;
-                break;
-              default:
-                text = String(pageNum);
-            }
-            
-            el.textContent = text;
-          });
-        }
-        
-        // Update page numbers after layout is ready
-        setTimeout(updatePageNumbers, 100);
-        window.addEventListener("resize", updatePageNumbers);
-      } catch(e) {}
-    }
-    
     html += '    window.__printReady = true;'
     html += '  }'
+    html += '  try { window.addEventListener("beforeprint", injectAbsPageNumbers); } catch(e) {}'
     html += '  window.addEventListener("load", function(){'
     html += '    var imgs = document.querySelectorAll("img");'
     html += '    if (!imgs.length) { doMeasure(); return; }'
@@ -2742,16 +2829,18 @@ function generatePrintHTML() {
   }
 
   if (footerEnabled && hasFooterContent) {
-    let footerInner = ''
-    if (footerMode === 'image') {
-      footerInner = footerAutoFit
-        ? ('<img src="' + footerImageUrl + '" style="width:100%; height:auto; object-fit:contain; display:block;" />')
-        : ('<img src="' + footerImageUrl + '" style="width:100%; height:100%; object-fit:' + footerImageFit + '; display:block;" />')
-    } else {
-      footerInner = footerHtml
-    }
-    
-    // Add page numbers if enabled
+    const footerContentHtml = footerMode === 'image'
+      ? (
+        footerAutoFit
+          ? ('<img src="' + footerImageUrl + '" style="width:100%; height:auto; object-fit:contain; display:block;" />')
+          : ('<img src="' + footerImageUrl + '" style="width:100%; height:100%; object-fit:' + footerImageFit + '; display:block;" />')
+      )
+      : ('<div class="footer-text" style="font-size:' + footerTextFontSizePt + 'pt; color:' + footerTextColor + ';">' + footerHtml + '</div>')
+
+    const footerBorderStyle = footerTopBorder ? 'border-top:1px solid rgba(0,0,0,0.25);' : ''
+
+    let footerInner = footerContentHtml
+
     if (showPageNumbers) {
       const positionStyles = {
         'bottom-left': 'text-align:left; left:12mm; right:auto;',
@@ -2761,18 +2850,29 @@ function generatePrintHTML() {
         'top-center': 'text-align:center; left:0; right:0; top:0;',
         'top-right': 'text-align:right; right:12mm; left:auto; top:0;'
       }
-      
+
       const position = pageNumberPosition.includes('top') ? 'top' : 'bottom'
       const style = positionStyles[pageNumberPosition] || positionStyles['bottom-center']
-      
-      const pageNumberHtml = '<div class="page-number" style="position:absolute; ' + position + ':0; ' + style + ' font-size:' + pageNumberFontSize + 'pt; color:' + pageNumberColor + '; padding:8mm 12mm;">' +
-        '<span class="page-number-content"></span>' +
-        '</div>'
-      
-      footerInner += pageNumberHtml
+
+      if (footerSingleLine) {
+        footerInner =
+          '<div class="footer-line" style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:6mm 12mm;">' +
+            '<div class="footer-line-left" style="flex:1; min-width:0;">' + footerContentHtml + '</div>' +
+            '<div class="footer-line-right" style="flex:0 0 auto; white-space:nowrap; font-size:' + pageNumberFontSize + 'pt; color:' + pageNumberColor + ';">' +
+              '<span class="page-number-content" data-format="' + pageNumberFormat + '"></span>' +
+            '</div>' +
+          '</div>'
+      } else {
+        footerInner +=
+          '<div class="page-number" style="position:absolute; ' + position + ':0; ' + style + ' font-size:' + pageNumberFontSize + 'pt; color:' + pageNumberColor + '; padding:8mm 12mm;">' +
+            '<span class="page-number-content" data-format="' + pageNumberFormat + '"></span>' +
+          '</div>'
+      }
+    } else if (footerSingleLine) {
+      footerInner = '<div class="footer-line" style="padding:6mm 12mm;">' + footerContentHtml + '</div>'
     }
-    
-    html += '<div id="printFooterRoot" class="print-footer" style="' + (footerAutoFit ? '' : ('height:' + footerHeightPt + 'pt;')) + '">' + footerInner + '</div>'
+
+    html += '<div id="printFooterRoot" class="print-footer" style="' + footerBorderStyle + (footerAutoFit ? '' : ('height:' + footerHeightPt + 'pt;')) + '">' + footerInner + '</div>'
   }
 
   // The master layout table forces the header spacer to repeat on every printed page
@@ -2894,7 +2994,7 @@ function generatePrintHTML() {
   
   html += '</td></tr></tbody>'
 
-  if (footerEnabled && hasFooterContent) {
+  if (footerEnabled && hasFooterContent && footerReserveSpace) {
     html += '<tfoot><tr><td>'
     const extraPt = Math.ceil(extraFooterMarginMm * 72 / 25.4)
     html += '<div id="footerSpacer" style="height: ' + (initialFooterSpacerPt + extraPt) + 'pt;"></div>'
@@ -3219,7 +3319,7 @@ onMounted(async () => {
 .toolbar-right {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 10px;
 }
 
 .toolbar-title {
@@ -3239,8 +3339,8 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 8px;
-  border-right: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0 4px;
+  border-right: none;
 }
 
 .toolbar-group:last-child {
@@ -3263,6 +3363,14 @@ onMounted(async () => {
 .modern-toolbar .q-btn--round {
   width: 48px;
   height: 48px;
+}
+
+.modern-toolbar .q-btn-dropdown {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.modern-toolbar .q-menu {
+  color: #1f2937;
 }
 
 /* Responsive Design */
