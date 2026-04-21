@@ -344,7 +344,19 @@ async function downloadPDF() {
     container.setAttribute('aria-hidden', 'true')
     
     // Generate the HTML content
-    const html = props.generatePrintHtml()
+    let html = props.generatePrintHtml()
+    
+    // Clean problematic SVG and color issues before rendering
+    html = html.replace(/<svg[^>]*>[\s\S]*?<\/svg>/gi, (match) => {
+      // Remove problematic path data with "..." characters
+      return match.replace(/d="[^"]*\.\.\.[^"]*"/gi, 'd=""')
+    })
+    
+    // Remove oklch color functions
+    html = html.replace(/oklch\([^)]*\)/gi, '#000000')
+    html = html.replace(/color\s*:\s*oklch\([^)]*\)/gi, 'color: #000000')
+    html = html.replace(/background\s*:\s*oklch\([^)]*\)/gi, 'background: #ffffff')
+    
     container.innerHTML = html
     
     document.body.appendChild(container)
