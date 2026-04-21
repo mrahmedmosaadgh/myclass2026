@@ -194,6 +194,12 @@
         <q-card-section class="row items-center q-pb-none">
           <div class="text-h6">Settings</div>
           <q-space />
+          <q-btn
+            color="primary"
+            icon="print"
+            label="Print"
+            @click="openFullscreenPrint"
+          />
           <q-btn icon="close" flat round dense v-close-popup />
         </q-card-section>
         <q-separator />
@@ -542,284 +548,322 @@
                 @update:model-value="savePageState"
               />
 
-              <q-toggle
-                v-if="pageOptions.printFooter.enabled"
-                v-model="pageOptions.printFooter.reserveSpace"
-                label="Reserve space for footer (recommended)"
-                @update:model-value="savePageState"
-              />
+              <div v-if="pageOptions.printFooter.enabled">
+                <q-tabs
+                  v-model="footerSettingsTab"
+                  dense
+                  class="text-grey-8"
+                  active-color="primary"
+                  indicator-color="primary"
+                  align="left"
+                  inline-label
+                >
+                  <q-tab name="layout" icon="view_day" label="Layout" />
+                  <q-tab name="content" icon="edit_note" label="Content" />
+                  <q-tab name="pageNumbers" icon="format_list_numbered" label="Page Numbers" />
+                </q-tabs>
 
-              <q-toggle
-                v-if="pageOptions.printFooter.enabled"
-                v-model="pageOptions.printFooter.singleLine"
-                label="Single-line footer (content + page number)"
-                @update:model-value="savePageState"
-              />
+                <q-separator class="q-mt-sm" />
 
-              <q-toggle
-                v-if="pageOptions.printFooter.enabled"
-                v-model="pageOptions.printFooter.showTopBorder"
-                label="Show a line above footer"
-                @update:model-value="savePageState"
-              />
+                <q-tab-panels v-model="footerSettingsTab" animated>
+                  <q-tab-panel name="layout">
+                    <div class="options-grid">
+                      <div class="row items-center q-col-gutter-sm">
+                        <div class="col-auto">
+                          <q-btn
+                            color="primary"
+                            icon="auto_fix_high"
+                            label="Recommended: 1-line + Top align"
+                            @click="applyRecommendedFooterOneLineTopAlign"
+                          />
+                        </div>
+                      </div>
 
-              <q-toggle
-                v-if="pageOptions.printFooter.enabled"
-                v-model="pageOptions.printFooter.autoFit"
-                label="Auto-fit footer height (recommended)"
-                @update:model-value="savePageState"
-              />
+                      <q-toggle
+                        v-model="pageOptions.printFooter.reserveSpace"
+                        label="Reserve space for footer (recommended)"
+                        @update:model-value="savePageState"
+                      />
 
-              <q-select
-                v-if="pageOptions.printFooter.enabled"
-                dense
-                outlined
-                :options="[
-                  { label: 'HTML', value: 'html' },
-                  { label: 'Image', value: 'image' }
-                ]"
-                emit-value
-                map-options
-                v-model="pageOptions.printFooter.mode"
-                label="Footer type"
-                @update:model-value="savePageState"
-              />
+                      <q-toggle
+                        v-model="pageOptions.printFooter.singleLine"
+                        label="Single-line footer (content + page number)"
+                        @update:model-value="savePageState"
+                      />
 
-              <q-input
-                v-if="pageOptions.printFooter.enabled"
-                dense
-                outlined
-                type="number"
-                v-model.number="pageOptions.printFooter.heightPt"
-                label="Footer height (pt) — used when Auto-fit is off"
-                @blur="savePageState"
-              />
+                      <q-toggle
+                        v-model="pageOptions.printFooter.singleLineTopAlign"
+                        label="Top align (single-line)"
+                        @update:model-value="savePageState"
+                      />
 
-              <q-input
-                v-if="pageOptions.printFooter.enabled"
-                dense
-                outlined
-                type="number"
-                min="0"
-                v-model.number="pageOptions.printFooter.pageMarginBottomMm"
-                label="Extra bottom margin (mm) — space between content and footer"
-                hint="0 = automatic. Increase to push content further up."
-                @blur="savePageState"
-              />
+                      <q-toggle
+                        v-model="pageOptions.printFooter.showTopBorder"
+                        label="Show a line above footer"
+                        @update:model-value="savePageState"
+                      />
 
-              <q-input
-                v-if="pageOptions.printFooter.enabled"
-                dense
-                outlined
-                type="number"
-                v-model.number="pageOptions.printFooter.bottomOffsetMm"
-                label="Footer bottom offset (mm) - move footer position"
-                hint="0 = bottom edge. Positive values move footer down, negative values move it up."
-                @blur="savePageState"
-              />
+                      <q-toggle
+                        v-model="pageOptions.printFooter.autoFit"
+                        label="Auto-fit footer height (recommended)"
+                        @update:model-value="savePageState"
+                      />
 
-              <!-- Page Number Options -->
-              <q-separator v-if="pageOptions.printFooter.enabled" class="q-my-md" />
-              
-              <q-toggle
-                v-if="pageOptions.printFooter.enabled"
-                v-model="pageOptions.printFooter.showPageNumbers"
-                label="Show page numbers in footer"
-                @update:model-value="savePageState"
-              />
+                      <q-input
+                        dense
+                        outlined
+                        type="number"
+                        v-model.number="pageOptions.printFooter.heightPt"
+                        label="Footer height (pt) — used when Auto-fit is off"
+                        @blur="savePageState"
+                      />
 
-              <div v-if="pageOptions.printFooter.enabled && pageOptions.printFooter.showPageNumbers" class="row items-center q-col-gutter-sm">
-                <div class="col-12 col-md-6">
-                  <q-select
-                    dense
-                    outlined
-                    :options="[
-                      { label: 'Bottom Left', value: 'bottom-left' },
-                      { label: 'Bottom Center', value: 'bottom-center' },
-                      { label: 'Bottom Right', value: 'bottom-right' },
-                      { label: 'Top Left', value: 'top-left' },
-                      { label: 'Top Center', value: 'top-center' },
-                      { label: 'Top Right', value: 'top-right' }
-                    ]"
-                    emit-value
-                    map-options
-                    v-model="pageOptions.printFooter.pageNumberPosition"
-                    label="Page number position"
-                    @update:model-value="savePageState"
-                  />
-                </div>
-                <div class="col-12 col-md-6">
-                  <q-toggle
-                    dense
-                    v-model="pageOptions.printFooter.applyOffsetToPageNumbers"
-                    label="Apply footer offset to page numbers"
-                    @update:model-value="savePageState"
-                  />
-                </div>
-                <div class="col-12 col-md-6">
-                  <q-select
-                    dense
-                    outlined
-                    :options="[
-                      { label: 'Page 1', value: 'page' },
-                      { label: '1 of 5', value: 'page-of' },
-                      { label: 'Page 1 / 5', value: 'page-slash' },
-                      { label: '1/5', value: 'fraction' }
-                    ]"
-                    emit-value
-                    map-options
-                    v-model="pageOptions.printFooter.pageNumberFormat"
-                    label="Page number format"
-                    @update:model-value="savePageState"
-                  />
-                </div>
+                      <q-input
+                        dense
+                        outlined
+                        type="number"
+                        min="0"
+                        v-model.number="pageOptions.printFooter.pageMarginBottomMm"
+                        label="Extra bottom margin (mm) — space between content and footer"
+                        hint="0 = automatic. Increase to push content further up."
+                        @blur="savePageState"
+                      />
+
+                      <q-input
+                        dense
+                        outlined
+                        type="number"
+                        v-model.number="pageOptions.printFooter.bottomOffsetMm"
+                        label="Footer bottom offset (mm) - move footer position"
+                        hint="0 = bottom edge. Positive values move footer down, negative values move it up."
+                        @blur="savePageState"
+                      />
+
+                      <q-select
+                        dense
+                        outlined
+                        :options="[
+                          { label: 'HTML', value: 'html' },
+                          { label: 'Image', value: 'image' }
+                        ]"
+                        emit-value
+                        map-options
+                        v-model="pageOptions.printFooter.mode"
+                        label="Footer type"
+                        @update:model-value="savePageState"
+                      />
+                    </div>
+                  </q-tab-panel>
+
+                  <q-tab-panel name="content">
+                    <div class="options-grid">
+                      <div v-if="pageOptions.printFooter.mode === 'image'" class="row items-center q-col-gutter-sm">
+                        <div class="col-auto">
+                          <q-btn
+                            color="primary"
+                            icon="image"
+                            label="Choose Image"
+                            @click="triggerFooterImageFile"
+                          />
+                        </div>
+                        <div class="col-auto">
+                          <q-btn
+                            flat
+                            color="primary"
+                            icon="content_paste"
+                            label="Paste Image"
+                            @click="pasteFooterImage"
+                          />
+                        </div>
+                        <div class="col-auto">
+                          <q-btn
+                            flat
+                            color="primary"
+                            icon="link"
+                            label="Paste URL"
+                            @click="pasteFooterImageUrl"
+                          />
+                        </div>
+                        <div class="col-auto">
+                          <q-btn
+                            v-if="pageOptions.printFooter.imageUrl"
+                            flat
+                            color="negative"
+                            icon="delete"
+                            label="Remove"
+                            @click="removeFooterImage"
+                          />
+                        </div>
+                      </div>
+
+                      <q-input
+                        v-if="pageOptions.printFooter.mode === 'image'"
+                        dense
+                        outlined
+                        v-model="pageOptions.printFooter.imageUrl"
+                        label="Footer image URL / Data URL"
+                        @blur="savePageState"
+                      />
+
+                      <q-select
+                        v-if="pageOptions.printFooter.mode === 'image'"
+                        dense
+                        outlined
+                        :options="[
+                          { label: 'Contain', value: 'contain' },
+                          { label: 'Cover', value: 'cover' },
+                          { label: 'Fill', value: 'fill' }
+                        ]"
+                        emit-value
+                        map-options
+                        v-model="pageOptions.printFooter.imageFit"
+                        label="Image fit"
+                        @update:model-value="savePageState"
+                      />
+
+                      <q-input
+                        v-if="pageOptions.printFooter.mode !== 'image'"
+                        outlined
+                        type="textarea"
+                        v-model="pageOptions.printFooter.html"
+                        label="Footer HTML (paste here)"
+                        rows="8"
+                        @blur="savePageState"
+                      />
+
+                      <div v-if="pageOptions.printFooter.mode !== 'image'" class="row items-center q-col-gutter-sm">
+                        <div class="col-12 col-md-6">
+                          <q-input
+                            dense
+                            outlined
+                            type="number"
+                            v-model.number="pageOptions.printFooter.textFontSizePt"
+                            label="Footer text font size (pt)"
+                            @blur="savePageState"
+                          />
+                        </div>
+                        <div class="col-12 col-md-6">
+                          <q-select
+                            dense
+                            outlined
+                            :options="[
+                              { label: 'Black', value: '#000000' },
+                              { label: 'Dark Gray', value: '#333333' },
+                              { label: 'Gray', value: '#666666' },
+                              { label: 'Light Gray', value: '#999999' }
+                            ]"
+                            emit-value
+                            map-options
+                            v-model="pageOptions.printFooter.textColor"
+                            label="Footer text color"
+                            @update:model-value="savePageState"
+                          />
+                        </div>
+                      </div>
+
+                      <div v-if="pageOptions.printFooter.mode !== 'image'" class="row items-center q-col-gutter-sm">
+                        <div class="col-auto">
+                          <q-btn
+                            flat
+                            color="primary"
+                            icon="content_paste"
+                            label="Paste HTML"
+                            @click="pasteFooterHtml"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </q-tab-panel>
+
+                  <q-tab-panel name="pageNumbers">
+                    <div class="options-grid">
+                      <q-toggle
+                        v-model="pageOptions.printFooter.showPageNumbers"
+                        label="Show page numbers in footer"
+                        @update:model-value="savePageState"
+                      />
+
+                      <div v-if="pageOptions.printFooter.showPageNumbers" class="row items-center q-col-gutter-sm">
+                        <div class="col-12 col-md-6">
+                          <q-select
+                            dense
+                            outlined
+                            :options="[
+                              { label: 'Bottom Left', value: 'bottom-left' },
+                              { label: 'Bottom Center', value: 'bottom-center' },
+                              { label: 'Bottom Right', value: 'bottom-right' },
+                              { label: 'Top Left', value: 'top-left' },
+                              { label: 'Top Center', value: 'top-center' },
+                              { label: 'Top Right', value: 'top-right' }
+                            ]"
+                            emit-value
+                            map-options
+                            v-model="pageOptions.printFooter.pageNumberPosition"
+                            label="Page number position"
+                            @update:model-value="savePageState"
+                          />
+                        </div>
+                        <div class="col-12 col-md-6">
+                          <q-toggle
+                            dense
+                            v-model="pageOptions.printFooter.applyOffsetToPageNumbers"
+                            label="Apply footer offset to page numbers"
+                            @update:model-value="savePageState"
+                          />
+                        </div>
+                        <div class="col-12 col-md-6">
+                          <q-select
+                            dense
+                            outlined
+                            :options="[
+                              { label: 'Page 1', value: 'page' },
+                              { label: '1 of 5', value: 'page-of' },
+                              { label: 'Page 1 / 5', value: 'page-slash' },
+                              { label: '1/5', value: 'fraction' }
+                            ]"
+                            emit-value
+                            map-options
+                            v-model="pageOptions.printFooter.pageNumberFormat"
+                            label="Page number format"
+                            @update:model-value="savePageState"
+                          />
+                        </div>
+                      </div>
+
+                      <div v-if="pageOptions.printFooter.showPageNumbers" class="row items-center q-col-gutter-sm">
+                        <div class="col-12 col-md-6">
+                          <q-input
+                            dense
+                            outlined
+                            type="number"
+                            v-model.number="pageOptions.printFooter.pageNumberFontSize"
+                            label="Font size (pt)"
+                            @blur="savePageState"
+                          />
+                        </div>
+                        <div class="col-12 col-md-6">
+                          <q-select
+                            dense
+                            outlined
+                            :options="[
+                              { label: 'Black', value: '#000000' },
+                              { label: 'Dark Gray', value: '#333333' },
+                              { label: 'Gray', value: '#666666' },
+                              { label: 'Light Gray', value: '#999999' }
+                            ]"
+                            emit-value
+                            map-options
+                            v-model="pageOptions.printFooter.pageNumberColor"
+                            label="Color"
+                            @update:model-value="savePageState"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </q-tab-panel>
+                </q-tab-panels>
               </div>
 
-              <div v-if="pageOptions.printFooter.enabled && pageOptions.printFooter.showPageNumbers" class="row items-center q-col-gutter-sm">
-                <div class="col-12 col-md-6">
-                  <q-input
-                    dense
-                    outlined
-                    type="number"
-                    v-model.number="pageOptions.printFooter.pageNumberFontSize"
-                    label="Font size (pt)"
-                    @blur="savePageState"
-                  />
-                </div>
-                <div class="col-12 col-md-6">
-                  <q-select
-                    dense
-                    outlined
-                    :options="[
-                      { label: 'Black', value: '#000000' },
-                      { label: 'Dark Gray', value: '#333333' },
-                      { label: 'Gray', value: '#666666' },
-                      { label: 'Light Gray', value: '#999999' }
-                    ]"
-                    emit-value
-                    map-options
-                    v-model="pageOptions.printFooter.pageNumberColor"
-                    label="Color"
-                    @update:model-value="savePageState"
-                  />
-                </div>
-              </div>
-
-              <div v-if="pageOptions.printFooter.enabled && pageOptions.printFooter.mode === 'image'" class="row items-center q-col-gutter-sm">
-                <div class="col-auto">
-                  <q-btn
-                    color="primary"
-                    icon="image"
-                    label="Choose Image"
-                    @click="triggerFooterImageFile"
-                  />
-                </div>
-                <div class="col-auto">
-                  <q-btn
-                    flat
-                    color="primary"
-                    icon="content_paste"
-                    label="Paste Image"
-                    @click="pasteFooterImage"
-                  />
-                </div>
-                <div class="col-auto">
-                  <q-btn
-                    flat
-                    color="primary"
-                    icon="link"
-                    label="Paste URL"
-                    @click="pasteFooterImageUrl"
-                  />
-                </div>
-                <div class="col-auto">
-                  <q-btn
-                    v-if="pageOptions.printFooter.imageUrl"
-                    flat
-                    color="negative"
-                    icon="delete"
-                    label="Remove"
-                    @click="removeFooterImage"
-                  />
-                </div>
-              </div>
-
-              <q-input
-                v-if="pageOptions.printFooter.enabled && pageOptions.printFooter.mode === 'image'"
-                dense
-                outlined
-                v-model="pageOptions.printFooter.imageUrl"
-                label="Footer image URL / Data URL"
-                @blur="savePageState"
-              />
-
-              <q-select
-                v-if="pageOptions.printFooter.enabled && pageOptions.printFooter.mode === 'image'"
-                dense
-                outlined
-                :options="[
-                  { label: 'Contain', value: 'contain' },
-                  { label: 'Cover', value: 'cover' },
-                  { label: 'Fill', value: 'fill' }
-                ]"
-                emit-value
-                map-options
-                v-model="pageOptions.printFooter.imageFit"
-                label="Image fit"
-                @update:model-value="savePageState"
-              />
-
-              <q-input
-                v-if="pageOptions.printFooter.enabled && pageOptions.printFooter.mode !== 'image'"
-                outlined
-                type="textarea"
-                v-model="pageOptions.printFooter.html"
-                label="Footer HTML (paste here)"
-                rows="8"
-                @blur="savePageState"
-              />
-
-              <div v-if="pageOptions.printFooter.enabled && pageOptions.printFooter.mode !== 'image'" class="row items-center q-col-gutter-sm">
-                <div class="col-12 col-md-6">
-                  <q-input
-                    dense
-                    outlined
-                    type="number"
-                    v-model.number="pageOptions.printFooter.textFontSizePt"
-                    label="Footer text font size (pt)"
-                    @blur="savePageState"
-                  />
-                </div>
-                <div class="col-12 col-md-6">
-                  <q-select
-                    dense
-                    outlined
-                    :options="[
-                      { label: 'Black', value: '#000000' },
-                      { label: 'Dark Gray', value: '#333333' },
-                      { label: 'Gray', value: '#666666' },
-                      { label: 'Light Gray', value: '#999999' }
-                    ]"
-                    emit-value
-                    map-options
-                    v-model="pageOptions.printFooter.textColor"
-                    label="Footer text color"
-                    @update:model-value="savePageState"
-                  />
-                </div>
-              </div>
-
-              <div v-if="pageOptions.printFooter.enabled && pageOptions.printFooter.mode !== 'image'" class="row items-center q-col-gutter-sm">
-                <div class="col-auto">
-                  <q-btn
-                    flat
-                    color="primary"
-                    icon="content_paste"
-                    label="Paste HTML"
-                    @click="pasteFooterHtml"
-                  />
-                </div>
-              </div>
             </div>
           </q-tab-panel>
 
@@ -1521,6 +1565,7 @@ import { renderToString } from 'katex'
 import QuestionDisplay from './components/QuestionDisplay.vue'
 import SectionTotalMark from './components/SectionTotalMark.vue'
 import PrintActions from './components/PrintActions.vue'
+import PrintFooter from './components/PrintFooter.vue'
 import FirstPageSettings from './components/FirstPageSettings.vue'
 import LastPageSettings from './components/LastPageSettings.vue'
 import { renderSectionTotalHTML } from './utils/sectionTotalTemplates'
@@ -1585,12 +1630,22 @@ const pasteError = ref('')
 const firstLastPageOpen = ref(false)
 const optionsOpen = ref(false)
 const settingsTab = ref('general')
+const footerSettingsTab = ref('layout')
 // Computed page title for Head component
 const pageTitle = computed(() => {
   return pageOptions.value.examTitle?.enabled && pageOptions.value.examTitle?.text
     ? pageOptions.value.examTitle.text
     : 'Exam Builder - Ready to Print'
 })
+
+function applyRecommendedFooterOneLineTopAlign() {
+  if (!pageOptions.value?.printFooter) return
+  pageOptions.value.printFooter.enabled = true
+  pageOptions.value.printFooter.singleLine = true
+  pageOptions.value.printFooter.singleLineTopAlign = true
+  pageOptions.value.printFooter.showPageNumbers = true
+  savePageState()
+}
 
 const pageOptions = ref({
   examTitle: {
@@ -1630,7 +1685,8 @@ const pageOptions = ref({
     textFontSizePt: 12,
     textColor: '#000000',
     reserveSpace: true,
-    singleLine: false,
+    singleLine: true,
+    singleLineTopAlign: false,
     showTopBorder: false,
     showPageNumbers: true,
     pageNumberPosition: 'bottom-center',
@@ -2612,6 +2668,61 @@ function saveQuestionImage() {
   savePageState()
 }
 
+function generateFooterComponentHTML() {
+  const footerText = pageOptions.value?.printFooter?.html || ''
+  const showPageNumbers = !!pageOptions.value?.printFooter?.showPageNumbers
+  const pageNumberFormat = String(pageOptions.value?.printFooter?.pageNumberFormat || 'page')
+  const pageNumberFontSize = Number(pageOptions.value?.printFooter?.pageNumberFontSize) || 10
+  const pageNumberColor = String(pageOptions.value?.printFooter?.pageNumberColor || '#000000')
+  const singleLine = pageOptions.value?.printFooter?.singleLine === true
+  const singleLineTopAlign = pageOptions.value?.printFooter?.singleLineTopAlign === true
+  
+  let html = '<div class="footer-content"'
+  
+  if (singleLine) {
+    html += ' style="display: flex; align-items: ' + (singleLineTopAlign ? 'flex-start' : 'center') + '; justify-content: space-between; gap: 12px; padding: 6mm 12mm;"'
+  } else {
+    html += ' style="padding: 6mm 12mm;"'
+  }
+  
+  html += '>'
+  
+  // Left side: Footer text
+  html += '<div class="footer-left"'
+  if (singleLine) {
+    html += ' style="flex: 1; min-width: 0;"'
+  } else {
+    html += ' style="text-align: left;"'
+  }
+  html += '>'
+  
+  if (footerText) {
+    html += '<div class="footer-text">' + footerText + '</div>'
+  }
+  
+  html += '</div>'
+  
+  // Right side: Page numbers
+  if (showPageNumbers) {
+    html += '<div class="footer-right"'
+    if (singleLine) {
+      html += ' style="flex: 0 0 auto; white-space: nowrap; text-align: right;"'
+    } else {
+      html += ' style="text-align: right;"'
+    }
+    html += '>'
+    
+    html += '<div class="page-number" style="font-size:' + pageNumberFontSize + 'pt; color:' + pageNumberColor + ';">'
+    html += '<span class="page-number-content" data-format="' + pageNumberFormat + '"></span>'
+    html += '</div>'
+    
+    html += '</div>'
+  }
+  
+  html += '</div>'
+  return html
+}
+
 function generatePrintHTML() {
   const examTitleEnabled = !!pageOptions.value?.examTitle?.enabled
   const examTitleTextRaw = String(pageOptions.value?.examTitle?.text || 'Math Questions Test')
@@ -2704,6 +2815,13 @@ function generatePrintHTML() {
   // Header: touches the top of the physical page printable area.
   html += ' .print-header { position: fixed; top: 0; left: 0; right: 0; z-index: 999; background: white; overflow: hidden; box-sizing: border-box; padding: 0 0; }'
   html += ' .print-footer { position: fixed; bottom: 0; left: 0; right: 0; z-index: 999; background: transparent; overflow: hidden; box-sizing: border-box; padding: 0 0; }'
+  html += ' @media print { .print-footer { position: fixed; bottom: ' + bottomOffsetMm + 'mm; left: 0; right: 0; z-index: 999; background: transparent; overflow: hidden; box-sizing: border-box; } }'
+  html += ' @media print { .footer-content { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 6mm 12mm; } }'
+  html += ' @media print { .footer-left { flex: 1; min-width: 0; } }'
+  html += ' @media print { .footer-right { flex: 0 0 auto; white-space: nowrap; text-align: right; } }'
+  html += ' @media print { .page-number { font-size: ' + pageNumberFontSize + 'pt; color: ' + pageNumberColor + '; } }'
+  html += ' @media print { .page-number-content { font-size: ' + pageNumberFontSize + 'pt; color: ' + pageNumberColor + '; } }'
+  
   // Basic reset for the layout table
   html += ' table.print-layout { width: 100%; border: none; border-spacing: 0; border-collapse: collapse; }'
   html += ' table.print-layout td { padding: 0; border: none; vertical-align: top; }'
@@ -2919,8 +3037,10 @@ scriptContent += "})();";
       footerInner = '<div class="footer-line" style="padding:6mm 12mm;">' + footerContentHtml + '</div>'
     }
 
+    // Generate footer using reusable component structure
     const footerOffsetStyle = bottomOffsetMm !== 0 ? ('bottom:' + bottomOffsetMm + 'mm;') : ''
-    html += '<div id="printFooterRoot" class="print-footer" style="' + footerBorderStyle + footerOffsetStyle + (footerAutoFit ? '' : ('height:' + footerHeightPt + 'pt;')) + '">' + footerInner + '</div>'
+    const footerComponentHtml = generateFooterComponentHTML()
+    html += '<div id="printFooterRoot" class="print-footer" style="' + footerBorderStyle + footerOffsetStyle + (footerAutoFit ? '' : ('height:' + footerHeightPt + 'pt;')) + '">' + footerComponentHtml + '</div>'
   }
 
   // The master layout table forces the header spacer to repeat on every printed page
