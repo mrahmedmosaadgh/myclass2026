@@ -994,6 +994,15 @@
                   dense
                   flat
                   round
+                  :icon="s.pageBreakBefore ? 'page_break' : 'format_pagebreak'"
+                  :color="s.pageBreakBefore ? 'primary' : 'grey-7'"
+                  :title="s.pageBreakBefore ? 'Section starts on new page' : 'Force section to start on new page'"
+                  @click="s.pageBreakBefore = !s.pageBreakBefore; savePageState()"
+                />
+                <q-btn
+                  dense
+                  flat
+                  round
                   icon="delete"
                   color="negative"
                   :disable="sections.length <= 1"
