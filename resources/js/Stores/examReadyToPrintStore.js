@@ -240,6 +240,25 @@ export const useExamReadyToPrintStore = defineStore('examReadyToPrint', {
             }
             this.setLifecycleStatus('rendered')
         },
+
+        loadUserData(questions, settings) {
+            // Load user-specific data
+            this.exam = { ...settings }
+            this.exam.sections = questions || []
+            this.lifecycle = { status: 'draft', locked: false, dirty: false }
+            this.selection = { sectionId: null, questionId: null }
+            this.validation = {
+                lastRunAt: null,
+                summary: { errors: 0, warnings: 0, infos: 0 },
+                items: [],
+            }
+            this.renderSnapshot = { id: null, createdAt: null }
+        },
+
+        markClean() {
+            // Mark data as clean (no unsaved changes)
+            this.lifecycle.dirty = false
+        },
     },
 
     persist: {
