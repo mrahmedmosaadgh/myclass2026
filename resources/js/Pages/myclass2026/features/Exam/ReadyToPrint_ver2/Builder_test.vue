@@ -2097,6 +2097,11 @@ async function loadPageState() {
     if (data?.questions) sampleQuestions.value = data.questions
     if (data?.settings) {
       pageOptions.value = { ...pageOptions.value, ...data.settings }
+      // Force enable footer and page numbers regardless of cached settings
+      if (pageOptions.value.printFooter) {
+        pageOptions.value.printFooter.enabled = true
+        pageOptions.value.printFooter.showPageNumbers = true
+      }
     }
     
     // Ensure every question has a section
