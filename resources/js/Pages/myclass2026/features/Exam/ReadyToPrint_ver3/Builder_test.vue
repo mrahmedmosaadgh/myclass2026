@@ -51,6 +51,13 @@
                 <q-item-section>AI Chat Exam Generation</q-item-section>
               </q-item>
 
+              <q-item clickable v-close-popup @click="openValidationDialog">
+                <q-item-section avatar>
+                  <q-icon name="fact_check" />
+                </q-item-section>
+                <q-item-section>Validate & Fix Questions</q-item-section>
+              </q-item>
+
               <q-item clickable v-close-popup @click="triggerImportFile">
                 <q-item-section avatar>
                   <q-icon name="upload_file" />
@@ -1660,6 +1667,95 @@
       </q-card-section>
     </q-card>
   </q-dialog>
+
+  <!-- Question Validation Dialog -->
+  <q-dialog v-model="validationDialogOpen" maximized transition-show="slide-up" transition-hide="slide-down">
+    <q-card class="q-pa-md">
+      <q-card-section class="row items-center q-pb-none">
+        <div class="text-h6">Validate & Fix Questions</div>
+        <q-space />
+        <q-btn flat round dense icon="close" v-close-popup />
+      </q-card-section>
+
+      <q-card-section>
+        <!-- Errors Table -->
+        <div class="text-subtitle1 q-mb-md">Detected Errors ({{ questionErrors.length }})</div>
+        
+        <q-table
+          v-if="questionErrors.length > 0"
+          :rows="questionErrors"
+          :columns="[
+            { name: 'questionNumber', label: '#', field: 'questionNumber', align: 'center', style: 'width: 50px' },
+            { name: 'type', label: 'Type', field: 'type', align: 'left', style: 'width: 150px' },
+            { name: 'severity', label: 'Severity', field: 'severity', align: 'left', style: 'width: 100px' },
+            { name: 'message', label: 'Message', field: 'message', align: 'left' },
+            { name: 'question', label: 'Question', field: 'question', align: 'left' }
+          ]"
+          row-key="questionId"
+          flat
+          bordered
+          dense
+          :rows-per-page-options="[10, 20, 50]"
+        >
+          <template v-slot:body-cell-severity="props">
+            <q-td :props="props">
+              <q-badge :color="props.row.severity === 'error' ? 'negative' : 'warning'">
+                {{ props.row.severity }}
+              </q-badge>
+            </q-td>
+          </template>
+        </q-table>
+        
+        <div v-else class="q-pa-md text-center text-positive">
+          <q-icon name="check_circle" size="48px" color="positive" />
+          <div class="text-h6 q-mt-md">No errors detected!</div>
+          <div class="text-caption">All questions appear to be valid.</div>
+        </div>
+
+        <!-- AI Prompt Section -->
+        <q-separator class="q-my-md" />
+        
+        <div class="text-subtitle1 q-mb-md">AI Validation Prompt</div>
+        <div class="text-caption q-mb-sm">Copy this prompt and send to AI to get corrected questions:</div>
+        
+        <q-input
+          v-model="questionsForValidation"
+          type="textarea"
+          outlined
+          rows="8"
+          readonly
+          class="q-mb-md"
+        />
+        
+        <div class="row q-col-gutter-sm q-mb-md">
+          <q-btn @click="copyValidationPrompt" color="primary" icon="content_copy" label="Copy Prompt" />
+        </div>
+
+        <!-- Paste Revised Questions Section -->
+        <q-separator class="q-my-md" />
+        
+        <div class="text-subtitle1 q-mb-md">Paste Revised Questions</div>
+        <div class="text-caption q-mb-sm">Paste the corrected JSON from AI here:</div>
+        
+        <q-input
+          v-model="revisedQuestions"
+          type="textarea"
+          outlined
+          rows="8"
+          placeholder="Paste corrected questions JSON here..."
+          class="q-mb-md"
+        />
+        
+        <div class="row q-col-gutter-sm">
+          <q-btn @click="applyRevisedQuestions" color="positive" icon="check" label="Apply Revised Questions" :disable="!revisedQuestions.trim()" />
+        </div>
+      </q-card-section>
+
+      <q-card-actions align="right">
+        <q-btn flat color="primary" @click="validationDialogOpen = false">Close</q-btn>
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
   </div>
 
   <input
@@ -1979,6 +2075,13 @@ const aiModel = ref('gpt-4')
 const aiLoading = ref(false)
 const conversationMode = ref('exam_generation') // 'exam_generation' or 'question_asking'
 const generatedExamData = ref(null)
+
+// Question Validation and Revision State
+const validationDialogOpen = ref(false)
+const questionErrors = ref([])
+const questionsForValidation = ref('')
+const revisedQuestions = ref('')
+const validationPrompt = ref('')
 const optionsOpen = ref(false)
 const settingsTab = ref('general')
 const footerSettingsTab = ref('layout')
@@ -3227,6 +3330,160 @@ function regenerateExam() {
     content: 'Please regenerate the exam with different questions.'
   })
   sendAIMessage()
+}
+
+// Question Validation and Revision Functions
+function openValidationDialog() {
+  // Detect errors in questions
+  questionErrors.value = detectQuestionErrors()
+  
+  // Generate AI prompt for validation
+  const questionsJson = JSON.stringify(sampleQuestions.value, null, 2)
+  validationPrompt.value = `Please review these questions for errors and provide a corrected version in JSON format:
+
+Errors to check for:
+- Missing correct_answer for multiple_choice questions
+- Duplicate questions (same or very similar content)
+- Empty or invalid question prompts
+- Invalid question types
+- Missing required fields
+
+Questions JSON:
+\`\`\`json
+${questionsJson}
+\`\`\`
+
+Please return ONLY a corrected JSON array of questions with the same structure. Fix any errors you find.`
+  
+  questionsForValidation.value = validationPrompt.value
+  validationDialogOpen.value = true
+}
+
+function detectQuestionErrors() {
+  const errors = []
+  const seenPrompts = new Map()
+  
+  sampleQuestions.value.forEach((q, index) => {
+    const qNum = index + 1
+    
+    // Check for missing correct answer in multiple choice
+    if (q.type === 'multiple_choice') {
+      if (!q.content.correct_answer) {
+        errors.push({
+          questionId: q.id,
+          questionNumber: qNum,
+          type: 'Missing correct answer',
+          severity: 'error',
+          message: 'Multiple choice question is missing correct_answer field',
+          question: q.content.prompt
+        })
+      }
+      
+      // Check if correct_answer matches one of the options
+      if (q.content.correct_answer && q.content.options) {
+        const hasCorrectOption = q.content.options.includes(q.content.correct_answer)
+        if (!hasCorrectOption) {
+          errors.push({
+            questionId: q.id,
+            questionNumber: qNum,
+            type: 'Invalid correct answer',
+            severity: 'error',
+            message: `Correct answer "${q.content.correct_answer}" is not in the options`,
+            question: q.content.prompt
+          })
+        }
+      }
+    }
+    
+    // Check for empty prompt
+    if (!q.content.prompt || q.content.prompt.trim() === '') {
+      errors.push({
+        questionId: q.id,
+        questionNumber: qNum,
+        type: 'Empty question',
+        severity: 'error',
+        message: 'Question prompt is empty',
+        question: q.content.prompt
+      })
+    }
+    
+    // Check for duplicates
+    const promptLower = q.content.prompt?.toLowerCase().trim() || ''
+    if (promptLower && seenPrompts.has(promptLower)) {
+      const duplicateIndex = seenPrompts.get(promptLower)
+      errors.push({
+        questionId: q.id,
+        questionNumber: qNum,
+        type: 'Duplicate question',
+        severity: 'warning',
+        message: `This question is a duplicate of question ${duplicateIndex}`,
+        question: q.content.prompt
+      })
+    } else if (promptLower) {
+      seenPrompts.set(promptLower, qNum)
+    }
+    
+    // Check for invalid question type
+    const validTypes = ['short_answer', 'multiple_choice', 'true_false', 'essay', 'fill_in_blank']
+    if (!validTypes.includes(q.type)) {
+      errors.push({
+        questionId: q.id,
+        questionNumber: qNum,
+        type: 'Invalid type',
+        severity: 'error',
+        message: `Invalid question type: ${q.type}`,
+        question: q.content.prompt
+      })
+    }
+    
+    // Check for missing options in multiple choice
+    if (q.type === 'multiple_choice' && (!q.content.options || q.content.options.length < 2)) {
+      errors.push({
+        questionId: q.id,
+        questionNumber: qNum,
+        type: 'Missing options',
+        severity: 'error',
+        message: 'Multiple choice question must have at least 2 options',
+        question: q.content.prompt
+      })
+    }
+  })
+  
+  return errors
+}
+
+function copyValidationPrompt() {
+  navigator.clipboard.writeText(questionsForValidation.value)
+  alert('Validation prompt copied to clipboard!')
+}
+
+function applyRevisedQuestions() {
+  try {
+    let cleanedResponse = revisedQuestions.value
+      .replace(/```json\n?|\n?```/g, '')
+      .trim()
+    
+    const revisedQuestionsData = JSON.parse(cleanedResponse)
+    
+    if (!Array.isArray(revisedQuestionsData)) {
+      throw new Error('Response must be a JSON array of questions')
+    }
+    
+    // Update questions with revised versions
+    revisedQuestionsData.forEach((revisedQ) => {
+      const existingIndex = sampleQuestions.value.findIndex(q => q.id === revisedQ.id)
+      if (existingIndex !== -1) {
+        sampleQuestions.value[existingIndex] = { ...sampleQuestions.value[existingIndex], ...revisedQ }
+      }
+    })
+    
+    savePageState()
+    alert('Revised questions applied successfully!')
+    validationDialogOpen.value = false
+  } catch (error) {
+    console.error('Failed to apply revised questions:', error)
+    alert('Failed to apply revised questions. Please check the JSON format.')
+  }
 }
 
 function validateAndPreview() {
