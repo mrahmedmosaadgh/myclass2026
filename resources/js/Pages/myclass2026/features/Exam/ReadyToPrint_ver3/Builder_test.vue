@@ -37,6 +37,13 @@
                 <q-item-section>Import AI Questions</q-item-section>
               </q-item>
 
+              <q-item clickable v-close-popup @click="openFullExamDialog">
+                <q-item-section avatar>
+                  <q-icon name="auto_awesome" />
+                </q-item-section>
+                <q-item-section>Generate Full Exam with AI</q-item-section>
+              </q-item>
+
               <q-item clickable v-close-popup @click="triggerImportFile">
                 <q-item-section avatar>
                   <q-icon name="upload_file" />
@@ -1335,6 +1342,181 @@
         </q-stepper>
       </q-card>
     </q-dialog>
+
+  <!-- Full Exam AI Generation Dialog -->
+  <q-dialog v-model="fullExamDialogOpen" maximized transition-show="slide-up" transition-hide="slide-down">
+    <q-card class="q-pa-md">
+      <q-card-section class="row items-center q-pb-none">
+        <div class="text-h6">Generate Full Exam with AI</div>
+        <q-space />
+        <q-btn flat round dense icon="close" v-close-popup />
+      </q-card-section>
+
+      <q-card-section>
+        <q-stepper v-model="fullExamStep" vertical color="primary" animated>
+          <!-- Step 1: Exam Configuration -->
+          <q-step
+            :name="1"
+            title="Configure Exam"
+            icon="settings"
+            :done="fullExamStep > 1"
+          >
+            <div class="form-section">
+              <div class="text-subtitle1 q-mb-md">Exam Details</div>
+              
+              <q-input
+                v-model="examConfig.examTitle"
+                label="Exam Title"
+                placeholder="e.g., Mathematics Final Exam"
+                outlined
+                class="q-mb-md"
+              />
+              
+              <q-input
+                v-model="examConfig.examSubject"
+                label="Subject"
+                placeholder="e.g., Mathematics"
+                outlined
+                class="q-mb-md"
+              />
+              
+              <q-input
+                v-model="examConfig.examGrade"
+                label="Grade Level"
+                placeholder="e.g., Grade 10"
+                outlined
+                class="q-mb-md"
+              />
+              
+              <q-input
+                v-model="examConfig.examDuration"
+                label="Duration"
+                placeholder="e.g., 2 hours"
+                outlined
+                class="q-mb-md"
+              />
+              
+              <q-input
+                v-model.number="examConfig.totalMarks"
+                type="number"
+                label="Total Marks"
+                placeholder="e.g., 100"
+                outlined
+                class="q-mb-md"
+              />
+
+              <div class="text-subtitle1 q-mb-md q-mt-lg">Sections</div>
+              
+              <div v-for="(section, index) in examConfig.sections" :key="index" class="section-card q-mb-md q-pa-md bordered">
+                <div class="row items-center q-mb-md">
+                  <div class="text-subtitle2">Section {{ index + 1 }}</div>
+                  <q-space />
+                  <q-btn flat round dense icon="delete" color="negative" @click="removeExamSection(index)" />
+                </div>
+                
+                <q-input
+                  v-model="section.title"
+                  label="Section Title"
+                  placeholder="e.g., Algebra, Geometry"
+                  outlined
+                  class="q-mb-sm"
+                />
+                
+                <q-input
+                  v-model="section.description"
+                  label="Description (optional)"
+                  placeholder="Brief description of this section"
+                  outlined
+                  class="q-mb-sm"
+                />
+                
+                <q-select
+                  v-model="section.questionTypes"
+                  label="Question Types"
+                  :options="['short_answer', 'multiple_choice', 'true_false', 'essay', 'fill_in_blank']"
+                  multiple
+                  outlined
+                  class="q-mb-sm"
+                />
+                
+                <q-input
+                  v-model.number="section.questionCount"
+                  type="number"
+                  label="Number of Questions"
+                  min="1"
+                  outlined
+                  class="q-mb-sm"
+                />
+                
+                <q-input
+                  v-model.number="section.marksPerQuestion"
+                  type="number"
+                  label="Marks per Question"
+                  min="1"
+                  outlined
+                />
+              </div>
+
+              <q-btn @click="addExamSection" color="secondary" icon="add" label="Add Section" class="q-mt-md" />
+            </div>
+
+            <q-stepper-navigation>
+              <q-btn @click="generateFullExamPrompt" color="primary" label="Generate Prompt" />
+              <q-btn flat @click="fullExamDialogOpen = false" color="secondary" label="Cancel" class="q-ml-sm" />
+            </q-stepper-navigation>
+          </q-step>
+
+          <!-- Step 2: AI Prompt -->
+          <q-step
+            :name="2"
+            title="AI Prompt"
+            icon="chat"
+            :done="fullExamStep > 2"
+          >
+            <div class="step-content">
+              <div v-if="fullExamPrompt" class="prompt-preview">
+                <div class="text-subtitle2 q-mb-sm">Generated Prompt:</div>
+                <q-markdown :source="fullExamPrompt" />
+              </div>
+
+              <q-stepper-navigation>
+                <q-btn v-if="fullExamPrompt" flat @click="copyFullExamPrompt" color="secondary" label="Copy to Clipboard" />
+                <q-btn @click="fullExamStep = 3" color="primary" label="Next" class="q-ml-sm" />
+                <q-btn flat @click="fullExamStep = 1" color="secondary" label="Back" class="q-ml-sm" />
+              </q-stepper-navigation>
+            </div>
+          </q-step>
+
+          <!-- Step 3: AI Response -->
+          <q-step
+            :name="3"
+            title="AI Response"
+            icon="check_circle"
+            :done="fullExamStep > 3"
+          >
+            <div class="step-content">
+              <div class="text-subtitle2 q-mb-sm">Paste AI Response (JSON):</div>
+              <q-input
+                v-model="fullExamResponse"
+                type="textarea"
+                label="AI Response (JSON)"
+                placeholder="Paste the JSON response from AI here..."
+                outlined
+                rows="15"
+                class="q-mb-md"
+              />
+
+              <q-btn @click="processFullExamResponse" color="primary" label="Generate Exam" />
+              
+              <q-stepper-navigation class="q-mt-md">
+                <q-btn flat @click="fullExamStep = 2" color="secondary" label="Back" />
+              </q-stepper-navigation>
+            </div>
+          </q-step>
+        </q-stepper>
+      </q-card-section>
+    </q-card>
+  </q-dialog>
   </div>
 
   <input
@@ -1628,6 +1810,22 @@ const parsedQuestions = ref([])
 const selectedQuestions = ref([])
 const pasteError = ref('')
 const firstLastPageOpen = ref(false)
+
+// Full Exam AI Generation State
+const fullExamDialogOpen = ref(false)
+const fullExamStep = ref(1)
+const fullExamPrompt = ref('')
+const fullExamResponse = ref('')
+const examConfig = ref({
+  examTitle: '',
+  examSubject: '',
+  examGrade: '',
+  examDuration: '',
+  totalMarks: '',
+  sections: []
+})
+const currentSectionIndex = ref(0)
+const missingInfoPrompts = ref([])
 const optionsOpen = ref(false)
 const settingsTab = ref('general')
 const footerSettingsTab = ref('layout')
@@ -2468,8 +2666,205 @@ function copyPrompt() {
     // Show success notification (you can add Quasar notify here)
     console.log('Prompt copied to clipboard')
   }).catch(err => {
-    console.error('Failed to copy prompt:', err)
+    console.error('Failed to copy prompt', err)
   })
+}
+
+// Full Exam AI Generation Functions
+function openFullExamDialog() {
+  fullExamDialogOpen.value = true
+  fullExamStep.value = 1
+  fullExamPrompt.value = ''
+  fullExamResponse.value = ''
+  examConfig.value = {
+    examTitle: '',
+    examSubject: '',
+    examGrade: '',
+    examDuration: '',
+    totalMarks: '',
+    sections: []
+  }
+  currentSectionIndex.value = 0
+  missingInfoPrompts.value = []
+}
+
+function addExamSection() {
+  examConfig.value.sections.push({
+    title: '',
+    description: '',
+    questionTypes: [],
+    questionCount: 0,
+    marksPerQuestion: 1,
+    totalMarks: 0
+  })
+}
+
+function removeExamSection(index) {
+  examConfig.value.sections.splice(index, 1)
+}
+
+function generateFullExamPrompt() {
+  const { examTitle, examSubject, examGrade, examDuration, totalMarks, sections } = examConfig.value
+
+  // Detect missing information
+  const missingInfo = []
+  if (!examTitle) missingInfo.push('exam title')
+  if (!examSubject) missingInfo.push('exam subject')
+  if (!examGrade) missingInfo.push('grade level')
+  if (!examDuration) missingInfo.push('exam duration')
+  if (!totalMarks) missingInfo.push('total marks')
+  
+  sections.forEach((section, index) => {
+    if (!section.title) missingInfo.push(`section ${index + 1} title`)
+    if (!section.questionTypes || section.questionTypes.length === 0) missingInfo.push(`section ${index + 1} question types`)
+    if (!section.questionCount) missingInfo.push(`section ${index + 1} question count`)
+  })
+
+  if (missingInfo.length > 0) {
+    missingInfoPrompts.value = missingInfo
+    alert(`Please provide the following missing information:\n${missingInfo.join('\n')}`)
+    return
+  }
+
+  let prompt = `Generate a complete exam with the following specifications:`
+  prompt += `\n\nExam Details:`
+  prompt += `\n- Title: "${examTitle}"`
+  prompt += `\n- Subject: "${examSubject}"`
+  prompt += `\n- Grade Level: "${examGrade}"`
+  prompt += `\n- Duration: "${examDuration}"`
+  prompt += `\n- Total Marks: ${totalMarks}`
+
+  prompt += `\n\nSections:`
+  sections.forEach((section, index) => {
+    prompt += `\n\nSection ${index + 1}:`
+    prompt += `\n- Title: "${section.title}"`
+    prompt += `\n- Description: "${section.description || 'N/A'}"`
+    prompt += `\n- Question Types: ${section.questionTypes.join(', ')}`
+    prompt += `\n- Number of Questions: ${section.questionCount}`
+    prompt += `\n- Marks per Question: ${section.marksPerQuestion}`
+  })
+
+  prompt += `\n\nRequirements:`
+  prompt += `\n- Return ONLY a JSON object with the complete exam structure`
+  prompt += `\n- Include all sections with their questions`
+  prompt += `\n- Each question must have: id, type, marks, content with prompt and options (if applicable)`
+  prompt += `\n- Question types: "short_answer", "multiple_choice", "true_false", "essay", "fill_in_blank"`
+  prompt += `\n- For multiple_choice questions, include options array and correct_answer`
+  prompt += `\n- Use LaTeX notation for math: $x^2$ for inline, $$\\frac{a}{b}$$ for display`
+  prompt += `\n- Do NOT include citations or source markers like [cite: 219] anywhere in the text`
+
+  prompt += `\n\nJSON format:`
+  prompt += `\n\`\`\`json`
+  prompt += `\n{`
+  prompt += `\n  "examTitle": "${examTitle}",`
+  prompt += `\n  "examSubject": "${examSubject}",`
+  prompt += `\n  "examGrade": "${examGrade}",`
+  prompt += `\n  "examDuration": "${examDuration}",`
+  prompt += `\n  "totalMarks": ${totalMarks},`
+  prompt += `\n  "sections": [`
+  prompt += `\n    {`
+  prompt += `\n      "id": 1,`
+  prompt += `\n      "title": "${sections[0]?.title || 'Section 1'}",`
+  prompt += `\n      "description": "${sections[0]?.description || ''}",`
+  prompt += `\n      "totalMarks": ${sections[0]?.totalMarks || 0},`
+  prompt += `\n      "questions": [`
+  prompt += `\n        {`
+  prompt += `\n          "id": 1,`
+  prompt += `\n          "type": "short_answer",`
+  prompt += `\n          "marks": 2,`
+  prompt += `\n          "content": {`
+  prompt += `\n            "prompt": "Question text here..."`
+  prompt += `\n          }`
+  prompt += `\n        },`
+  prompt += `\n        {`
+  prompt += `\n          "id": 2,`
+  prompt += `\n          "type": "multiple_choice",`
+  prompt += `\n          "marks": 3,`
+  prompt += `\n          "content": {`
+  prompt += `\n            "prompt": "Question text here...",`
+  prompt += `\n            "options": ["Option A", "Option B", "Option C", "Option D"],`
+  prompt += `\n            "correct_answer": "Option A"`
+  prompt += `\n          }`
+  prompt += `\n        }`
+  prompt += `\n      ]`
+  prompt += `\n    }`
+  prompt += `\n  ]`
+  prompt += `\n}`
+  prompt += `\n\`\`\``
+
+  fullExamPrompt.value = prompt
+  fullExamStep.value = 2
+}
+
+function copyFullExamPrompt() {
+  navigator.clipboard.writeText(fullExamPrompt.value).then(() => {
+    console.log('Full exam prompt copied to clipboard')
+  }).catch(err => {
+    console.error('Failed to copy prompt', err)
+  })
+}
+
+function processFullExamResponse() {
+  try {
+    let cleanedResponse = fullExamResponse.value
+      .replace(/```json\n?|\n?```/g, '')
+      .trim()
+
+    const examData = JSON.parse(cleanedResponse)
+    
+    // Update exam title
+    if (examData.examTitle) {
+      pageOptions.value.examTitle.text = examData.examTitle
+      pageOptions.value.examTitle.enabled = true
+    }
+
+    // Process sections and questions
+    if (examData.sections && Array.isArray(examData.sections)) {
+      const newSections = []
+      const newQuestions = []
+      const newQuestionSectionMap = {}
+      let questionIdCounter = 1
+
+      examData.sections.forEach((section, sectionIndex) => {
+        const sectionId = `section_${Date.now()}_${sectionIndex}`
+        newSections.push({
+          id: sectionId,
+          title: section.title || `Section ${sectionIndex + 1}`,
+          description: section.description || '',
+          totalMarks: section.totalMarks || 0
+        })
+
+        if (section.questions && Array.isArray(section.questions)) {
+          section.questions.forEach((question) => {
+            const questionId = questionIdCounter++
+            newQuestions.push({
+              id: questionId,
+              type: question.type || 'short_answer',
+              marks: question.marks || 1,
+              content: question.content || { prompt: '' }
+            })
+            newQuestionSectionMap[questionId] = sectionId
+          })
+        }
+      })
+
+      sections.value = newSections
+      sampleQuestions.value = newQuestions
+      questionSectionMap.value = newQuestionSectionMap
+    }
+
+    // Save the generated data
+    savePageState()
+    
+    // Close dialog
+    fullExamDialogOpen.value = false
+    
+    // Show success message
+    alert('Exam generated successfully!')
+  } catch (error) {
+    console.error('Failed to process exam response:', error)
+    alert('Failed to process exam response. Please check the JSON format.')
+  }
 }
 
 function validateAndPreview() {
