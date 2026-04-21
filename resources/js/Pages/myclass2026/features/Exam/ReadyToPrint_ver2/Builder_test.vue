@@ -1,37 +1,68 @@
 <template>
   <div class="exam-test-page">
-    <!-- Simple header with print and AI import buttons -->
-    <div class="test-header">
-      <h1 v-if="pageOptions.examTitle?.enabled">{{ pageOptions.examTitle?.text }}</h1>
-      <div class="header-actions">
-        <q-btn
-          label="Import AI Questions"
-          color="secondary"
-          icon="smart_toy"
-          @click="openAIDialog"
-        />
-        <q-btn
-          label="Import JSON"
-          color="grey-8"
-          icon="upload_file"
-          class="q-ml-sm"
-          @click="triggerImportFile"
-        />
-        <q-btn
-          label="Export JSON"
-          color="grey-8"
-          icon="download"
-          class="q-ml-sm"
-          @click="exportToJson"
-        />
-        <q-btn
-          label="Settings"
-          color="grey-8"
-          icon="settings"
-          class="q-ml-sm"
-          @click="optionsOpen = true"
-        />
-        <div class="q-ml-sm">
+    <!-- Modern sticky toolbar -->
+    <div class="modern-toolbar">
+      <div class="toolbar-left">
+        <div class="toolbar-title">
+          <q-icon name="quiz" size="24px" color="primary" />
+          <span v-if="pageOptions.examTitle?.enabled" class="title-text">{{ pageOptions.examTitle?.text }}</span>
+          <span v-else class="title-text">Exam Builder</span>
+        </div>
+      </div>
+      
+      <div class="toolbar-right">
+        <!-- Import/Export Group -->
+        <div class="toolbar-group">
+          <q-btn
+            flat
+            round
+            color="primary"
+            icon="smart_toy"
+            size="md"
+            @click="openAIDialog"
+          >
+            <q-tooltip>Import AI Questions</q-tooltip>
+          </q-btn>
+          
+          <q-btn
+            flat
+            round
+            color="secondary"
+            icon="upload_file"
+            size="md"
+            @click="triggerImportFile"
+          >
+            <q-tooltip>Import JSON</q-tooltip>
+          </q-btn>
+          
+          <q-btn
+            flat
+            round
+            color="secondary"
+            icon="download"
+            size="md"
+            @click="exportToJson"
+          >
+            <q-tooltip>Export JSON</q-tooltip>
+          </q-btn>
+        </div>
+
+        <!-- Settings Group -->
+        <div class="toolbar-group">
+          <q-btn
+            flat
+            round
+            color="grey-7"
+            icon="tune"
+            size="md"
+            @click="optionsOpen = true"
+          >
+            <q-tooltip>Settings</q-tooltip>
+          </q-btn>
+        </div>
+
+        <!-- Print Actions -->
+        <div class="toolbar-group">
           <PrintActions
             :generate-print-html="generatePrintHTML"
             :extra-margin-mm="pageOptions.printHeader.pageMarginTopMm ?? 0"
@@ -177,6 +208,7 @@
           inline-label
         >
           <q-tab name="general" icon="tune" label="General" />
+          <q-tab name="firstPage" icon="description" label="First Page" />
           <q-tab name="header" icon="view_headline" label="Header" />
           <q-tab name="footer" icon="horizontal_rule" label="Footer" />
           <q-tab name="numbering" icon="format_list_numbered" label="Numbering" />
@@ -187,6 +219,13 @@
         <q-separator />
 
         <q-tab-panels v-model="settingsTab" animated>
+          <q-tab-panel name="general">
+            <FirstPageSettings
+              :model-value="pageOptions.firstPage"
+              @update:model-value="(value) => { pageOptions.firstPage = value; savePageState() }"
+            />
+          </q-tab-panel>
+
           <q-tab-panel name="general">
             <div class="options-grid">
               <q-toggle
@@ -554,6 +593,85 @@
                 hint="0 = automatic. Increase to push content further up."
                 @blur="savePageState"
               />
+
+              <!-- Page Number Options -->
+              <q-separator v-if="pageOptions.printFooter.enabled" class="q-my-md" />
+              
+              <q-toggle
+                v-if="pageOptions.printFooter.enabled"
+                v-model="pageOptions.printFooter.showPageNumbers"
+                label="Show page numbers in footer"
+                @update:model-value="savePageState"
+              />
+
+              <div v-if="pageOptions.printFooter.enabled && pageOptions.printFooter.showPageNumbers" class="row items-center q-col-gutter-sm">
+                <div class="col-12 col-md-6">
+                  <q-select
+                    dense
+                    outlined
+                    :options="[
+                      { label: 'Bottom Left', value: 'bottom-left' },
+                      { label: 'Bottom Center', value: 'bottom-center' },
+                      { label: 'Bottom Right', value: 'bottom-right' },
+                      { label: 'Top Left', value: 'top-left' },
+                      { label: 'Top Center', value: 'top-center' },
+                      { label: 'Top Right', value: 'top-right' }
+                    ]"
+                    emit-value
+                    map-options
+                    v-model="pageOptions.printFooter.pageNumberPosition"
+                    label="Page number position"
+                    @update:model-value="savePageState"
+                  />
+                </div>
+                <div class="col-12 col-md-6">
+                  <q-select
+                    dense
+                    outlined
+                    :options="[
+                      { label: 'Page 1', value: 'page' },
+                      { label: '1 of 5', value: 'page-of' },
+                      { label: 'Page 1 / 5', value: 'page-slash' },
+                      { label: '1/5', value: 'fraction' }
+                    ]"
+                    emit-value
+                    map-options
+                    v-model="pageOptions.printFooter.pageNumberFormat"
+                    label="Page number format"
+                    @update:model-value="savePageState"
+                  />
+                </div>
+              </div>
+
+              <div v-if="pageOptions.printFooter.enabled && pageOptions.printFooter.showPageNumbers" class="row items-center q-col-gutter-sm">
+                <div class="col-12 col-md-6">
+                  <q-input
+                    dense
+                    outlined
+                    type="number"
+                    v-model.number="pageOptions.printFooter.pageNumberFontSize"
+                    label="Font size (pt)"
+                    @blur="savePageState"
+                  />
+                </div>
+                <div class="col-12 col-md-6">
+                  <q-select
+                    dense
+                    outlined
+                    :options="[
+                      { label: 'Black', value: '#000000' },
+                      { label: 'Dark Gray', value: '#333333' },
+                      { label: 'Gray', value: '#666666' },
+                      { label: 'Light Gray', value: '#999999' }
+                    ]"
+                    emit-value
+                    map-options
+                    v-model="pageOptions.printFooter.pageNumberColor"
+                    label="Color"
+                    @update:model-value="savePageState"
+                  />
+                </div>
+              </div>
 
               <div v-if="pageOptions.printFooter.enabled && pageOptions.printFooter.mode === 'image'" class="row items-center q-col-gutter-sm">
                 <div class="col-auto">
@@ -1237,15 +1355,19 @@
 
 <script setup>
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { usePage } from '@inertiajs/vue3'
 import { renderToString } from 'katex'
 import QuestionDisplay from './components/QuestionDisplay.vue'
 import SectionTotalMark from './components/SectionTotalMark.vue'
 import PrintActions from './components/PrintActions.vue'
+import FirstPageSettings from './components/FirstPageSettings.vue'
 import { renderSectionTotalHTML } from './utils/sectionTotalTemplates'
 import { formatQuestionLabel } from './utils/questionNumbering'
  
 
 const PAGE_STATE_KEY = 'exam_ready_to_print_test_builder_state_v1'
+
+const page = usePage()
 
 const importFileInput = ref(null)
 const questionImageInput = ref(null)
@@ -1334,7 +1456,25 @@ const pageOptions = ref({
     mode: 'html',
     html: '',
     imageUrl: '',
-    imageFit: 'contain'
+    imageFit: 'contain',
+    showPageNumbers: false,
+    pageNumberPosition: 'bottom-center',
+    pageNumberFormat: 'page',
+    pageNumberFontSize: 10,
+    pageNumberColor: '#000000'
+  },
+  firstPage: {
+    enabled: false,
+    type: 'title',
+    title: '',
+    subtitle: '',
+    titleAlignment: 'center',
+    coverTitle: '',
+    coverDescription: '',
+    coverImage: '',
+    customContent: '',
+    skipPageNumber: true,
+    pageBreakAfter: true
   },
   questionSeparator: {
     enabled: false,
@@ -1861,6 +2001,7 @@ async function savePageState() {
         examTitle: pageOptions.value.examTitle,
         printHeader: pageOptions.value.printHeader,
         printFooter: pageOptions.value.printFooter,
+        firstPage: pageOptions.value.firstPage,
         // Include other important settings as needed
         questionNumbering: pageOptions.value.questionNumbering,
         sectionTotal: pageOptions.value.sectionTotal,
@@ -1874,7 +2015,8 @@ async function savePageState() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': page.props.csrf_token || ''
+        'X-CSRF-TOKEN': page.props.csrf_token || '',
+        'Accept': 'application/json'
       },
       body: JSON.stringify(data)
     })
@@ -2862,8 +3004,121 @@ onMounted(async () => {
   text-overflow: ellipsis;
 }
 
+/* Modern Toolbar Styles */
+.modern-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  color: white;
+  padding: 12px 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.toolbar-left {
+  display: flex;
+  align-items: center;
+}
+
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.toolbar-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.title-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+  margin: 0;
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.toolbar-group:last-child {
+  border-right: none;
+}
+
+/* Enhanced button styles */
+.modern-toolbar .q-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.modern-toolbar .q-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.modern-toolbar .q-btn--round {
+  width: 48px;
+  height: 48px;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
+  .modern-toolbar {
+    padding: 8px 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .toolbar-left {
+    width: 100%;
+    justify-content: center;
+    margin-bottom: 8px;
+  }
+
+  .toolbar-right {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .toolbar-group {
+    flex: 1;
+    min-width: 0;
+    justify-content: center;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+  }
+
+  .toolbar-group:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+  }
+
+  .modern-toolbar .q-btn--round {
+    width: 44px;
+    height: 44px;
+  }
+
+  .title-text {
+    font-size: 16px;
+  }
+
   .test-header {
     flex-direction: column;
     gap: 16px;

@@ -130,8 +130,26 @@ Route::prefix('exam/ready-to-print')->name('exam.ready-to-print.local.')->group(
                             'extraMarginBottom' => 0,
                             'html' => '',
                             'imageUrl' => '',
-                            'imageFit' => 'contain'
+                            'imageFit' => 'contain',
+                            'showPageNumbers' => false,
+                            'pageNumberPosition' => 'bottom-center',
+                            'pageNumberFormat' => 'page',
+                            'pageNumberFontSize' => 10,
+                            'pageNumberColor' => '#000000'
                         ]
+                    ],
+                    'firstPage' => [
+                        'enabled' => false,
+                        'type' => 'title',
+                        'title' => '',
+                        'subtitle' => '',
+                        'titleAlignment' => 'center',
+                        'coverTitle' => '',
+                        'coverDescription' => '',
+                        'coverImage' => '',
+                        'customContent' => '',
+                        'skipPageNumber' => true,
+                        'pageBreakAfter' => true
                     ]
                 ]);
             }
@@ -158,7 +176,6 @@ Route::prefix('exam/ready-to-print')->name('exam.ready-to-print.local.')->group(
         })->name('api.save-data');
     });
 });
-
 
 // Login v1.2 Safe Preview
 use App\Http\Controllers\Auth\LoginController;
@@ -648,15 +665,93 @@ Route::get('/', function () {
 // Simple Focus App Offline v1 (public, no-auth standalone app)
 Route::redirect('/simple-focus-app-offline', '/simple-focus-app-offline/v1');
 
-Route::get('/simple-focus-app-offline/v1', function () {
+Route::get('/simple-focus-app-offline', function () {
     return Inertia::render('myclass2026/features/simple_focus_app_offline/ver1/Index');
 })->name('simple-focus-app-offline.v1');
+
+// API routes for exam ready-to-print (middleware-free for testing)
+Route::prefix('exam/ready-to-print/api')->group(function () {
+    // Load user-specific questions and settings
+    Route::get('/load-data', function () {
+        $userId = auth()->id() ?? session()->getId();
+        $filePath = public_path("data/exam-ready-to-print-v2-{$userId}.json");
+        
+        if (!file_exists($filePath)) {
+            // Return default structure if file doesn't exist
+            return response()->json([
+                'questions' => [],
+                'settings' => [
+                    'examTitle' => '',
+                    'printHeader' => [
+                        'enabled' => false,
+                        'autoFit' => true,
+                        'mode' => 'html',
+                        'height' => 60,
+                        'extraMarginBottom' => 0,
+                        'html' => '',
+                        'imageUrl' => '',
+                        'imageFit' => 'contain'
+                    ],
+                    'printFooter' => [
+                        'enabled' => false,
+                        'autoFit' => true,
+                        'mode' => 'html',
+                        'height' => 40,
+                        'extraMarginBottom' => 0,
+                        'html' => '',
+                        'imageUrl' => '',
+                        'imageFit' => 'contain',
+                        'showPageNumbers' => false,
+                        'pageNumberPosition' => 'bottom-center',
+                        'pageNumberFormat' => 'page',
+                        'pageNumberFontSize' => 10,
+                        'pageNumberColor' => '#000000'
+                    ],
+                    'firstPage' => [
+                        'enabled' => false,
+                        'type' => 'title',
+                        'title' => '',
+                        'subtitle' => '',
+                        'titleAlignment' => 'center',
+                        'coverTitle' => '',
+                        'coverDescription' => '',
+                        'coverImage' => '',
+                        'customContent' => '',
+                        'skipPageNumber' => true,
+                        'pageBreakAfter' => true
+                    ]
+                ]
+            ]);
+        }
+        
+        $data = json_decode(file_get_contents($filePath), true);
+        return response()->json($data);
+    })->name('api.load-data');
+    
+    // Save user-specific questions and settings
+    Route::post('/save-data', function () {
+        $userId = auth()->id() ?? session()->getId();
+        $filePath = public_path("data/exam-ready-to-print-v2-{$userId}.json");
+        
+        // Ensure directory exists
+        $dir = dirname($filePath);
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+        
+        $data = request()->json()->all();
+        file_put_contents($filePath, json_encode($data, JSON_PRETTY_PRINT));
+        
+        return response()->json(['success' => true]);
+    })->name('api.save-data');
+});
 
 // Simple Focus App Offline v2 (public, no-auth standalone app)
 Route::get('/simple-focus-app-offline/v2', function () {
     return Inertia::render('myclass2026/features/simple_focus_app_offline/ver2/Index');
 })->name('simple-focus-app-offline.v2');
 
+// Simple Focus App Offline v2 (public, no-auth standalone app)
 // Test route for v2
 Route::get('/simple-focus-app-offline/v2/test', function () {
     return response()->json([
