@@ -23,7 +23,8 @@ let resizeObserver;
 
 const fitScale = computed(() => {
   const w = wrapperWidth.value || window.innerWidth;
-  return w > 0 ? w / props.baseWidth : 1;
+  const raw = w > 0 ? w / props.baseWidth : 1;
+  return Math.min(1, raw);
 });
 
 const canvasScale = computed(() => {

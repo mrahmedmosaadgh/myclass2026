@@ -1,10 +1,10 @@
 <script setup>
-import { ref, computed, onUnmounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { useQuasar } from 'quasar';
 import EditableMath from './EditableMath.vue';
 import { useGameStore } from '../stores/gameStore';
-import { Html5QrcodeScanner, Html5Qrcode } from 'html5-qrcode';
 import QrCode from '@/Components/Common/QrCode.vue';
+import QrScanDialog from '@/Components/Common/QrScanDialog.vue';
 
 const props = defineProps({
   element: Object,
@@ -18,11 +18,18 @@ const $q = useQuasar();
 const isMuted = ref(false);
 const isInteractive = ref(false); // Controls if the buttons accept clicks
 const activeGroupId = ref(null); // The group currently selected by teacher to answer
-const isQrScanning = ref(false); // State for QR overlay
+const isQrDialogOpen = ref(false);
 const isPracticeMode = ref(false); // Practice mode bypasses group selection
 const isPrintQrOpen = ref(false);
 const printAreaRef = ref(null);
-let html5QrCode = null;
+
+const scannerState = ref('idle');
+const scannerLastRaw = ref('');
+const scannerLastResult = ref('');
+let scannerBuffer = '';
+let scannerTimer = null;
+
+const a4PreviewScale = ref(1);
 
 // Simple Web Audio API helper
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -204,118 +211,122 @@ function replayQuiz() {
   activeGroupId.value = null;
 }
 
-// QR Scanner Logic
-async function toggleQrScanner() {
-  if (isQrScanning.value) {
-     stopQrScanner();
-     return;
-  }
-  isQrScanning.value = true;
-  
-  // Wait for the modal DOM element to render
-  setTimeout(() => {
-    html5QrCode = new Html5Qrcode("qr-reader-" + props.element.id);
-    
-    const qrConfig = {
-      fps: 10,
-      qrbox: { width: 250, height: 250 }
-    };
-
-    const onScanSuccess = (decodedText) => {
-      if (isGraded.value) return;
-
-      const raw = String(decodedText || '').trim();
-      if (!raw) return;
-
-      const normalized = raw.toLowerCase().replace(/\s+/g, '');
-      const match = normalized.match(/^g(\d+)[-_]([a-z])$/i);
-
-      if (match) {
-        const groupToken = match[1];
-        const choiceToken = match[2];
-
-        const targetGroup = gameStore.groups.find(g => String(g.id) === String(groupToken));
-        const choiceId = String(choiceToken).toUpperCase();
-        const optionExists = !!props.element?.questionData?.options?.some(o => String(o.id).toUpperCase() === choiceId);
-
-        if (!targetGroup) {
-          $q.notify({
-            type: 'warning',
-            message: `Unknown group in QR: g${groupToken}`,
-            position: 'top'
-          });
-          return;
-        }
-
-        if (!optionExists) {
-          $q.notify({
-            type: 'warning',
-            message: `Unknown choice in QR: ${choiceId}`,
-            position: 'top'
-          });
-          return;
-        }
-
-        if (!isInteractive.value) {
-          $q.notify({
-            type: 'warning',
-            message: 'Unlock interaction first, then scan again.',
-            position: 'top'
-          });
-          return;
-        }
-
-        gameStore.logGroupAnswer(props.element.id, targetGroup.id, choiceId);
-        playSound('hover');
-        activeGroupId.value = null;
-
-        $q.notify({
-          type: 'positive',
-          message: `${targetGroup.name} -> ${choiceId}`,
-          position: 'top'
-        });
-        stopQrScanner();
-        return;
-      }
-
-      const targetGroup = gameStore.groups.find(
-        g => String(g.id) === raw || String(g.name || '').toLowerCase() === raw.toLowerCase()
-      );
-
-      if (targetGroup) {
-        playSound('hover');
-        activeGroupId.value = targetGroup.id;
-        stopQrScanner();
-        return;
-      }
-    };
-
-    // Attempt to start with environment camera first, fallback if not found (for desktops)
-    html5QrCode.start({ facingMode: "environment" }, qrConfig, onScanSuccess)
-      .catch(err => {
-          console.log("Environment scanner failed, trying default camera...", err);
-          return html5QrCode.start({ facingMode: "user" }, qrConfig, onScanSuccess);
-      })
-      .catch(err => {
-          console.warn("QR Scanner Start Error:", err);
-          $q.notify({
-            type: 'negative',
-            message: 'Camera not found or blocked. Check permissions.',
-            position: 'top'
-          });
-          isQrScanning.value = false;
-      });
-  }, 100);
+function openQrScanner() {
+  if (isGraded.value) return;
+  isQrDialogOpen.value = true;
 }
 
-function stopQrScanner() {
-  if (html5QrCode) {
-     html5QrCode.stop().then(() => {
-        html5QrCode.clear();
-        html5QrCode = null;
-     }).catch(err => console.warn(err));
+function handleScannedQr(rawText) {
+  if (isGraded.value) return;
+
+  const raw = String(rawText || '').trim();
+  if (!raw) return;
+
+  scannerLastRaw.value = raw;
+  scannerState.value = 'received';
+  scannerLastResult.value = '';
+
+  const normalized = raw.toLowerCase().replace(/\s+/g, '');
+  const match = normalized.match(/^g[a-z]?(\d+)[-_]([a-z])$/i);
+
+  if (match) {
+    const groupToken = match[1];
+    const choiceToken = match[2];
+
+    const targetGroup = gameStore.groups.find(g => {
+      const idStr = String(g.id);
+      return idStr === String(groupToken) || idStr.toLowerCase() === `g${String(groupToken)}`;
+    });
+    const choiceId = String(choiceToken).toUpperCase();
+    const optionExists = !!props.element?.questionData?.options?.some(o => String(o.id).toUpperCase() === choiceId);
+
+    if (!targetGroup) {
+      $q.notify({ type: 'warning', message: `Unknown group in QR: g${groupToken}`, position: 'top' });
+      scannerLastResult.value = `Unknown group: g${groupToken}`;
+      return;
+    }
+    if (!optionExists) {
+      $q.notify({ type: 'warning', message: `Unknown choice in QR: ${choiceId}`, position: 'top' });
+      scannerLastResult.value = `Unknown choice: ${choiceId}`;
+      return;
+    }
+    if (!isInteractive.value) {
+      $q.notify({ type: 'warning', message: 'Unlock interaction first, then scan again.', position: 'top' });
+      scannerLastResult.value = 'Locked (unlock interaction first)';
+      return;
+    }
+
+    gameStore.logGroupAnswer(props.element.id, targetGroup.id, choiceId);
+    playSound('hover');
+    activeGroupId.value = null;
+
+    $q.notify({ type: 'positive', message: `${targetGroup.name} -> ${choiceId}`, position: 'top' });
+    scannerLastResult.value = `${targetGroup.name} -> ${choiceId}`;
+    isQrDialogOpen.value = false;
+    return;
   }
-  isQrScanning.value = false;
+
+  const targetGroup = gameStore.groups.find(
+    g => String(g.id) === raw || String(g.name || '').toLowerCase() === raw.toLowerCase()
+  );
+
+  if (targetGroup) {
+    playSound('hover');
+    activeGroupId.value = targetGroup.id;
+    scannerLastResult.value = `Selected: ${targetGroup.name}`;
+    isQrDialogOpen.value = false;
+    return;
+  }
+
+  scannerLastResult.value = 'Unrecognized payload';
+}
+
+function isTypingTarget(el) {
+  if (!el) return false;
+  const tag = (el.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
+  if (el.isContentEditable) return true;
+  return false;
+}
+
+function handleGlobalScannerKeydown(e) {
+  if (props.isEditMode) return;
+  if (!isInteractive.value) {
+    scannerState.value = 'idle';
+    return;
+  }
+  if (isGraded.value) return;
+  if (isPrintQrOpen.value) return;
+  if (isTypingTarget(document.activeElement)) return;
+
+  if (e.key === 'Enter' || e.key === 'Tab') {
+    if (e.key === 'Tab') e.preventDefault();
+    const code = String(scannerBuffer || '').trim();
+    scannerBuffer = '';
+    if (scannerTimer) {
+      clearTimeout(scannerTimer);
+      scannerTimer = null;
+    }
+    if (code) {
+      handleScannedQr(code);
+    }
+    return;
+  }
+
+  if (e.key && e.key.length === 1) {
+    if (scannerState.value !== 'waiting') scannerState.value = 'waiting';
+    scannerBuffer += e.key;
+    if (scannerTimer) clearTimeout(scannerTimer);
+    scannerTimer = setTimeout(() => {
+      scannerBuffer = '';
+      scannerTimer = null;
+      if (isInteractive.value && !props.isEditMode && !isGraded.value) {
+        scannerState.value = 'waiting';
+      } else {
+        scannerState.value = 'idle';
+      }
+    }, 800);
+  }
 }
 
 const printOptionIds = computed(() => {
@@ -332,6 +343,7 @@ function getQrPayload(groupId, optId) {
 async function openPrintQr() {
   isPrintQrOpen.value = true;
   await nextTick();
+  updateA4PreviewScale();
 }
 
 function closePrintQr() {
@@ -344,84 +356,15 @@ async function printAllGroupQrs() {
   const root = printAreaRef.value;
   if (!root) return;
 
-  const items = Array.from(root.querySelectorAll('[data-qr-item="1"]'));
-  const blocks = [];
+  document.body.classList.add('print-qr-mode');
 
-  for (const el of items) {
-    const canvas = el.querySelector('canvas');
-    if (!canvas) continue;
+  const cleanup = () => {
+    document.body.classList.remove('print-qr-mode');
+    window.removeEventListener('afterprint', cleanup);
+  };
 
-    let dataUrl = '';
-    try {
-      dataUrl = canvas.toDataURL('image/png');
-    } catch (e) {
-      continue;
-    }
-
-    blocks.push({
-      groupName: el.getAttribute('data-group-name') || '',
-      optId: el.getAttribute('data-opt-id') || '',
-      payload: el.getAttribute('data-payload') || '',
-      dataUrl
-    });
-  }
-
-  if (blocks.length === 0) {
-    $q.notify({ type: 'warning', message: 'QR codes not ready yet. Try again.', position: 'top' });
-    return;
-  }
-
-  const win = window.open('', '_blank');
-  if (!win) {
-    $q.notify({ type: 'negative', message: 'Popup blocked. Allow popups to print.', position: 'top' });
-    return;
-  }
-
-  const css = `
-    <style>
-      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 16px; }
-      h1 { margin: 0 0 12px; font-size: 18px; }
-      .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-      .card { border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px; display: flex; gap: 10px; align-items: center; }
-      .meta { flex: 1; min-width: 0; }
-      .g { font-weight: 800; font-size: 14px; }
-      .o { margin-top: 2px; font-weight: 700; font-size: 13px; }
-      .p { margin-top: 6px; font-size: 11px; color: #6b7280; word-break: break-all; }
-      img { width: 110px; height: 110px; image-rendering: pixelated; }
-      @media print { body { margin: 0; } }
-    </style>
-  `;
-
-  const html = `
-    <html>
-      <head>
-        <title>Group QR Codes</title>
-        ${css}
-      </head>
-      <body>
-        <h1>Group QR Codes</h1>
-        <div class="grid">
-          ${blocks.map(b => `
-            <div class="card">
-              <img src="${b.dataUrl}" alt="${b.payload}" />
-              <div class="meta">
-                <div class="g">${escapeHtml(b.groupName)}</div>
-                <div class="o">Choice: ${escapeHtml(String(b.optId).toUpperCase())}</div>
-                <div class="p">${escapeHtml(b.payload)}</div>
-              </div>
-            </div>
-          `).join('')}
-        </div>
-        <script>
-          window.onload = () => { window.print(); };
-        <\/script>
-      </body>
-    </html>
-  `;
-
-  win.document.open();
-  win.document.write(html);
-  win.document.close();
+  window.addEventListener('afterprint', cleanup);
+  window.print();
 }
 
 function escapeHtml(str) {
@@ -434,8 +377,33 @@ function escapeHtml(str) {
 }
 
 onUnmounted(() => {
-  stopQrScanner();
+  isQrDialogOpen.value = false;
+  window.removeEventListener('keydown', handleGlobalScannerKeydown);
+  window.removeEventListener('resize', updateA4PreviewScale);
+  if (scannerTimer) {
+    clearTimeout(scannerTimer);
+    scannerTimer = null;
+  }
 });
+
+onMounted(() => {
+  window.addEventListener('keydown', handleGlobalScannerKeydown);
+  window.addEventListener('resize', updateA4PreviewScale);
+  if (!props.isEditMode && isInteractive.value && !isGraded.value) {
+    scannerState.value = 'waiting';
+  }
+});
+
+function updateA4PreviewScale() {
+  if (!isPrintQrOpen.value) return;
+  const pageW = 210 * 3.7795275591; // mm -> px at 96dpi
+  const pageH = 297 * 3.7795275591;
+  const pad = 32;
+  const availableW = Math.max(320, window.innerWidth - pad * 2);
+  const availableH = Math.max(320, window.innerHeight - 120); // header space
+  const s = Math.min(1, availableW / pageW, availableH / pageH);
+  a4PreviewScale.value = Number.isFinite(s) && s > 0 ? s : 1;
+}
 
 // Edit Handlers
 function updateQuestion(newQuestion) {
@@ -531,10 +499,23 @@ function getOptionClass(optId) {
            <button @click.stop="openPrintQr" class="qr-btn" title="Print QR codes for all groups">
              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
            </button>
-           <button @click.stop="toggleQrScanner" class="qr-btn" :class="{ 'qr-active': isQrScanning }" title="Scan Group QR Card">
+           <button @click.stop="openQrScanner" class="qr-btn" title="Scan QR">
              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
            </button>
          </div>
+
+         <div class="scanner-ready" :class="{ 'scanner-on': scannerState === 'waiting', 'scanner-recv': scannerState === 'received' }">
+           <div class="scanner-title">
+             <strong>Scanner:</strong>
+             <span v-if="scannerState === 'waiting'">Ready (scan now)</span>
+             <span v-else-if="scannerState === 'received'">Received</span>
+             <span v-else>Idle</span>
+           </div>
+           <div v-if="scannerLastRaw" class="scanner-line">Last: <strong>{{ scannerLastRaw }}</strong></div>
+           <div v-if="scannerLastResult" class="scanner-line">Result: <strong>{{ scannerLastResult }}</strong></div>
+           <div v-if="!scannerLastRaw" class="scanner-hint">Use QR scanner (keyboard) then press Enter.</div>
+         </div>
+
          <div class="sidebar-groups">
            <div 
               v-for="g in gameStore.groups" 
@@ -559,9 +540,17 @@ function getOptionClass(optId) {
               </template>
 
                <div v-else-if="!isGraded && isInteractive" class="status-icon-wrapper">
-                  <img v-if="activeGroupId === g.id" src="/icon/solve/download (3).png" class="status-img pulse" title="Group is solving..." width="20" height="20" />
-                  <img v-else-if="!qHistory.groupAnswers[g.id]" src="/icon/solve/download.png" class="status-img grayscale" title="Not solving yet" width="20" height="20" />
-                  <img v-else src="/icon/solve/download (1).png" class="status-img" title="Answered!" width="20" height="20" />
+                  <svg v-if="activeGroupId === g.id" class="status-svg pulse" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Group is solving...">
+                    <path d="M21 12a9 9 0 1 1-9-9" />
+                    <path d="M21 3v9h-9" />
+                  </svg>
+                  <svg v-else-if="!qHistory.groupAnswers[g.id]" class="status-svg status-idle" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Not solving yet">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 7v5l3 2" />
+                  </svg>
+                  <svg v-else class="status-svg status-done" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" title="Answered!">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
                </div>
             </div>
           </div>
@@ -620,19 +609,12 @@ function getOptionClass(optId) {
       </template>
     </div>
 
-    <!-- QR Reader Floating Modal -->
-    <div v-if="isQrScanning" class="qr-modal-backdrop" @click.stop="stopQrScanner">
-       <div class="qr-modal" @click.stop>
-          <div class="qr-modal-header">
-             <h4>Scan Group Card</h4>
-             <button @click="stopQrScanner">✕</button>
-          </div>
-          <div :id="'qr-reader-' + element.id" class="qr-reader-viewport"></div>
-          <div class="qr-status" v-if="activeGroupId">
-             Target Selected: <strong>{{ gameStore.groups.find(g => g.id === activeGroupId)?.name }}</strong>
-          </div>
-       </div>
-    </div>
+    <QrScanDialog
+      v-model="isQrDialogOpen"
+      title="Scan QR"
+      subtitle="Scan g1_a to auto-answer, or scan group id/name to select the group."
+      @scanned="handleScannedQr"
+    />
 
     <div v-if="isPrintQrOpen" class="qr-modal-backdrop" @click.stop="closePrintQr">
       <div class="qr-modal qr-print-modal" @click.stop>
@@ -643,31 +625,46 @@ function getOptionClass(optId) {
             <button @click="closePrintQr">✕</button>
           </div>
         </div>
-        <div class="qr-print-body" ref="printAreaRef">
-          <div
-            v-for="g in gameStore.groups"
-            :key="'print-g-' + g.id"
-            class="qr-print-group"
-          >
-            <div class="qr-print-group-title" :style="{ borderColor: g.color }">
-              <span class="qr-dot" :style="{ backgroundColor: g.color }"></span>
-              <strong>{{ g.name }}</strong>
-            </div>
+        <div class="qr-print-body">
+          <div class="a4-stage">
+            <div
+              class="a4-page"
+              ref="printAreaRef"
+              :style="{ transform: `scale(${a4PreviewScale})`, transformOrigin: 'top center' }"
+            >
+              <div class="a4-header">
+                <div class="a4-title">Group QR Codes</div>
+                <div class="a4-sub">Scan format: g1_a</div>
+              </div>
 
-            <div class="qr-print-grid">
-              <div
-                v-for="optId in printOptionIds"
-                :key="'print-' + g.id + '-' + optId"
-                class="qr-print-item"
-                data-qr-item="1"
-                :data-group-name="g.name"
-                :data-opt-id="optId"
-                :data-payload="getQrPayload(g.id, optId)"
-              >
-                <QrCode :value="getQrPayload(g.id, optId)" :size="110" level="H" />
-                <div class="qr-print-meta">
-                  <div class="qr-choice">{{ optId }}</div>
-                  <div class="qr-payload">{{ getQrPayload(g.id, optId) }}</div>
+              <div class="a4-content">
+                <div
+                  v-for="g in gameStore.groups"
+                  :key="'print-g-' + g.id"
+                  class="qr-print-group"
+                >
+                  <div class="qr-print-group-title" :style="{ borderColor: g.color }">
+                    <span class="qr-dot" :style="{ backgroundColor: g.color }"></span>
+                    <strong>{{ g.name }}</strong>
+                  </div>
+
+                  <div class="qr-print-grid">
+                    <div
+                      v-for="optId in printOptionIds"
+                      :key="'print-' + g.id + '-' + optId"
+                      class="qr-print-item"
+                      data-qr-item="1"
+                      :data-group-name="g.name"
+                      :data-opt-id="optId"
+                      :data-payload="getQrPayload(g.id, optId)"
+                    >
+                      <QrCode :value="getQrPayload(g.id, optId)" :size="110" level="H" />
+                      <div class="qr-print-meta">
+                        <div class="qr-choice">{{ optId }}</div>
+                        <div class="qr-payload">{{ getQrPayload(g.id, optId) }}</div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -824,13 +821,47 @@ function getOptionClass(optId) {
   transition: all 0.2s;
 }
 .qr-btn:hover { background: #cbd5e1; color: #0f172a; }
-.qr-active { background: #3b82f6; color: white; }
 
 .sidebar-groups {
   display: flex;
   flex-direction: column;
   gap: 6px;
   overflow-y: auto;
+}
+.scanner-ready {
+  margin-top: 10px;
+  margin-bottom: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+.scanner-on {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+.scanner-recv {
+  border-color: #86efac;
+  background: #dcfce3;
+}
+.scanner-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #0f172a;
+  font-size: 0.85rem;
+}
+.scanner-line {
+  margin-top: 6px;
+  font-size: 0.8rem;
+  color: #0f172a;
+  word-break: break-all;
+}
+.scanner-hint {
+  margin-top: 6px;
+  font-size: 0.78rem;
+  color: #475569;
 }
 .sidebar-group {
   display: flex;
@@ -890,6 +921,15 @@ function getOptionClass(optId) {
 }
 .status-img {
   object-fit: contain;
+}
+.status-svg {
+  color: #64748b;
+}
+.status-idle {
+  opacity: 0.35;
+}
+.status-done {
+  color: #16a34a;
 }
 .pulse {
   animation: pulse-animation 2s infinite;
@@ -1008,6 +1048,42 @@ function getOptionClass(optId) {
   overflow: auto;
   flex: 1;
 }
+.a4-stage {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+.a4-page {
+  width: 210mm;
+  min-height: 297mm;
+  background: white;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+  padding: 12mm;
+}
+.a4-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-bottom: 8mm;
+  border-bottom: 1px dashed #cbd5e1;
+  margin-bottom: 8mm;
+}
+.a4-title {
+  font-weight: 900;
+  font-size: 18px;
+  color: #0f172a;
+}
+.a4-sub {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 700;
+}
+.a4-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10mm;
+}
 .qr-print-group {
   border: 1px solid #e2e8f0;
   border-radius: 10px;
@@ -1066,6 +1142,39 @@ function getOptionClass(optId) {
   font-weight: 700;
 }
 .print-btn:hover { background: #15803d; }
+
+@media print {
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+
+  :global(body.print-qr-mode) * {
+    visibility: hidden !important;
+  }
+
+  :global(body.print-qr-mode) .a4-page,
+  :global(body.print-qr-mode) .a4-page * {
+    visibility: visible !important;
+  }
+
+  :global(body.print-qr-mode) .a4-page {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 210mm;
+    min-height: 297mm;
+    box-shadow: none;
+    border: none;
+    padding: 0;
+    transform: none !important;
+  }
+
+  :global(body.print-qr-mode) .qr-modal-backdrop {
+    background: white;
+    backdrop-filter: none;
+  }
+}
 .qr-modal-header {
   display: flex;
   justify-content: space-between;
@@ -1079,16 +1188,4 @@ function getOptionClass(optId) {
 }
 .qr-modal-header h4 { margin: 0; color: #0f172a; font-size: 1rem; }
 .qr-modal-header button { background: transparent; border: none; font-size: 1.2rem; cursor: pointer; color: #64748b; }
-.qr-reader-viewport {
-  width: 100%;
-  aspect-ratio: 1; /* Square camera feed */
-  background: black;
-}
-.qr-status {
-  padding: 12px;
-  background: #dcfce3;
-  color: #15803d;
-  text-align: center;
-  font-size: 0.9rem;
-}
 </style>

@@ -1,9 +1,15 @@
 <script setup>
-import { ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import { useGameStore } from '../stores/gameStore';
+import QrCode from '@/Components/Common/QrCode.vue';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 const gameStore = useGameStore();
 const newGroupName = ref('');
+const activeTab = ref('setup'); // 'setup' | 'qrcodes'
+const printAreaRef = ref(null);
+const a4PreviewScale = ref(1);
 
 function close() {
   gameStore.isGroupSetupOpen = false;
@@ -22,6 +28,71 @@ function handleScoreChange(groupId, val) {
     group.score = Number(val) || 0;
   }
 }
+
+const printOptionIds = computed(() => ['A', 'B', 'C', 'D']);
+
+function getQrPayload(groupId, optId) {
+  const g = String(groupId);
+  const groupToken = g.toLowerCase().startsWith('g') ? g : `g${g}`;
+  return `${groupToken}_${String(optId).toLowerCase()}`;
+}
+
+function openQrPrintPage() {
+  try {
+    localStorage.setItem(
+      'builder-v7-group-qr-print-data',
+      JSON.stringify({ groups: gameStore.groups })
+    );
+  } catch {
+    // ignore
+  }
+
+  window.open('/classroom-records/presentation/builder-v7/group-qr-print', '_blank', 'noopener,noreferrer');
+}
+
+function updateA4PreviewScale() {
+  const pageW = 210 * 3.7795275591;
+  const pageH = 297 * 3.7795275591;
+  const pad = 32;
+  const availableW = Math.max(320, window.innerWidth - pad * 2);
+  const availableH = Math.max(320, window.innerHeight - 140);
+  const s = Math.min(1, availableW / pageW, availableH / pageH);
+  a4PreviewScale.value = Number.isFinite(s) && s > 0 ? s : 1;
+}
+
+async function openQrTab() {
+  activeTab.value = 'qrcodes';
+  await nextTick();
+  updateA4PreviewScale();
+}
+
+async function printQrCodes() {
+  await nextTick();
+  if (!printAreaRef.value) return;
+
+  document.body.classList.add('print-group-qr-mode');
+  const cleanup = () => {
+    document.body.classList.remove('print-group-qr-mode');
+    window.removeEventListener('afterprint', cleanup);
+  };
+  window.addEventListener('afterprint', cleanup);
+  window.print();
+}
+
+async function downloadQrCodesPdf() {
+  await nextTick();
+  const el = printAreaRef.value;
+  if (!el) return;
+
+  const canvas = await html2canvas(el, { backgroundColor: '#ffffff', scale: 2 });
+  const imgData = canvas.toDataURL('image/png');
+
+  const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+  const pageW = 210;
+  const pageH = 297;
+  pdf.addImage(imgData, 'PNG', 0, 0, pageW, pageH);
+  pdf.save('group-qr-codes-a4.pdf');
+}
 </script>
 
 <template>
@@ -34,7 +105,24 @@ function handleScoreChange(groupId, val) {
         </button>
       </div>
 
-      <div class="modal-body">
+      <div class="modal-tabs">
+        <button
+          class="tab-btn"
+          :class="{ active: activeTab === 'setup' }"
+          @click="activeTab = 'setup'"
+        >
+          Setup
+        </button>
+        <button
+          class="tab-btn"
+          :class="{ active: activeTab === 'qrcodes' }"
+          @click="openQrTab"
+        >
+          QR Codes
+        </button>
+      </div>
+
+      <div class="modal-body" v-if="activeTab === 'setup'">
         
         <!-- Game Settings -->
         <div class="settings-card">
@@ -83,6 +171,59 @@ function handleScoreChange(groupId, val) {
           </button>
         </div>
       </div>
+
+      <div class="modal-body qr-tab" v-else>
+        <div class="qr-actions">
+          <button class="btn-primary" @click="printQrCodes">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+            Print
+          </button>
+
+          <button class="btn-secondary" @click="downloadQrCodesPdf">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download
+          </button>
+
+          <button class="btn-secondary" @click="openQrPrintPage">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v7h-7"/><path d="M3 10V3h7"/><path d="M3 21h7"/></svg>
+            Open in New Page
+          </button>
+
+          <div class="qr-hint">A4 preview (print-ready)</div>
+        </div>
+
+        <div class="a4-stage">
+          <div
+            class="a4-page"
+            ref="printAreaRef"
+            :style="{ transform: `scale(${a4PreviewScale})`, transformOrigin: 'top center' }"
+          >
+            <div class="a4-header">
+              <div class="a4-title">Group QR Codes</div>
+              <div class="a4-sub">Scan format: g1_a</div>
+            </div>
+
+            <div class="a4-content">
+              <div v-for="g in gameStore.groups" :key="'g-qr-' + g.id" class="qr-print-group">
+                <div class="qr-print-group-title" :style="{ borderColor: g.color }">
+                  <span class="qr-dot" :style="{ backgroundColor: g.color }"></span>
+                  <strong>{{ g.name }}</strong>
+                </div>
+
+                <div class="qr-print-grid">
+                  <div v-for="optId in printOptionIds" :key="'qr-' + g.id + '-' + optId" class="qr-print-item">
+                    <QrCode :value="getQrPayload(g.id, optId)" :size="110" level="H" />
+                    <div class="qr-print-meta">
+                      <div class="qr-choice">{{ optId }}</div>
+                      <div class="qr-payload">{{ getQrPayload(g.id, optId) }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -119,6 +260,31 @@ function handleScoreChange(groupId, val) {
   background: #fdfdfd;
 }
 
+.modal-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #f3f4f6;
+  background: #ffffff;
+}
+
+.tab-btn {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: #334155;
+}
+
+.tab-btn.active {
+  background: #3b82f6;
+  border-color: #2563eb;
+  color: white;
+}
+
 .modal-header h2 {
   margin: 0;
   font-size: 1.25rem;
@@ -145,6 +311,168 @@ function handleScoreChange(groupId, val) {
   gap: 24px;
   max-height: 80vh;
   overflow-y: auto;
+}
+
+.qr-tab {
+  padding: 16px;
+  gap: 12px;
+  max-height: 80vh;
+}
+
+.qr-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.btn-secondary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #0f172a;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-secondary:hover { background: #111827; }
+
+.qr-hint {
+  margin-left: auto;
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.a4-stage {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+}
+
+.a4-page {
+  width: 210mm;
+  min-height: 297mm;
+  background: white;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+  padding: 12mm;
+}
+
+.a4-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-bottom: 8mm;
+  border-bottom: 1px dashed #cbd5e1;
+  margin-bottom: 8mm;
+}
+
+.a4-title {
+  font-weight: 900;
+  font-size: 18px;
+  color: #0f172a;
+}
+
+.a4-sub {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.a4-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10mm;
+}
+
+.qr-print-group {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.qr-print-group-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid;
+  margin-bottom: 10px;
+  color: #0f172a;
+}
+
+.qr-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.qr-print-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6mm;
+  justify-items: center;
+}
+
+.qr-print-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 3mm;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.qr-print-meta {
+  width: 100%;
+  text-align: center;
+}
+
+.qr-choice {
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.qr-payload {
+  font-size: 11px;
+  color: #64748b;
+  word-break: break-all;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+
+  :global(body.print-group-qr-mode) * {
+    visibility: hidden !important;
+  }
+
+  :global(body.print-group-qr-mode) .a4-page,
+  :global(body.print-group-qr-mode) .a4-page * {
+    visibility: visible !important;
+  }
+
+  :global(body.print-group-qr-mode) .a4-page {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 210mm;
+    min-height: 297mm;
+    box-shadow: none;
+    border: none;
+    padding: 0;
+    transform: none !important;
+  }
 }
 
 /* Settings Card */

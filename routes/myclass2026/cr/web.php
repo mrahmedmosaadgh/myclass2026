@@ -82,6 +82,15 @@ Route::middleware([
             );
         })->name('builder-v7');
 
+        Route::get('/builder-v7/group-qr-print', function () {
+            return Inertia::render(
+                'myclass2026/features/cr/classroom_records_v1/peresentation/v7/PrintGroupQrCodes',
+                [
+                    'title' => 'Group QR Codes - Print'
+                ]
+            );
+        })->name('builder-v7.group-qr-print');
+
         // Presentation Management Page
         Route::get('/manage', function () {
             return Inertia::render(

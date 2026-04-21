@@ -49,11 +49,19 @@ fi
 
 # ── Rsync to Hostinger ──
 echo "🌐 Syncing build assets to Hostinger via Rsync..."
-rsync -avz --delete -e "ssh -p $SSH_PORT" public/build/assets "$SSH_CONN:$REMOTE_DIR/public/build/" || {
+rsync -az --delete \
+  --itemize-changes \
+  --out-format='%i %n%L' \
+  -e "ssh -p $SSH_PORT" \
+  public/build/assets "$SSH_CONN:$REMOTE_DIR/public/build/" || {
   echo "❌ Rsync failed for assets directory."
   exit 1
 }
-rsync -avz -e "ssh -p $SSH_PORT" public/build/manifest.json "$SSH_CONN:$REMOTE_DIR/public/build/" || {
+rsync -az \
+  --itemize-changes \
+  --out-format='%i %n%L' \
+  -e "ssh -p $SSH_PORT" \
+  public/build/manifest.json "$SSH_CONN:$REMOTE_DIR/public/build/" || {
   echo "❌ Rsync failed for manifest.json."
   exit 1
 }
