@@ -67,10 +67,10 @@ watch(selectedMethod, (v) => {
 })
 
 const methodOptions = computed(() => [
-  { label: 'Print V1 (auto)', value: 'v1' },
-  { label: 'Print V2 (manual)', value: 'v2' },
-  { label: 'Print V3 (PrintView)', value: 'v3' },
-  { label: 'Print V4 (usePrint)', value: 'v4' }
+  { label: 'Print V1 – iframe (recommended)', value: 'v1' },
+  { label: 'Print V2 – popup manual', value: 'v2' },
+  { label: 'Print V3 – popup auto', value: 'v3' },
+  { label: 'Print V4 – iframe + injected styles', value: 'v4' }
 ])
 
 function openPopupWindow() {
@@ -154,21 +154,30 @@ function printHtmlViaIframe(html) {
 
   iframe.onload = () => {
     const win = iframe.contentWindow
-    if (!win) {
+    const doc = iframe.contentDocument
+    if (!win || !doc) {
       cleanup()
       return
     }
 
-    setTimeout(() => {
+    const doPrint = () => {
       try {
         win.focus()
         win.print()
       } catch (e) {
         console.error('Print failed', e)
       }
+      setTimeout(cleanup, 1500)
+    }
 
-      setTimeout(cleanup, 1000)
-    }, 350)
+    // Wait for fonts (KaTeX, etc.) to load before printing.
+    // Falls back to a fixed delay if the Fonts API is unavailable.
+    const fontsReady = doc.fonts ? doc.fonts.ready : Promise.resolve()
+    const timeout = new Promise(resolve => setTimeout(resolve, 1200))
+
+    Promise.race([fontsReady, timeout])
+      .then(doPrint)
+      .catch(doPrint)
   }
 
   document.body.appendChild(iframe)
@@ -218,19 +227,9 @@ function openFullscreenPreview() {
 }
 
 function printV1() {
-  const w = openPopupWindow()
-  if (!w) return
-
+  // iframe approach: waits for fonts.ready before printing (no popup-blocker issues)
   const html = props.generatePrintHtml()
-  writeHtmlToWindow(w, html)
-
-  setTimeout(() => {
-    try {
-      w.print()
-    } catch (e) {
-      console.error('Print failed', e)
-    }
-  }, 400)
+  printHtmlViaIframe(html)
 }
 
 function printV2() {
@@ -243,12 +242,10 @@ function printV2() {
 }
 
 function printV3() {
-  const w = openPopupWindow()
-  if (!w) return
-
+  // iframe approach with print-container isolation
   const baseHtml = props.generatePrintHtml()
   const html = buildV3Html(baseHtml)
-  writeHtmlToWindow(w, html)
+  printHtmlViaIframe(html)
 }
 
 function printV4() {

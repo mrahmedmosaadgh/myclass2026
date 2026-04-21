@@ -2082,22 +2082,6 @@ function generatePrintHTML() {
   html += '</style>'
   html += '</head><body>'
 
-  html += '<script>'
-  html += 'window.__printReady = false;'
-  html += 'function __setBodyPadTopPx(px){ try{ document.body.style.paddingTop = px + "px"; }catch(e){} }'
-  html += 'function __measureHeaderAndPad(){'
-  html += '  try {'
-  html += '    var h = document.getElementById("printHeaderRoot");'
-  html += '    if (!h) { window.__printReady = true; return; }'
-  html += '    var rect = h.getBoundingClientRect();'
-  html += '    var pad = Math.ceil(rect.height) + 8;'
-  html += '    if (!isFinite(pad) || pad < 0) pad = 0;'
-  html += '    __setBodyPadTopPx(pad);'
-  html += '    window.__printReady = true;'
-  html += '  } catch(e) { window.__printReady = true; }'
-  html += '}'
-  html += 'window.addEventListener("load", function(){ setTimeout(__measureHeaderAndPad, 50); setTimeout(__measureHeaderAndPad, 250); });'
-  html += '<' + '/script>'
 
   if (headerEnabled && hasHeaderContent) {
     const headerInner = headerMode === 'image'
