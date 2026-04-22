@@ -341,8 +341,16 @@ class ExamFileController extends Controller
         // Group questions by section
         $globalIndex = 0;
 
+        \Log::info('Starting question rendering', [
+            'sections_empty' => empty($sections),
+            'sections_count' => count($sections),
+            'questions_count' => count($questions),
+            'questionSectionMap_count' => count($questionSectionMap),
+        ]);
+
         // If no sections exist, render all questions without section grouping
         if (empty($sections)) {
+            \Log::info('Rendering questions without sections');
             foreach ($questions as $question) {
                 $globalIndex++;
                 $qid = $question['id'];
@@ -398,12 +406,24 @@ class ExamFileController extends Controller
                 $assignedQuestionIds[] = $qId;
             }
 
+            \Log::info('Section rendering', [
+                'assigned_question_ids' => $assignedQuestionIds,
+                'sections' => array_map(function($s) { return ['id' => $s['id'], 'title' => $s['title']]; }, $sections),
+            ]);
+
             // Render questions by section
             foreach ($sections as $section) {
                 $sectionId = $section['id'];
                 $sectionQuestions = array_filter($questions, function($q) use ($sectionId, $questionSectionMap) {
                     return ($questionSectionMap[$q['id']] ?? '') === $sectionId;
                 });
+
+                \Log::info('Section questions', [
+                    'section_id' => $sectionId,
+                    'section_title' => $section['title'],
+                    'section_questions_count' => count($sectionQuestions),
+                    'section_question_ids' => array_map(function($q) { return $q['id']; }, $sectionQuestions),
+                ]);
 
                 if (empty($sectionQuestions)) continue;
 

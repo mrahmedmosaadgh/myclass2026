@@ -3090,6 +3090,26 @@ async function openPrintPreview() {
       console.log('HTML length:', html.length)
       console.log('HTML preview (first 500 chars):', html.substring(0, 500))
 
+      // Check if questions section exists
+      const hasQuestions = html.includes('class="question"')
+      const hasSectionHeader = html.includes('class="section-header"')
+      console.log('HTML contains questions:', hasQuestions)
+      console.log('HTML contains section headers:', hasSectionHeader)
+
+      // Find and log the questions section
+      const questionStart = html.indexOf('class="question"')
+      if (questionStart !== -1) {
+        console.log('Questions section found at position:', questionStart)
+        console.log('Questions section preview:', html.substring(questionStart, questionStart + 500))
+      } else {
+        console.log('No questions section found in HTML')
+        // Find where the content section starts
+        const contentStart = html.indexOf('<body>')
+        if (contentStart !== -1) {
+          console.log('Body content preview:', html.substring(contentStart, contentStart + 1000))
+        }
+      }
+
       printPreviewHtml.value = html
       printPreviewOpen.value = true
     } else {
