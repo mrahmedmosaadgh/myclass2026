@@ -302,6 +302,9 @@ class ExamFileController extends Controller
             text-decoration: underline;
             font-weight: bold;
         }
+        body {
+            counter-reset: page;
+        }
         @media print {
             .print-header {
                 position: fixed;
@@ -341,11 +344,25 @@ class ExamFileController extends Controller
         // Group questions by section
         $globalIndex = 0;
 
+        // Rebuild questionSectionMap using actual question IDs from questions array to match types
+        $questionSectionMapTyped = [];
+        foreach ($questions as $question) {
+            $qId = $question['id'];
+            // Find this question in the original map (as string)
+            foreach ($questionSectionMap as $strKey => $sectionId) {
+                if (strval($qId) === $strKey) {
+                    $questionSectionMapTyped[$qId] = $sectionId;
+                    break;
+                }
+            }
+        }
+
         \Log::info('Starting question rendering', [
             'sections_empty' => empty($sections),
             'sections_count' => count($sections),
             'questions_count' => count($questions),
             'questionSectionMap_count' => count($questionSectionMap),
+            'questionSectionMapTyped_count' => count($questionSectionMapTyped),
         ]);
 
         // If no sections exist, render all questions without section grouping
@@ -402,7 +419,7 @@ class ExamFileController extends Controller
         } else {
             // First, collect all assigned question IDs
             $assignedQuestionIds = [];
-            foreach ($questionSectionMap as $qId => $sectionId) {
+            foreach ($questionSectionMapTyped as $qId => $sectionId) {
                 $assignedQuestionIds[] = $qId;
             }
 
@@ -419,19 +436,17 @@ class ExamFileController extends Controller
                     'section_id' => $sectionId,
                     'section_id_type' => gettype($sectionId),
                     'total_questions' => count($questions),
-                    'questionSectionMap_sample' => array_slice($questionSectionMap, 0, 3),
+                    'questionSectionMapTyped_sample' => array_slice($questionSectionMapTyped, 0, 3),
                 ]);
 
-                $sectionQuestions = array_filter($questions, function($q) use ($sectionId, $questionSectionMap) {
+                $sectionQuestions = array_filter($questions, function($q) use ($sectionId, $questionSectionMapTyped) {
                     $qId = $q['id'];
-                    // Use sprintf to preserve full precision of float
-                    $qIdStr = sprintf('%.13F', $q['id']);
-                    $mappedSection = $questionSectionMap[$qIdStr] ?? null;
+                    // Use the question ID directly as key without conversion
+                    $mappedSection = $questionSectionMapTyped[$qId] ?? null;
                     
                     \Log::info('Question filtering check', [
                         'question_id' => $qId,
                         'question_id_type' => gettype($qId),
-                        'question_id_str' => $qIdStr,
                         'mapped_section' => $mappedSection,
                         'mapped_section_type' => $mappedSection ? gettype($mappedSection) : 'null',
                         'section_id' => $sectionId,
@@ -516,7 +531,7 @@ class ExamFileController extends Controller
 
             // Render unassigned questions (questions not in any section)
             $unassignedQuestions = array_filter($questions, function($q) use ($assignedQuestionIds) {
-                return !in_array($q['id'], $assignedQuestionIds);
+                return !in_array($q['id'], $assignedQuestionIds, true);
             });
 
             if (!empty($unassignedQuestions)) {
