@@ -32,6 +32,15 @@
           <q-tooltip>Print Preview</q-tooltip>
         </q-btn>
 
+        <!-- Force Regenerate HTML -->
+        <q-btn
+          flat
+          icon="refresh"
+          @click="forceRegenerateHtml"
+        >
+          <q-tooltip>Regenerate HTML</q-tooltip>
+        </q-btn>
+
         <!-- Print -->
         <PrintActions
           :generate-print-html="generatePrintHTML"
@@ -3207,6 +3216,56 @@ function printPreview() {
 
 function onPreviewLoaded() {
   console.log('Print preview loaded')
+}
+
+async function forceRegenerateHtml() {
+  if (!lastSavedExamId.value) {
+    $q.notify({
+      type: 'warning',
+      message: 'Please save the exam first to regenerate HTML',
+      position: 'top'
+    })
+    return
+  }
+
+  try {
+    $q.notify({
+      type: 'info',
+      message: 'Regenerating cached HTML...',
+      position: 'top',
+      timeout: 1000
+    })
+
+    const url = `/api/exam/ready-to-print/print-html/${lastSavedExamId.value}`
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'text/html'
+      }
+    })
+
+    if (response.ok) {
+      $q.notify({
+        type: 'positive',
+        message: 'HTML regenerated successfully!',
+        position: 'top'
+      })
+      console.log('HTML regenerated successfully')
+    } else {
+      $q.notify({
+        type: 'negative',
+        message: 'Failed to regenerate HTML',
+        position: 'top'
+      })
+    }
+  } catch (e) {
+    console.error('Failed to regenerate HTML', e)
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to regenerate HTML: ' + e.message,
+      position: 'top'
+    })
+  }
 }
 
 async function handleLoadExam(data) {

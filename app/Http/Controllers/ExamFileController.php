@@ -414,9 +414,31 @@ class ExamFileController extends Controller
             // Render questions by section
             foreach ($sections as $section) {
                 $sectionId = $section['id'];
+                
+                \Log::info('Filtering questions for section', [
+                    'section_id' => $sectionId,
+                    'section_id_type' => gettype($sectionId),
+                    'total_questions' => count($questions),
+                    'questionSectionMap_sample' => array_slice($questionSectionMap, 0, 3),
+                ]);
+
                 $sectionQuestions = array_filter($questions, function($q) use ($sectionId, $questionSectionMap) {
-                    $qId = strval($q['id']);
-                    return ($questionSectionMap[$qId] ?? '') === $sectionId;
+                    $qId = $q['id'];
+                    // Use sprintf to preserve full precision of float
+                    $qIdStr = sprintf('%.13F', $q['id']);
+                    $mappedSection = $questionSectionMap[$qIdStr] ?? null;
+                    
+                    \Log::info('Question filtering check', [
+                        'question_id' => $qId,
+                        'question_id_type' => gettype($qId),
+                        'question_id_str' => $qIdStr,
+                        'mapped_section' => $mappedSection,
+                        'mapped_section_type' => $mappedSection ? gettype($mappedSection) : 'null',
+                        'section_id' => $sectionId,
+                        'matches' => $mappedSection === $sectionId,
+                    ]);
+                    
+                    return $mappedSection === $sectionId;
                 });
 
                 \Log::info('Section questions', [
