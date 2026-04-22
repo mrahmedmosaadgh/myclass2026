@@ -1,54 +1,68 @@
 <template>
   <div class="row items-center q-col-gutter-sm">
-    <div class="col-auto">
-      <div class="text-caption q-mb-xs">Print method</div>
-      <q-select
-        dense
-        outlined
-        emit-value
-        map-options
-        :options="methodOptions"
-        v-model="selectedMethod"
-        style="min-width: 160px"
-      />
-    </div>
+    <!-- Print method select -->
+    <q-select
+      dense
+      outlined
+      emit-value
+      map-options
+      :options="methodOptions"
+      v-model="selectedMethod"
+      style="min-width: 120px"
+      bg-color="white"
+      text-color="grey-9"
+    >
+      <q-tooltip>Print Method</q-tooltip>
+    </q-select>
 
-    <div class="col-auto">
-      <q-btn
-        label="Print"
-        color="primary"
-        icon="print"
-        @click="print"
-      />
-    </div>
+    <!-- Print button -->
+    <q-btn
+      flat
+      round
+      dense
+      color="white"
+      icon="print"
+      @click="print"
+    >
+      <q-tooltip>Print</q-tooltip>
+    </q-btn>
 
-    <div class="col-auto">
-      <q-btn
-        label="Live Preview"
-        color="teal"
-        icon="preview"
-        @click="openLivePreview"
-      />
-    </div>
+    <!-- Live Preview -->
+    <q-btn
+      flat
+      round
+      dense
+      color="white"
+      icon="preview"
+      @click="openLivePreview"
+    >
+      <q-tooltip>Live Preview</q-tooltip>
+    </q-btn>
 
-    <div class="col-auto">
-      <q-btn
-        label="Download PDF"
-        color="secondary"
-        icon="picture_as_pdf"
-        @click="downloadPDF"
-        :loading="pdfGenerating"
-      />
-    </div>
+    <!-- Download PDF -->
+    <q-btn
+      flat
+      round
+      dense
+      color="white"
+      icon="picture_as_pdf"
+      @click="downloadPDF"
+      :loading="pdfGenerating"
+    >
+      <q-tooltip>Download PDF</q-tooltip>
+    </q-btn>
 
-    <div class="col-auto">
-      <q-btn
-        label="Fullscreen"
-        color="grey-7"
-        icon="fullscreen"
-        @click="openFullscreenPreview"
-      />
-    </div>
+    <!-- Fullscreen -->
+    <q-btn
+      flat
+      round
+      dense
+      color="white"
+      icon="fullscreen"
+      @click="openFullscreenPreview"
+    >
+      <q-tooltip>Fullscreen Preview</q-tooltip>
+    </q-btn>
 
     <!-- Live print preview dialog -->
     <LivePrintPreview

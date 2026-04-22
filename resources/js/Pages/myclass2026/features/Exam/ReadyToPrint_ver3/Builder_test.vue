@@ -1,138 +1,132 @@
 <template>
   <Head :title="pageTitle" />
   <div class="exam-test-page">
-    <!-- Modern sticky toolbar -->
-    <div class="modern-toolbar">
-      <div class="toolbar-left">
-        <div class="toolbar-title">
-          <q-icon name="quiz" size="24px" color="primary" />
-          <span v-if="pageOptions.examTitle?.enabled" class="title-text">{{ pageOptions.examTitle?.text }}</span>
-          <span v-else class="title-text">Exam Builder</span>
-        </div>
-      </div>
-      
-      <div class="toolbar-right">
-        <!-- Exam File Manager -->
-        <div class="toolbar-group">
-          <ExamFileManager
-            @save="handleSaveExam"
-            @load="handleLoadExam"
-            @delete="handleDeleteExam"
-            @refresh="handleRefreshFiles"
-            ref="fileManagerRef"
-          />
-        </div>
+    <!-- Quasar Toolbar -->
+    <q-toolbar class="bg-primary text-white">
+      <!-- Title -->
+      <q-icon name="quiz" size="md" class="q-mr-sm" />
+      <q-toolbar-title shrink>
+        {{ pageOptions.examTitle?.enabled ? pageOptions.examTitle?.text : 'Exam Builder' }}
+      </q-toolbar-title>
 
-        <!-- Print Preview Button -->
-        <div class="toolbar-group">
-          <q-btn
-            flat
-            color="white"
-            icon="preview"
-            label="Print Preview"
-            @click="openPrintPreview"
-          />
-        </div>
+      <q-space />
 
-        <!-- Print Actions -->
-        <div class="toolbar-group">
-          <PrintActions
-            :generate-print-html="generatePrintHTML"
-            :extra-margin-mm="pageOptions.printHeader.pageMarginTopMm ?? 0"
-            :exam-title="pageOptions.examTitle.enabled ? pageOptions.examTitle.text : ''"
-            :exam-subject="pageOptions.printHeader.template1?.subject || ''"
-            :exam-grade="pageOptions.printHeader.template1?.grade || ''"
-            @update:extra-margin-mm="(v) => { pageOptions.printHeader.pageMarginTopMm = v; savePageState() }"
-          />
-        </div>
+      <!-- Main Actions -->
+      <q-btn-group flat>
+        <!-- Save/Load -->
+        <ExamFileManager
+          @save="handleSaveExam"
+          @load="handleLoadExam"
+          @delete="handleDeleteExam"
+          @refresh="handleRefreshFiles"
+          ref="fileManagerRef"
+        />
 
-        <!-- Import/Export Group -->
-        <div class="toolbar-group">
-          <q-btn-dropdown
-            flat
-            color="white"
-            icon="more_vert"
-            dropdown-icon=""
-          >
-            <q-list style="min-width: 220px">
-              <q-item clickable v-close-popup @click="openAIDialog">
-                <q-item-section avatar>
-                  <q-icon name="smart_toy" />
-                </q-item-section>
-                <q-item-section>Import AI Questions</q-item-section>
-              </q-item>
+        <!-- Print Preview -->
+        <q-btn
+          flat
+          icon="preview"
+          @click="openPrintPreview"
+        >
+          <q-tooltip>Print Preview</q-tooltip>
+        </q-btn>
 
-              <q-item clickable v-close-popup @click="openFullExamDialog">
-                <q-item-section avatar>
-                  <q-icon name="auto_awesome" />
-                </q-item-section>
-                <q-item-section>Generate Full Exam with AI</q-item-section>
-              </q-item>
+        <!-- Print -->
+        <PrintActions
+          :generate-print-html="generatePrintHTML"
+          :extra-margin-mm="pageOptions.printHeader.pageMarginTopMm ?? 0"
+          :exam-title="pageOptions.examTitle.enabled ? pageOptions.examTitle.text : ''"
+          :exam-subject="pageOptions.printHeader.template1?.subject || ''"
+          :exam-grade="pageOptions.printHeader.template1?.grade || ''"
+          @update:extra-margin-mm="(v) => { pageOptions.printHeader.pageMarginTopMm = v; savePageState() }"
+        />
+      </q-btn-group>
 
-              <q-item clickable v-close-popup @click="openAIChatDialog">
-                <q-item-section avatar>
-                  <q-icon name="chat" />
-                </q-item-section>
-                <q-item-section>AI Chat Exam Generation</q-item-section>
-              </q-item>
+      <!-- More Actions Menu -->
+      <q-btn flat round dense icon="more_vert">
+        <q-menu>
+          <q-list dense style="min-width: 200px">
+            <!-- AI Section -->
+            <q-item-label header class="text-subtitle2 text-grey-8">AI Tools</q-item-label>
+            <q-item clickable v-close-popup @click="openAIDialog">
+              <q-item-section avatar>
+                <q-icon name="smart_toy" color="primary" />
+              </q-item-section>
+              <q-item-section>Import AI Questions</q-item-section>
+            </q-item>
+            <q-item clickable v-close-popup @click="openFullExamDialog">
+              <q-item-section avatar>
+                <q-icon name="auto_awesome" color="primary" />
+              </q-item-section>
+              <q-item-section>Generate Full Exam</q-item-section>
+            </q-item>
+            <q-item clickable v-close-popup @click="openAIChatDialog">
+              <q-item-section avatar>
+                <q-icon name="chat" color="primary" />
+              </q-item-section>
+              <q-item-section>AI Chat Generation</q-item-section>
+            </q-item>
 
-              <q-item clickable v-close-popup @click="openValidationDialog">
-                <q-item-section avatar>
-                  <q-icon name="fact_check" />
-                </q-item-section>
-                <q-item-section>Validate & Fix Questions</q-item-section>
-              </q-item>
+            <q-separator />
 
-              <q-item clickable v-close-popup @click="triggerImportFile">
-                <q-item-section avatar>
-                  <q-icon name="upload_file" />
-                </q-item-section>
-                <q-item-section>Import Full JSON</q-item-section>
-              </q-item>
+            <!-- Import Section -->
+            <q-item-label header class="text-subtitle2 text-grey-8">Import</q-item-label>
+            <q-item clickable v-close-popup @click="triggerImportFile">
+              <q-item-section avatar>
+                <q-icon name="upload_file" />
+              </q-item-section>
+              <q-item-section>Import Full JSON</q-item-section>
+            </q-item>
+            <q-item clickable v-close-popup @click="triggerImportQuestionsFile">
+              <q-item-section avatar>
+                <q-icon name="question_answer" />
+              </q-item-section>
+              <q-item-section>Import Questions</q-item-section>
+            </q-item>
 
-              <q-item clickable v-close-popup @click="triggerImportQuestionsFile">
-                <q-item-section avatar>
-                  <q-icon name="question_answer" />
-                </q-item-section>
-                <q-item-section>Import Questions Only</q-item-section>
-              </q-item>
+            <q-separator />
 
-              <q-separator />
+            <!-- Export Section -->
+            <q-item-label header class="text-subtitle2 text-grey-8">Export</q-item-label>
+            <q-item clickable v-close-popup @click="exportToJson">
+              <q-item-section avatar>
+                <q-icon name="download" />
+              </q-item-section>
+              <q-item-section>Export Full JSON</q-item-section>
+            </q-item>
+            <q-item clickable v-close-popup @click="exportQuestionsOnly">
+              <q-item-section avatar>
+                <q-icon name="download_done" />
+              </q-item-section>
+              <q-item-section>Export Questions</q-item-section>
+            </q-item>
 
-              <q-item clickable v-close-popup @click="exportToJson">
-                <q-item-section avatar>
-                  <q-icon name="download" />
-                </q-item-section>
-                <q-item-section>Export Full JSON</q-item-section>
-              </q-item>
+            <q-separator />
 
-              <q-item clickable v-close-popup @click="exportQuestionsOnly">
-                <q-item-section avatar>
-                  <q-icon name="download_done" />
-                </q-item-section>
-                <q-item-section>Export Questions Only</q-item-section>
-              </q-item>
-
-              <q-separator />
-
-              <q-item clickable v-close-popup @click="firstLastPageOpen = true">
-                <q-item-section avatar>
-                  <q-icon name="auto_stories" />
-                </q-item-section>
-                <q-item-section>First / Last Page</q-item-section>
-              </q-item>
-
-              <q-item clickable v-close-popup @click="optionsOpen = true">
-                <q-item-section avatar>
-                  <q-icon name="tune" />
-                </q-item-section>
-                <q-item-section>Settings</q-item-section>
-              </q-item>
-            </q-list>
-          </q-btn-dropdown>
-        </div>
-      </div>
-    </div>
+            <!-- Tools Section -->
+            <q-item-label header class="text-subtitle2 text-grey-8">Tools</q-item-label>
+            <q-item clickable v-close-popup @click="openValidationDialog">
+              <q-item-section avatar>
+                <q-icon name="fact_check" />
+              </q-item-section>
+              <q-item-section>Validate Questions</q-item-section>
+            </q-item>
+            <q-item clickable v-close-popup @click="firstLastPageOpen = true">
+              <q-item-section avatar>
+                <q-icon name="auto_stories" />
+              </q-item-section>
+              <q-item-section>First & Last Page</q-item-section>
+            </q-item>
+            <q-item clickable v-close-popup @click="optionsOpen = true">
+              <q-item-section avatar>
+                <q-icon name="settings" />
+              </q-item-section>
+              <q-item-section>Settings</q-item-section>
+            </q-item>
+          </q-list>
+        </q-menu>
+      </q-btn>
+    </q-toolbar>
 
     <input
       ref="importFileInput"

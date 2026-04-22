@@ -4,21 +4,27 @@
     <q-btn
       v-if="showSaveButton"
       flat
+      round
+      dense
       :color="buttonColor"
       icon="save"
-      :label="saveLabel"
       @click="saveExam"
-    />
+    >
+      <q-tooltip>{{ saveLabel }}</q-tooltip>
+    </q-btn>
 
     <!-- Manage Files Button -->
     <q-btn
       v-if="showManageButton"
       flat
+      round
+      dense
       :color="buttonColor"
       icon="folder_open"
-      :label="manageLabel"
       @click="openDialog"
-    />
+    >
+      <q-tooltip>{{ manageLabel }}</q-tooltip>
+    </q-btn>
 
     <!-- Saved Files Dialog -->
     <q-dialog v-model="dialogOpen">
