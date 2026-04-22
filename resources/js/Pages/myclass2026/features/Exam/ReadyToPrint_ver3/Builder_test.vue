@@ -3013,6 +3013,13 @@ async function handleSaveExam() {
       pageBreaks: pageOptions.value.questionNumbering?.pageBreaksBefore || {}
     }
 
+    console.log('Saving exam with data:', {
+      questions_count: data.questions.length,
+      sections_count: data.sections.length,
+      questionSectionMap_count: Object.keys(data.questionSectionMap).length,
+      questions_sample: data.questions.slice(0, 2)
+    })
+
     const response = await fetch('/api/exam/ready-to-print/save-exam', {
       method: 'POST',
       headers: {
@@ -3024,6 +3031,7 @@ async function handleSaveExam() {
     })
 
     const result = await response.json()
+    console.log('Save response:', result)
 
     if (response.ok) {
       lastSavedExamId.value = result.exam_id
@@ -3050,6 +3058,8 @@ async function handleSaveExam() {
 }
 
 async function openPrintPreview() {
+  console.log('Opening print preview, lastSavedExamId:', lastSavedExamId.value)
+
   if (!lastSavedExamId.value) {
     // Auto-save first
     await handleSaveExam()
@@ -3065,16 +3075,26 @@ async function openPrintPreview() {
 
   try {
     const url = `/api/exam/ready-to-print/print-html/${lastSavedExamId.value}`
+    console.log('Fetching HTML from:', url)
+
     const response = await fetch(url, {
       headers: {
         'Accept': 'text/html'
       }
     })
 
+    console.log('Response status:', response.status, response.statusText)
+
     if (response.ok) {
-      printPreviewHtml.value = await response.text()
+      const html = await response.text()
+      console.log('HTML length:', html.length)
+      console.log('HTML preview (first 500 chars):', html.substring(0, 500))
+
+      printPreviewHtml.value = html
       printPreviewOpen.value = true
     } else {
+      const errorText = await response.text()
+      console.log('Error response:', errorText)
       $q.notify({
         type: 'negative',
         message: 'Failed to load print preview',
