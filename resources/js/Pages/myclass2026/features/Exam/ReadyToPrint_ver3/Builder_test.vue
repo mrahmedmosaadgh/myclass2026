@@ -202,6 +202,18 @@
             class="q-mr-sm"
           />
 
+          <div class="text-subtitle2 text-grey-8 q-mx-md">Print Layout</div>
+
+          <q-btn
+            dense
+            flat
+            round
+            icon="edit"
+            color="grey-8"
+            title="Edit question content"
+            @click="editQuestionContent(question)"
+          />
+
           <q-btn
             dense
             flat
@@ -238,7 +250,8 @@
             round
             icon="delete"
             color="negative"
-            @click="deleteQuestion(question.id)"
+            title="Delete question"
+            @click="confirmDeleteQuestion(question.id)"
           />
         </div>
         <QuestionDisplay
@@ -3989,6 +4002,22 @@ function deleteQuestion(id) {
   sampleQuestions.value = sampleQuestions.value.filter(q => q.id !== id)
   delete questionSectionMap.value[String(id)]
   savePageState()
+}
+
+function confirmDeleteQuestion(id) {
+  if (confirm('Are you sure you want to delete this question? This action cannot be undone.')) {
+    deleteQuestion(id)
+  }
+}
+
+function editQuestionContent(question) {
+  // For now, prompt for editing the question prompt
+  const newPrompt = prompt('Edit question prompt:', question?.content?.prompt || '')
+  if (newPrompt !== null) {
+    if (!question.content) question.content = {}
+    question.content.prompt = newPrompt
+    savePageState()
+  }
 }
 
 function openImageDialog(question) {
