@@ -324,6 +324,14 @@ class ExamFileController extends Controller
 
         // Group questions by section
         $globalIndex = 0;
+
+        // First, collect all assigned question IDs
+        $assignedQuestionIds = [];
+        foreach ($questionSectionMap as $qId => $sectionId) {
+            $assignedQuestionIds[] = $qId;
+        }
+
+        // Render questions by section
         foreach ($sections as $section) {
             $sectionId = $section['id'];
             $sectionQuestions = array_filter($questions, function($q) use ($sectionId, $questionSectionMap) {
@@ -347,6 +355,66 @@ class ExamFileController extends Controller
 
             // Questions
             foreach ($sectionQuestions as $question) {
+                $globalIndex++;
+                $qid = $question['id'];
+
+                // Page break before question
+                if (isset($pageBreaks[$qid])) {
+                    $html .= '<div class="page-break"></div>';
+                }
+
+                $html .= '<div class="question">';
+                $html .= '<div class="question-header">';
+                $html .= '<span>Q' . $globalIndex . '</span>';
+                if ($showMarks) {
+                    $html .= '<span>' . ($question['marks'] ?? 1) . ' marks</span>';
+                }
+                $html .= '</div>';
+                $html .= '<div class="question-content">' . $this->renderMath($question['content']['prompt'] ?? '') . '</div>';
+
+                // Options for MCQ
+                if (!empty($question['content']['options'])) {
+                    $html .= '<div class="question-options">';
+                    foreach ($question['content']['options'] as $idx => $option) {
+                        $label = chr(65 + $idx) . ')';
+                        $html .= '<div class="option"><strong>' . $label . '</strong> ' . $this->renderMath($option) . '</div>';
+                    }
+                    $html .= '</div>';
+                }
+
+                // Answer lines for non-MCQ
+                if ($question['type'] !== 'multiple_choice' && $question['type'] !== 'true_false') {
+                    $marks = $question['marks'] ?? 1;
+                    $lines = min(4, max(2, $marks));
+                    $html .= '<div class="answer-area">';
+                    for ($i = 0; $i < $lines; $i++) {
+                        $html .= '<div class="answer-line"></div>';
+                    }
+                    $html .= '</div>';
+                }
+
+                // Question separator
+                if ($questionSeparator['enabled'] ?? false) {
+                    $style = $questionSeparator['lineStyle'] ?? 'solid';
+                    $color = $questionSeparator['color'] ?? '#1f3a5a';
+                    $html .= '<div style="margin: 8pt 0; border-bottom: 1pt ' . $style . ' ' . $color . ';"></div>';
+                }
+
+                $html .= '</div>';
+            }
+        }
+
+        // Render unassigned questions (questions not in any section)
+        $unassignedQuestions = array_filter($questions, function($q) use ($assignedQuestionIds) {
+            return !in_array($q['id'], $assignedQuestionIds);
+        });
+
+        if (!empty($unassignedQuestions)) {
+            $html .= '<div class="section-header">';
+            $html .= '<div class="section-title">Questions</div>';
+            $html .= '</div>';
+
+            foreach ($unassignedQuestions as $question) {
                 $globalIndex++;
                 $qid = $question['id'];
 
