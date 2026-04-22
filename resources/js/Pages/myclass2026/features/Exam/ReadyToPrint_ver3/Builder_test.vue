@@ -16,6 +16,7 @@
         <!-- Save/Load -->
         <ExamFileManager
           @save="handleSaveExam"
+          @saveAs="handleSaveAs"
           @load="handleLoadExam"
           @delete="handleDeleteExam"
           @refresh="handleRefreshFiles"
@@ -2985,6 +2986,72 @@ async function savePageState() {
     })
   } catch (e) {
     console.error('Failed to save page state', e)
+  }
+}
+
+async function handleSaveAs(fileName) {
+  try {
+    const data = {
+      name: fileName,
+      questions: sampleQuestions.value,
+      settings: {
+        examTitle: pageOptions.value.examTitle,
+        showMarksPerQuestion: pageOptions.value.showMarksPerQuestion,
+        printHeader: pageOptions.value.printHeader,
+        printFooter: pageOptions.value.printFooter,
+        firstPage: pageOptions.value.firstPage,
+        lastPage: pageOptions.value.lastPage,
+        questionNumbering: pageOptions.value.questionNumbering,
+        sectionTotal: pageOptions.value.sectionTotal,
+        questionSeparator: pageOptions.value.questionSeparator,
+        mcqOptions: pageOptions.value.mcqOptions,
+        pageLayout: pageOptions.value.pageLayout
+      },
+      sections: sections.value || [],
+      questionSectionMap: questionSectionMap.value || {},
+      pageBreaks: pageOptions.value.questionNumbering?.pageBreaksBefore || {}
+    }
+
+    console.log('Saving exam as:', fileName, 'with data:', {
+      questions_count: data.questions.length,
+      sections_count: data.sections.length,
+      questionSectionMap_count: Object.keys(data.questionSectionMap).length,
+    })
+
+    const response = await fetch('/api/exam/ready-to-print/save-exam', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': page.props.csrf_token || '',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(data)
+    })
+
+    const result = await response.json()
+    console.log('Save As response:', result)
+
+    if (response.ok) {
+      lastSavedExamId.value = result.exam_id
+      $q.notify({
+        type: 'positive',
+        message: `Exam saved as "${fileName}" successfully!`,
+        position: 'top'
+      })
+    } else {
+      $q.notify({
+        type: 'negative',
+        message: 'Failed to save exam: ' + (result.message || 'Unknown error'),
+        position: 'top'
+      })
+    }
+  } catch (e) {
+    console.error('Failed to save exam', e)
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to save exam: ' + e.message,
+      position: 'top'
+    })
   }
 }
 

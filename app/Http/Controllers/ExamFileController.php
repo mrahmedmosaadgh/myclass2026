@@ -415,7 +415,8 @@ class ExamFileController extends Controller
             foreach ($sections as $section) {
                 $sectionId = $section['id'];
                 $sectionQuestions = array_filter($questions, function($q) use ($sectionId, $questionSectionMap) {
-                    return ($questionSectionMap[$q['id']] ?? '') === $sectionId;
+                    $qId = strval($q['id']);
+                    return ($questionSectionMap[$qId] ?? '') === $sectionId;
                 });
 
                 \Log::info('Section questions', [

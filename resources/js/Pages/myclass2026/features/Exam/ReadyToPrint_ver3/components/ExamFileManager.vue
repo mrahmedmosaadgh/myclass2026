@@ -13,6 +13,19 @@
       <q-tooltip>{{ saveLabel }}</q-tooltip>
     </q-btn>
 
+    <!-- Save As Button -->
+    <q-btn
+      v-if="showSaveButton"
+      flat
+      round
+      dense
+      :color="buttonColor"
+      icon="save_as"
+      @click="openSaveAsDialog"
+    >
+      <q-tooltip>Save As</q-tooltip>
+    </q-btn>
+
     <!-- Manage Files Button -->
     <q-btn
       v-if="showManageButton"
@@ -93,12 +106,44 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- Save As Dialog -->
+    <q-dialog v-model="saveAsDialogOpen">
+      <q-card style="min-width: 400px;">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">Save Exam As</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+
+        <q-separator />
+
+        <q-card-section>
+          <q-input
+            v-model="saveAsFileName"
+            label="File Name"
+            filled
+            autofocus
+            @keyup.enter="saveAsExam"
+            hint="Enter a name for this exam file"
+          />
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" color="grey" v-close-popup />
+          <q-btn flat label="Save" color="primary" @click="saveAsExam" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue'
 import { usePage } from '@inertiajs/vue3'
+import { useQuasar } from 'quasar'
+
+const $q = useQuasar()
 
 const props = defineProps({
   // Button appearance
@@ -154,16 +199,33 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['save', 'load', 'delete', 'refresh'])
+const emit = defineEmits(['save', 'load', 'delete', 'refresh', 'saveAs'])
 
 const page = usePage()
 const dialogOpen = ref(false)
 const savedFiles = ref([])
 const loading = ref(false)
+const saveAsDialogOpen = ref(false)
+const saveAsFileName = ref('')
 
 function openDialog() {
   dialogOpen.value = true
   refreshFiles()
+}
+
+function openSaveAsDialog() {
+  saveAsFileName.value = ''
+  saveAsDialogOpen.value = true
+}
+
+function saveAsExam() {
+  if (!saveAsFileName.value.trim()) {
+    $q.notify({ type: 'warning', message: 'Please enter a file name', position: 'top' })
+    return
+  }
+  emit('saveAs', saveAsFileName.value.trim())
+  saveAsDialogOpen.value = false
+  saveAsFileName.value = ''
 }
 
 async function refreshFiles() {
@@ -183,12 +245,12 @@ async function refreshFiles() {
       savedFiles.value = result.files || []
       emit('refresh', savedFiles.value)
     } else {
-      alert('Failed to load saved files: ' + (result.message || 'Unknown error'))
+      $q.notify({ type: 'negative', message: 'Failed to load saved files: ' + (result.message || 'Unknown error'), position: 'top' })
       savedFiles.value = []
     }
   } catch (e) {
     console.error('Failed to load saved files', e)
-    alert('Failed to load saved files: ' + e.message)
+    $q.notify({ type: 'negative', message: 'Failed to load saved files: ' + e.message, position: 'top' })
     savedFiles.value = []
   } finally {
     loading.value = false
@@ -219,13 +281,13 @@ async function loadFile(fileId) {
     if (response.ok) {
       emit('load', result.data)
       dialogOpen.value = false
-      alert('Exam loaded successfully!')
+      $q.notify({ type: 'positive', message: 'Exam loaded successfully!', position: 'top' })
     } else {
-      alert('Failed to load exam: ' + (result.message || 'Unknown error'))
+      $q.notify({ type: 'negative', message: 'Failed to load exam: ' + (result.message || 'Unknown error'), position: 'top' })
     }
   } catch (e) {
     console.error('Failed to load exam', e)
-    alert('Failed to load exam: ' + e.message)
+    $q.notify({ type: 'negative', message: 'Failed to load exam: ' + e.message, position: 'top' })
   } finally {
     loading.value = false
   }
@@ -249,15 +311,15 @@ async function deleteFile(fileId) {
     const result = await response.json()
 
     if (response.ok) {
-      alert('File deleted successfully!')
+      $q.notify({ type: 'positive', message: 'File deleted successfully!', position: 'top' })
       emit('delete', fileId)
       refreshFiles()
     } else {
-      alert('Failed to delete file: ' + (result.message || 'Unknown error'))
+      $q.notify({ type: 'negative', message: 'Failed to delete file: ' + (result.message || 'Unknown error'), position: 'top' })
     }
   } catch (e) {
     console.error('Failed to delete file', e)
-    alert('Failed to delete file: ' + e.message)
+    $q.notify({ type: 'negative', message: 'Failed to delete file: ' + e.message, position: 'top' })
   } finally {
     loading.value = false
   }
