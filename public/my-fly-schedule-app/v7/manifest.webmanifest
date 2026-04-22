@@ -60,22 +60,6 @@
       "purpose": "any maskable"
     }
   ],
-  "screenshots": [
-    {
-      "src": "/my-fly-schedule-app/v7/screenshots/mobile-1.png",
-      "sizes": "390x844",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Schedule view on mobile"
-    },
-    {
-      "src": "/my-fly-schedule-app/v7/screenshots/desktop-1.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "Schedule view on desktop"
-    }
-  ],
   "related_applications": [],
   "prefer_related_applications": false,
   "edge_side_panel": {

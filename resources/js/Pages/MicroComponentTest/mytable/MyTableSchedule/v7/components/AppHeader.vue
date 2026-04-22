@@ -12,7 +12,7 @@
         </button>
 
         <div class="brand-info">
-          <h1 class="app-title">📅 SCHEDULE V5</h1>
+          <h1 class="app-title">📅 SCHEDULE V7</h1>
           <p class="app-subtitle">OFFLINE-FIRST • VIEW-ONLY</p>
         </div>
       </div>

@@ -219,7 +219,7 @@ onMounted(async () => {
   // Register service worker
   if ('serviceWorker' in navigator && window.location.pathname.startsWith('/my-fly-schedule-app/ver7')) {
     try {
-      const reg = await navigator.serviceWorker.register('/my-fly-schedule-app/v7-sw.js', {
+      const reg = await navigator.serviceWorker.register('/my-fly-schedule-app-v7-sw.js', {
         scope: '/my-fly-schedule-app/ver7'
       });
       console.log('[V7 SW] Registered:', reg.scope);
