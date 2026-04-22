@@ -2108,11 +2108,34 @@
       </q-card-actions>
     </q-card>
   </q-dialog>
+
+  <!-- Print Preview Full Screen Dialog -->
+  <q-dialog v-model="printPreviewOpen" maximized>
+    <q-card class="full-screen-print-preview">
+      <q-bar>
+        <q-icon name="print" />
+        <div>Print Preview</div>
+        <q-space />
+        <q-btn flat dense icon="print" label="Print" @click="printPreview" />
+        <q-btn flat dense icon="close" v-close-popup />
+      </q-bar>
+
+      <q-card-section class="q-pa-none" style="height: calc(100vh - 38px); overflow: auto;">
+        <iframe
+          v-if="printPreviewHtml"
+          :srcdoc="printPreviewHtml"
+          style="width: 100%; height: 100%; border: none;"
+          @load="onPreviewLoaded"
+        />
+      </q-card-section>
+    </q-card>
+  </q-dialog>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { usePage } from '@inertiajs/vue3'
+import { useQuasar } from 'quasar'
 import { renderToString } from 'katex'
 import QuestionDisplay from './components/QuestionDisplay.vue'
 import SectionTotalMark from './components/SectionTotalMark.vue'
@@ -2128,6 +2151,7 @@ import { formatQuestionLabel } from './utils/questionNumbering'
 const PAGE_STATE_KEY = 'exam_ready_to_print_test_builder_state_v1'
 
 const page = usePage()
+const $q = useQuasar()
 
 const importFileInput = ref(null)
 const importQuestionsFileInput = ref(null)
@@ -2224,6 +2248,10 @@ const footerSettingsTab = ref('layout')
 // File manager reference
 const fileManagerRef = ref(null)
 const lastSavedExamId = ref(null)
+
+// Print preview dialog
+const printPreviewOpen = ref(false)
+const printPreviewHtml = ref('')
 // Computed page title for Head component
 const pageTitle = computed(() => {
   return pageOptions.value.examTitle?.enabled && pageOptions.value.examTitle?.text
@@ -2603,7 +2631,7 @@ async function handleHeaderImageFile(event) {
     reader.readAsDataURL(file)
   } catch (e) {
     console.error('Header image load failed', e)
-    alert('Failed to load image: ' + e.message)
+    $q.notify({ type: 'negative', message: 'Failed to load image: ' + e.message, position: 'top' })
   }
 }
 
@@ -2616,21 +2644,21 @@ async function pasteHeaderImageUrlFromClipboard() {
   try {
     const text = await navigator.clipboard.readText()
     if (!text || !String(text).trim()) {
-      alert('Clipboard is empty.')
+      $q.notify({ type: 'warning', message: 'Clipboard is empty.', position: 'top' })
       return
     }
     pageOptions.value.printHeader.imageUrl = String(text).trim()
     await savePageState()
   } catch (e) {
     console.error('Paste header URL failed', e)
-    alert('Clipboard paste blocked. Please allow clipboard permission or paste manually.')
+    $q.notify({ type: 'warning', message: 'Clipboard paste blocked. Please allow clipboard permission or paste manually.', position: 'top' })
   }
 }
 
 async function pasteHeaderImageFromClipboard() {
   try {
     if (!navigator.clipboard?.read) {
-      alert('Clipboard image paste is not supported in this browser. Use Choose Image instead.')
+      $q.notify({ type: 'warning', message: 'Clipboard image paste is not supported in this browser. Use Choose Image instead.', position: 'top' })
       return
     }
 
@@ -2649,10 +2677,10 @@ async function pasteHeaderImageFromClipboard() {
       return
     }
 
-    alert('No image found in clipboard.')
+    $q.notify({ type: 'warning', message: 'No image found in clipboard.', position: 'top' })
   } catch (e) {
     console.error('Paste header image failed', e)
-    alert('Clipboard image paste blocked. Please allow clipboard permission or use Choose Image.')
+    $q.notify({ type: 'warning', message: 'Clipboard image paste blocked. Please allow clipboard permission or use Choose Image.', position: 'top' })
   }
 }
 
@@ -2660,14 +2688,14 @@ async function pasteHeaderHtmlFromClipboard() {
   try {
     const text = await navigator.clipboard.readText()
     if (!text || !String(text).trim()) {
-      alert('Clipboard is empty.')
+      $q.notify({ type: 'warning', message: 'Clipboard is empty.', position: 'top' })
       return
     }
-    pageOptions.value.printHeader.html = String(text)
+    pageOptions.value.printHeader.html = String(text).trim()
     await savePageState()
   } catch (e) {
     console.error('Paste header HTML failed', e)
-    alert('Clipboard paste blocked. Please allow clipboard permission or paste manually.')
+    $q.notify({ type: 'warning', message: 'Clipboard paste blocked. Please allow clipboard permission or paste manually.', position: 'top' })
   }
 }
 
@@ -2833,20 +2861,20 @@ async function pasteQuestionImageUrlFromClipboard() {
   try {
     const text = await navigator.clipboard.readText()
     if (!text || !String(text).trim()) {
-      alert('Clipboard is empty.')
+      $q.notify({ type: 'warning', message: 'Clipboard is empty.', position: 'top' })
       return
     }
-    imageEdit.value = { ...imageEdit.value, url: String(text).trim() }
+    imageEdit.value.url = String(text).trim()
   } catch (e) {
     console.error('Paste URL failed', e)
-    alert('Clipboard paste blocked. Please allow clipboard permission or paste manually.')
+    $q.notify({ type: 'warning', message: 'Clipboard paste blocked. Please allow clipboard permission or paste manually.', position: 'top' })
   }
 }
 
 async function pasteQuestionImageFromClipboard() {
   try {
     if (!navigator.clipboard?.read) {
-      alert('Clipboard image paste is not supported in this browser. Use Choose Image instead.')
+      $q.notify({ type: 'warning', message: 'Clipboard image paste is not supported in this browser. Use Choose Image instead.', position: 'top' })
       return
     }
 
@@ -2864,10 +2892,10 @@ async function pasteQuestionImageFromClipboard() {
       return
     }
 
-    alert('No image found in clipboard.')
+    $q.notify({ type: 'warning', message: 'No image found in clipboard.', position: 'top' })
   } catch (e) {
     console.error('Paste image failed', e)
-    alert('Clipboard image paste blocked. Please allow clipboard permission or use Choose Image.')
+    $q.notify({ type: 'warning', message: 'Clipboard image paste blocked. Please allow clipboard permission or use Choose Image.', position: 'top' })
   }
 }
 
@@ -2946,13 +2974,25 @@ async function handleSaveExam() {
 
     if (response.ok) {
       lastSavedExamId.value = result.exam_id
-      alert('Exam saved successfully!')
+      $q.notify({
+        type: 'positive',
+        message: 'Exam saved successfully!',
+        position: 'top'
+      })
     } else {
-      alert('Failed to save exam: ' + (result.message || 'Unknown error'))
+      $q.notify({
+        type: 'negative',
+        message: 'Failed to save exam: ' + (result.message || 'Unknown error'),
+        position: 'top'
+      })
     }
   } catch (e) {
     console.error('Failed to save exam', e)
-    alert('Failed to save exam: ' + e.message)
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to save exam: ' + e.message,
+      position: 'top'
+    })
   }
 }
 
@@ -2961,13 +3001,52 @@ async function openPrintPreview() {
     // Auto-save first
     await handleSaveExam()
     if (!lastSavedExamId.value) {
-      alert('Please save the exam first to generate print preview')
+      $q.notify({
+        type: 'warning',
+        message: 'Please save the exam first to generate print preview',
+        position: 'top'
+      })
       return
     }
   }
 
-  const url = `/api/exam/ready-to-print/print-html/${lastSavedExamId.value}`
-  window.open(url, '_blank')
+  try {
+    const url = `/api/exam/ready-to-print/print-html/${lastSavedExamId.value}`
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'text/html'
+      }
+    })
+
+    if (response.ok) {
+      printPreviewHtml.value = await response.text()
+      printPreviewOpen.value = true
+    } else {
+      $q.notify({
+        type: 'negative',
+        message: 'Failed to load print preview',
+        position: 'top'
+      })
+    }
+  } catch (e) {
+    console.error('Failed to load print preview', e)
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to load print preview: ' + e.message,
+      position: 'top'
+    })
+  }
+}
+
+function printPreview() {
+  const iframe = document.querySelector('.full-screen-print-preview iframe')
+  if (iframe && iframe.contentWindow) {
+    iframe.contentWindow.print()
+  }
+}
+
+function onPreviewLoaded() {
+  console.log('Print preview loaded')
 }
 
 async function handleLoadExam(data) {
@@ -3088,7 +3167,7 @@ function exportToJson() {
     a.remove()
   } catch (e) {
     console.error('Export failed', e)
-    alert('Export failed: ' + e.message)
+    $q.notify({ type: 'negative', message: 'Export failed: ' + e.message, position: 'top' })
   }
 }
 
@@ -3112,7 +3191,7 @@ function exportQuestionsOnly() {
     URL.revokeObjectURL(url)
   } catch (e) {
     console.error('Export questions failed', e)
-    alert('Export questions failed: ' + e.message)
+    $q.notify({ type: 'negative', message: 'Export questions failed: ' + e.message, position: 'top' })
   }
 }
 
@@ -3149,7 +3228,7 @@ async function handleImportFile(event, questionsOnly = false) {
           questionSectionMap.value = parsed.questionSectionMap
         }
         await savePageState()
-        alert('Questions imported successfully!')
+        $q.notify({ type: 'positive', message: 'Questions imported successfully!', position: 'top' })
       } else if (Array.isArray(parsed)) {
         // Allow importing a plain questions array
         sampleQuestions.value = parsed
@@ -3159,9 +3238,9 @@ async function handleImportFile(event, questionsOnly = false) {
           if (defaultSectionId && !questionSectionMap.value[qid]) questionSectionMap.value[qid] = defaultSectionId
         })
         await savePageState()
-        alert('Questions imported successfully!')
+        $q.notify({ type: 'positive', message: 'Questions imported successfully!', position: 'top' })
       } else {
-        alert('Invalid questions file format')
+        $q.notify({ type: 'negative', message: 'Invalid questions file format', position: 'top' })
       }
     } else {
       // Full import (with page settings)
@@ -3178,7 +3257,7 @@ async function handleImportFile(event, questionsOnly = false) {
       }
 
       if (!parsed || typeof parsed !== 'object') {
-        alert('Invalid JSON file format.')
+        $q.notify({ type: 'negative', message: 'Invalid JSON file format.', position: 'top' })
         return
       }
 
@@ -3195,10 +3274,11 @@ async function handleImportFile(event, questionsOnly = false) {
       })
 
       await savePageState()
+      $q.notify({ type: 'positive', message: 'Import successful!', position: 'top' })
     }
   } catch (e) {
     console.error('Import failed', e)
-    alert('Import failed: ' + e.message)
+    $q.notify({ type: 'negative', message: 'Import failed: ' + e.message, position: 'top' })
   }
 }
 
@@ -3330,7 +3410,12 @@ function generateFullExamPrompt() {
 
   if (missingInfo.length > 0) {
     missingInfoPrompts.value = missingInfo
-    alert(`Please provide the following missing information:\n${missingInfo.join('\n')}`)
+    $q.notify({
+      type: 'warning',
+      message: `Please provide the following missing information:\n${missingInfo.join('\n')}`,
+      position: 'top',
+      timeout: 5000
+    })
     return
   }
 
@@ -3468,10 +3553,10 @@ function processFullExamResponse() {
     fullExamDialogOpen.value = false
     
     // Show success message
-    alert('Exam generated successfully!')
+    $q.notify({ type: 'positive', message: 'Exam generated successfully!', position: 'top' })
   } catch (error) {
     console.error('Failed to process exam response:', error)
-    alert('Failed to process exam response. Please check the JSON format.')
+    $q.notify({ type: 'negative', message: 'Failed to process exam response. Please check the JSON format.', position: 'top' })
   }
 }
 
@@ -3590,7 +3675,7 @@ When you have all the information, return the complete JSON with a message sayin
 
 function acceptGeneratedExam() {
   if (!generatedExamData.value) {
-    alert('No exam data to accept.')
+    $q.notify({ type: 'warning', message: 'No exam data to accept.', position: 'top' })
     return
   }
 
@@ -3645,10 +3730,10 @@ function acceptGeneratedExam() {
     aiChatDialogOpen.value = false
     
     // Show success message
-    alert('Exam generated successfully!')
+    $q.notify({ type: 'positive', message: 'Exam generated successfully!', position: 'top' })
   } catch (error) {
     console.error('Failed to process exam data:', error)
-    alert('Failed to process exam data. Please try again.')
+    $q.notify({ type: 'negative', message: 'Failed to process exam data. Please try again.', position: 'top' })
   }
 }
 
@@ -3784,13 +3869,13 @@ function detectQuestionErrors() {
 
 function copyValidationPrompt() {
   navigator.clipboard.writeText(questionsForValidation.value)
-  alert('Validation prompt copied to clipboard!')
+  $q.notify({ type: 'positive', message: 'Validation prompt copied to clipboard!', position: 'top' })
 }
 
 function copyQuestionsOnly() {
   const questionsJson = JSON.stringify(sampleQuestions.value, null, 2)
   navigator.clipboard.writeText(questionsJson)
-  alert('Questions copied to clipboard!')
+  $q.notify({ type: 'positive', message: 'Questions copied to clipboard!', position: 'top' })
 }
 
 function parseAiFeedback() {
@@ -3876,11 +3961,11 @@ function applyRevisedQuestions() {
     })
     
     savePageState()
-    alert('Revised questions applied successfully!')
+    $q.notify({ type: 'positive', message: 'Revised questions applied successfully!', position: 'top' })
     validationDialogOpen.value = false
   } catch (error) {
     console.error('Failed to apply revised questions:', error)
-    alert('Failed to apply revised questions. Please check the JSON format.')
+    $q.notify({ type: 'negative', message: 'Failed to apply revised questions. Please check the JSON format.', position: 'top' })
   }
 }
 
@@ -3893,25 +3978,21 @@ function validateAndPreview() {
       .trim()
     
     if (!cleanedResponse) {
-      alert('Please paste some JSON content first.')
+      $q.notify({ type: 'warning', message: 'Please paste some JSON content first.', position: 'top' })
       return
     }
     
-    // Try to parse JSON
-    let questions
+    let questions = null
     try {
       questions = JSON.parse(cleanedResponse)
     } catch (parseError) {
-      alert('Invalid JSON format: ' + parseError.message)
+      $q.notify({ type: 'negative', message: 'Invalid JSON format: ' + parseError.message, position: 'top' })
       return
     }
 
-    const questionsArray = Array.isArray(questions)
-      ? questions
-      : (Array.isArray(questions?.questions) ? questions.questions : null)
-
+    const questionsArray = Array.isArray(questions) ? questions : questions?.questions
     if (!questionsArray) {
-      alert('Invalid JSON format: expected an array of questions.')
+      $q.notify({ type: 'negative', message: 'Invalid JSON format: expected an array of questions.', position: 'top' })
       return
     }
     
@@ -3936,7 +4017,7 @@ function validateAndPreview() {
     }
   } catch (error) {
     console.error('Error:', error)
-    alert('Error processing AI response: ' + error.message)
+    $q.notify({ type: 'negative', message: 'Error processing AI response: ' + error.message, position: 'top' })
   }
 }
 
@@ -4072,7 +4153,7 @@ async function handleQuestionImageFile(event) {
     reader.readAsDataURL(file)
   } catch (e) {
     console.error('Image load failed', e)
-    alert('Failed to load image: ' + e.message)
+    $q.notify({ type: 'negative', message: 'Failed to load image: ' + e.message, position: 'top' })
   }
 }
 
