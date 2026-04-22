@@ -37,6 +37,7 @@ use App\Http\Controllers\ClassroomSubjectTeacherController;
 use App\Http\Controllers\ClassroomController;
 use App\Http\Controllers\Api\NavigationController;
 use App\Http\Controllers\Api\Cr\CrSessionController;
+use App\Http\Controllers\ExamFileController;
 
 /*
 |--------------------------------------------------------------------------
@@ -262,5 +263,14 @@ Route::middleware(['auth:sanctum', 'web'])->group(function () {
     Route::get('/grades', [App\Http\Controllers\GradeController::class, 'apiIndex']);
     Route::get('/subjects', [App\Http\Controllers\SubjectController::class, 'apiIndex']);
     Route::get('/topics', [App\Http\Controllers\SubjectController::class, 'getTopics']);
+
+    // Exam File Management (Ready to Print)
+    Route::prefix('exam/ready-to-print')->group(function () {
+        Route::post('/save-exam', [ExamFileController::class, 'saveExam']);
+        Route::get('/list-saved-exams', [ExamFileController::class, 'listSavedExams']);
+        Route::get('/load-saved-exam/{examId}', [ExamFileController::class, 'loadSavedExam']);
+        Route::get('/print-html/{examId}', [ExamFileController::class, 'getPrintHtml']);
+        Route::delete('/delete-saved-exam/{examId}', [ExamFileController::class, 'deleteSavedExam']);
+    });
 
 });

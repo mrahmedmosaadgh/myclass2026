@@ -1,36 +1,122 @@
 <template>
-  <div 
-    class="print-footer" 
-    :style="footerStyles"
+  <div
+    v-if="enabled && hasContent"
+    class="print-footer"
+    :class="{
+      'print-footer--single-line': singleLine,
+      'print-footer--top-border': showTopBorder,
+      'print-footer--print-mode': printMode
+    }"
+    :style="wrapperStyles"
   >
-    <div class="footer-content" :style="contentStyles">
-      <!-- Left side: Footer text/content -->
-      <div class="footer-left" :style="leftStyles">
-        <slot name="left-content">
-          <div v-if="footerText" class="footer-text" v-html="footerText"></div>
-        </slot>
-      </div>
-      
-      <!-- Center: Optional center content -->
-      <div class="footer-center" :style="centerStyles" v-if="hasCenterContent">
-        <slot name="center-content"></slot>
-      </div>
-      
-      <!-- Right side: Page numbers -->
-      <div class="footer-right" :style="rightStyles">
-        <slot name="right-content">
-          <div 
-            v-if="showPageNumbers" 
-            class="page-number" 
-            :style="pageNumberStyles"
-          >
-            <span class="page-number-content" :data-format="pageNumberFormat">
-              {{ displayPageNumber }}
+    <template v-if="singleLine">
+      <div
+        class="footer-content footer-content--row"
+        :style="{ alignItems: rowAlignItems }"
+      >
+        <div
+          v-if="footerHtml"
+          class="footer-left footer-text"
+          v-html="footerHtml"
+        />
+
+        <span
+          v-if="footerHtml && showPageNumbers"
+          class="footer-spacer"
+          aria-hidden="true"
+        />
+
+        <div
+          v-if="showPageNumbers"
+          class="footer-right page-number"
+          :style="pageNumberStyles"
+          :data-format="pageNumberFormat"
+          :data-total-pages="resolvedTotalPages"
+        >
+          <template v-if="!printMode">
+            {{ formattedPageNumber }}
+          </template>
+
+          <template v-else>
+            <span
+              v-if="formattedPageNumber.prefix"
+              class="page-number-prefix"
+            >
+              {{ formattedPageNumber.prefix }}
             </span>
-          </div>
-        </slot>
+            <span class="page-number-value" data-page-current />
+            <span
+              v-if="formattedPageNumber.mid"
+              class="page-number-sep"
+            >
+              {{ formattedPageNumber.mid }}
+            </span>
+            <span
+              v-if="formattedPageNumber.showTotal"
+              class="page-number-total"
+              data-page-total
+              :data-total-pages="resolvedTotalPages"
+            />
+            <span
+              v-if="formattedPageNumber.suffix"
+              class="page-number-suffix"
+            >
+              {{ formattedPageNumber.suffix }}
+            </span>
+          </template>
+        </div>
       </div>
-    </div>
+    </template>
+
+    <template v-else>
+      <div class="footer-content footer-content--stack">
+        <div
+          v-if="footerHtml"
+          class="footer-text"
+          v-html="footerHtml"
+        />
+
+        <div
+          v-if="showPageNumbers"
+          class="page-number"
+          :style="pageNumberStyles"
+          :data-format="pageNumberFormat"
+          :data-total-pages="resolvedTotalPages"
+        >
+          <template v-if="!printMode">
+            {{ formattedPageNumber }}
+          </template>
+
+          <template v-else>
+            <span
+              v-if="formattedPageNumber.prefix"
+              class="page-number-prefix"
+            >
+              {{ formattedPageNumber.prefix }}
+            </span>
+            <span class="page-number-value" data-page-current />
+            <span
+              v-if="formattedPageNumber.mid"
+              class="page-number-sep"
+            >
+              {{ formattedPageNumber.mid }}
+            </span>
+            <span
+              v-if="formattedPageNumber.showTotal"
+              class="page-number-total"
+              data-page-total
+              :data-total-pages="resolvedTotalPages"
+            />
+            <span
+              v-if="formattedPageNumber.suffix"
+              class="page-number-suffix"
+            >
+              {{ formattedPageNumber.suffix }}
+            </span>
+          </template>
+        </div>
+      </div>
+    </template>
   </div>
 </template>
 
@@ -38,38 +124,22 @@
 import { computed } from 'vue'
 
 const props = defineProps({
-  // Footer positioning
-  bottomOffset: {
-    type: Number,
-    default: 0
-  },
-  applyOffsetToPageNumbers: {
-    type: Boolean,
-    default: false
-  },
-  
-  // Footer content
-  footerText: {
-    type: String,
-    default: ''
-  },
-  
-  // Page number settings
-  showPageNumbers: {
+  enabled: {
     type: Boolean,
     default: true
   },
-  pageNumberPosition: {
+  footerHtml: {
     type: String,
-    default: 'bottom-right',
-    validator: (value) => [
-      'bottom-left', 'bottom-center', 'bottom-right',
-      'top-left', 'top-center', 'top-right'
-    ].includes(value)
+    default: ''
+  },
+  showPageNumbers: {
+    type: Boolean,
+    default: false
   },
   pageNumberFormat: {
     type: String,
-    default: 'page'
+    default: 'page',
+    validator: (v) => ['page', 'page-of', 'page-slash', 'fraction'].includes(v)
   },
   pageNumberFontSize: {
     type: Number,
@@ -77,215 +147,253 @@ const props = defineProps({
   },
   pageNumberColor: {
     type: String,
-    default: '#000000'
+    default: '#555555'
   },
-  currentPage: {
-    type: Number,
-    default: 1
-  },
-  totalPages: {
-    type: Number,
-    default: 1
-  },
-  
-  // Layout options
   singleLine: {
     type: Boolean,
     default: true
   },
-  alignment: {
-    type: String,
-    default: 'space-between',
-    validator: (value) => ['left', 'center', 'right', 'space-between', 'space-around'].includes(value)
-  },
-  
-  // Styling
-  height: {
-    type: String,
-    default: 'auto'
-  },
-  padding: {
-    type: String,
-    default: '6mm 12mm'
-  },
-  backgroundColor: {
-    type: String,
-    default: 'transparent'
+  singleLineTopAlign: {
+    type: Boolean,
+    default: false
   },
   showTopBorder: {
     type: Boolean,
     default: false
   },
-  borderColor: {
+  pageNumberPosition: {
     type: String,
-    default: '#000000'
+    default: 'bottom-right',
+    validator: (v) => [
+      'bottom-left',
+      'bottom-center',
+      'bottom-right',
+      'top-left',
+      'top-center',
+      'top-right'
+    ].includes(v)
+  },
+  previewCurrentPage: {
+    type: Number,
+    default: 1
+  },
+  previewTotalPages: {
+    type: Number,
+    default: 1
+  },
+  currentPage: {
+    type: Number,
+    default: null
+  },
+  totalPages: {
+    type: Number,
+    default: null
+  },
+  printMode: {
+    type: Boolean,
+    default: false
+  },
+  bottomOffsetMm: {
+    type: Number,
+    default: 0
+  },
+  bottomOffset: {
+    type: Number,
+    default: null
+  },
+  applyOffsetToPageNumbers: {
+    type: Boolean,
+    default: false
   }
 })
 
-const emit = defineEmits(['page-change'])
+const resolvedBottomOffsetMm = computed(() => {
+  if (Number.isFinite(props.bottomOffset)) return props.bottomOffset
+  if (Number.isFinite(props.bottomOffsetMm)) return props.bottomOffsetMm
+  return 0
+})
 
-// Computed styles
-const footerStyles = computed(() => {
-  const styles = {
-    position: 'fixed',
-    bottom: props.bottomOffset + 'mm',
-    left: 0,
-    right: 0,
-    zIndex: 999,
-    backgroundColor: props.backgroundColor,
-    overflow: 'hidden',
-    boxSizing: 'border-box',
-    padding: 0
+const resolvedCurrentPage = computed(() => {
+  if (Number.isFinite(props.currentPage) && props.currentPage > 0) return props.currentPage
+  if (Number.isFinite(props.previewCurrentPage) && props.previewCurrentPage > 0) return props.previewCurrentPage
+  return 1
+})
+
+const resolvedTotalPages = computed(() => {
+  if (Number.isFinite(props.totalPages) && props.totalPages > 0) return props.totalPages
+  if (Number.isFinite(props.previewTotalPages) && props.previewTotalPages > 0) return props.previewTotalPages
+  return 1
+})
+
+const formattedPageNumber = computed(() => {
+  if (!props.showPageNumbers) return null
+
+  const cur = resolvedCurrentPage.value
+  const tot = resolvedTotalPages.value
+
+  if (props.printMode) {
+    switch (props.pageNumberFormat) {
+      case 'page-of':
+        return { prefix: 'Page ', mid: ' of ', suffix: '', showTotal: true }
+      case 'page-slash':
+        return { prefix: '', mid: ' / ', suffix: '', showTotal: true }
+      case 'fraction':
+        return { prefix: '', mid: '/', suffix: '', showTotal: true }
+      case 'page':
+      default:
+        return { prefix: '', mid: '', suffix: '', showTotal: false }
+    }
   }
-  
-  if (props.showTopBorder) {
-    styles.borderTop = `1px solid ${props.borderColor}`
+
+  switch (props.pageNumberFormat) {
+    case 'page-of':
+      return `Page ${cur} of ${tot}`
+    case 'page-slash':
+      return `${cur} / ${tot}`
+    case 'fraction':
+      return `${cur}/${tot}`
+    case 'page':
+    default:
+      return `${cur}`
   }
-  
+})
+
+const wrapperStyles = computed(() => {
+  const styles = {}
+
+  if (resolvedBottomOffsetMm.value !== 0) {
+    styles.marginBottom = `${resolvedBottomOffsetMm.value}mm`
+  }
+
   return styles
 })
 
-const contentStyles = computed(() => {
-  if (props.singleLine) {
-    return {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: props.alignment,
-      gap: '12px',
-      padding: props.padding
-    }
-  } else {
-    return {
-      padding: props.padding
-    }
-  }
-})
-
-const leftStyles = computed(() => {
-  if (props.singleLine) {
-    return {
-      flex: '1',
-      minWidth: 0
-    }
-  } else {
-    return {
-      textAlign: 'left'
-    }
-  }
-})
-
-const centerStyles = computed(() => {
-  if (props.singleLine) {
-    return {
-      flex: '0 0 auto',
-      textAlign: 'center'
-    }
-  } else {
-    return {
-      textAlign: 'center',
-      margin: '8px 0'
-    }
-  }
-})
-
-const rightStyles = computed(() => {
-  if (props.singleLine) {
-    return {
-      flex: '0 0 auto',
-      whiteSpace: 'nowrap',
-      textAlign: 'right'
-    }
-  } else {
-    return {
-      textAlign: 'right'
-    }
-  }
-})
+const rowAlignItems = computed(() => (
+  props.singleLineTopAlign ? 'flex-start' : 'center'
+))
 
 const pageNumberStyles = computed(() => {
-  const baseStyles = {
-    fontSize: props.pageNumberFontSize + 'pt',
-    color: props.pageNumberColor
+  const styles = {
+    fontSize: `${props.pageNumberFontSize}pt`,
+    color: props.pageNumberColor,
+    whiteSpace: 'nowrap',
+    lineHeight: '1.2',
+    '--page-number-color': props.pageNumberColor
   }
-  
+
+  if (props.applyOffsetToPageNumbers && resolvedBottomOffsetMm.value !== 0) {
+    styles.marginBottom = `${resolvedBottomOffsetMm.value}mm`
+  }
+
   if (!props.singleLine) {
-    const position = props.pageNumberPosition.includes('top') ? 'top' : 'bottom'
-    const positionStyles = {
-      'bottom-left': { textAlign: 'left', left: '12mm', right: 'auto' },
-      'bottom-center': { textAlign: 'center', left: 0, right: 0 },
-      'bottom-right': { textAlign: 'right', right: '12mm', left: 'auto' },
-      'top-left': { textAlign: 'left', left: '12mm', right: 'auto', top: 0 },
-      'top-center': { textAlign: 'center', left: 0, right: 0, top: 0 },
-      'top-right': { textAlign: 'right', right: '12mm', left: 'auto', top: 0 }
+    styles.position = 'absolute'
+
+    const [vertical, horizontal] = props.pageNumberPosition.split('-')
+    styles[vertical] = '0'
+
+    if (horizontal === 'left') {
+      styles.left = '0'
+      styles.textAlign = 'left'
     }
-    
-    return {
-      ...baseStyles,
-      position: 'absolute',
-      [position]: '0',
-      ...positionStyles[props.pageNumberPosition],
-      ...(props.applyOffsetToPageNumbers && props.bottomOffset !== 0 ? { [position]: props.bottomOffset + 'mm' } : {})
+
+    if (horizontal === 'center') {
+      styles.left = '50%'
+      styles.transform = 'translateX(-50%)'
+      styles.textAlign = 'center'
+    }
+
+    if (horizontal === 'right') {
+      styles.right = '0'
+      styles.textAlign = 'right'
     }
   }
-  
-  return baseStyles
+
+  return styles
 })
 
-// Computed properties
-const hasCenterContent = computed(() => !!props.$slots['center-content'])
-const displayPageNumber = computed(() => {
-  switch (props.pageNumberFormat) {
-    case 'page':
-      return `Page ${props.currentPage}`
-    case 'page-of':
-      return `Page ${props.currentPage} of ${props.totalPages}`
-    case 'page-slash':
-      return `Page ${props.currentPage} / ${props.totalPages}`
-    case 'fraction':
-      return `${props.currentPage}/${props.totalPages}`
-    default:
-      return `Page ${props.currentPage}`
-  }
-})
-
-// Methods
-function updatePageNumber(page) {
-  emit('page-change', page)
-}
-
-defineExpose({
-  updatePageNumber
-})
+const hasContent = computed(() => (
+  (props.footerHtml && props.footerHtml.trim() !== '') || props.showPageNumbers
+))
 </script>
 
 <style scoped>
 .print-footer {
-  font-family: Arial, sans-serif;
-  font-size: 10pt;
-  line-height: 1.4;
-}
-
-.footer-content {
   width: 100%;
   box-sizing: border-box;
+  padding: 2px 0;
+  font-family: inherit;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.print-footer--top-border {
+  border-top: 1px solid #d0d0d0;
+  padding-top: 4px;
+}
+
+.footer-content--row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+}
+
+.footer-content--stack {
+  position: relative;
+  width: 100%;
+}
+
+.footer-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.footer-right {
+  flex-shrink: 0;
+}
+
+.footer-spacer {
+  flex: 1;
 }
 
 .footer-text {
-  font-size: 10pt;
-  color: #000000;
+  min-width: 0;
+  overflow: hidden;
+  font-size: inherit;
+  line-height: 1.3;
+}
+
+.footer-text :deep(p) {
+  margin: 0;
+  padding: 0;
 }
 
 .page-number {
-  font-weight: normal;
-}
-
-.page-number-content {
-  /* Page number content styling */
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  flex-shrink: 0;
+  user-select: none;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
 }
 
 @media print {
-  .print-footer {
-    /* Ensure footer prints correctly */
+  .print-footer--print-mode .page-number {
+    color: transparent !important;
+  }
+
+  .print-footer--print-mode .page-number::after {
+    color: var(--page-number-color, #000000);
+  }
+
+  .print-footer--print-mode .page-number-value::before {
+    content: counter(page);
+  }
+
+  .print-footer--print-mode .page-number-total::before {
+    content: attr(data-total-pages);
   }
 }
 </style>

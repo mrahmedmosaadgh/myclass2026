@@ -12,6 +12,28 @@
       </div>
       
       <div class="toolbar-right">
+        <!-- Exam File Manager -->
+        <div class="toolbar-group">
+          <ExamFileManager
+            @save="handleSaveExam"
+            @load="handleLoadExam"
+            @delete="handleDeleteExam"
+            @refresh="handleRefreshFiles"
+            ref="fileManagerRef"
+          />
+        </div>
+
+        <!-- Print Preview Button -->
+        <div class="toolbar-group">
+          <q-btn
+            flat
+            color="white"
+            icon="preview"
+            label="Print Preview"
+            @click="openPrintPreview"
+          />
+        </div>
+
         <!-- Print Actions -->
         <div class="toolbar-group">
           <PrintActions
@@ -846,6 +868,17 @@
 
                   <q-tab-panel name="pageNumbers">
                     <div class="options-grid">
+                      <div class="row items-center q-col-gutter-sm">
+                        <div class="col-auto">
+                          <q-btn
+                            color="primary"
+                            icon="visibility"
+                            label="Make page numbers inline + visible"
+                            @click="applyVisibleInlinePageNumberPreset"
+                          />
+                        </div>
+                      </div>
+
                       <q-toggle
                         v-model="pageOptions.printFooter.showPageNumbers"
                         label="Show page numbers in footer"
@@ -1739,6 +1772,64 @@
           <div class="text-caption">All questions appear to be valid.</div>
         </div>
 
+        <!-- Copy Questions for AI Check -->
+        <q-separator class="q-my-md" />
+        
+        <div class="text-subtitle1 q-mb-md">Copy Questions for AI Check</div>
+        <div class="text-caption q-mb-sm">Copy current questions JSON to send to AI for error checking:</div>
+        
+        <div class="row q-col-gutter-sm q-mb-md">
+          <q-btn @click="copyQuestionsOnly" color="primary" icon="content_copy" label="Copy Questions Only" />
+        </div>
+
+        <!-- AI Error Check Feedback -->
+        <q-separator class="q-my-md" />
+        
+        <div class="text-subtitle1 q-mb-md">AI Error Check Feedback</div>
+        <div class="text-caption q-mb-sm">Paste AI error feedback here (JSON or table format):</div>
+        
+        <q-input
+          v-model="aiErrorFeedback"
+          type="textarea"
+          outlined
+          rows="6"
+          placeholder="Paste AI feedback here..."
+          class="q-mb-md"
+          @update:model-value="parseAiFeedback"
+        />
+        
+        <div class="row q-col-gutter-sm q-mb-md">
+          <q-btn @click="parseAiFeedback" color="secondary" icon="analytics" label="Parse Feedback" />
+        </div>
+
+        <!-- AI Feedback Table -->
+        <div v-if="parsedAiFeedback.length > 0" class="q-mb-md">
+          <div class="text-subtitle1 q-mb-sm">AI Feedback ({{ parsedAiFeedback.length }} items)</div>
+          
+          <q-table
+            :rows="parsedAiFeedback"
+            :columns="[
+              { name: 'questionId', label: 'Question #', field: 'questionId', align: 'center', style: 'width: 80px' },
+              { name: 'type', label: 'Type', field: 'type', align: 'left', style: 'width: 150px' },
+              { name: 'severity', label: 'Severity', field: 'severity', align: 'left', style: 'width: 100px' },
+              { name: 'message', label: 'Message', field: 'message', align: 'left' }
+            ]"
+            row-key="questionId"
+            flat
+            bordered
+            dense
+            :rows-per-page-options="[10, 20, 50]"
+          >
+            <template v-slot:body-cell-severity="props">
+              <q-td :props="props">
+                <q-badge :color="props.row.severity === 'error' ? 'negative' : props.row.severity === 'warning' ? 'warning' : 'info'">
+                  {{ props.row.severity }}
+                </q-badge>
+              </q-td>
+            </template>
+          </q-table>
+        </div>
+
         <!-- AI Prompt Section -->
         <q-separator class="q-my-md" />
         
@@ -2016,6 +2107,7 @@ import PrintActions from './components/PrintActions.vue'
 import PrintFooter from './components/PrintFooter.vue'
 import FirstPageSettings from './components/FirstPageSettings.vue'
 import LastPageSettings from './components/LastPageSettings.vue'
+import ExamFileManager from './components/ExamFileManager.vue'
 import { renderSectionTotalHTML } from './utils/sectionTotalTemplates'
 import { formatQuestionLabel } from './utils/questionNumbering'
  
@@ -2110,9 +2202,15 @@ const questionErrors = ref([])
 const questionsForValidation = ref('')
 const revisedQuestions = ref('')
 const validationPrompt = ref('')
+const aiErrorFeedback = ref('')
+const parsedAiFeedback = ref([])
 const optionsOpen = ref(false)
 const settingsTab = ref('general')
 const footerSettingsTab = ref('layout')
+
+// File manager reference
+const fileManagerRef = ref(null)
+const lastSavedExamId = ref(null)
 // Computed page title for Head component
 const pageTitle = computed(() => {
   return pageOptions.value.examTitle?.enabled && pageOptions.value.examTitle?.text
@@ -2126,6 +2224,25 @@ function applyRecommendedFooterOneLineTopAlign() {
   pageOptions.value.printFooter.singleLine = true
   pageOptions.value.printFooter.singleLineTopAlign = true
   pageOptions.value.printFooter.showPageNumbers = true
+  savePageState()
+}
+
+function applyVisibleInlinePageNumberPreset() {
+  if (!pageOptions.value?.printFooter) return
+
+  pageOptions.value.printFooter.enabled = true
+  pageOptions.value.printFooter.reserveSpace = true
+  pageOptions.value.printFooter.singleLine = true
+  pageOptions.value.printFooter.singleLineTopAlign = true
+  pageOptions.value.printFooter.showPageNumbers = true
+  pageOptions.value.printFooter.pageNumberPosition = 'bottom-right'
+  pageOptions.value.printFooter.applyOffsetToPageNumbers = false
+  pageOptions.value.printFooter.pageNumberColor = '#000000'
+
+  const currentFontSize = Number(pageOptions.value.printFooter.pageNumberFontSize)
+  pageOptions.value.printFooter.pageNumberFontSize =
+    Number.isFinite(currentFontSize) && currentFontSize >= 10 ? currentFontSize : 10
+
   savePageState()
 }
 
@@ -2762,7 +2879,7 @@ async function savePageState() {
       // Also save page breaks separately for easy access
       pageBreaks: pageOptions.value.questionNumbering?.pageBreaksBefore || {}
     }
-    
+
     await fetch('/exam/ready-to-print/api/save-data-v3', {
       method: 'POST',
       headers: {
@@ -2775,6 +2892,100 @@ async function savePageState() {
   } catch (e) {
     console.error('Failed to save page state', e)
   }
+}
+
+async function handleSaveExam() {
+  try {
+    const examTitle = pageOptions.value.examTitle?.enabled ? pageOptions.value.examTitle.text : 'Untitled Exam'
+    const data = {
+      name: examTitle,
+      questions: sampleQuestions.value,
+      settings: {
+        examTitle: pageOptions.value.examTitle,
+        showMarksPerQuestion: pageOptions.value.showMarksPerQuestion,
+        printHeader: pageOptions.value.printHeader,
+        printFooter: pageOptions.value.printFooter,
+        firstPage: pageOptions.value.firstPage,
+        lastPage: pageOptions.value.lastPage,
+        questionNumbering: pageOptions.value.questionNumbering,
+        sectionTotal: pageOptions.value.sectionTotal,
+        questionSeparator: pageOptions.value.questionSeparator,
+        mcqOptions: pageOptions.value.mcqOptions,
+        pageLayout: pageOptions.value.pageLayout
+      },
+      sections: sections.value,
+      questionSectionMap: questionSectionMap.value,
+      pageBreaks: pageOptions.value.questionNumbering?.pageBreaksBefore || {}
+    }
+
+    const response = await fetch('/api/exam/ready-to-print/save-exam', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': page.props.csrf_token || '',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(data)
+    })
+
+    const result = await response.json()
+
+    if (response.ok) {
+      lastSavedExamId.value = result.exam_id
+      alert('Exam saved successfully!')
+    } else {
+      alert('Failed to save exam: ' + (result.message || 'Unknown error'))
+    }
+  } catch (e) {
+    console.error('Failed to save exam', e)
+    alert('Failed to save exam: ' + e.message)
+  }
+}
+
+async function openPrintPreview() {
+  if (!lastSavedExamId.value) {
+    // Auto-save first
+    await handleSaveExam()
+    if (!lastSavedExamId.value) {
+      alert('Please save the exam first to generate print preview')
+      return
+    }
+  }
+
+  const url = `/api/exam/ready-to-print/print-html/${lastSavedExamId.value}`
+  window.open(url, '_blank')
+}
+
+async function handleLoadExam(data) {
+  if (data.questions) sampleQuestions.value = data.questions
+  if (data.settings) {
+    pageOptions.value = { ...pageOptions.value, ...data.settings }
+  }
+  if (data.sections && Array.isArray(data.sections)) sections.value = data.sections
+  if (data.questionSectionMap) questionSectionMap.value = data.questionSectionMap
+  if (data.pageBreaks) {
+    if (!pageOptions.value.questionNumbering) pageOptions.value.questionNumbering = {}
+    pageOptions.value.questionNumbering.pageBreaksBefore = data.pageBreaks
+  }
+
+  // Ensure every question has a section
+  const defaultSectionId = sections.value[0]?.id
+  sampleQuestions.value.forEach(q => {
+    const qid = String(q?.id)
+    if (defaultSectionId && !questionSectionMap.value[qid]) questionSectionMap.value[qid] = defaultSectionId
+  })
+
+  await savePageState()
+}
+
+function handleDeleteExam(fileId) {
+  // File already deleted by component, just handle any additional cleanup if needed
+  console.log('File deleted:', fileId)
+}
+
+function handleRefreshFiles(files) {
+  // Handle refresh if needed
+  console.log('Files refreshed:', files)
 }
 
 async function addSection() {
@@ -3562,6 +3773,74 @@ function copyValidationPrompt() {
   alert('Validation prompt copied to clipboard!')
 }
 
+function copyQuestionsOnly() {
+  const questionsJson = JSON.stringify(sampleQuestions.value, null, 2)
+  navigator.clipboard.writeText(questionsJson)
+  alert('Questions copied to clipboard!')
+}
+
+function parseAiFeedback() {
+  try {
+    const feedback = aiErrorFeedback.value.trim()
+    if (!feedback) {
+      parsedAiFeedback.value = []
+      return
+    }
+
+    // Try to parse as JSON array
+    const parsed = JSON.parse(feedback)
+    if (Array.isArray(parsed)) {
+      parsedAiFeedback.value = parsed
+      return
+    }
+
+    // Try to parse as JSON object
+    if (typeof parsed === 'object' && parsed.errors && Array.isArray(parsed.errors)) {
+      parsedAiFeedback.value = parsed.errors
+      return
+    }
+
+    // If not JSON, try to parse markdown table or plain text
+    const lines = feedback.split('\n').filter(line => line.trim())
+    const tableData = []
+    
+    lines.forEach((line, index) => {
+      // Skip header lines (lines with | separators)
+      if (line.includes('|') && line.split('|').length > 2) {
+        const cells = line.split('|').map(cell => cell.trim()).filter(cell => cell)
+        if (cells.length >= 3 && !line.includes('---')) {
+          tableData.push({
+            questionId: cells[0] || index,
+            type: cells[1] || 'Unknown',
+            severity: cells[2] || 'info',
+            message: cells[3] || line
+          })
+        }
+      }
+    })
+
+    if (tableData.length > 0) {
+      parsedAiFeedback.value = tableData
+    } else {
+      // If no table found, treat as plain text feedback
+      parsedAiFeedback.value = [{
+        questionId: 'N/A',
+        type: 'General Feedback',
+        severity: 'info',
+        message: feedback
+      }]
+    }
+  } catch (error) {
+    console.error('Failed to parse AI feedback:', error)
+    parsedAiFeedback.value = [{
+      questionId: 'Error',
+      type: 'Parse Error',
+      severity: 'error',
+      message: 'Could not parse AI feedback. Please ensure it\'s in valid JSON or table format.'
+    }]
+  }
+}
+
 function applyRevisedQuestions() {
   try {
     let cleanedResponse = revisedQuestions.value
@@ -3794,6 +4073,13 @@ function saveQuestionImage() {
   savePageState()
 }
 
+function formatPageNumberPreviewText(format, currentPage = 1, totalPages = 1) {
+  if (format === 'page') return String(currentPage)
+  if (format === 'page-of') return 'Page ' + currentPage + ' of ' + totalPages
+  if (format === 'page-slash') return currentPage + ' / ' + totalPages
+  return currentPage + '/' + totalPages
+}
+
 function generateFooterComponentHTML() {
   const footerText = pageOptions.value?.printFooter?.html || ''
   const showPageNumbers = !!pageOptions.value?.printFooter?.showPageNumbers
@@ -3802,6 +4088,7 @@ function generateFooterComponentHTML() {
   const pageNumberColor = String(pageOptions.value?.printFooter?.pageNumberColor || '#000000')
   const singleLine = pageOptions.value?.printFooter?.singleLine === true
   const singleLineTopAlign = pageOptions.value?.printFooter?.singleLineTopAlign === true
+  const initialPreviewText = formatPageNumberPreviewText(pageNumberFormat, 1, 1)
   
   let html = '<div class="footer-content"'
   
@@ -3838,8 +4125,7 @@ function generateFooterComponentHTML() {
     }
     html += '>'
     
-    html += '<div class="page-number" style="font-size:' + pageNumberFontSize + 'pt; color:' + pageNumberColor + ';">'
-    html += '<span class="page-number-content" data-format="' + pageNumberFormat + '"></span>'
+    html += '<div class="page-number" data-format="' + pageNumberFormat + '" data-total-pages="1" data-preview="' + escapeHtml(initialPreviewText) + '" style="font-size:' + pageNumberFontSize + 'pt; color:' + pageNumberColor + '; --page-number-color:' + pageNumberColor + ';">' + escapeHtml(initialPreviewText)
     html += '</div>'
     
     html += '</div>'
@@ -3940,13 +4226,12 @@ function generatePrintHTML() {
   html += ' h2 { margin: 14pt 0 6pt; font-size: 15pt; text-decoration: underline; }'
   // Header: touches the top of the physical page printable area.
   html += ' .print-header { position: fixed; top: 0; left: 0; right: 0; z-index: 999; background: white; overflow: hidden; box-sizing: border-box; padding: 0 0; }'
-  html += ' .print-footer { position: fixed; bottom: 0; left: 0; right: 0; z-index: 999; background: transparent; overflow: hidden; box-sizing: border-box; padding: 0 0; }'
+  html += ' .print-footer { position: fixed; bottom: ' + bottomOffsetMm + 'mm; left: 0; right: 0; z-index: 999; background: transparent; overflow: hidden; box-sizing: border-box; padding: 0 0; }'
   html += ' @media print { .print-footer { position: fixed; bottom: ' + bottomOffsetMm + 'mm; left: 0; right: 0; z-index: 999; background: transparent; overflow: hidden; box-sizing: border-box; } }'
   html += ' @media print { .footer-content { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 6mm 12mm; } }'
   html += ' @media print { .footer-left { flex: 1; min-width: 0; } }'
   html += ' @media print { .footer-right { flex: 0 0 auto; white-space: nowrap; text-align: right; } }'
   html += ' @media print { .page-number { font-size: ' + pageNumberFontSize + 'pt; color: ' + pageNumberColor + '; } }'
-  html += ' @media print { .page-number-content { font-size: ' + pageNumberFontSize + 'pt; color: ' + pageNumberColor + '; } }'
   
   // Basic reset for the layout table
   html += ' table.print-layout { width: 100%; border: none; border-spacing: 0; border-collapse: collapse; }'
@@ -3976,16 +4261,10 @@ function generatePrintHTML() {
   html += ' .question-inline-number { margin-right: ' + inlineGapPt + 'pt; }'
   html += ' .answer-area { border-top: 1px solid #ccc; margin-top: 10pt; padding-top: 8pt; }'
   html += ' .answer-line { border-bottom: 1px solid #ccc; height: 18pt; margin-bottom: 6pt; }'
-  html += ' .page-break { page-break-before: always; height: 0; counter-increment: page 1; }'
-  html += ' .page-number { position: absolute; z-index: 1000; }'
-  html += ' .page-number-content::after { content: counter(page); }'
-  html += ' .page-number-content[data-format="page"]::after { content: counter(page); }'
-  html += ' .page-number-content[data-format="page-of"]::after { content: "Page " counter(page) " of " counter(pages); }'
-  html += ' .page-number-content[data-format="page-slash"]::after { content: counter(page) " / " counter(pages); }'
-  html += ' .page-number-content[data-format="fraction"]::after { content: counter(page) " / " counter(pages); }'
-  html += ' @media screen { .page-number-content::after, .page-number-content[data-format]::after { content: attr(data-preview); } }'
-  html += ' @media print { .page-number-content::after, .page-number-content[data-format]::after { content: ""; } .abs-page-number { display: block !important; } }'
-  html += ' .abs-page-number { position: absolute; z-index: 5000; font-family: Arial, sans-serif; pointer-events: none; }'
+  html += ' .page-break { page-break-before: always; height: 0; }'
+  html += ' .page-number { display: block; z-index: 1000; white-space: nowrap; line-height: 1.2; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }'
+  html += ' .abs-page-number { position: absolute; z-index: 5000; font-family: Arial, sans-serif; pointer-events: none; white-space: nowrap; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }'
+  html += ' @media print { body.has-abs-page-numbers .page-number { visibility: hidden !important; } }'
   html += '</style>'
   html += '</head><body>'
 
@@ -3997,11 +4276,6 @@ function generatePrintHTML() {
   if ((headerEnabled && hasHeaderContent) || (footerEnabled && hasFooterContent)) {
     var scriptContent = "(function(){";
 scriptContent += "window.__printReady = false;";
-scriptContent += "function injectAbsPageNumbers(){";
-scriptContent += "try {";
-scriptContent += "var ENABLE = " + (showPageNumbers ? 'true' : 'false') + ";";
-scriptContent += "console.log('Page numbers enabled:', ENABLE);";
-scriptContent += "if (!ENABLE) { console.log('Page numbers disabled, returning'); return; }";
 scriptContent += "function mmToPx(mm){";
 scriptContent += "var d = document.createElement('div');";
 scriptContent += "d.style.cssText = \"position:absolute;left:-9999px;top:0;height:\" + mm + \"mm;width:1px;\";";
@@ -4010,48 +4284,91 @@ scriptContent += "var px = d.getBoundingClientRect().height || d.offsetHeight ||
 scriptContent += "d.remove();";
 scriptContent += "return Math.max(1, px);";
 scriptContent += "}";
+scriptContent += "function estimateTotalPages(){";
 scriptContent += "var PAGE_MARGIN_MM = 12;";
-scriptContent += "var PAGE_H = mmToPx(297 - (PAGE_MARGIN_MM * 2));";
-scriptContent += "var MARGIN = 0;";
-scriptContent += "var docH = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);";
-scriptContent += "var np = Math.max(1, Math.ceil(docH / PAGE_H));";
-scriptContent += "console.log('Document height:', docH, 'px, Page height:', PAGE_H, 'px, Calculated pages:', np);";
-scriptContent += "if ((docH % PAGE_H) > (PAGE_H * 0.05)) np = np + 1;";
-scriptContent += "console.log('Final page count after buffer:', np);";
-scriptContent += "try { document.body.style.minHeight = (np * PAGE_H) + 'px'; } catch(e) {}";
+scriptContent += "var pageHeightPx = mmToPx(297 - (PAGE_MARGIN_MM * 2));";
+scriptContent += "var pageBreaks = document.querySelectorAll('.page-break');";
+scriptContent += "if (pageBreaks.length > 0) {";
+scriptContent += "return pageBreaks.length + 1;";
+scriptContent += "}";
+scriptContent += "var contentHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, document.body.offsetHeight, document.documentElement.offsetHeight);";
+scriptContent += "return Math.max(1, Math.ceil(contentHeight / pageHeightPx));";
+scriptContent += "}";
+scriptContent += "function buildPreviewText(fmt, currentPage, totalPages){";
+scriptContent += "if (fmt === 'page') return String(currentPage);";
+scriptContent += "if (fmt === 'page-of') return 'Page ' + currentPage + ' of ' + totalPages;";
+scriptContent += "if (fmt === 'page-slash') return currentPage + ' / ' + totalPages;";
+scriptContent += "return currentPage + '/' + totalPages;";
+scriptContent += "}";
+scriptContent += "function updatePageNumberState(){";
+scriptContent += "try {";
+scriptContent += "var els = document.querySelectorAll('.page-number');";
+scriptContent += "if (!els || !els.length) return;";
+scriptContent += "var totalPages = estimateTotalPages();";
+scriptContent += "for (var i = 0; i < els.length; i++) {";
+scriptContent += "var el = els[i];";
+scriptContent += "var fmt = el.getAttribute('data-format') || '" + pageNumberFormat + "';";
+scriptContent += "var preview = buildPreviewText(fmt, 1, totalPages);";
+scriptContent += "el.setAttribute('data-total-pages', String(totalPages));";
+scriptContent += "el.setAttribute('data-preview', preview);";
+scriptContent += "el.textContent = preview;";
+scriptContent += "}";
+scriptContent += "} catch(e) {}";
+scriptContent += "}";
+scriptContent += "function injectAbsolutePageNumbers(){";
+scriptContent += "try {";
+scriptContent += "var enabled = " + (showPageNumbers ? 'true' : 'false') + ";";
+scriptContent += "var existing = document.querySelectorAll('.abs-page-number');";
+scriptContent += "for (var x = 0; x < existing.length; x++) {";
+scriptContent += "if (existing[x] && existing[x].parentNode) existing[x].parentNode.removeChild(existing[x]);";
+scriptContent += "}";
+scriptContent += "try { document.body.classList.remove('has-abs-page-numbers'); } catch(e) {}";
+scriptContent += "if (!enabled) return;";
+scriptContent += "var totalPages = estimateTotalPages();";
+scriptContent += "if (!totalPages || totalPages < 1) return;";
+scriptContent += "var host = document.querySelector('.print-container') || document.body;";
 scriptContent += "var fmt = '" + pageNumberFormat + "';";
 scriptContent += "var pos = '" + pageNumberPosition + "';";
 scriptContent += "var fontPt = " + pageNumberFontSize + ";";
 scriptContent += "var color = '" + pageNumberColor + "';";
-scriptContent += "var footerH = 0;";
-scriptContent += "try { var f = document.getElementById('printFooterRoot'); if (f) footerH = f.getBoundingClientRect().height || f.offsetHeight || 0; } catch(e) {}";
-scriptContent += "var existing = document.querySelectorAll('.abs-page-number');";
-scriptContent += "for (var k = 0; k < existing.length; k++) existing[k].remove();";
-scriptContent += "for (var i = 1; i <= np; i++) {";
-scriptContent += "var t = '';";
-scriptContent += "if (fmt === 'page') t = String(i);";
-scriptContent += "else if (fmt === 'page-of') t = 'Page ' + i + ' of ' + np;";
-scriptContent += "else if (fmt === 'page-slash') t = 'Page ' + i + ' / ' + np;";
-scriptContent += "else t = i + ' / ' + np;";
-scriptContent += "console.log('Creating page number', i, 'with text:', t);";
+scriptContent += "var pageHeightPx = mmToPx(297 - 24);";
+scriptContent += "var leftPadPx = mmToPx(12);";
+scriptContent += "var rightPadPx = mmToPx(12);";
+scriptContent += "var edgePadPx = mmToPx(6);";
+scriptContent += "var pageBreaks = document.querySelectorAll('.page-break');";
+scriptContent += "var pagePositions = [0];";
+scriptContent += "for (var i = 0; i < pageBreaks.length; i++) {";
+scriptContent += "var rect = pageBreaks[i].getBoundingClientRect();";
+scriptContent += "var scrollTop = window.pageYOffset || document.documentElement.scrollTop;";
+scriptContent += "pagePositions.push(rect.top + scrollTop);";
+scriptContent += "}";
+scriptContent += "for (var p = 1; p <= totalPages; p++) {";
 scriptContent += "var el = document.createElement('div');";
 scriptContent += "el.className = 'abs-page-number';";
-scriptContent += "el.textContent = t;";
+scriptContent += "el.textContent = buildPreviewText(fmt, p, totalPages);";
 scriptContent += "el.style.fontSize = fontPt + 'pt';";
 scriptContent += "el.style.color = color;";
-scriptContent += "console.log('Created element:', el);";
-scriptContent += "var pageTop = (i - 1) * PAGE_H;";
-scriptContent += "var pageBottom = i * PAGE_H;";
-scriptContent += "var top = (pageBottom - MARGIN) - 18;";
-scriptContent += "if (footerH > 0 && pos.indexOf('bottom') === 0) { top = (pageBottom - MARGIN) - Math.min(footerH, 80) + 10; }";
-scriptContent += "if (pos.indexOf('top') === 0) top = pageTop + MARGIN + 10;";
-scriptContent += "el.style.top = top + 'px';";
-scriptContent += "if (pos.indexOf('left') !== -1) { el.style.left = '0'; el.style.right = 'auto'; el.style.textAlign = 'left'; }";
-scriptContent += "else if (pos.indexOf('right') !== -1) { el.style.right = '0'; el.style.left = 'auto'; el.style.textAlign = 'right'; }";
-scriptContent += "else { el.style.left = '0'; el.style.right = '0'; el.style.textAlign = 'center'; }";
-scriptContent += "document.body.appendChild(el);";
-scriptContent += "console.log('Added page number element to body, total elements:', document.querySelectorAll('.abs-page-number').length);";
+scriptContent += "var pageTop = pagePositions[p - 1] || ((p - 1) * pageHeightPx);";
+scriptContent += "var pageBottom = pagePositions[p] || (p * pageHeightPx);";
+scriptContent += "if (pos.indexOf('top') === 0) {";
+scriptContent += "el.style.top = (pageTop + edgePadPx) + 'px';";
+scriptContent += "} else {";
+scriptContent += "el.style.top = (pageBottom - edgePadPx - Math.ceil(fontPt * 1.6)) + 'px';";
 scriptContent += "}";
+scriptContent += "if (pos.indexOf('left') !== -1) {";
+scriptContent += "el.style.left = leftPadPx + 'px';";
+scriptContent += "el.style.textAlign = 'left';";
+scriptContent += "} else if (pos.indexOf('right') !== -1) {";
+scriptContent += "el.style.right = rightPadPx + 'px';";
+scriptContent += "el.style.textAlign = 'right';";
+scriptContent += "} else {";
+scriptContent += "el.style.left = '0';";
+scriptContent += "el.style.right = '0';";
+scriptContent += "el.style.textAlign = 'center';";
+scriptContent += "}";
+scriptContent += "host.appendChild(el);";
+scriptContent += "}";
+scriptContent += "try { document.body.classList.add('has-abs-page-numbers'); } catch(e) {}";
 scriptContent += "} catch(e) {}";
 scriptContent += "}";
 scriptContent += "function doMeasure(){";
@@ -4072,20 +4389,8 @@ scriptContent += "var fExtraPx = Math.ceil(" + extraFooterMarginMm + " * 96 / 25
 scriptContent += "fs.style.height = (fPx + fExtraPx) + 'px';";
 scriptContent += "}";
 scriptContent += "}";
-scriptContent += "try {";
-scriptContent += "var els = document.querySelectorAll('.page-number-content');";
-scriptContent += "if (els && els.length) {";
-scriptContent += "var total = Math.max(1, Math.ceil(document.documentElement.scrollHeight / window.innerHeight));";
-scriptContent += "var fmt = '" + pageNumberFormat + "';";
-scriptContent += "var pageNum = 1;";
-scriptContent += "var preview = '';";
-scriptContent += "if (fmt === 'page') preview = String(pageNum);";
-scriptContent += "else if (fmt === 'page-of') preview = 'Page ' + pageNum + ' of ' + total;";
-scriptContent += "else if (fmt === 'page-slash') preview = 'Page ' + pageNum + ' / ' + total;";
-scriptContent += "else preview = pageNum + ' / ' + total;";
-scriptContent += "els.forEach(function(el){ el.setAttribute('data-preview', preview); });";
-scriptContent += "}";
-scriptContent += "} catch(e) {}";
+scriptContent += "updatePageNumberState();";
+scriptContent += "injectAbsolutePageNumbers();";
 scriptContent += "try {";
 scriptContent += "if (typeof useLastPageText !== 'undefined' && useLastPageText && lastPageText) {";
 scriptContent += "var footerTexts = document.querySelectorAll('.footer-text');";
@@ -4100,8 +4405,8 @@ scriptContent += "}";
 scriptContent += "} catch(e) {}";
 scriptContent += "window.__printReady = true;";
 scriptContent += "}";
-scriptContent += "try { window.addEventListener('beforeprint', injectAbsPageNumbers); } catch(e) {}";
-scriptContent += "setTimeout(injectAbsPageNumbers, 100);";
+scriptContent += "try { window.addEventListener('beforeprint', function(){ updatePageNumberState(); injectAbsolutePageNumbers(); }); } catch(e) {}";
+scriptContent += "setTimeout(function(){ updatePageNumberState(); injectAbsolutePageNumbers(); }, 100);";
 scriptContent += "window.addEventListener('load', function(){";
 scriptContent += "var imgs = document.querySelectorAll('img');";
 scriptContent += "if (!imgs.length) { doMeasure(); return; }";
@@ -4171,13 +4476,13 @@ scriptContent += "})();";
           '<div class="footer-line" style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:6mm 12mm;">' +
             '<div class="footer-line-left" style="flex:1; min-width:0;">' + footerContentHtml + '</div>' +
             '<div class="footer-line-right" style="flex:0 0 auto; white-space:nowrap; font-size:' + pageNumberFontSize + 'pt; color:' + pageNumberColor + '; ' + pageNumberOffsetStyle + '">' +
-              '<span class="page-number-content" data-format="' + pageNumberFormat + '"></span>' +
+              '<span class="page-number-content" data-format="' + pageNumberFormat + '">1</span>' +
             '</div>' +
           '</div>'
       } else {
         footerInner +=
           '<div class="page-number" style="position:absolute; ' + position + ':0; ' + style + ' font-size:' + pageNumberFontSize + 'pt; color:' + pageNumberColor + '; padding:8mm 12mm; ' + pageNumberOffsetStyle + '">' +
-            '<span class="page-number-content" data-format="' + pageNumberFormat + '"></span>' +
+            '<span class="page-number-content" data-format="' + pageNumberFormat + '">1</span>' +
           '</div>'
       }
     } else if (footerSingleLine) {
