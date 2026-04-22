@@ -17,9 +17,9 @@ class ExamFileController extends Controller
             'name' => 'required|string|max:255',
             'questions' => 'required|array',
             'settings' => 'required|array',
-            'sections' => 'required|array',
-            'questionSectionMap' => 'required|array',
-            'pageBreaks' => 'required|array',
+            'sections' => 'nullable|array',
+            'questionSectionMap' => 'nullable|array',
+            'pageBreaks' => 'nullable|array',
         ]);
 
         $userId = Auth::id();
@@ -40,9 +40,9 @@ class ExamFileController extends Controller
             'updated_at' => now()->toISOString(),
             'questions' => $validated['questions'],
             'settings' => $validated['settings'],
-            'sections' => $validated['sections'],
-            'questionSectionMap' => $validated['questionSectionMap'],
-            'pageBreaks' => $validated['pageBreaks'],
+            'sections' => $validated['sections'] ?? [],
+            'questionSectionMap' => $validated['questionSectionMap'] ?? [],
+            'pageBreaks' => $validated['pageBreaks'] ?? [],
         ];
 
         $jsonPath = "{$userDir}/{$examId}.json";

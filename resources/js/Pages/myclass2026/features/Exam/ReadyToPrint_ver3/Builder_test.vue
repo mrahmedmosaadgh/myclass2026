@@ -2926,8 +2926,9 @@ async function handleSaveExam() {
         mcqOptions: pageOptions.value.mcqOptions,
         pageLayout: pageOptions.value.pageLayout
       },
-      sections: sections.value,
-      questionSectionMap: questionSectionMap.value,
+      // Optional - AI can ask about these before creating JSON
+      sections: sections.value || [],
+      questionSectionMap: questionSectionMap.value || {},
       pageBreaks: pageOptions.value.questionNumbering?.pageBreaksBefore || {}
     }
 
