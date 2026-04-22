@@ -2124,6 +2124,56 @@
       </q-card-section>
     </q-card>
   </q-dialog>
+
+  <!-- Delete Confirmation Dialog -->
+  <q-dialog v-model="deleteConfirmOpen">
+    <q-card>
+      <q-card-section class="row items-center">
+        <q-avatar icon="delete" color="negative" text-color="white" />
+        <span class="q-ml-sm">Delete Question</span>
+        <q-space />
+        <q-btn icon="close" flat round dense v-close-popup />
+      </q-card-section>
+
+      <q-card-section class="q-pt-none">
+        Are you sure you want to delete this question? This action cannot be undone.
+      </q-card-section>
+
+      <q-card-actions align="right">
+        <q-btn flat label="Cancel" color="grey" v-close-popup />
+        <q-btn flat label="Delete" color="negative" @click="executeDeleteQuestion" />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
+
+  <!-- Edit Question Dialog -->
+  <q-dialog v-model="editQuestionOpen">
+    <q-card style="min-width: 500px;">
+      <q-card-section class="row items-center q-pb-none">
+        <div class="text-h6">Edit Question</div>
+        <q-space />
+        <q-btn icon="close" flat round dense v-close-popup />
+      </q-card-section>
+
+      <q-separator />
+
+      <q-card-section>
+        <q-input
+          v-model="editQuestionPrompt"
+          label="Question Prompt"
+          type="textarea"
+          filled
+          autogrow
+          hint="Enter the question text"
+        />
+      </q-card-section>
+
+      <q-card-actions align="right">
+        <q-btn flat label="Cancel" color="grey" v-close-popup />
+        <q-btn flat label="Save" color="primary" @click="saveEditedQuestion" />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
 </template>
 
 <script setup>
@@ -2246,6 +2296,15 @@ const lastSavedExamId = ref(null)
 // Print preview dialog
 const printPreviewOpen = ref(false)
 const printPreviewHtml = ref('')
+
+// Delete confirmation dialog
+const deleteConfirmOpen = ref(false)
+const questionToDelete = ref(null)
+
+// Edit question dialog
+const editQuestionOpen = ref(false)
+const questionToEdit = ref(null)
+const editQuestionPrompt = ref('')
 // Computed page title for Head component
 const pageTitle = computed(() => {
   return pageOptions.value.examTitle?.enabled && pageOptions.value.examTitle?.text
@@ -4081,18 +4140,32 @@ function deleteQuestion(id) {
 }
 
 function confirmDeleteQuestion(id) {
-  if (confirm('Are you sure you want to delete this question? This action cannot be undone.')) {
-    deleteQuestion(id)
+  questionToDelete.value = id
+  deleteConfirmOpen.value = true
+}
+
+function executeDeleteQuestion() {
+  if (questionToDelete.value) {
+    deleteQuestion(questionToDelete.value)
+    questionToDelete.value = null
+    deleteConfirmOpen.value = false
   }
 }
 
 function editQuestionContent(question) {
-  // For now, prompt for editing the question prompt
-  const newPrompt = prompt('Edit question prompt:', question?.content?.prompt || '')
-  if (newPrompt !== null) {
-    if (!question.content) question.content = {}
-    question.content.prompt = newPrompt
+  questionToEdit.value = question
+  editQuestionPrompt.value = question?.content?.prompt || ''
+  editQuestionOpen.value = true
+}
+
+function saveEditedQuestion() {
+  if (questionToEdit.value) {
+    if (!questionToEdit.value.content) questionToEdit.value.content = {}
+    questionToEdit.value.content.prompt = editQuestionPrompt.value
     savePageState()
+    questionToEdit.value = null
+    editQuestionPrompt.value = ''
+    editQuestionOpen.value = false
   }
 }
 
