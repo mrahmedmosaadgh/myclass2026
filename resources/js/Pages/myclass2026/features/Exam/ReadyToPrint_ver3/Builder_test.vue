@@ -41,6 +41,15 @@
           <q-tooltip>Regenerate HTML</q-tooltip>
         </q-btn>
 
+        <!-- Test Page Numbers -->
+        <q-btn
+          flat
+          icon="filter_4"
+          @click="testPageNumbers"
+        >
+          <q-tooltip>Test Page Numbers (4 pages)</q-tooltip>
+        </q-btn>
+
         <!-- Print -->
         <PrintActions
           :generate-print-html="generatePrintHTML"
@@ -3266,6 +3275,127 @@ async function forceRegenerateHtml() {
       position: 'top'
     })
   }
+}
+
+function testPageNumbers() {
+  console.log('Generating test HTML with 4 empty pages')
+  
+  const testHtml = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Page Number Test</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 12mm;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12pt;
+            line-height: 1.5;
+            margin: 0;
+            padding: 0;
+        }
+        .print-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: white;
+            padding: 10mm;
+            border-bottom: 1px solid #ccc;
+        }
+        .print-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: white;
+            padding: 10mm;
+            border-top: 1px solid #ccc;
+            text-align: center;
+        }
+        .page-break {
+            page-break-before: always;
+            height: 0;
+        }
+        .page-content {
+            min-height: 250mm;
+            padding: 20mm;
+        }
+        .page-label {
+            font-size: 24pt;
+            font-weight: bold;
+            color: #1f3a5a;
+            text-align: center;
+            margin-top: 50mm;
+        }
+        @media print {
+            .print-header {
+                position: fixed;
+                top: 0;
+            }
+            .print-footer {
+                position: fixed;
+                bottom: 0;
+            }
+            .page-counter::after {
+                content: " " counter(page);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-header">
+        <h2>Page Number Test Document</h2>
+    </div>
+
+    <div class="page-content">
+        <div class="page-label">Page 1 Content</div>
+        <p>This is the first page. It should show "Page 1" in the footer when printed.</p>
+    </div>
+
+    <div class="page-break"></div>
+
+    <div class="page-content">
+        <div class="page-label">Page 2 Content</div>
+        <p>This is the second page. It should show "Page 2" in the footer when printed.</p>
+    </div>
+
+    <div class="page-break"></div>
+
+    <div class="page-content">
+        <div class="page-label">Page 3 Content</div>
+        <p>This is the third page. It should show "Page 3" in the footer when printed.</p>
+    </div>
+
+    <div class="page-break"></div>
+
+    <div class="page-content">
+        <div class="page-label">Page 4 Content</div>
+        <p>This is the fourth page. It should show "Page 4" in the footer when printed.</p>
+    </div>
+
+    <div class="print-footer">
+        <div class="page-number">Page <span class="page-counter"></span></div>
+    </div>
+</body>
+</html>`
+
+  printPreviewHtml.value = testHtml
+  printPreviewOpen.value = true
+  
+  console.log('Test HTML generated, length:', testHtml.length)
+  console.log('Test HTML preview (first 300 chars):', testHtml.substring(0, 300))
+  
+  $q.notify({
+    type: 'info',
+    message: 'Test HTML with 4 pages loaded. Print to see page numbers.',
+    position: 'top'
+  })
 }
 
 async function handleLoadExam(data) {

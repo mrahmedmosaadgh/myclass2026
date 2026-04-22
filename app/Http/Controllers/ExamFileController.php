@@ -233,6 +233,15 @@ class ExamFileController extends Controller
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Add page numbers to footer
+            const pageNumbers = document.querySelectorAll(".page-number");
+            pageNumbers.forEach(function(el) {
+                el.textContent = "Page " + (el.dataset.pageNumber || 1);
+            });
+        });
+    </script>
     <style>
         @page {
             size: A4;
@@ -302,9 +311,6 @@ class ExamFileController extends Controller
             text-decoration: underline;
             font-weight: bold;
         }
-        body {
-            counter-reset: page;
-        }
         @media print {
             .print-header {
                 position: fixed;
@@ -365,9 +371,9 @@ class ExamFileController extends Controller
             'questionSectionMapTyped_count' => count($questionSectionMapTyped),
         ]);
 
-        // If no sections exist, render all questions without section grouping
-        if (empty($sections)) {
-            \Log::info('Rendering questions without sections');
+        // If no sections exist or typed map is empty, render all questions without section grouping
+        if (empty($sections) || empty($questionSectionMapTyped)) {
+            \Log::info('Rendering questions without sections (typed map empty fallback)');
             foreach ($questions as $question) {
                 $globalIndex++;
                 $qid = $question['id'];
@@ -597,7 +603,7 @@ class ExamFileController extends Controller
                 $html .= $printFooter['html'];
             }
             if ($printFooter['showPageNumbers'] ?? false) {
-                $html .= '<div class="page-number">Page </div>';
+                $html .= '<div class="page-number">Page <span class="page-counter"></span></div>';
             }
             $html .= '</div>';
         }
