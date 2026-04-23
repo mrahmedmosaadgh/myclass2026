@@ -4919,6 +4919,7 @@ scriptContent += "}";
 scriptContent += "}";
 scriptContent += "} catch(e) {}";
 scriptContent += "window.__printReady = true;";
+scriptContent += "} catch(e) { console.error('[PAGE NUMBER DEBUG] Error in doMeasure:', e); }";
 scriptContent += "}";
 scriptContent += "try { window.addEventListener('beforeprint', function(){ updatePageNumberState(); injectAbsolutePageNumbers(); }); } catch(e) {}";
 scriptContent += "try { window.addEventListener('afterprint', function(){ console.log('Print completed'); }); } catch(e) {}";
