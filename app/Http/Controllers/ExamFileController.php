@@ -173,6 +173,10 @@ class ExamFileController extends Controller
     public function generatePdf($examId)
     {
         try {
+            // Increase memory limit for PDF generation
+            ini_set('memory_limit', '512M');
+            set_time_limit(300);
+
             $userId = Auth::id();
             $jsonPath = "exams/{$userId}/{$examId}.json";
 
@@ -190,18 +194,23 @@ class ExamFileController extends Controller
             // Generate HTML
             $htmlContent = $this->generatePrintHtml($data);
 
+            // Sanitize HTML - remove problematic elements for dompdf
+            $htmlContent = $this->sanitizeHtmlForPdf($htmlContent);
+
             // Generate filename
             $examName = $data['name'] ?? 'exam';
             $safeName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $examName);
             $filename = "{$safeName}_{$examId}.pdf";
 
-            // Configure dompdf
+            // Configure dompdf with minimal settings
             $options = new Options();
             $options->set('isHtml5ParserEnabled', true);
-            $options->set('isRemoteEnabled', true);
+            $options->set('isRemoteEnabled', false); // Disable remote for security
             $options->set('defaultFont', 'Arial');
             $options->set('isPhpEnabled', false);
             $options->set('chroot', base_path());
+            $options->set('fontDir', base_path('storage/fonts'));
+            $options->set('fontCache', base_path('storage/fonts'));
 
             // Create dompdf instance
             $dompdf = new Dompdf($options);
@@ -227,6 +236,30 @@ class ExamFileController extends Controller
                 'message' => 'PDF generation failed: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Sanitize HTML for PDF generation - remove problematic elements
+     */
+    private function sanitizeHtmlForPdf($html)
+    {
+        // Remove script tags
+        $html = preg_replace('/<script\b[^>]*>(.*?)<\/script>/is', '', $html);
+        
+        // Remove iframe tags
+        $html = preg_replace('/<iframe\b[^>]*>(.*?)<\/iframe>/is', '', $html);
+        
+        // Remove data URLs from images (dompdf doesn't handle them well)
+        $html = preg_replace('/src=["\']data:image[^"\']*["\']/', 'src=""', $html);
+        
+        // Remove complex CSS that might cause issues
+        $html = preg_replace('/<style\b[^>]*>(.*?)<\/style>/is', '', $html);
+        
+        // Remove inline styles that use complex properties
+        $html = preg_replace('/style=["\'][^"\']*grid[^"\']*["\']/', 'style=""', $html);
+        $html = preg_replace('/style=["\'][^"\']*flex[^"\']*["\']/', 'style=""', $html);
+        
+        return $html;
     }
 
     /**
