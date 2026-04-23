@@ -1336,10 +1336,300 @@
           <q-btn icon="close" flat round dense v-close-popup />
         </q-card-section>
         <q-separator />
+
+        <!-- Quick Mode Selection Banner -->
+        <q-banner v-if="step === 1" class="bg-blue-1 q-ma-md" rounded>
+          <template v-slot:avatar>
+            <q-icon name="bolt" color="primary" size="md" />
+          </template>
+          <div class="text-subtitle1 q-mb-sm">⚡ Quick Generate Mode</div>
+          <div class="text-body2 q-mb-md">
+            Let AI automatically generate everything for you - no manual input needed!
+          </div>
+          <q-btn 
+            @click="enableQuickMode" 
+            color="primary" 
+            label="Use Quick Generate" 
+            icon="auto_awesome"
+            unelevated
+            :loading="quickModeLoading"
+          />
+          <q-btn 
+            flat 
+            label="Manual Configuration" 
+            color="grey-7" 
+            class="q-ml-sm"
+            @click="quickMode = false"
+          />
+        </q-banner>
         
         <q-stepper v-model="step" vertical color="primary" animated header-nav>
-          <!-- Step 1: Configure AI Prompt -->
+          
+          <!-- Step 0: Quick Generate Mode (AI Auto-generates everything) -->
           <q-step
+            v-if="quickMode"
+            :name="0"
+            title="Quick Generate - AI Auto-Configuration"
+            icon="bolt"
+            :done="step > 0"
+          >
+            <div class="step-content">
+              <!-- Phase Indicator -->
+              <q-card flat bordered class="q-mb-md bg-blue-1">
+                <q-card-section>
+                  <div class="row items-center">
+                    <q-icon 
+                      :name="allFieldsFilled ? 'check_circle' : 'help_outline'" 
+                      :color="allFieldsFilled ? 'green' : 'orange'" 
+                      size="md" 
+                      class="q-mr-sm"
+                    />
+                    <div class="col">
+                      <div class="text-subtitle2">
+                        {{ allFieldsFilled ? '✓ Ready to Generate' : '⚠️ Information Needed' }}
+                      </div>
+                      <div class="text-caption">
+                        {{ allFieldsFilled 
+                          ? 'All information provided. AI will generate your exam.' 
+                          : 'AI will suggest options for missing information first.' 
+                        }}
+                      </div>
+                    </div>
+                  </div>
+                </q-card-section>
+              </q-card>
+
+              <!-- What AI Will Do -->
+              <q-card flat bordered class="q-pa-md q-mb-md">
+                <div class="text-h6 q-mb-md">
+                  {{ allFieldsFilled ? '🤖 AI Will Generate:' : '🤖 AI Will Suggest:' }}
+                </div>
+                
+                <q-list v-if="!allFieldsFilled" bordered separator class="rounded-borders">
+                  <q-item>
+                    <q-item-section avatar>
+                      <q-icon color="orange" name="lightbulb" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Suggestions for Missing Information</q-item-label>
+                      <q-item-label caption>
+                        AI will provide 3-4 options for: {{ missingFieldsList }}
+                      </q-item-label>
+                    </q-item-section>
+                  </q-item>
+
+                  <q-item>
+                    <q-item-section avatar>
+                      <q-icon color="orange" name="question_answer" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Confirmation Request</q-item-label>
+                      <q-item-label caption>
+                        AI will ask you to confirm before generating
+                      </q-item-label>
+                    </q-item-section>
+                  </q-item>
+
+                  <q-item>
+                    <q-item-section avatar>
+                      <q-icon color="blue" name="info" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Next Steps</q-item-label>
+                      <q-item-label caption>
+                        Review suggestions, fill in the fields above, then generate again
+                      </q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+
+                <q-list v-else bordered separator class="rounded-borders">
+                  <q-item>
+                    <q-item-section avatar>
+                      <q-icon color="green" name="check_circle" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Complete Exam Structure</q-item-label>
+                      <q-item-label caption>3-5 sections with clear organization</q-item-label>
+                    </q-item-section>
+                  </q-item>
+
+                  <q-item>
+                    <q-item-section avatar>
+                      <q-icon color="green" name="check_circle" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>{{ quickModeContext.totalQuestions }} Questions</q-item-label>
+                      <q-item-label caption>Mixed types with varied difficulty</q-item-label>
+                    </q-item-section>
+                  </q-item>
+
+                  <q-item>
+                    <q-item-section avatar>
+                      <q-icon color="green" name="check_circle" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Answer Keys & Explanations</q-item-label>
+                      <q-item-label caption>Complete with LaTeX math expressions</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+
+                <!-- Information Banner -->
+                <q-banner 
+                  :class="allFieldsFilled ? 'bg-green-1' : 'bg-amber-1'" 
+                  class="q-mt-md q-mb-md" 
+                  rounded
+                >
+                  <template v-slot:avatar>
+                    <q-icon 
+                      :name="allFieldsFilled ? 'check_circle' : 'info'" 
+                      :color="allFieldsFilled ? 'green-8' : 'amber-8'" 
+                    />
+                  </template>
+                  <div class="text-body2">
+                    <strong v-if="!allFieldsFilled">Optional:</strong>
+                    <strong v-else>Ready:</strong>
+                    {{ allFieldsFilled 
+                      ? 'All information provided. Click below to generate your exam.' 
+                      : 'Provide context to help AI, or leave empty for AI to suggest everything.' 
+                    }}
+                  </div>
+                </q-banner>
+
+                <!-- Input Fields -->
+                <q-input
+                  v-model="quickModeContext.subject"
+                  label="Subject"
+                  :placeholder="allFieldsFilled ? quickModeContext.subject : 'e.g., Mathematics, Science, English'"
+                  outlined
+                  class="q-mb-md"
+                  :hint="allFieldsFilled ? '✓ Provided' : 'Leave empty for AI suggestions'"
+                  :filled="!!quickModeContext.subject"
+                >
+                  <template v-slot:prepend>
+                    <q-icon :name="quickModeContext.subject ? 'check_circle' : 'help_outline'" 
+                            :color="quickModeContext.subject ? 'green' : 'grey'" />
+                  </template>
+                </q-input>
+
+                <q-input
+                  v-model="quickModeContext.grade"
+                  label="Grade Level"
+                  :placeholder="allFieldsFilled ? quickModeContext.grade : 'e.g., Grade 7, Grade 10'"
+                  outlined
+                  class="q-mb-md"
+                  :hint="allFieldsFilled ? '✓ Provided' : 'Leave empty for AI suggestions'"
+                  :filled="!!quickModeContext.grade"
+                >
+                  <template v-slot:prepend>
+                    <q-icon :name="quickModeContext.grade ? 'check_circle' : 'help_outline'" 
+                            :color="quickModeContext.grade ? 'green' : 'grey'" />
+                  </template>
+                </q-input>
+
+                <q-input
+                  v-model="quickModeContext.examType"
+                  label="Exam Type"
+                  :placeholder="allFieldsFilled ? quickModeContext.examType : 'e.g., Final Exam, Mid-term, Quiz'"
+                  outlined
+                  class="q-mb-md"
+                  :hint="allFieldsFilled ? '✓ Provided' : 'Leave empty for AI suggestions'"
+                  :filled="!!quickModeContext.examType"
+                >
+                  <template v-slot:prepend>
+                    <q-icon :name="quickModeContext.examType ? 'check_circle' : 'help_outline'" 
+                            :color="quickModeContext.examType ? 'green' : 'grey'" />
+                  </template>
+                </q-input>
+
+                <q-input
+                  v-model.number="quickModeContext.totalQuestions"
+                  type="number"
+                  label="Total Questions"
+                  :placeholder="allFieldsFilled ? String(quickModeContext.totalQuestions) : 'e.g., 20'"
+                  outlined
+                  min="5"
+                  max="50"
+                  class="q-mb-md"
+                  :hint="allFieldsFilled ? '✓ Provided' : 'Leave empty for AI suggestions (typically 15-25)'"
+                  :filled="!!quickModeContext.totalQuestions"
+                >
+                  <template v-slot:prepend>
+                    <q-icon :name="quickModeContext.totalQuestions ? 'check_circle' : 'help_outline'" 
+                            :color="quickModeContext.totalQuestions ? 'green' : 'grey'" />
+                  </template>
+                </q-input>
+              </q-card>
+
+              <q-stepper-navigation class="q-mt-md">
+                <q-btn 
+                  @click="generateQuickModePrompt" 
+                  :color="allFieldsFilled ? 'positive' : 'primary'"
+                  :label="allFieldsFilled ? 'Generate Exam Now' : 'Get AI Suggestions'"
+                  :icon="allFieldsFilled ? 'auto_awesome' : 'lightbulb'"
+                  unelevated
+                  size="lg"
+                  class="full-width q-mb-sm"
+                />
+                <q-btn 
+                  flat 
+                  @click="quickMode = false; step = 1" 
+                  color="grey-7" 
+                  label="Switch to Manual Mode" 
+                  class="full-width"
+                  size="sm"
+                />
+              </q-stepper-navigation>
+
+              <!-- Quick Mode Generated Prompt -->
+              <div v-if="generatedPrompt && quickMode" class="q-mt-md">
+                <q-card bordered>
+                  <q-card-section :class="allFieldsFilled ? 'bg-green text-white' : 'bg-orange text-white'">
+                    <div class="text-subtitle1">
+                      {{ allFieldsFilled ? '✨ Exam Generation Prompt' : '💡 Suggestion Request Prompt' }}
+                    </div>
+                    <div class="text-caption">
+                      {{ allFieldsFilled 
+                        ? 'Copy this and paste into your AI assistant to generate the complete exam' 
+                        : 'Copy this and paste into your AI assistant to get suggestions' 
+                      }}
+                    </div>
+                  </q-card-section>
+                  
+                  <q-card-section>
+                    <q-markdown :source="generatedPrompt" class="prompt-markdown" />
+                  </q-card-section>
+
+                  <q-card-actions>
+                    <q-btn 
+                      flat 
+                      @click="copyPrompt" 
+                      color="primary" 
+                      icon="content_copy"
+                      label="Copy to Clipboard"
+                    />
+                    <q-space />
+                    <q-btn 
+                      v-if="allFieldsFilled"
+                      @click="step = 2" 
+                      color="secondary" 
+                      icon="arrow_forward"
+                      label="Next: Paste AI Response"
+                      unelevated
+                    />
+                    <q-chip v-else color="orange" text-color="white" icon="info">
+                      After getting suggestions, fill fields above and generate again
+                    </q-chip>
+                  </q-card-actions>
+                </q-card>
+              </div>
+            </div>
+          </q-step>
+
+          <!-- Step 1: Configure AI Prompt (Manual Mode) -->
+          <q-step
+            v-if="!quickMode"
             :name="1"
             title="Configure AI Prompt"
             icon="settings"
@@ -1352,6 +1642,7 @@
                   label="Topic"
                   placeholder="e.g., Fractions, Algebra, Geometry"
                   outlined
+                  hint="What topic should the questions cover?"
                 />
                 
                 <q-input
@@ -1359,6 +1650,7 @@
                   label="Grade Level"
                   placeholder="e.g., Grade 7, Grade 8"
                   outlined
+                  hint="Target grade level for question difficulty"
                 />
                 
                 <q-input
@@ -1368,37 +1660,240 @@
                   min="1"
                   max="20"
                   outlined
+                  hint="How many questions to generate (1-20)"
+                />
+
+                <q-select
+                  v-model="aiConfig.questionTypes"
+                  :options="['short_answer', 'multiple_choice', 'true_false', 'mixed']"
+                  label="Question Types"
+                  outlined
+                  multiple
+                  hint="Select one or more question types"
+                  emit-value
+                  map-options
+                >
+                  <template v-slot:option="scope">
+                    <q-item v-bind="scope.itemProps">
+                      <q-item-section>
+                        <q-item-label>{{ formatQuestionType(scope.opt) }}</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                  </template>
+                  <template v-slot:selected-item="scope">
+                    <q-chip
+                      removable
+                      dense
+                      @remove="scope.removeAtIndex(scope.index)"
+                      color="primary"
+                      text-color="white"
+                    >
+                      {{ formatQuestionType(scope.opt) }}
+                    </q-chip>
+                  </template>
+                </q-select>
+
+                <q-select
+                  v-model="aiConfig.difficulty"
+                  :options="['easy', 'medium', 'hard', 'mixed']"
+                  label="Difficulty Level"
+                  outlined
+                  emit-value
+                  map-options
+                  hint="Overall difficulty of questions"
                 />
                 
                 <q-toggle
                   v-model="aiConfig.latexSupport"
                   label="Enable LaTeX/Math Expressions"
+                  hint="Use mathematical notation like fractions, equations"
                 />
                 
                 <q-toggle
                   v-model="aiConfig.htmlSupport"
                   label="Enable HTML Formatting"
+                  hint="Allow bold, italic, underline formatting"
+                />
+
+                <q-toggle
+                  v-model="aiConfig.includeSolutions"
+                  label="Include Answer Key"
+                  hint="Generate correct answers for each question"
+                />
+
+                <q-toggle
+                  v-model="aiConfig.includeExplanations"
+                  label="Include Explanations"
+                  hint="Add step-by-step solutions"
                 />
                 
                 <q-input
                   v-model="aiConfig.instructions"
                   type="textarea"
                   label="Additional Instructions (Optional)"
-                  placeholder="e.g., Include step-by-step solutions, focus on real-world applications"
+                  placeholder="e.g., Include step-by-step solutions, focus on real-world applications, avoid complex vocabulary"
                   outlined
                   rows="3"
+                  hint="Any specific requirements or preferences"
                 />
               </div>
               
               <q-stepper-navigation>
-                <q-btn @click="generatePrompt" color="primary" label="Generate Prompt" />
-                <q-btn v-if="generatedPrompt" flat @click="copyPrompt" color="secondary" label="Copy to Clipboard" class="q-ml-sm" />
-                <q-btn flat @click="step = 2" color="secondary" label="Next" class="q-ml-sm" />
+                <q-btn 
+                  @click="showGenerationPreview" 
+                  color="primary" 
+                  label="Preview & Generate Prompt" 
+                  icon="preview"
+                  :disable="!aiConfig.topic || !aiConfig.grade || !aiConfig.questionCount"
+                />
+                <q-btn flat @click="step = 2" color="secondary" label="Skip to Paste" class="q-ml-sm" />
               </q-stepper-navigation>
               
-              <div v-if="generatedPrompt" class="prompt-preview">
-                <div class="text-subtitle2 q-mt-md q-mb-sm">Generated Prompt:</div>
-                <q-markdown :source="generatedPrompt" />
+              <!-- Generation Preview Dialog -->
+              <q-dialog v-model="showPreviewDialog" persistent>
+                <q-card style="min-width: 600px">
+                  <q-card-section class="row items-center q-pb-none">
+                    <div class="text-h6">📋 Generation Preview</div>
+                    <q-space />
+                    <q-btn icon="close" flat round dense v-close-popup />
+                  </q-card-section>
+
+                  <q-card-section>
+                    <div class="text-subtitle2 q-mb-md">AI will generate the following:</div>
+                    
+                    <q-list bordered separator class="rounded-borders">
+                      <q-item>
+                        <q-item-section avatar>
+                          <q-icon color="primary" name="topic" />
+                        </q-item-section>
+                        <q-item-section>
+                          <q-item-label>Topic</q-item-label>
+                          <q-item-label caption>{{ aiConfig.topic }}</q-item-label>
+                        </q-item-section>
+                      </q-item>
+
+                      <q-item>
+                        <q-item-section avatar>
+                          <q-icon color="primary" name="school" />
+                        </q-item-section>
+                        <q-item-section>
+                          <q-item-label>Grade Level</q-item-label>
+                          <q-item-label caption>{{ aiConfig.grade }}</q-item-label>
+                        </q-item-section>
+                      </q-item>
+
+                      <q-item>
+                        <q-item-section avatar>
+                          <q-icon color="primary" name="format_list_numbered" />
+                        </q-item-section>
+                        <q-item-section>
+                          <q-item-label>Number of Questions</q-item-label>
+                          <q-item-label caption>{{ aiConfig.questionCount }} questions</q-item-label>
+                        </q-item-section>
+                      </q-item>
+
+                      <q-item v-if="aiConfig.questionTypes && aiConfig.questionTypes.length">
+                        <q-item-section avatar>
+                          <q-icon color="primary" name="quiz" />
+                        </q-item-section>
+                        <q-item-section>
+                          <q-item-label>Question Types</q-item-label>
+                          <q-item-label caption>{{ aiConfig.questionTypes.map(t => formatQuestionType(t)).join(', ') }}</q-item-label>
+                        </q-item-section>
+                      </q-item>
+
+                      <q-item v-if="aiConfig.difficulty">
+                        <q-item-section avatar>
+                          <q-icon color="primary" name="speed" />
+                        </q-item-section>
+                        <q-item-section>
+                          <q-item-label>Difficulty</q-item-label>
+                          <q-item-label caption>{{ aiConfig.difficulty.charAt(0).toUpperCase() + aiConfig.difficulty.slice(1) }}</q-item-label>
+                        </q-item-section>
+                      </q-item>
+
+                      <q-item v-if="aiConfig.latexSupport">
+                        <q-item-section avatar>
+                          <q-icon color="green" name="functions" />
+                        </q-item-section>
+                        <q-item-section>
+                          <q-item-label>Math Expressions</q-item-label>
+                          <q-item-label caption>LaTeX notation enabled</q-item-label>
+                        </q-item-section>
+                      </q-item>
+
+                      <q-item v-if="aiConfig.includeSolutions">
+                        <q-item-section avatar>
+                          <q-icon color="green" name="check_circle" />
+                        </q-item-section>
+                        <q-item-section>
+                          <q-item-label>Answer Key</q-item-label>
+                          <q-item-label caption>Correct answers included</q-item-label>
+                        </q-item-section>
+                      </q-item>
+
+                      <q-item v-if="aiConfig.includeExplanations">
+                        <q-item-section avatar>
+                          <q-icon color="green" name="lightbulb" />
+                        </q-item-section>
+                        <q-item-section>
+                          <q-item-label>Explanations</q-item-label>
+                          <q-item-label caption>Step-by-step solutions included</q-item-label>
+                        </q-item-section>
+                      </q-item>
+                    </q-list>
+
+                    <q-banner v-if="aiConfig.instructions" class="bg-blue-1 q-mt-md" rounded>
+                      <template v-slot:avatar>
+                        <q-icon name="info" color="primary" />
+                      </template>
+                      <div class="text-subtitle2">Additional Instructions:</div>
+                      <div class="text-caption">{{ aiConfig.instructions }}</div>
+                    </q-banner>
+                  </q-card-section>
+
+                  <q-card-actions align="right">
+                    <q-btn flat label="Cancel" color="grey" v-close-popup />
+                    <q-btn 
+                      label="Generate Prompt" 
+                      color="primary" 
+                      icon="auto_awesome"
+                      @click="confirmAndGeneratePrompt"
+                      unelevated
+                    />
+                  </q-card-actions>
+                </q-card>
+              </q-dialog>
+              
+              <div v-if="generatedPrompt" class="prompt-preview q-mt-md">
+                <q-card bordered>
+                  <q-card-section class="bg-primary text-white">
+                    <div class="text-subtitle1">✨ Generated Prompt</div>
+                    <div class="text-caption">Copy this prompt and paste it into your AI assistant (ChatGPT, Claude, etc.)</div>
+                  </q-card-section>
+                  
+                  <q-card-section>
+                    <q-markdown :source="generatedPrompt" class="prompt-markdown" />
+                  </q-card-section>
+
+                  <q-card-actions>
+                    <q-btn 
+                      flat 
+                      @click="copyPrompt" 
+                      color="primary" 
+                      icon="content_copy"
+                      label="Copy to Clipboard"
+                    />
+                    <q-space />
+                    <q-btn 
+                      flat 
+                      @click="step = 2" 
+                      color="secondary" 
+                      icon="arrow_forward"
+                      label="Next: Paste Response"
+                    />
+                  </q-card-actions>
+                </q-card>
               </div>
             </div>
           </q-step>
@@ -2274,6 +2769,19 @@ const selectedQuestions = ref([])
 const pasteError = ref('')
 const firstLastPageOpen = ref(false)
 
+// Quick Mode State
+const quickMode = ref(false)
+const quickModeLoading = ref(false)
+const quickModeContext = ref({
+  subject: '',
+  grade: '',
+  examType: '',
+  totalQuestions: null
+})
+
+// Component version for backward compatibility
+const COMPONENT_VERSION = 'v3.0'
+
 // Full Exam AI Generation State
 const fullExamDialogOpen = ref(false)
 const fullExamStep = ref(1)
@@ -2301,6 +2809,29 @@ const conversationMode = ref('exam_generation') // 'exam_generation' or 'questio
 const generatedExamData = ref(null)
 
 // Question Validation and Revision State
+
+// Computed properties for Quick Mode
+const allFieldsFilled = computed(() => {
+  return !!(
+    quickModeContext.value.subject &&
+    quickModeContext.value.grade &&
+    quickModeContext.value.examType &&
+    quickModeContext.value.totalQuestions
+  )
+})
+
+const missingFieldsList = computed(() => {
+  const missing = []
+  if (!quickModeContext.value.subject) missing.push('Subject')
+  if (!quickModeContext.value.grade) missing.push('Grade Level')
+  if (!quickModeContext.value.examType) missing.push('Exam Type')
+  if (!quickModeContext.value.totalQuestions) missing.push('Question Count')
+  return missing.join(', ')
+})
+
+const quickModePhase = computed(() => {
+  return allFieldsFilled.value ? 'confirmed' : 'gathering'
+})
 const validationDialogOpen = ref(false)
 const questionErrors = ref([])
 const questionsForValidation = ref('')
@@ -2870,10 +3401,16 @@ const aiConfig = ref({
   topic: '',
   grade: '',
   questionCount: 5,
+  questionTypes: [],
+  difficulty: 'mixed',
   latexSupport: true,
   htmlSupport: false,
+  includeSolutions: false,
+  includeExplanations: false,
   instructions: ''
 })
+
+const showPreviewDialog = ref(false)
 
 // Preview table columns
 const previewColumns = [
@@ -2881,7 +3418,8 @@ const previewColumns = [
   { name: 'type', label: 'Type', field: 'type', align: 'left' },
   { name: 'marks', label: 'Marks', field: 'marks', align: 'left' },
   { name: 'preview', label: 'Preview', field: 'preview', align: 'left' },
-  { name: 'status', label: 'Status', field: 'status', align: 'left' }
+  { name: 'status', label: 'Status', field: 'status', align: 'left' },
+  { name: 'errors', label: 'Issues', field: 'errors', align: 'left' }
 ]
 
 // Computed properties
@@ -2890,7 +3428,7 @@ const validQuestions = computed(() => parsedQuestions.value.filter(q => q.valid)
 // AI Import Functions
 function openAIDialog() {
   aiDialogOpen.value = true
-  step.value = 1
+  step.value = quickMode.value ? 0 : 1
   resetAIState()
 }
 
@@ -2900,6 +3438,190 @@ function resetAIState() {
   parsedQuestions.value = []
   selectedQuestions.value = []
   pasteError.value = ''
+  quickMode.value = false
+  quickModeContext.value = {
+    subject: '',
+    grade: '',
+    examType: '',
+    totalQuestions: null
+  }
+}
+
+// Quick Mode Functions
+function enableQuickMode() {
+  quickMode.value = true
+  step.value = 0
+}
+
+function generateQuickModePrompt() {
+  const { subject, grade, examType, totalQuestions } = quickModeContext.value
+  
+  // Check what information is missing
+  const missingInfo = []
+  if (!subject) missingInfo.push('subject')
+  if (!grade) missingInfo.push('grade level')
+  if (!examType) missingInfo.push('exam type')
+  if (!totalQuestions) missingInfo.push('number of questions')
+  
+  let prompt = ''
+  
+  // PHASE 1: Information gathering (if anything is missing)
+  if (missingInfo.length > 0) {
+    prompt = generateInformationRequestPrompt(subject, grade, examType, totalQuestions, missingInfo)
+  } 
+  // PHASE 2: Exam generation (all info provided)
+  else {
+    prompt = generateExamCreationPrompt(subject, grade, examType, totalQuestions)
+  }
+  
+  generatedPrompt.value = prompt
+}
+
+function generateInformationRequestPrompt(subject, grade, examType, totalQuestions, missingInfo) {
+  let prompt = `# Exam Generation - Information Gathering\n\n`
+  prompt += `I want to generate a complete exam, but I need some information first.\n\n`
+  
+  // Show what we have
+  prompt += `## Information I Have:\n`
+  if (subject) prompt += `- Subject: ${subject}\n`
+  if (grade) prompt += `- Grade Level: ${grade}\n`
+  if (examType) prompt += `- Exam Type: ${examType}\n`
+  if (totalQuestions) prompt += `- Total Questions: ${totalQuestions}\n`
+  if (missingInfo.length === 4) prompt += `- None (I want you to suggest everything)\n`
+  
+  // Show what's missing
+  prompt += `\n## Missing Information:\n`
+  missingInfo.forEach(info => {
+    prompt += `- ${info.charAt(0).toUpperCase() + info.slice(1)}\n`
+  })
+  
+  // Provide options for missing fields
+  prompt += `\n## Your Task:\n\n`
+  prompt += `Please provide 3-4 suggestions for the missing information and ask me to confirm.\n\n`
+  
+  if (!subject) {
+    prompt += `**Subject Options:**\n1. Mathematics\n2. Science\n3. English Language Arts\n4. Social Studies\n\n`
+  }
+  
+  if (!grade) {
+    prompt += `**Grade Level Options:**\n1. Elementary (Grades 3-5)\n2. Middle School (Grades 6-8)\n3. High School (Grades 9-12)\n\n`
+  }
+  
+  if (!examType) {
+    prompt += `**Exam Type Options:**\n1. Quiz (10-15 questions, 20-30 minutes)\n2. Mid-term Exam (20-30 questions, 60-90 minutes)\n3. Final Exam (30-50 questions, 90-120 minutes)\n4. Practice Test (15-25 questions, 45-60 minutes)\n\n`
+  }
+  
+  if (!totalQuestions) {
+    prompt += `**Suggested Question Count:**\nBased on the exam type, I recommend:\n- Quiz: 10-15 questions\n- Mid-term: 20-30 questions\n- Final: 30-50 questions\n- Practice: 15-25 questions\n\n`
+  }
+  
+  prompt += `**Please respond with:**\n`
+  prompt += `1. Your recommendations for the missing information\n`
+  prompt += `2. A brief explanation of why these choices work well together\n`
+  prompt += `3. Ask me to confirm before generating the exam\n\n`
+  
+  prompt += `**Example response format:**\n`
+  prompt += `"Based on your requirements, I suggest:\n`
+  prompt += `- Subject: Mathematics\n`
+  prompt += `- Grade Level: Grade 8\n`
+  prompt += `- Exam Type: Mid-term Exam\n`
+  prompt += `- Total Questions: 25 questions\n\n`
+  prompt += `This combination will create a comprehensive assessment covering algebra, geometry, and problem-solving skills appropriate for 8th graders.\n\n`
+  prompt += `Shall I proceed with generating the exam with these specifications? Please confirm or let me know if you'd like to adjust anything."\n\n`
+  
+  prompt += `**Important:** Do NOT generate the exam yet. Just provide suggestions and wait for my confirmation.\n`
+  
+  return prompt
+}
+
+function generateExamCreationPrompt(subject, grade, examType, totalQuestions) {
+  let prompt = `# Generate Complete Exam - CONFIRMED\n\n`
+  prompt += `Generate a complete, well-structured exam with the following specifications:\n\n`
+  
+  prompt += `## Exam Specifications:\n`
+  prompt += `- Subject: ${subject}\n`
+  prompt += `- Grade Level: ${grade}\n`
+  prompt += `- Exam Type: ${examType}\n`
+  prompt += `- Total Questions: ${totalQuestions} questions\n\n`
+  
+  prompt += `## Structure Requirements:\n\n`
+  prompt += `### 1. Create Logical Sections\n`
+  prompt += `- Divide questions into 3-5 sections\n`
+  prompt += `- Each section should focus on a specific skill or topic\n`
+  prompt += `- Examples: "Section 1: Multiple Choice", "Section 2: Short Answer", "Section 3: Problem Solving"\n`
+  prompt += `- Include brief instructions for each section\n\n`
+  
+  prompt += `### 2. Question Distribution\n`
+  prompt += `- Mix question types across sections:\n`
+  prompt += `  - multiple_choice: 40-50% of questions\n`
+  prompt += `  - short_answer: 30-40% of questions\n`
+  prompt += `  - true_false: 10-20% of questions\n`
+  prompt += `- Vary difficulty: 30% easy, 50% medium, 20% hard\n`
+  prompt += `- Assign appropriate marks: easy (1-2), medium (2-3), hard (3-5)\n\n`
+  
+  prompt += `### 3. Content Requirements\n`
+  prompt += `- Use LaTeX for mathematical expressions: $\\frac{3}{4}$, $x^2$, $\\sqrt{16}$\n`
+  prompt += `- Multiple choice must have 4 options (A, B, C, D)\n`
+  prompt += `- Include correct_answer for each question\n`
+  prompt += `- Add explanation for complex questions\n`
+  prompt += `- Make content age-appropriate for ${grade}\n\n`
+  
+  prompt += `## JSON Output Format:\n\n`
+  prompt += `Return ONLY a valid JSON array of questions (no additional text):\n\n`
+  prompt += `\`\`\`json\n`
+  prompt += `[\n`
+  prompt += `  {\n`
+  prompt += `    "id": 1,\n`
+  prompt += `    "type": "multiple_choice",\n`
+  prompt += `    "marks": 2,\n`
+  prompt += `    "section": "Section 1: Multiple Choice",\n`
+  prompt += `    "content": {\n`
+  prompt += `      "prompt": "What is $2 + 2$?",\n`
+  prompt += `      "options": [\n`
+  prompt += `        "A) 3",\n`
+  prompt += `        "B) 4",\n`
+  prompt += `        "C) 5",\n`
+  prompt += `        "D) 6"\n`
+  prompt += `      ],\n`
+  prompt += `      "correct_answer": "B) 4",\n`
+  prompt += `      "explanation": "Basic addition: 2 + 2 = 4"\n`
+  prompt += `    }\n`
+  prompt += `  },\n`
+  prompt += `  {\n`
+  prompt += `    "id": 2,\n`
+  prompt += `    "type": "short_answer",\n`
+  prompt += `    "marks": 3,\n`
+  prompt += `    "section": "Section 2: Short Answer",\n`
+  prompt += `    "content": {\n`
+  prompt += `      "prompt": "Solve for x: $x + 5 = 12$",\n`
+  prompt += `      "correct_answer": "x = 7",\n`
+  prompt += `      "explanation": "Subtract 5 from both sides: x = 12 - 5 = 7"\n`
+  prompt += `    }\n`
+  prompt += `  },\n`
+  prompt += `  {\n`
+  prompt += `    "id": 3,\n`
+  prompt += `    "type": "true_false",\n`
+  prompt += `    "marks": 1,\n`
+  prompt += `    "section": "Section 3: True or False",\n`
+  prompt += `    "content": {\n`
+  prompt += `      "prompt": "The sum of angles in a triangle is 180 degrees.",\n`
+  prompt += `      "correct_answer": "True",\n`
+  prompt += `      "explanation": "This is a fundamental property of triangles."\n`
+  prompt += `    }\n`
+  prompt += `  }\n`
+  prompt += `]\n`
+  prompt += `\`\`\`\n\n`
+  
+  prompt += `## Critical Requirements:\n`
+  prompt += `- Return ONLY the JSON array (no text before or after)\n`
+  prompt += `- Do NOT include citations like [cite: 219]\n`
+  prompt += `- Ensure all LaTeX syntax is correct\n`
+  prompt += `- All questions must have sequential IDs (1, 2, 3, ...)\n`
+  prompt += `- Include "section" field for each question\n`
+  prompt += `- Validate JSON before returning\n`
+  prompt += `- Generate exactly ${totalQuestions} questions\n`
+  
+  return prompt
 }
 
 async function loadPageState() {
@@ -3016,6 +3738,7 @@ async function handleSaveAs(fileName) {
     const data = {
       name: fileName,
       questions: sampleQuestions.value,
+      component_version: COMPONENT_VERSION,
       settings: {
         examTitle: pageOptions.value.examTitle,
         showMarksPerQuestion: pageOptions.value.showMarksPerQuestion,
@@ -3083,6 +3806,7 @@ async function handleSaveExam() {
     const data = {
       name: examTitle,
       questions: sampleQuestions.value,
+      component_version: COMPONENT_VERSION,
       settings: {
         examTitle: pageOptions.value.examTitle,
         showMarksPerQuestion: pageOptions.value.showMarksPerQuestion,
@@ -3700,6 +4424,25 @@ function generatePrompt() {
   prompt += `\n\`\`\``
 
   generatedPrompt.value = prompt
+}
+
+function formatQuestionType(type) {
+  const typeMap = {
+    'short_answer': 'Short Answer',
+    'multiple_choice': 'Multiple Choice',
+    'true_false': 'True/False',
+    'mixed': 'Mixed Types'
+  }
+  return typeMap[type] || type
+}
+
+function showGenerationPreview() {
+  showPreviewDialog.value = true
+}
+
+function confirmAndGeneratePrompt() {
+  showPreviewDialog.value = false
+  generatePrompt()
 }
 
 function copyPrompt() {
@@ -4335,17 +5078,72 @@ function validateAndPreview() {
       return
     }
     
-    let questions = null
+    let parsedData = null
     try {
-      questions = JSON.parse(cleanedResponse)
+      parsedData = JSON.parse(cleanedResponse)
     } catch (parseError) {
       $q.notify({ type: 'negative', message: 'Invalid JSON format: ' + parseError.message, position: 'top' })
       return
     }
 
-    const questionsArray = Array.isArray(questions) ? questions : questions?.questions
-    if (!questionsArray) {
-      $q.notify({ type: 'negative', message: 'Invalid JSON format: expected an array of questions.', position: 'top' })
+    // Handle different JSON structures
+    let questionsArray = null
+    
+    // Case 1: Direct array [{...}, {...}]
+    if (Array.isArray(parsedData)) {
+      questionsArray = parsedData
+    }
+    // Case 2: Object with questions property {questions: [...]}
+    else if (parsedData?.questions && Array.isArray(parsedData.questions)) {
+      questionsArray = parsedData.questions
+    }
+    // Case 3: Array of sections [{section: "...", questions: [...]}, ...]
+    else if (Array.isArray(parsedData) && parsedData[0]?.questions) {
+      questionsArray = []
+      parsedData.forEach(sectionData => {
+        if (sectionData.questions && Array.isArray(sectionData.questions)) {
+          // Add section info to each question
+          const sectionName = sectionData.section || 'Unnamed Section'
+          sectionData.questions.forEach(q => {
+            questionsArray.push({
+              ...q,
+              section: q.section || sectionName
+            })
+          })
+        }
+      })
+    }
+    // Case 4: Single section object {section: "...", questions: [...]}
+    else if (parsedData?.section && parsedData?.questions && Array.isArray(parsedData.questions)) {
+      const sectionName = parsedData.section
+      questionsArray = parsedData.questions.map(q => ({
+        ...q,
+        section: q.section || sectionName
+      }))
+    }
+    // Case 5: Object with sections array {exam_info: {...}, sections: [{questions: [...]}, ...]}
+    else if (parsedData?.sections && Array.isArray(parsedData.sections)) {
+      questionsArray = []
+      parsedData.sections.forEach(section => {
+        if (section.questions && Array.isArray(section.questions)) {
+          const sectionName = section.title || section.section || 'Unnamed Section'
+          section.questions.forEach(q => {
+            questionsArray.push({
+              ...q,
+              section: q.section || sectionName
+            })
+          })
+        }
+      })
+    }
+    
+    if (!questionsArray || questionsArray.length === 0) {
+      $q.notify({ 
+        type: 'negative', 
+        message: 'Invalid JSON format: could not find questions array. Expected format: [{id, type, marks, content}] or {questions: [...]} or {section: "...", questions: [...]}', 
+        position: 'top',
+        timeout: 5000
+      })
       return
     }
     
@@ -4366,7 +5164,18 @@ function validateAndPreview() {
     
     // Show success message
     if (selectedQuestions.value.length > 0) {
-      console.log(`Successfully parsed ${selectedQuestions.value.length} valid questions`)
+      $q.notify({ 
+        type: 'positive', 
+        message: `Successfully parsed ${selectedQuestions.value.length} valid questions`, 
+        position: 'top' 
+      })
+    } else {
+      $q.notify({ 
+        type: 'warning', 
+        message: `Parsed ${parsedQuestions.value.length} questions but none are valid. Check the preview for errors.`, 
+        position: 'top',
+        timeout: 5000
+      })
     }
   } catch (error) {
     console.error('Error:', error)
@@ -4835,16 +5644,21 @@ scriptContent += "console.log('[PAGE NUMBER DEBUG] injectAbsolutePageNumbers - p
 scriptContent += "var fontPt = " + pageNumberFontSize + ";";
 scriptContent += "var color = '" + pageNumberColor + "';";
 scriptContent += "var pageHeightPx = mmToPx(297 - 24);";
+scriptContent += "console.log('[PAGE NUMBER DEBUG] pageHeightPx:', pageHeightPx);";
 scriptContent += "var leftPadPx = mmToPx(12);";
 scriptContent += "var rightPadPx = mmToPx(12);";
 scriptContent += "var edgePadPx = mmToPx(6);";
 scriptContent += "var pageBreaks = document.querySelectorAll('.page-break');";
 scriptContent += "var pagePositions = [0];";
+scriptContent += "console.log('[PAGE NUMBER DEBUG] Found', pageBreaks.length, 'explicit page breaks');";
 scriptContent += "for (var i = 0; i < pageBreaks.length; i++) {";
 scriptContent += "var rect = pageBreaks[i].getBoundingClientRect();";
 scriptContent += "var scrollTop = window.pageYOffset || document.documentElement.scrollTop;";
-scriptContent += "pagePositions.push(rect.top + scrollTop);";
+scriptContent += "var breakPos = rect.top + scrollTop;";
+scriptContent += "pagePositions.push(breakPos);";
+scriptContent += "console.log('[PAGE NUMBER DEBUG] Page break', i, 'at position:', breakPos);";
 scriptContent += "}";
+scriptContent += "console.log('[PAGE NUMBER DEBUG] Page positions array:', pagePositions);";
 scriptContent += "console.log('[PAGE NUMBER DEBUG] Creating page numbers for', totalPages, 'pages');";
 scriptContent += "for (var p = 1; p <= totalPages; p++) {";
 scriptContent += "var el = document.createElement('div');";
@@ -4855,14 +5669,18 @@ scriptContent += "console.log('[PAGE NUMBER DEBUG] Page', p, 'text:', pageText);
 scriptContent += "el.style.fontSize = fontPt + 'pt';";
 scriptContent += "el.style.color = color;";
 scriptContent += "el.style.position = 'absolute';";
-scriptContent += "var pageTop = pagePositions[p - 1] || ((p - 1) * pageHeightPx);";
-scriptContent += "var pageBottom = pagePositions[p] || (p * pageHeightPx);";
+scriptContent += "var pageTop = (p - 1) * pageHeightPx;";
+scriptContent += "var pageBottom = p * pageHeightPx;";
 scriptContent += "var bottomMarginPx = mmToPx(12);";
+scriptContent += "var fontHeightPx = Math.ceil(fontPt * 1.6);";
+scriptContent += "console.log('[PAGE NUMBER DEBUG] Page', p, 'positioning - pageTop:', pageTop, 'pageBottom:', pageBottom, 'pageHeightPx:', pageHeightPx);";
 scriptContent += "if (pos.indexOf('top') === 0) {";
 scriptContent += "el.style.top = (pageTop + edgePadPx) + 'px';";
+scriptContent += "console.log('[PAGE NUMBER DEBUG] Top position:', (pageTop + edgePadPx) + 'px');";
 scriptContent += "} else {";
-scriptContent += "var bottomPos = pageBottom - bottomMarginPx + edgePadPx;";
+scriptContent += "var bottomPos = pageBottom - fontHeightPx - edgePadPx;";
 scriptContent += "el.style.top = bottomPos + 'px';";
+scriptContent += "console.log('[PAGE NUMBER DEBUG] Bottom position:', bottomPos + 'px', '(pageBottom:', pageBottom, '- fontHeight:', fontHeightPx, '- edgePad:', edgePadPx, ')');";
 scriptContent += "}";
 scriptContent += "if (pos.indexOf('left') !== -1) {";
 scriptContent += "el.style.left = leftPadPx + 'px';";

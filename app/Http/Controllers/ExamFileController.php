@@ -7,11 +7,13 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Dompdf\Dompdf;
 use Dompdf\Options;
+use App\Models\Exam;
+use App\Models\ExamQuestion;
 
 class ExamFileController extends Controller
 {
     /**
-     * Save exam data (JSON) and generate cached HTML ggggggggggg
+     * Save exam data to database
      */
     public function saveExam(Request $request)
     {
@@ -22,6 +24,7 @@ class ExamFileController extends Controller
             'sections' => 'nullable|array',
             'questionSectionMap' => 'nullable|array',
             'pageBreaks' => 'nullable|array',
+            'component_version' => 'nullable|string',
         ]);
 
         // Debug logging
@@ -33,39 +36,50 @@ class ExamFileController extends Controller
         ]);
 
         $userId = Auth::id();
-        $examId = uniqid('exam_', true);
-        $timestamp = now()->format('Y-m-d_H-i-s');
 
-        // Create user directory if it doesn't exist
-        $userDir = "exams/{$userId}";
-        if (!Storage::exists($userDir)) {
-            Storage::makeDirectory($userDir);
+        // Create or update exam
+        $exam = Exam::updateOrCreate(
+            [
+                'user_id' => $userId,
+                'slug' => $request->input('exam_id') ?? null,
+            ],
+            [
+                'name' => $validated['name'],
+                'slug' => $request->input('exam_id') ?? uniqid('exam_', true),
+                'component_version' => $validated['component_version'] ?? null,
+                'settings' => $validated['settings'],
+                'metadata' => [
+                    'sections' => $validated['sections'] ?? [],
+                    'questionSectionMap' => $validated['questionSectionMap'] ?? [],
+                    'pageBreaks' => $validated['pageBreaks'] ?? [],
+                ],
+            ]
+        );
+
+        // Delete existing questions for this exam
+        ExamQuestion::where('exam_id', $exam->id)->delete();
+
+        // Create questions
+        foreach ($validated['questions'] as $index => $question) {
+            ExamQuestion::create([
+                'exam_id' => $exam->id,
+                'order' => $index,
+                'type' => $question['type'] ?? null,
+                'marks' => $question['marks'] ?? 1,
+                'section' => $question['section'] ?? null,
+                'content' => $question['content'] ?? [],
+                'options' => $question['options'] ?? null,
+                'correct_answer' => $question['correct_answer'] ?? null,
+                'explanation' => $question['explanation'] ?? null,
+                'metadata' => [
+                    'id' => $question['id'] ?? null,
+                ],
+            ]);
         }
-
-        // Save JSON data
-        $jsonData = [
-            'id' => $examId,
-            'name' => $validated['name'],
-            'created_at' => now()->toISOString(),
-            'updated_at' => now()->toISOString(),
-            'questions' => $validated['questions'],
-            'settings' => $validated['settings'],
-            'sections' => $validated['sections'] ?? [],
-            'questionSectionMap' => $validated['questionSectionMap'] ?? [],
-            'pageBreaks' => $validated['pageBreaks'] ?? [],
-        ];
-
-        $jsonPath = "{$userDir}/{$examId}.json";
-        Storage::put($jsonPath, json_encode($jsonData, JSON_PRETTY_PRINT));
-
-        // Generate and cache HTML
-        $htmlContent = $this->generatePrintHtml($jsonData);
-        $htmlPath = "{$userDir}/{$examId}.html";
-        Storage::put($htmlPath, $htmlContent);
 
         return response()->json([
             'success' => true,
-            'exam_id' => $examId,
+            'exam_id' => $exam->slug,
             'message' => 'Exam saved successfully'
         ]);
     }
@@ -76,58 +90,63 @@ class ExamFileController extends Controller
     public function listSavedExams(Request $request)
     {
         $userId = Auth::id();
-        $userDir = "exams/{$userId}";
 
-        if (!Storage::exists($userDir)) {
-            return response()->json(['files' => []]);
-        }
-
-        $files = Storage::files($userDir);
-        $exams = [];
-
-        foreach ($files as $file) {
-            if (str_ends_with($file, '.json')) {
-                $content = Storage::get($file);
-                $data = json_decode($content, true);
-
-                if ($data) {
-                    $exams[] = [
-                        'id' => $data['id'],
-                        'name' => $data['name'],
-                        'created_at' => $data['created_at'],
-                        'updated_at' => $data['updated_at'],
-                        'questions_count' => count($data['questions'] ?? []),
-                    ];
-                }
-            }
-        }
-
-        // Sort by created date descending
-        usort($exams, function ($a, $b) {
-            return strtotime($b['created_at']) - strtotime($a['created_at']);
-        });
+        $exams = Exam::where('user_id', $userId)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($exam) {
+                return [
+                    'id' => $exam->slug,
+                    'name' => $exam->name,
+                    'created_at' => $exam->created_at->toISOString(),
+                    'updated_at' => $exam->updated_at->toISOString(),
+                    'questions_count' => $exam->questions()->count(),
+                ];
+            });
 
         return response()->json(['files' => $exams]);
     }
 
     /**
-     * Load saved exam data (JSON)
+     * Load saved exam data from database
      */
     public function loadSavedExam($examId)
     {
         $userId = Auth::id();
-        $jsonPath = "exams/{$userId}/{$examId}.json";
 
-        if (!Storage::exists($jsonPath)) {
+        $exam = Exam::where('user_id', $userId)
+            ->where('slug', $examId)
+            ->first();
+
+        if (!$exam) {
             return response()->json(['message' => 'Exam not found'], 404);
         }
 
-        $content = Storage::get($jsonPath);
-        $data = json_decode($content, true);
+        // Convert database model to JSON format compatible with frontend
+        $questions = $exam->questions->map(function ($question) {
+            return [
+                'id' => $question->metadata['id'] ?? $question->id,
+                'type' => $question->type,
+                'marks' => $question->marks,
+                'section' => $question->section,
+                'content' => $question->content,
+                'options' => $question->options,
+                'correct_answer' => $question->correct_answer,
+                'explanation' => $question->explanation,
+            ];
+        })->toArray();
 
-        if (!$data) {
-            return response()->json(['message' => 'Failed to parse exam data'], 500);
-        }
+        $data = [
+            'id' => $exam->slug,
+            'name' => $exam->name,
+            'created_at' => $exam->created_at->toISOString(),
+            'updated_at' => $exam->updated_at->toISOString(),
+            'questions' => $questions,
+            'settings' => $exam->settings,
+            'sections' => $exam->metadata['sections'] ?? [],
+            'questionSectionMap' => $exam->metadata['questionSectionMap'] ?? [],
+            'pageBreaks' => $exam->metadata['pageBreaks'] ?? [],
+        ];
 
         return response()->json([
             'success' => true,
@@ -136,32 +155,47 @@ class ExamFileController extends Controller
     }
 
     /**
-     * Get cached print HTML for an exam
+     * Get print HTML for an exam (generated on the fly)
      */
     public function getPrintHtml($examId)
     {
         $userId = Auth::id();
-        $htmlPath = "exams/{$userId}/{$examId}.html";
 
-        if (!Storage::exists($htmlPath)) {
-            // If HTML doesn't exist, regenerate from JSON
-            $jsonPath = "exams/{$userId}/{$examId}.json";
-            if (!Storage::exists($jsonPath)) {
-                return response()->json(['message' => 'Exam not found'], 404);
-            }
+        $exam = Exam::where('user_id', $userId)
+            ->where('slug', $examId)
+            ->first();
 
-            $content = Storage::get($jsonPath);
-            $data = json_decode($content, true);
-
-            if (!$data) {
-                return response()->json(['message' => 'Failed to parse exam data'], 500);
-            }
-
-            $htmlContent = $this->generatePrintHtml($data);
-            Storage::put($htmlPath, $htmlContent);
-        } else {
-            $htmlContent = Storage::get($htmlPath);
+        if (!$exam) {
+            return response()->json(['message' => 'Exam not found'], 404);
         }
+
+        // Convert database model to JSON format
+        $questions = $exam->questions->map(function ($question) {
+            return [
+                'id' => $question->metadata['id'] ?? $question->id,
+                'type' => $question->type,
+                'marks' => $question->marks,
+                'section' => $question->section,
+                'content' => $question->content,
+                'options' => $question->options,
+                'correct_answer' => $question->correct_answer,
+                'explanation' => $question->explanation,
+            ];
+        })->toArray();
+
+        $data = [
+            'id' => $exam->slug,
+            'name' => $exam->name,
+            'created_at' => $exam->created_at->toISOString(),
+            'updated_at' => $exam->updated_at->toISOString(),
+            'questions' => $questions,
+            'settings' => $exam->settings,
+            'sections' => $exam->metadata['sections'] ?? [],
+            'questionSectionMap' => $exam->metadata['questionSectionMap'] ?? [],
+            'pageBreaks' => $exam->metadata['pageBreaks'] ?? [],
+        ];
+
+        $htmlContent = $this->generatePrintHtml($data);
 
         return response($htmlContent)
             ->header('Content-Type', 'text/html');
@@ -178,18 +212,40 @@ class ExamFileController extends Controller
             set_time_limit(300);
 
             $userId = Auth::id();
-            $jsonPath = "exams/{$userId}/{$examId}.json";
 
-            if (!Storage::exists($jsonPath)) {
+            $exam = Exam::where('user_id', $userId)
+                ->where('slug', $examId)
+                ->first();
+
+            if (!$exam) {
                 return response()->json(['message' => 'Exam not found'], 404);
             }
 
-            $content = Storage::get($jsonPath);
-            $data = json_decode($content, true);
+            // Convert database model to JSON format
+            $questions = $exam->questions->map(function ($question) {
+                return [
+                    'id' => $question->metadata['id'] ?? $question->id,
+                    'type' => $question->type,
+                    'marks' => $question->marks,
+                    'section' => $question->section,
+                    'content' => $question->content,
+                    'options' => $question->options,
+                    'correct_answer' => $question->correct_answer,
+                    'explanation' => $question->explanation,
+                ];
+            })->toArray();
 
-            if (!$data) {
-                return response()->json(['message' => 'Failed to parse exam data'], 500);
-            }
+            $data = [
+                'id' => $exam->slug,
+                'name' => $exam->name,
+                'created_at' => $exam->created_at->toISOString(),
+                'updated_at' => $exam->updated_at->toISOString(),
+                'questions' => $questions,
+                'settings' => $exam->settings,
+                'sections' => $exam->metadata['sections'] ?? [],
+                'questionSectionMap' => $exam->metadata['questionSectionMap'] ?? [],
+                'pageBreaks' => $exam->metadata['pageBreaks'] ?? [],
+            ];
 
             // Generate HTML
             $htmlContent = $this->generatePrintHtml($data);
@@ -233,16 +289,43 @@ class ExamFileController extends Controller
             
             // Fallback: Return HTML for browser print-to-PDF
             try {
-                $userId = Auth::id();
-                $jsonPath = "exams/{$userId}/{$examId}.json";
-                $content = Storage::get($jsonPath);
-                $data = json_decode($content, true);
-                $htmlContent = $this->generatePrintHtml($data);
-                
-                return response($htmlContent, 200, [
-                    'Content-Type' => 'text/html',
-                    'X-PDF-Fallback' => 'true',
-                ]);
+                $exam = Exam::where('user_id', $userId)
+                    ->where('slug', $examId)
+                    ->first();
+
+                if ($exam) {
+                    $questions = $exam->questions->map(function ($question) {
+                        return [
+                            'id' => $question->metadata['id'] ?? $question->id,
+                            'type' => $question->type,
+                            'marks' => $question->marks,
+                            'section' => $question->section,
+                            'content' => $question->content,
+                            'options' => $question->options,
+                            'correct_answer' => $question->correct_answer,
+                            'explanation' => $question->explanation,
+                        ];
+                    })->toArray();
+
+                    $data = [
+                        'id' => $exam->slug,
+                        'name' => $exam->name,
+                        'created_at' => $exam->created_at->toISOString(),
+                        'updated_at' => $exam->updated_at->toISOString(),
+                        'questions' => $questions,
+                        'settings' => $exam->settings,
+                        'sections' => $exam->metadata['sections'] ?? [],
+                        'questionSectionMap' => $exam->metadata['questionSectionMap'] ?? [],
+                        'pageBreaks' => $exam->metadata['pageBreaks'] ?? [],
+                    ];
+
+                    $htmlContent = $this->generatePrintHtml($data);
+                    
+                    return response($htmlContent, 200, [
+                        'Content-Type' => 'text/html',
+                        'X-PDF-Fallback' => 'true',
+                    ]);
+                }
             } catch (\Exception $fallbackError) {
                 return response()->json([
                     'message' => 'PDF generation failed: ' . $e->getMessage()
@@ -276,29 +359,22 @@ class ExamFileController extends Controller
     }
 
     /**
-     * Delete saved exam (both JSON and HTML)
+     * Delete saved exam from database
      */
     public function deleteSavedExam($examId)
     {
         $userId = Auth::id();
-        $jsonPath = "exams/{$userId}/{$examId}.json";
-        $htmlPath = "exams/{$userId}/{$examId}.html";
 
-        $deleted = false;
+        $exam = Exam::where('user_id', $userId)
+            ->where('slug', $examId)
+            ->first();
 
-        if (Storage::exists($jsonPath)) {
-            Storage::delete($jsonPath);
-            $deleted = true;
-        }
-
-        if (Storage::exists($htmlPath)) {
-            Storage::delete($htmlPath);
-            $deleted = true;
-        }
-
-        if (!$deleted) {
+        if (!$exam) {
             return response()->json(['message' => 'Exam not found'], 404);
         }
+
+        // Questions will be deleted automatically due to cascade delete
+        $exam->delete();
 
         return response()->json([
             'success' => true,
