@@ -20,52 +20,18 @@ Route::get('/my-fly-schedule-app/ver7', function () {
     return Inertia::render('MicroComponentTest/mytable/MyTableSchedule/v7/ScheduleAppV7');
 })->middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->name('schedule.app.v7');
 
-// PWA Manifest (authenticated)
+// PWA Manifest (public - no auth required for PWA installation)
 Route::get('/my-fly-schedule-app/v7/manifest.webmanifest', function () {
-    $user = Auth::user();
-    $manifest = [
-        'name' => 'My Schedule App V7',
-        'short_name' => 'Schedule V7',
-        'description' => 'Authenticated schedule app with cloud storage and real-time sync.',
-        'id' => '/my-fly-schedule-app/ver7',
-        'start_url' => '/my-fly-schedule-app/ver7',
-        'scope' => '/my-fly-schedule-app/ver7',
-        'display' => 'standalone',
-        'background_color' => '#1e293b',
-        'theme_color' => '#3b82f6',
-        'orientation' => 'portrait-primary',
-        'categories' => ['productivity', 'education', 'utilities'],
-        'icons' => [
-            [
-                'src' => '/my-fly-schedule-app/v7/icon.png',
-                'sizes' => '512x512',
-                'type' => 'image/png',
-                'purpose' => 'any maskable',
-            ],
-        ],
-        'shortcuts' => [
-            [
-                'name' => 'My Schedule',
-                'short_name' => 'Schedule',
-                'description' => 'View your personal schedule',
-                'url' => '/my-fly-schedule-app/ver7',
-                'icons' => [
-                    [
-                        'src' => '/my-fly-schedule-app/v7/icon.png',
-                        'sizes' => '512x512',
-                        'type' => 'image/png',
-                    ],
-                ],
-            ],
-        ],
-    ];
-
-    return response()->json($manifest)
+    $manifestPath = public_path('my-fly-schedule-app/v7/manifest.webmanifest');
+    if (!file_exists($manifestPath)) {
+        abort(404);
+    }
+    return response()->file($manifestPath)
         ->header('Content-Type', 'application/manifest+json')
         ->header('Cache-Control', 'public, max-age=86400');
-})->name('schedule.app.v7.manifest');
+})->withoutMiddleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->name('schedule.app.v7.manifest');
 
-// App Icon (authenticated)
+// App Icon (public - no auth required for PWA)
 Route::get('/my-fly-schedule-app/v7/icon.png', function () {
     $iconPath = public_path('my-fly-schedule-app/v7/icon.png');
     if (!file_exists($iconPath)) {
@@ -74,10 +40,9 @@ Route::get('/my-fly-schedule-app/v7/icon.png', function () {
     if (!file_exists($iconPath)) {
         abort(404);
     }
-
     return response()->file($iconPath)
         ->header('Cache-Control', 'public, max-age=86400');
-})->name('schedule.app.v7.icon');
+})->withoutMiddleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->name('schedule.app.v7.icon');
 
 // Service Worker (authenticated)
 Route::get('/my-fly-schedule-app/v7-sw.js', function () {

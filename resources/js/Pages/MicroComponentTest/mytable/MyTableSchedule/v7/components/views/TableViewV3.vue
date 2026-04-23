@@ -4,7 +4,7 @@
       <table class="schedule-table-v3">
         <thead>
           <tr>
-            <th class="header-period fixed-col">Period</th>
+            <th class="header-period" :class="{ 'fixed-col': visibleDays.length > 1 }">Period</th>
             <th
               v-for="day in visibleDays"
               :key="day.dayIndex"
@@ -26,7 +26,7 @@
             class="period-row"
             :class="{ 'break-row': slot.type === 'break', 'current-period-row': isCurrentPeriod(slot) }"
           >
-            <td class="period-cell fixed-col" :class="{ 'break-cell': slot.type === 'break', 'current-period-cell': isCurrentPeriod(slot) }">
+            <td class="period-cell" :class="{ 'fixed-col': visibleDays.length > 1, 'break-cell': slot.type === 'break', 'current-period-cell': isCurrentPeriod(slot) }">
               <div class="period-info">
                 <span class="period-title">{{ slot.title }}</span>
                 <span class="time-range">{{ slot.start }} - {{ slot.end }}</span>
