@@ -385,6 +385,7 @@ onUnmounted(() => {
 
 .header-day {
   min-width: 120px;
+  max-width: 150px;
   background: #f8fafc;
   border-bottom: 2px solid #e2e8f0;
   padding: 0.5rem;
@@ -479,6 +480,8 @@ onUnmounted(() => {
   vertical-align: middle;
   position: relative;
   transition: all 0.2s;
+  min-width: 120px;
+  max-width: 150px;
 }
 
 .subject-cell:last-child {

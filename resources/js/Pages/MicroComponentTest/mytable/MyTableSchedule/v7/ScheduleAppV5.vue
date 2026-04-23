@@ -1,17 +1,17 @@
 <template>
   <Head>
-    <title>My Schedule App V5</title>
-    <meta name="description" content="Schedule App V5 — offline-first, view-only main app, all settings from menu.">
+    <title>My Schedule App V7</title>
+    <meta name="description" content="Schedule App V7 — offline-first, view-only main app, all settings from menu.">
     <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="manifest" :href="manifestHref">
-    <link rel="icon" href="/my-fly-schedule-app/v5/icon.png" type="image/png">
-    <link rel="apple-touch-icon" href="/my-fly-schedule-app/v5/icon.png">
+    <link rel="icon" href="/my-fly-schedule-app/v7/icon.png" type="image/png">
+    <link rel="apple-touch-icon" href="/my-fly-schedule-app/v7/icon.png">
   </Head>
 
-  <div class="schedule-app-v5">
+  <div class="schedule-app-v7">
     <AppHeader
       :show-menu="showMenu"
       :can-install="canInstall"
@@ -57,7 +57,7 @@ const store = createAppStore();
 provideAppStore(store);
 
 // ── PWA state ──
-const manifestHref = '/my-fly-schedule-app/v5/manifest.webmanifest';
+const manifestHref = '/my-fly-schedule-app/v7/manifest.webmanifest';
 const canInstall = ref(false);
 const isInstalled = ref(false);
 let deferredPrompt = null;
@@ -109,14 +109,14 @@ onMounted(async () => {
   }
 
   // Register service worker
-  if ('serviceWorker' in navigator && window.location.pathname.startsWith('/my-fly-schedule-app/v5')) {
+  if ('serviceWorker' in navigator && window.location.pathname.startsWith('/my-fly-schedule-app/ver7')) {
     try {
-      const reg = await navigator.serviceWorker.register('/my-fly-schedule-app-v5-sw.js', {
-        scope: '/my-fly-schedule-app/v5'
+      const reg = await navigator.serviceWorker.register('/my-fly-schedule-app-v7-sw.js', {
+        scope: '/my-fly-schedule-app/ver7'
       });
-      console.log('[V5 SW] Registered:', reg.scope);
+      console.log('[V7 SW] Registered:', reg.scope);
     } catch (e) {
-      console.warn('[V5 SW] Registration failed:', e);
+      console.warn('[V7 SW] Registration failed:', e);
     }
   }
 });
@@ -129,7 +129,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.schedule-app-v5 {
+.schedule-app-v7 {
   min-height: 100vh;
   background: #f8fafc;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -192,7 +192,7 @@ onUnmounted(() => {
 }
 
 @media (prefers-color-scheme: dark) {
-  .schedule-app-v5 {
+  .schedule-app-v7 {
     background: #0f172a;
     color: #f1f5f9;
   }

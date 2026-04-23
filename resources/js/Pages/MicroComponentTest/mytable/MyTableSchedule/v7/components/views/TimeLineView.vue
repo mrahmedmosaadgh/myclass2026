@@ -19,7 +19,6 @@
       <div class="control-group">
         <label class="control-label">Day:</label>
         <select v-model="selectedDay" class="day-select">
-          <option value="today">Today</option>
           <option value="d1">Monday</option>
           <option value="d2">Tuesday</option>
           <option value="d3">Wednesday</option>
@@ -186,10 +185,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, inject } from 'vue';
 import { useAppStore } from '../../composables/useAppStore.js';
-import { useTimingResolver } from '../../composables/useTimingResolver.js';
-import defaultTimingData from '../../schedule_timing.json';
 
 // Color schemes from TableViewV2
 const colorSchemes = {
@@ -206,6 +203,7 @@ const props = defineProps({
 });
 
 const store = useAppStore();
+const resolvedTimeSlots = inject('resolvedTimeSlots');
 
 // Color system from TableViewV2
 const currentColorScheme = computed(() => colorSchemes.default);
@@ -262,7 +260,6 @@ const getSubjectColor = (subject) => {
 
 // State
 const selectedStages = ref(['prim', 'middle', 'sec']); // Default to all stages selected
-const selectedDay = ref('today');
 const currentTimeDisplay = ref('');
 const timelineGrid = ref(null);
 let timeUpdateInterval = null;
@@ -296,16 +293,14 @@ const displayStages = computed(() => {
   return allStages.filter(stage => selectedStages.value.includes(stage.id));
 });
 
-// Create timing resolver for the timeline
-const { resolvedTimeSlots } = useTimingResolver(
-  computed(() => store.timingsConfig),
-  computed(() => 'prim'), // Use primary timing as fallback
-  computed(() => selectedDay.value === 'today' ? getTodayDayId() : selectedDay.value),
-  defaultTimingData
-);
+// Use store's selectedDay as writable computed for v-model
+const selectedDay = computed({
+  get: () => store.selectedDay.value,
+  set: (value) => store.setSelectedDay(value)
+});
 
 const timeSlots = computed(() => {
-  return resolvedTimeSlots.value || [];
+  return resolvedTimeSlots?.value || [];
 });
 
 // Generate hours for the timeline (6:00 to 22:00)
@@ -340,9 +335,6 @@ const getTodayDayId = () => {
 };
 
 const getDayLabel = (dayId) => {
-  if (dayId === 'today') {
-    dayId = getTodayDayId();
-  }
   const dayLabels = {
     d1: 'Monday',
     d2: 'Tuesday',
@@ -360,18 +352,17 @@ const getDayIndexFromId = (dayId) => {
 };
 
 const getActualDayId = () => {
-  return selectedDay.value === 'today' ? getTodayDayId() : selectedDay.value;
+  return selectedDay.value;
 };
 
 const getPeriodTitle = (timeSlot, stageId, dayId) => {
-  const actualDayId = dayId === 'today' ? getTodayDayId() : dayId;
   const scheduleData = store.scheduleData.value;
   
   if (!Array.isArray(scheduleData)) {
     return `${timeSlot.title} from ${timeSlot.start} to ${timeSlot.end}`;
   }
   
-  const daySchedule = scheduleData.find(item => item.day === actualDayId || item.dayIndex === getDayIndexFromId(actualDayId));
+  const daySchedule = scheduleData.find(item => item.day === dayId || item.dayIndex === getDayIndexFromId(dayId));
   
   let subjectInfo = '';
   if (daySchedule && daySchedule.classes) {
@@ -385,14 +376,13 @@ const getPeriodTitle = (timeSlot, stageId, dayId) => {
 };
 
 const getPeriodSubject = (timeSlot, stageId, dayId) => {
-  const actualDayId = dayId === 'today' ? getTodayDayId() : dayId;
   const scheduleData = store.scheduleData.value;
   
   if (!Array.isArray(scheduleData)) {
     return '';
   }
   
-  const daySchedule = scheduleData.find(item => item.day === actualDayId || item.dayIndex === getDayIndexFromId(actualDayId));
+  const daySchedule = scheduleData.find(item => item.day === dayId || item.dayIndex === getDayIndexFromId(dayId));
   
   if (daySchedule && daySchedule.classes) {
     const period = daySchedule.classes.find(p => p.p === timeSlot.id);
@@ -410,14 +400,13 @@ const getPeriodColor = (timeSlot, stageId, dayId) => {
 };
 
 const hasNafs = (timeSlot, stageId, dayId) => {
-  const actualDayId = dayId === 'today' ? getTodayDayId() : dayId;
   const scheduleData = store.scheduleData.value;
   
   if (!Array.isArray(scheduleData)) {
     return false;
   }
   
-  const daySchedule = scheduleData.find(item => item.day === actualDayId || item.dayIndex === getDayIndexFromId(actualDayId));
+  const daySchedule = scheduleData.find(item => item.day === dayId || item.dayIndex === getDayIndexFromId(dayId));
   
   if (daySchedule && daySchedule.classes) {
     const period = daySchedule.classes.find(p => p.p === timeSlot.id);
@@ -428,14 +417,13 @@ const hasNafs = (timeSlot, stageId, dayId) => {
 };
 
 const getPeriodTeacher = (timeSlot, stageId, dayId) => {
-  const actualDayId = dayId === 'today' ? getTodayDayId() : dayId;
   const schoolTimetable = store.schoolTimetable.value;
-  const stageData = schoolTimetable.stages?.[stageId];
+  const stageData = schoolTimetable?.stages?.[stageId];
   
   // Handle the nested structure with teachers and assignments
   if (stageData && stageData.teachers && Array.isArray(stageData.teachers)) {
     for (const teacher of stageData.teachers) {
-      const assignments = teacher.assignments?.[actualDayId];
+      const assignments = teacher.assignments?.[dayId];
       if (assignments && assignments[timeSlot.id]) {
         return teacher.name;
       }
@@ -453,19 +441,22 @@ const hasPeriodContent = (timeSlot, stageId, dayId) => {
 };
 
 const isCurrentPeriod = (timeSlot, stageId, dayId) => {
-  const actualDayId = dayId === 'today' ? getTodayDayId() : dayId;
   const todayDayId = getTodayDayId();
-  const now = new Date();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
   
-  return actualDayId === todayDayId && 
+  // Use store's test time if enabled, otherwise use current time
+  const currentMinutes = store.testTimeEnabled.value
+    ? (store.testTimeValue.value.split(':').reduce((h, m) => h * 60 + m * 1, 0))
+    : (new Date().getHours() * 60 + new Date().getMinutes());
+  
+  return dayId === todayDayId && 
          currentMinutes >= timeSlot.startMin && 
          currentMinutes < timeSlot.endMin;
 };
 
 const getPeriodProgress = (timeSlot) => {
-  const now = new Date();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const currentMinutes = store.testTimeEnabled.value
+    ? (store.testTimeValue.value.split(':').reduce((h, m) => h * 60 + m * 1, 0))
+    : (new Date().getHours() * 60 + new Date().getMinutes());
   const start = timeSlot.startMin || 0;
   const end = timeSlot.endMin || 0;
   
@@ -478,8 +469,9 @@ const getPeriodProgress = (timeSlot) => {
 };
 
 const getCurrentTimeStyle = () => {
-  const now = new Date();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const currentMinutes = store.testTimeEnabled.value
+    ? (store.testTimeValue.value.split(':').reduce((h, m) => h * 60 + m * 1, 0))
+    : (new Date().getHours() * 60 + new Date().getMinutes());
   
   return {
     top: `${60 + getTimePosition(currentMinutes)}px` // 60px for header
@@ -511,7 +503,7 @@ const addUserEvent = () => {
     color: newEvent.value.color,
     startMin: timeToMinutes(newEvent.value.startTime),
     endMin: timeToMinutes(newEvent.value.endTime),
-    dayId: selectedDay.value === 'today' ? getTodayDayId() : selectedDay.value
+    dayId: selectedDay.value
   };
   
   userEvents.value.push(event);
@@ -541,9 +533,8 @@ const removeAllUserEvents = () => {
 };
 
 const getUserEventsForStage = (stageId) => {
-  const actualDayId = selectedDay.value === 'today' ? getTodayDayId() : selectedDay.value;
   return userEvents.value.filter(event => 
-    event.stageId === stageId && event.dayId === actualDayId
+    event.stageId === stageId && event.dayId === selectedDay.value
   );
 };
 

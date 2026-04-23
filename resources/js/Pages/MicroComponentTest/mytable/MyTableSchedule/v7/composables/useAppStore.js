@@ -196,21 +196,61 @@ export function createAppStore() {
     }
   };
 
-  const pushCloudSnapshot = async () => {
-    const snapshot = {
+  let isPushing = false;
+  let pushTimeout = null;
+  let lastSyncedHash = null;
+
+  const getDataHash = () => {
+    const data = {
       timingsConfig: toRaw(timingsConfig.value),
       selectedStage: selectedStage.value,
       selectedDay: selectedDay.value,
       currentViewMode: currentViewMode.value,
       showTodayOnly: showTodayOnly.value,
-      scheduleData: toRaw(scheduleData.value),
-      lastModified: Date.now()
+      scheduleData: toRaw(scheduleData.value)
     };
+    return JSON.stringify(data);
+  };
 
-    const result = await cloud.pushToServer(snapshot);
-    if (!result.success && result.error !== 'offline' && result.error !== 'already syncing') {
-      await db.addToSyncQueue('save-snapshot', snapshot);
+  const pushCloudSnapshot = async () => {
+    if (isPushing) {
+      console.log('[Store] Already pushing, skipping duplicate request');
+      return;
     }
+
+    const currentHash = getDataHash();
+    if (currentHash === lastSyncedHash) {
+      console.log('[Store] Data unchanged, skipping sync');
+      return;
+    }
+
+    if (pushTimeout) {
+      clearTimeout(pushTimeout);
+    }
+
+    pushTimeout = setTimeout(async () => {
+      isPushing = true;
+      try {
+        const snapshot = {
+          timingsConfig: toRaw(timingsConfig.value),
+          selectedStage: selectedStage.value,
+          selectedDay: selectedDay.value,
+          currentViewMode: currentViewMode.value,
+          showTodayOnly: showTodayOnly.value,
+          scheduleData: toRaw(scheduleData.value),
+          lastModified: Date.now()
+        };
+
+        const result = await cloud.pushToServer(snapshot);
+        if (result.success) {
+          lastSyncedHash = getDataHash();
+        } else if (result.error !== 'offline' && result.error !== 'already syncing') {
+          await db.addToSyncQueue('save-snapshot', snapshot);
+        }
+      } finally {
+        isPushing = false;
+      }
+    }, 500);
   };
 
   // ── Public Mutations ──

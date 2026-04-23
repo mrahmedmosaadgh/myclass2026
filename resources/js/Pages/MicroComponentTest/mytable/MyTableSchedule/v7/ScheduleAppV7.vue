@@ -182,26 +182,7 @@ const initializeApp = async () => {
 
 // ── Auto-save on data changes ──
 const setupAutoSave = () => {
-  // Watch for data changes and auto-save
-  const saveTimer = ref(null);
-  
-  // This would be connected to your store's data changes
-  // For now, we'll save every 30 seconds
-  saveTimer.value = setInterval(async () => {
-    if (isAuthenticated.value && store.isInitialized.value) {
-      try {
-        await store.pushCloudSnapshot();
-      } catch (err) {
-        console.error('Auto-save failed:', err);
-      }
-    }
-  }, 30000);
-  
-  onUnmounted(() => {
-    if (saveTimer.value) {
-      clearInterval(saveTimer.value);
-    }
-  });
+  // Auto-save is now handled by mutations calling pushCloudSnapshot with dirty flag checking
 };
 
 // ── Lifecycle ──
