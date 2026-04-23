@@ -1,6 +1,6 @@
 <template>
   <div class="table-view-v3">
-    <div class="table-container">
+    <div class="table-container" :class="{ 'today-only': visibleDays.length === 1 }">
       <table class="schedule-table-v3">
         <thead>
           <tr>
@@ -345,6 +345,11 @@ onUnmounted(() => {
   position: relative;
 }
 
+.table-container.today-only {
+  min-width: auto;
+  width: fit-content;
+}
+
 .schedule-table-v3 {
   width: 100%;
   border-collapse: separate;
@@ -394,6 +399,12 @@ onUnmounted(() => {
   color: #475569;
 }
 
+.table-container.today-only .header-day {
+  min-width: auto;
+  max-width: none;
+  width: auto;
+}
+
 .header-day.current-day {
   background: #dbeafe;
   border-bottom: 2px solid #3b82f6;
@@ -440,6 +451,7 @@ onUnmounted(() => {
 
 .period-cell.break-cell {
   background: #f1f5f9;
+  color: #64748b;
 }
 
 .period-cell.current-period-cell {
@@ -484,6 +496,12 @@ onUnmounted(() => {
   max-width: 150px;
 }
 
+.table-container.today-only .subject-cell {
+  min-width: auto;
+  max-width: none;
+  width: auto;
+}
+
 .subject-cell:last-child {
   border-right: none;
 }
@@ -495,7 +513,7 @@ onUnmounted(() => {
 
 .subject-cell.break {
   background: #f1f5f9;
-  color: #94a3b8;
+  color: #64748b;
 }
 
 .subject-cell.has-subject {
