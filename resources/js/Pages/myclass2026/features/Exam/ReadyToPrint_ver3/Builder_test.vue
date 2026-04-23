@@ -57,6 +57,7 @@
           :exam-title="pageOptions.examTitle.enabled ? pageOptions.examTitle.text : ''"
           :exam-subject="pageOptions.printHeader.template1?.subject || ''"
           :exam-grade="pageOptions.printHeader.template1?.grade || ''"
+          :exam-id="lastSavedExamId"
           @update:extra-margin-mm="(v) => { pageOptions.printHeader.pageMarginTopMm = v; savePageState() }"
         />
       </q-btn-group>

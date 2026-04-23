@@ -103,6 +103,10 @@ const props = defineProps({
   examGrade: {
     type: String,
     default: ''
+  },
+  examId: {
+    type: String,
+    default: ''
   }
 })
 
@@ -388,55 +392,28 @@ async function downloadPDF() {
   pdfGenerating.value = true
   
   try {
-    // Generate the HTML content
-    const html = props.generatePrintHtml()
-    
-    // Generate improved filename
-    const fileName = generatePrintFileName()
-    
-    // Create a new window for printing
-    const printWindow = window.open('', '_blank')
-    if (!printWindow) {
-      throw new Error('Popup blocked. Please allow popups for this site.')
+    if (!props.examId) {
+      throw new Error('No exam ID provided. Please save the exam first.')
     }
     
-    // Write the HTML to the new window using innerHTML to avoid template parsing issues
-    const fullHTML = [
-      '<!DOCTYPE html>',
-      '<html>',
-      '<head>',
-      '<title>' + fileName + '</title>',
-      '<style>',
-      '@media print {',
-      '@page { size: A4; margin: 0; }',
-      'body { margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }',
-      '}',
-      '@media screen {',
-      'body { margin: 20px; font-family: Arial, sans-serif; }',
-      '}',
-      '</style>',
-      '</head>',
-      '<body>',
-      html,
-      '<script>',
-      'window.onload = function() {',
-      'setTimeout(function() {',
-      'window.print();',
-      'setTimeout(function() { window.close(); }, 1000);',
-      '}, 500);',
-      '};',
-      'window.onafterprint = function() { window.close(); };',
-      '<\/script>',
-      '<\/body>',
-      '<\/html>'
-    ].join('\n')
+    // Call the backend API to generate and download PDF
+    const response = await fetch(`/api/exam/ready-to-print/generate-pdf/${props.examId}`)
     
-    printWindow.document.body.innerHTML = fullHTML
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.message || 'Failed to generate PDF')
+    }
     
-    printWindow.document.close()
-    
-    // Focus the print window
-    printWindow.focus()
+    // Get the blob and create download link
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = generatePrintFileName() + '.pdf'
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
     
   } catch (error) {
     console.error('PDF generation failed:', error)
