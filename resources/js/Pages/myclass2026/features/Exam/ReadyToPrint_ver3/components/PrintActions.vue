@@ -397,11 +397,30 @@ async function downloadPDF() {
     }
     
     // Call the backend API to generate and download PDF
-    const response = await fetch(`/api/exam/ready-to-print/generate-pdf/${props.examId}`)
+    const response = await fetch(`/api/exam/ready-to-print/generate-pdf/${props.examId}`, {
+      headers: {
+        'Accept': 'application/pdf, application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+    
+    // Check if response is JSON (error) or PDF
+    const contentType = response.headers.get('content-type') || ''
     
     if (!response.ok) {
+      if (contentType.includes('application/json')) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Failed to generate PDF')
+      } else {
+        const text = await response.text()
+        throw new Error('Server error: ' + text.substring(0, 200))
+      }
+    }
+    
+    if (contentType.includes('application/json')) {
+      // Server returned JSON instead of PDF - likely an error
       const errorData = await response.json()
-      throw new Error(errorData.message || 'Failed to generate PDF')
+      throw new Error(errorData.message || 'PDF generation failed')
     }
     
     // Get the blob and create download link

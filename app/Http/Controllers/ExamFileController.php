@@ -5,7 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use Spatie\LaravelPdf\Facades\Pdf;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 
 class ExamFileController extends Controller
 {
@@ -171,43 +172,61 @@ class ExamFileController extends Controller
      */
     public function generatePdf($examId)
     {
-        $userId = Auth::id();
-        $jsonPath = "exams/{$userId}/{$examId}.json";
+        try {
+            $userId = Auth::id();
+            $jsonPath = "exams/{$userId}/{$examId}.json";
 
-        if (!Storage::exists($jsonPath)) {
-            return response()->json(['message' => 'Exam not found'], 404);
+            if (!Storage::exists($jsonPath)) {
+                return response()->json(['message' => 'Exam not found'], 404);
+            }
+
+            $content = Storage::get($jsonPath);
+            $data = json_decode($content, true);
+
+            if (!$data) {
+                return response()->json(['message' => 'Failed to parse exam data'], 500);
+            }
+
+            // Generate HTML
+            $htmlContent = $this->generatePrintHtml($data);
+
+            // Generate filename
+            $examName = $data['name'] ?? 'exam';
+            $safeName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $examName);
+            $filename = "{$safeName}_{$examId}.pdf";
+
+            // Configure dompdf
+            $options = new Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isRemoteEnabled', true);
+            $options->set('defaultFont', 'Arial');
+            $options->set('isPhpEnabled', false);
+            $options->set('chroot', base_path());
+
+            // Create dompdf instance
+            $dompdf = new Dompdf($options);
+            $dompdf->loadHtml($htmlContent);
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+
+            // Get PDF output
+            $pdfOutput = $dompdf->output();
+
+            // Return PDF as download
+            return response($pdfOutput, 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Content-Length' => strlen($pdfOutput),
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('PDF generation failed: ' . $e->getMessage(), [
+                'exam_id' => $examId,
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'message' => 'PDF generation failed: ' . $e->getMessage()
+            ], 500);
         }
-
-        $content = Storage::get($jsonPath);
-        $data = json_decode($content, true);
-
-        if (!$data) {
-            return response()->json(['message' => 'Failed to parse exam data'], 500);
-        }
-
-        // Generate HTML
-        $htmlContent = $this->generatePrintHtml($data);
-
-        // Generate filename
-        $examName = $data['name'] ?? 'exam';
-        $safeName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $examName);
-        $filename = "{$safeName}_{$examId}.pdf";
-
-        // Ensure temp directory exists
-        $tempDir = storage_path('app/temp');
-        if (!is_dir($tempDir)) {
-            mkdir($tempDir, 0755, true);
-        }
-
-        // Generate PDF using spatie/laravel-pdf with dompdf driver
-        $pdf = Pdf::html($htmlContent)
-            ->format('a4')
-            ->margins(12, 12, 12, 12) // top, right, bottom, left in mm
-            ->save($tempDir . '/' . $filename);
-
-        // Return as download response
-        return response()->download($tempDir . '/' . $filename, $filename)
-            ->deleteFileAfterSend(true);
     }
 
     /**
