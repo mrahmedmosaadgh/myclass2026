@@ -16,6 +16,8 @@ return new class extends Migration
             $table->string('name');
             $table->string('name_ar')->nullable();
             $table->text('description')->nullable();
+            $table->json('timing')->nullable()->after('description');
+            $table->json('timing_backup')->nullable()->after('timing');
             $table->foreignId('school_id')->constrained('schools')->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes(); // Add this line for soft deletes
