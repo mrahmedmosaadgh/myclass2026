@@ -4550,9 +4550,10 @@ function saveQuestionImage() {
 
 function formatPageNumberPreviewText(format, currentPage = 1, totalPages = 1) {
   if (format === 'page') return String(currentPage)
-  if (format === 'page-of') return 'Page ' + currentPage + ' of ' + totalPages
-  if (format === 'page-slash') return currentPage + ' / ' + totalPages
-  return currentPage + '/' + totalPages
+  if (format === 'page-of') return currentPage + ' of ' + totalPages
+  if (format === 'page-slash') return 'Page ' + currentPage + ' / ' + totalPages
+  if (format === 'fraction') return currentPage + '/' + totalPages
+  return String(currentPage)
 }
 
 function generateFooterComponentHTML() {
@@ -4781,9 +4782,10 @@ scriptContent += "return Math.max(1, Math.ceil(contentHeight / availableHeight))
 scriptContent += "}";
 scriptContent += "function buildPreviewText(fmt, currentPage, totalPages){";
 scriptContent += "if (fmt === 'page') return String(currentPage);";
-scriptContent += "if (fmt === 'page-of') return 'Page ' + currentPage + ' of ' + totalPages;";
-scriptContent += "if (fmt === 'page-slash') return currentPage + ' / ' + totalPages;";
-scriptContent += "return currentPage + '/' + totalPages;";
+scriptContent += "if (fmt === 'page-of') return currentPage + ' of ' + totalPages;";
+scriptContent += "if (fmt === 'page-slash') return 'Page ' + currentPage + ' / ' + totalPages;";
+scriptContent += "if (fmt === 'fraction') return currentPage + '/' + totalPages;";
+scriptContent += "return String(currentPage);";
 scriptContent += "}";
 scriptContent += "function updatePageNumberState(){";
 scriptContent += "try {";

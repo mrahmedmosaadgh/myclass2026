@@ -1,11 +1,19 @@
 # Print Footer Page Number Improvements
 
 ## Overview
-Enhanced the live print preview and actual print output for the test-builder-v3 to provide better page number visibility and accuracy.
+Enhanced the live print preview and actual print output for the test-builder-v3 to provide better page number visibility, accuracy, and correct format matching.
 
 ## Key Improvements
 
-### 1. **Enhanced Visual Styling for Live Preview**
+### 1. **Fixed Page Number Format Mappings**
+- Corrected format inconsistencies across all components
+- **'page'**: Shows just the page number (e.g., "3")
+- **'page-of'**: Shows "X of Y" format (e.g., "1 of 5")
+- **'page-slash'**: Shows "Page X / Y" format (e.g., "Page 1 / 5")
+- **'fraction'**: Shows "X/Y" format (e.g., "1/5")
+- All formats now match the dropdown labels exactly
+
+### 2. **Enhanced Visual Styling for Live Preview**
 - Added background, padding, border-radius, and box-shadow to page numbers in screen view
 - Page numbers now appear in styled badges with better contrast
 - Improved font weight (700) and size (11px) for better readability
@@ -44,6 +52,36 @@ Enhanced the live print preview and actual print output for the test-builder-v3 
 ### Files Modified
 - `resources/js/Pages/myclass2026/features/Exam/ReadyToPrint_ver3/Builder_test.vue`
 - `resources/js/Pages/myclass2026/features/Exam/ReadyToPrint_ver3/components/LivePrintPreview.vue`
+- `resources/js/Pages/myclass2026/features/Exam/ReadyToPrint_ver3/components/PrintFooter.vue`
+
+### Format Mapping Fixes
+Fixed inconsistent format implementations across three locations:
+
+**Builder_test.vue - formatPageNumberPreviewText():**
+```javascript
+if (format === 'page') return String(currentPage)
+if (format === 'page-of') return currentPage + ' of ' + totalPages  // Fixed: removed "Page"
+if (format === 'page-slash') return 'Page ' + currentPage + ' / ' + totalPages  // Fixed: added "Page"
+if (format === 'fraction') return currentPage + '/' + totalPages
+```
+
+**Builder_test.vue - buildPreviewText() (injected script):**
+```javascript
+if (fmt === 'page') return String(currentPage);
+if (fmt === 'page-of') return currentPage + ' of ' + totalPages;  // Fixed
+if (fmt === 'page-slash') return 'Page ' + currentPage + ' / ' + totalPages;  // Fixed
+if (fmt === 'fraction') return currentPage + '/' + totalPages;
+```
+
+**PrintFooter.vue - pageNumberText computed:**
+```javascript
+case 'page-of':
+  return `${cur} of ${tot}`  // Fixed: removed "Page"
+case 'page-slash':
+  return `Page ${cur} / ${tot}`  // Fixed: added "Page"
+case 'fraction':
+  return `${cur}/${tot}`
+```
 
 ### CSS Enhancements
 ```css

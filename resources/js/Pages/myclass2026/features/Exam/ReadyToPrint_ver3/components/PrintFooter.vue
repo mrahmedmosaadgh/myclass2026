@@ -234,9 +234,9 @@ const formattedPageNumber = computed(() => {
   if (props.printMode) {
     switch (props.pageNumberFormat) {
       case 'page-of':
-        return { prefix: 'Page ', mid: ' of ', suffix: '', showTotal: true }
+        return { prefix: '', mid: ' of ', suffix: '', showTotal: true }
       case 'page-slash':
-        return { prefix: '', mid: ' / ', suffix: '', showTotal: true }
+        return { prefix: 'Page ', mid: ' / ', suffix: '', showTotal: true }
       case 'fraction':
         return { prefix: '', mid: '/', suffix: '', showTotal: true }
       case 'page':
@@ -247,9 +247,9 @@ const formattedPageNumber = computed(() => {
 
   switch (props.pageNumberFormat) {
     case 'page-of':
-      return `Page ${cur} of ${tot}`
+      return `${cur} of ${tot}`
     case 'page-slash':
-      return `${cur} / ${tot}`
+      return `Page ${cur} / ${tot}`
     case 'fraction':
       return `${cur}/${tot}`
     case 'page':
