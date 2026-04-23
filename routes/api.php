@@ -269,6 +269,7 @@ Route::middleware(['auth:sanctum', 'web'])->group(function () {
         Route::get('/list-saved-exams', [\App\Http\Controllers\ExamFileController::class, 'listSavedExams']);
         Route::get('/load-saved-exam/{examId}', [\App\Http\Controllers\ExamFileController::class, 'loadSavedExam']);
         Route::get('/print-html/{examId}', [\App\Http\Controllers\ExamFileController::class, 'getPrintHtml']);
+        Route::get('/generate-pdf/{examId}', [\App\Http\Controllers\ExamFileController::class, 'generatePdf']);
         Route::delete('/delete-saved-exam/{examId}', [\App\Http\Controllers\ExamFileController::class, 'deleteSavedExam']);
     });
 

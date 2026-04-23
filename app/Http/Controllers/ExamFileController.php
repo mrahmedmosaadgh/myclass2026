@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use PDF;
 
 class ExamFileController extends Controller
 {
@@ -163,6 +164,46 @@ class ExamFileController extends Controller
 
         return response($htmlContent)
             ->header('Content-Type', 'text/html');
+    }
+
+    /**
+     * Generate and download PDF for an exam
+     */
+    public function generatePdf($examId)
+    {
+        $userId = Auth::id();
+        $jsonPath = "exams/{$userId}/{$examId}.json";
+
+        if (!Storage::exists($jsonPath)) {
+            return response()->json(['message' => 'Exam not found'], 404);
+        }
+
+        $content = Storage::get($jsonPath);
+        $data = json_decode($content, true);
+
+        if (!$data) {
+            return response()->json(['message' => 'Failed to parse exam data'], 500);
+        }
+
+        // Generate HTML
+        $htmlContent = $this->generatePrintHtml($data);
+
+        // Configure PDF
+        $pdf = PDF::loadHTML($htmlContent);
+        $pdf->setPaper('a4');
+        $pdf->setOption([
+            'isHtml5ParserEnabled' => true,
+            'isRemoteEnabled' => true,
+            'defaultFont' => 'Arial',
+        ]);
+
+        // Generate filename
+        $examName = $data['name'] ?? 'exam';
+        $safeName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $examName);
+        $filename = "{$safeName}_{$examId}.pdf";
+
+        // Download PDF
+        return $pdf->download($filename);
     }
 
     /**
