@@ -209,8 +209,6 @@ class ExamFileController extends Controller
             $options->set('defaultFont', 'Arial');
             $options->set('isPhpEnabled', false);
             $options->set('chroot', base_path());
-            $options->set('fontDir', base_path('storage/fonts'));
-            $options->set('fontCache', base_path('storage/fonts'));
 
             // Create dompdf instance
             $dompdf = new Dompdf($options);
@@ -232,9 +230,24 @@ class ExamFileController extends Controller
                 'exam_id' => $examId,
                 'trace' => $e->getTraceAsString()
             ]);
-            return response()->json([
-                'message' => 'PDF generation failed: ' . $e->getMessage()
-            ], 500);
+            
+            // Fallback: Return HTML for browser print-to-PDF
+            try {
+                $userId = Auth::id();
+                $jsonPath = "exams/{$userId}/{$examId}.json";
+                $content = Storage::get($jsonPath);
+                $data = json_decode($content, true);
+                $htmlContent = $this->generatePrintHtml($data);
+                
+                return response($htmlContent, 200, [
+                    'Content-Type' => 'text/html',
+                    'X-PDF-Fallback' => 'true',
+                ]);
+            } catch (\Exception $fallbackError) {
+                return response()->json([
+                    'message' => 'PDF generation failed: ' . $e->getMessage()
+                ], 500);
+            }
         }
     }
 

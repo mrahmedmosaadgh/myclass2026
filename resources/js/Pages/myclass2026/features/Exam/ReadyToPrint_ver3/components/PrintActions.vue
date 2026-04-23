@@ -399,12 +399,12 @@ async function downloadPDF() {
     // Call the backend API to generate and download PDF
     const response = await fetch(`/api/exam/ready-to-print/generate-pdf/${props.examId}`, {
       headers: {
-        'Accept': 'application/pdf, application/json',
+        'Accept': 'application/pdf, text/html, application/json',
         'X-Requested-With': 'XMLHttpRequest'
       }
     })
     
-    // Check if response is JSON (error) or PDF
+    // Check if response is JSON (error) or PDF/HTML
     const contentType = response.headers.get('content-type') || ''
     
     if (!response.ok) {
@@ -421,6 +421,22 @@ async function downloadPDF() {
       // Server returned JSON instead of PDF - likely an error
       const errorData = await response.json()
       throw new Error(errorData.message || 'PDF generation failed')
+    }
+    
+    if (contentType.includes('text/html')) {
+      // Server returned HTML as fallback - open in new window for print-to-PDF
+      const html = await response.text()
+      const printWindow = window.open('', '_blank')
+      if (printWindow) {
+        printWindow.document.write(html)
+        printWindow.document.close()
+        printWindow.onload = function() {
+          printWindow.print()
+        }
+      } else {
+        throw new Error('Popup blocked. Please allow popups to use print-to-PDF fallback.')
+      }
+      return
     }
     
     // Get the blob and create download link
