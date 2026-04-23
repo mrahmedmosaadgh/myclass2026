@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use PDF;
+use Spatie\LaravelPdf\Facades\Pdf;
 
 class ExamFileController extends Controller
 {
@@ -188,22 +188,16 @@ class ExamFileController extends Controller
         // Generate HTML
         $htmlContent = $this->generatePrintHtml($data);
 
-        // Configure PDF
-        $pdf = PDF::loadHTML($htmlContent);
-        $pdf->setPaper('a4');
-        $pdf->setOption([
-            'isHtml5ParserEnabled' => true,
-            'isRemoteEnabled' => true,
-            'defaultFont' => 'Arial',
-        ]);
-
         // Generate filename
         $examName = $data['name'] ?? 'exam';
         $safeName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $examName);
         $filename = "{$safeName}_{$examId}.pdf";
 
-        // Download PDF
-        return $pdf->download($filename);
+        // Generate PDF using spatie/laravel-pdf
+        return Pdf::html($htmlContent)
+            ->format('a4')
+            ->margins(12, 12, 12, 12) // top, right, bottom, left in mm
+            ->download($filename);
     }
 
     /**

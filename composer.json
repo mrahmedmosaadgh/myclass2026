@@ -7,7 +7,6 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
-        "barryvdh/laravel-dompdf": "^2.0",
         "doctrine/dbal": "^3.8 || ^4.0",
         "google/apiclient": "^2.18",
         "guzzlehttp/guzzle": "^7.9",
@@ -20,6 +19,7 @@
         "minishlink/web-push": "^9.0",
         "myclabs/deep-copy": "^1.13",
         "phpoffice/phpspreadsheet": "^3.0 || ^4.0 || ^5.0",
+        "spatie/laravel-pdf": "^1.0",
         "spatie/laravel-permission": "^6.16",
         "spomky-labs/web-push": "^3.1",
         "tightenco/ziggy": "^2.5"
