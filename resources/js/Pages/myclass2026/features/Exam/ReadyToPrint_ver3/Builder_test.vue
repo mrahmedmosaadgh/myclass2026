@@ -954,8 +954,11 @@
                             map-options
                             v-model="pageOptions.printFooter.pageNumberFormat"
                             label="Page number format"
-                            @update:model-value="savePageState"
+                            @update:model-value="(val) => { console.log('[PAGE NUMBER DEBUG - UI] Format changed to:', val); savePageState(); }"
                           />
+                          <div style="font-size: 10px; color: #666; margin-top: 4px;">
+                            Current: {{ pageOptions.printFooter.pageNumberFormat }}
+                          </div>
                         </div>
                       </div>
 
@@ -4549,11 +4552,15 @@ function saveQuestionImage() {
 }
 
 function formatPageNumberPreviewText(format, currentPage = 1, totalPages = 1) {
-  if (format === 'page') return String(currentPage)
-  if (format === 'page-of') return currentPage + ' of ' + totalPages
-  if (format === 'page-slash') return 'Page ' + currentPage + ' / ' + totalPages
-  if (format === 'fraction') return currentPage + '/' + totalPages
-  return String(currentPage)
+  console.log('[PAGE NUMBER DEBUG - VUE] formatPageNumberPreviewText called:', { format, currentPage, totalPages })
+  let result = ''
+  if (format === 'page') result = String(currentPage)
+  else if (format === 'page-of') result = currentPage + ' of ' + totalPages
+  else if (format === 'page-slash') result = 'Page ' + currentPage + ' / ' + totalPages
+  else if (format === 'fraction') result = currentPage + '/' + totalPages
+  else result = String(currentPage)
+  console.log('[PAGE NUMBER DEBUG - VUE] formatPageNumberPreviewText result:', result)
+  return result
 }
 
 function generateFooterComponentHTML() {
@@ -4670,6 +4677,8 @@ function generatePrintHTML() {
     : (!!footerHtml.trim() || showPageNumbers)
   const pageNumberPosition = String(pageOptions.value?.printFooter?.pageNumberPosition || 'bottom-center')
   const pageNumberFormat = String(pageOptions.value?.printFooter?.pageNumberFormat || 'page')
+  console.log('[PAGE NUMBER DEBUG - GENERATE] pageNumberFormat from settings:', pageNumberFormat)
+  console.log('[PAGE NUMBER DEBUG - GENERATE] pageOptions.printFooter:', pageOptions.value?.printFooter)
   const pageNumberFontSize = Number(pageOptions.value?.printFooter?.pageNumberFontSize) || 10
   const pageNumberColor = String(pageOptions.value?.printFooter?.pageNumberColor || '#000000')
   const extraFooterMarginMm = (() => {
@@ -4781,11 +4790,15 @@ scriptContent += "var contentHeight = Math.max(document.body.scrollHeight, docum
 scriptContent += "return Math.max(1, Math.ceil(contentHeight / availableHeight));";
 scriptContent += "}";
 scriptContent += "function buildPreviewText(fmt, currentPage, totalPages){";
-scriptContent += "if (fmt === 'page') return String(currentPage);";
-scriptContent += "if (fmt === 'page-of') return currentPage + ' of ' + totalPages;";
-scriptContent += "if (fmt === 'page-slash') return 'Page ' + currentPage + ' / ' + totalPages;";
-scriptContent += "if (fmt === 'fraction') return currentPage + '/' + totalPages;";
-scriptContent += "return String(currentPage);";
+scriptContent += "console.log('[PAGE NUMBER DEBUG] buildPreviewText called with:', { fmt: fmt, currentPage: currentPage, totalPages: totalPages });";
+scriptContent += "var result = '';";
+scriptContent += "if (fmt === 'page') { result = String(currentPage); }";
+scriptContent += "else if (fmt === 'page-of') { result = currentPage + ' of ' + totalPages; }";
+scriptContent += "else if (fmt === 'page-slash') { result = 'Page ' + currentPage + ' / ' + totalPages; }";
+scriptContent += "else if (fmt === 'fraction') { result = currentPage + '/' + totalPages; }";
+scriptContent += "else { result = String(currentPage); }";
+scriptContent += "console.log('[PAGE NUMBER DEBUG] buildPreviewText result:', result);";
+scriptContent += "return result;";
 scriptContent += "}";
 scriptContent += "function updatePageNumberState(){";
 scriptContent += "try {";
@@ -4810,12 +4823,15 @@ scriptContent += "for (var x = 0; x < existing.length; x++) {";
 scriptContent += "if (existing[x] && existing[x].parentNode) existing[x].parentNode.removeChild(existing[x]);";
 scriptContent += "}";
 scriptContent += "try { document.body.classList.remove('has-abs-page-numbers'); } catch(e) {}";
-scriptContent += "if (!enabled) return;";
+scriptContent += "if (!enabled) { console.log('[PAGE NUMBER DEBUG] Page numbers disabled'); return; }";
 scriptContent += "var totalPages = estimateTotalPages();";
-scriptContent += "if (!totalPages || totalPages < 1) return;";
+scriptContent += "console.log('[PAGE NUMBER DEBUG] Total pages estimated:', totalPages);";
+scriptContent += "if (!totalPages || totalPages < 1) { console.log('[PAGE NUMBER DEBUG] Invalid total pages'); return; }";
 scriptContent += "var host = document.querySelector('.print-container') || document.body;";
 scriptContent += "var fmt = '" + pageNumberFormat + "';";
+scriptContent += "console.log('[PAGE NUMBER DEBUG] injectAbsolutePageNumbers - format from settings:', fmt);";
 scriptContent += "var pos = '" + pageNumberPosition + "';";
+scriptContent += "console.log('[PAGE NUMBER DEBUG] injectAbsolutePageNumbers - position:', pos);";
 scriptContent += "var fontPt = " + pageNumberFontSize + ";";
 scriptContent += "var color = '" + pageNumberColor + "';";
 scriptContent += "var pageHeightPx = mmToPx(297 - 24);";
@@ -4829,10 +4845,13 @@ scriptContent += "var rect = pageBreaks[i].getBoundingClientRect();";
 scriptContent += "var scrollTop = window.pageYOffset || document.documentElement.scrollTop;";
 scriptContent += "pagePositions.push(rect.top + scrollTop);";
 scriptContent += "}";
+scriptContent += "console.log('[PAGE NUMBER DEBUG] Creating page numbers for', totalPages, 'pages');";
 scriptContent += "for (var p = 1; p <= totalPages; p++) {";
 scriptContent += "var el = document.createElement('div');";
 scriptContent += "el.className = 'abs-page-number';";
-scriptContent += "el.textContent = buildPreviewText(fmt, p, totalPages);";
+scriptContent += "var pageText = buildPreviewText(fmt, p, totalPages);";
+scriptContent += "el.textContent = pageText;";
+scriptContent += "console.log('[PAGE NUMBER DEBUG] Page', p, 'text:', pageText);";
 scriptContent += "el.style.fontSize = fontPt + 'pt';";
 scriptContent += "el.style.color = color;";
 scriptContent += "el.style.position = 'absolute';";
