@@ -21,10 +21,9 @@
       dense
       :color="buttonColor"
       icon="save"
-      :disable="!hasUnsavedChanges"
       @click="saveExam"
     >
-      <q-tooltip>{{ hasUnsavedChanges ? 'Save Changes' : 'No Changes to Save' }}</q-tooltip>
+      <q-tooltip>Save Exam</q-tooltip>
     </q-btn>
 
     <!-- Auto-save Toggle -->

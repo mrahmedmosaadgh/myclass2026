@@ -11,145 +11,248 @@
 
       <q-space />
 
-      <!-- Main Actions -->
-      <q-btn-group flat>
-        <!-- Save/Load -->
-        <ExamFileManager
-          :has-unsaved-changes="hasUnsavedChanges"
-          :auto-save-enabled="autoSaveEnabled"
-          @save="handleSaveExam"
-          @saveAs="handleSaveAs"
-          @load="handleLoadExam"
-          @delete="handleDeleteExam"
-          @refresh="handleRefreshFiles"
-          @createNew="handleCreateNewExam"
-          @toggle-auto-save="toggleAutoSave"
-          ref="fileManagerRef"
-        />
+      <!-- Exam File Manager -->
+      <ExamFileManager
+        :has-unsaved-changes="hasUnsavedChanges"
+        :auto-save-enabled="autoSaveEnabled"
+        @save="handleSaveExam"
+        @saveAs="handleSaveAs"
+        @load="handleLoadExam"
+        @delete="handleDeleteExam"
+        @refresh="handleRefreshFiles"
+        @createNew="handleCreateNewExam"
+        @toggle-auto-save="toggleAutoSave"
+        ref="fileManagerRef"
+      />
 
-        <!-- Print Preview -->
-        <q-btn
-          flat
-          icon="preview"
-          @click="openPrintPreview"
-        >
-          <q-tooltip>Print Preview</q-tooltip>
-        </q-btn>
-
-        <!-- Force Regenerate HTML -->
-        <q-btn
-          flat
-          icon="refresh"
-          @click="forceRegenerateHtml"
-        >
-          <q-tooltip>Regenerate HTML</q-tooltip>
-        </q-btn>
-
-        <!-- Test Page Numbers -->
-        <q-btn
-          flat
-          icon="filter_4"
-          @click="testPageNumbers"
-        >
-          <q-tooltip>Test Page Numbers (4 pages)</q-tooltip>
-        </q-btn>
-
-        <!-- Print -->
-        <PrintActions
-          :generate-print-html="generatePrintHTML"
-          :extra-margin-mm="pageOptions.printHeader.pageMarginTopMm ?? 0"
-          :exam-title="pageOptions.examTitle.enabled ? pageOptions.examTitle.text : ''"
-          :exam-subject="pageOptions.printHeader.template1?.subject || ''"
-          :exam-grade="pageOptions.printHeader.template1?.grade || ''"
-          :exam-id="lastSavedExamId"
-          @update:extra-margin-mm="(v) => { pageOptions.printHeader.pageMarginTopMm = v; savePageState() }"
-        />
-      </q-btn-group>
-
-      <!-- More Actions Menu -->
-      <q-btn flat round dense icon="more_vert">
-        <q-menu>
-          <q-list dense style="min-width: 200px">
-            <!-- AI Section -->
-            <q-item-label header class="text-subtitle2 text-grey-8">AI Tools</q-item-label>
-            <q-item clickable v-close-popup @click="openAIDialog">
-              <q-item-section avatar>
-                <q-icon name="smart_toy" color="primary" />
-              </q-item-section>
-              <q-item-section>Import AI Questions</q-item-section>
-            </q-item>
-            <q-item clickable v-close-popup @click="openFullExamDialog">
-              <q-item-section avatar>
-                <q-icon name="auto_awesome" color="primary" />
-              </q-item-section>
-              <q-item-section>Generate Full Exam</q-item-section>
-            </q-item>
-            <q-item clickable v-close-popup @click="openAIChatDialog">
-              <q-item-section avatar>
-                <q-icon name="chat" color="primary" />
-              </q-item-section>
-              <q-item-section>AI Chat Generation</q-item-section>
-            </q-item>
+      <!-- Tools Dropdown with Tabs -->
+      <q-btn-dropdown flat round dense icon="more_vert">
+        <div class="row no-wrap q-pa-md" style="min-width: 400px;">
+          <div class="col">
+            <q-tabs v-model="toolsTab" dense class="text-grey" active-color="primary" indicator-color="primary" align="left" narrow-indicator>
+              <q-tab name="file" label="File" />
+              <q-tab name="print" label="Print" />
+              <q-tab name="ai" label="AI Tools" />
+              <q-tab name="import" label="Import" />
+              <q-tab name="export" label="Export" />
+              <q-tab name="tools" label="Utilities" />
+            </q-tabs>
 
             <q-separator />
 
-            <!-- Import Section -->
-            <q-item-label header class="text-subtitle2 text-grey-8">Import</q-item-label>
-            <q-item clickable v-close-popup @click="triggerImportFile">
-              <q-item-section avatar>
-                <q-icon name="upload_file" />
-              </q-item-section>
-              <q-item-section>Import Full JSON</q-item-section>
-            </q-item>
-            <q-item clickable v-close-popup @click="triggerImportQuestionsFile">
-              <q-item-section avatar>
-                <q-icon name="question_answer" />
-              </q-item-section>
-              <q-item-section>Import Questions</q-item-section>
-            </q-item>
+            <q-tab-panels v-model="toolsTab" animated class="bg-transparent">
+              <!-- File Tab -->
+              <q-tab-panel name="file" class="q-pa-none">
+                <q-list dense>
+                  <q-item clickable v-close-popup @click="handleSaveExam">
+                    <q-item-section avatar>
+                      <q-icon name="save" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Save Exam</q-item-label>
+                      <q-item-label caption>Save current exam</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                  <q-item clickable v-close-popup @click="handleCreateNewExam">
+                    <q-item-section avatar>
+                      <q-icon name="add_circle" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Create New Exam</q-item-label>
+                      <q-item-label caption>Start fresh</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                  <q-item clickable v-close-popup @click="openCopyFromDialog">
+                    <q-item-section avatar>
+                      <q-icon name="content_copy" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Copy From</q-item-label>
+                      <q-item-label caption>Copy from saved exam</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </q-tab-panel>
 
-            <q-separator />
+              <!-- Print Tab -->
+              <q-tab-panel name="print" class="q-pa-none">
+                <q-list dense>
+                  <q-item clickable v-close-popup @click="openPrintPreview">
+                    <q-item-section avatar>
+                      <q-icon name="preview" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Print Preview</q-item-label>
+                      <q-item-label caption>Preview before printing</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </q-tab-panel>
 
-            <!-- Export Section -->
-            <q-item-label header class="text-subtitle2 text-grey-8">Export</q-item-label>
-            <q-item clickable v-close-popup @click="exportToJson">
-              <q-item-section avatar>
-                <q-icon name="download" />
-              </q-item-section>
-              <q-item-section>Export Full JSON</q-item-section>
-            </q-item>
-            <q-item clickable v-close-popup @click="exportQuestionsOnly">
-              <q-item-section avatar>
-                <q-icon name="download_done" />
-              </q-item-section>
-              <q-item-section>Export Questions</q-item-section>
-            </q-item>
+              <!-- AI Tools Tab -->
+              <q-tab-panel name="ai" class="q-pa-none">
+                <q-list dense>
+                  <q-item clickable v-close-popup @click="openSmartExamDialog">
+                    <q-item-section avatar>
+                      <q-icon name="auto_awesome" color="positive" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Smart Exam Generator</q-item-label>
+                      <q-item-label caption>AI-guided exam creation</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                  <q-item clickable v-close-popup @click="openQuickImportDialog">
+                    <q-item-section avatar>
+                      <q-icon name="bolt" color="primary" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Quick Import</q-item-label>
+                      <q-item-label caption>Fast AI question import</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                  <q-item clickable v-close-popup @click="openAIDialog">
+                    <q-item-section avatar>
+                      <q-icon name="smart_toy" color="primary" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Import AI Questions</q-item-label>
+                      <q-item-label caption>Custom AI import</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                  <q-item clickable v-close-popup @click="openFullExamDialog">
+                    <q-item-section avatar>
+                      <q-icon name="auto_awesome" color="primary" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Generate Full Exam</q-item-label>
+                      <q-item-label caption>Complete exam generation</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                  <q-item clickable v-close-popup @click="openAIChatDialog">
+                    <q-item-section avatar>
+                      <q-icon name="chat" color="primary" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>AI Chat Generation</q-item-label>
+                      <q-item-label caption>Interactive AI chat</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </q-tab-panel>
 
-            <q-separator />
+              <!-- Import Tab -->
+              <q-tab-panel name="import" class="q-pa-none">
+                <q-list dense>
+                  <q-item clickable v-close-popup @click="triggerImportFile">
+                    <q-item-section avatar>
+                      <q-icon name="upload_file" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Import Full JSON</q-item-label>
+                      <q-item-label caption>Complete exam file</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                  <q-item clickable v-close-popup @click="triggerImportQuestionsFile">
+                    <q-item-section avatar>
+                      <q-icon name="question_answer" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Import Questions</q-item-label>
+                      <q-item-label caption>Questions only</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </q-tab-panel>
 
-            <!-- Tools Section -->
-            <q-item-label header class="text-subtitle2 text-grey-8">Tools</q-item-label>
-            <q-item clickable v-close-popup @click="openValidationDialog">
-              <q-item-section avatar>
-                <q-icon name="fact_check" />
-              </q-item-section>
-              <q-item-section>Validate Questions</q-item-section>
-            </q-item>
-            <q-item clickable v-close-popup @click="firstLastPageOpen = true">
-              <q-item-section avatar>
-                <q-icon name="auto_stories" />
-              </q-item-section>
-              <q-item-section>First & Last Page</q-item-section>
-            </q-item>
-            <q-item clickable v-close-popup @click="optionsOpen = true">
-              <q-item-section avatar>
-                <q-icon name="settings" />
-              </q-item-section>
-              <q-item-section>Settings</q-item-section>
-            </q-item>
-          </q-list>
-        </q-menu>
-      </q-btn>
+              <!-- Export Tab -->
+              <q-tab-panel name="export" class="q-pa-none">
+                <q-list dense>
+                  <q-item clickable v-close-popup @click="exportToJson">
+                    <q-item-section avatar>
+                      <q-icon name="download" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Export Full JSON</q-item-label>
+                      <q-item-label caption>Complete exam file</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                  <q-item clickable v-close-popup @click="exportQuestionsOnly">
+                    <q-item-section avatar>
+                      <q-icon name="download_done" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Export Questions</q-item-label>
+                      <q-item-label caption>Questions only</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </q-tab-panel>
+
+              <!-- Utilities Tab -->
+              <q-tab-panel name="tools" class="q-pa-none">
+                <q-list dense>
+                  <q-item clickable v-close-popup @click="forceRegenerateHtml">
+                    <q-item-section avatar>
+                      <q-icon name="refresh" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Regenerate HTML</q-item-label>
+                      <q-item-label caption>Force HTML refresh</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                  <q-item clickable v-close-popup @click="testPageNumbers">
+                    <q-item-section avatar>
+                      <q-icon name="filter_4" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Test Page Numbers</q-item-label>
+                      <q-item-label caption>Generate 4 test pages</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                  <q-item clickable v-close-popup @click="openValidationDialog">
+                    <q-item-section avatar>
+                      <q-icon name="fact_check" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Validate Questions</q-item-label>
+                      <q-item-label caption>Check question format</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                  <q-item clickable v-close-popup @click="firstLastPageOpen = true">
+                    <q-item-section avatar>
+                      <q-icon name="auto_stories" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>First &amp; Last Page</q-item-label>
+                      <q-item-label caption>Configure cover pages</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                  <q-item clickable v-close-popup @click="optionsOpen = true">
+                    <q-item-section avatar>
+                      <q-icon name="settings" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Settings</q-item-label>
+                      <q-item-label caption>Page options</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </q-tab-panel>
+            </q-tab-panels>
+          </div>
+        </div>
+      </q-btn-dropdown>
+
+      <!-- Print Button (keep separate for quick access) -->
+      <PrintActions
+        :generate-print-html="generatePrintHTML"
+        :extra-margin-mm="pageOptions.printHeader.pageMarginTopMm ?? 0"
+        :exam-title="pageOptions.examTitle.enabled ? pageOptions.examTitle.text : ''"
+        :exam-subject="pageOptions.printHeader.template1?.subject || ''"
+        :exam-grade="pageOptions.printHeader.template1?.grade || ''"
+        :exam-id="lastSavedExamId"
+        @update:extra-margin-mm="(v) => { pageOptions.printHeader.pageMarginTopMm = v; savePageState() }"
+      />
     </q-toolbar>
 
     <input
@@ -321,6 +424,7 @@
           <q-tab name="sections" icon="category" label="Sections" />
           <q-tab name="sectionTotal" icon="summarize" label="Section Total" />
           <q-tab name="mcq" icon="grid_view" label="MCQ" />
+          <q-tab name="answerKey" icon="vpn_key" label="Answer Key" />
         </q-tabs>
         <q-separator />
 
@@ -1322,6 +1426,37 @@
               />
             </div>
           </q-tab-panel>
+
+          <q-tab-panel name="answerKey">
+            <div class="options-grid">
+              <q-toggle
+                v-model="pageOptions.answerKey.enabled"
+                label="Enable Answer Key"
+                @update:model-value="savePageState"
+              />
+
+              <q-toggle
+                v-if="pageOptions.answerKey.enabled"
+                v-model="pageOptions.answerKey.showAtEnd"
+                label="Show at end of exam"
+                @update:model-value="savePageState"
+              />
+
+              <q-toggle
+                v-if="pageOptions.answerKey.enabled"
+                v-model="pageOptions.answerKey.pageBreakBefore"
+                label="Page break before answer key"
+                @update:model-value="savePageState"
+              />
+
+              <q-toggle
+                v-if="pageOptions.answerKey.enabled"
+                v-model="pageOptions.answerKey.showNotes"
+                label="Show notes below answer key"
+                @update:model-value="savePageState"
+              />
+            </div>
+          </q-tab-panel>
         </q-tab-panels>
 
         <q-separator />
@@ -1341,32 +1476,6 @@
         </q-card-section>
         <q-separator />
 
-        <!-- Quick Mode Selection Banner -->
-        <q-banner v-if="step === 1" class="bg-blue-1 q-ma-md" rounded>
-          <template v-slot:avatar>
-            <q-icon name="bolt" color="primary" size="md" />
-          </template>
-          <div class="text-subtitle1 q-mb-sm">⚡ Quick Generate Mode</div>
-          <div class="text-body2 q-mb-md">
-            Let AI automatically generate everything for you - no manual input needed!
-          </div>
-          <q-btn 
-            @click="enableQuickMode" 
-            color="primary" 
-            label="Use Quick Generate" 
-            icon="auto_awesome"
-            unelevated
-            :loading="quickModeLoading"
-          />
-          <q-btn 
-            flat 
-            label="Manual Configuration" 
-            color="grey-7" 
-            class="q-ml-sm"
-            @click="quickMode = false"
-          />
-        </q-banner>
-        
         <q-stepper v-model="step" vertical color="primary" animated header-nav>
           
           <!-- Step 0: Quick Generate Mode (AI Auto-generates everything) -->
@@ -2176,6 +2285,399 @@
     </q-card>
   </q-dialog>
 
+  <!-- Copy From Dialog -->
+  <q-dialog v-model="copyFromDialogOpen">
+    <q-card style="min-width: 500px; max-width: 95vw;">
+      <q-card-section class="row items-center q-pb-none">
+        <div class="text-h6">Copy From Saved Exam</div>
+        <q-space />
+        <q-btn flat round dense icon="close" v-close-popup />
+      </q-card-section>
+
+      <q-card-section>
+        <q-select
+          v-model="copyFromSelectedFile"
+          :options="copyFromFiles"
+          label="Select Exam"
+          outlined
+          option-label="title"
+          option-value="id"
+          emit-value
+          map-options
+          :loading="copyFromLoading"
+          :disable="copyFromLoading"
+        >
+          <template v-slot:prepend>
+            <q-icon name="folder_open" />
+          </template>
+        </q-select>
+
+        <q-separator class="q-my-md" />
+
+        <div class="text-subtitle2 q-mb-md">Copy Options</div>
+
+        <q-list>
+          <q-item tag="label" v-ripple>
+            <q-item-section avatar>
+              <q-checkbox v-model="copyFromOptions.copyQuestions" color="primary" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Copy Questions</q-item-label>
+              <q-item-label caption>Include all questions from selected exam</q-item-label>
+            </q-item-section>
+          </q-item>
+
+          <q-item tag="label" v-ripple>
+            <q-item-section avatar>
+              <q-checkbox v-model="copyFromOptions.copySettings" color="primary" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Copy Settings</q-item-label>
+              <q-item-label caption>Include page options, header, footer settings</q-item-label>
+            </q-item-section>
+          </q-item>
+
+          <q-item tag="label" v-ripple>
+            <q-item-section avatar>
+              <q-checkbox v-model="copyFromOptions.copySections" color="primary" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Copy Sections</q-item-label>
+              <q-item-label caption>Include section definitions and mappings</q-item-label>
+            </q-item-section>
+          </q-item>
+
+          <q-item tag="label" v-ripple>
+            <q-item-section avatar>
+              <q-checkbox v-model="copyFromOptions.removeCurrentQuestions" color="negative" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Remove Current Questions</q-item-label>
+              <q-item-label caption>Clear existing questions before copying</q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </q-card-section>
+
+      <q-card-actions align="right">
+        <q-btn flat label="Cancel" v-close-popup />
+        <q-btn
+          flat
+          label="Copy"
+          color="primary"
+          @click="handleCopyFrom"
+          :disable="!copyFromSelectedFile || copyFromLoading"
+          :loading="copyFromLoading"
+        />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
+
+  <!-- Smart Exam Generator Dialog -->
+  <q-dialog v-model="smartExamDialogOpen" maximized transition-show="slide-up" transition-hide="slide-down">
+    <q-card class="q-pa-md">
+      <q-card-section class="row items-center q-pb-none">
+        <div class="text-h6">Smart Exam Generator</div>
+        <q-space />
+        <q-btn flat round dense icon="close" v-close-popup />
+      </q-card-section>
+
+      <q-card-section>
+        <q-stepper v-model="smartExamStep" vertical color="primary" animated>
+          <!-- Step 1: Information Gathering -->
+          <q-step
+            :name="1"
+            title="Exam Information"
+            icon="info"
+            :done="smartExamStep > 1"
+          >
+            <div class="q-pa-md">
+              <p class="text-body1 q-mb-md">
+                AI will ask you for any missing information to create the perfect exam.
+              </p>
+
+              <q-input
+                v-model="smartExamConfig.subject"
+                label="Subject"
+                outlined
+                class="q-mb-md"
+                hint="e.g., Mathematics, Science, English"
+              />
+
+              <q-input
+                v-model="smartExamConfig.grade"
+                label="Grade Level"
+                outlined
+                class="q-mb-md"
+                hint="e.g., Grade 7, Grade 10"
+              />
+
+              <q-input
+                v-model="smartExamConfig.examType"
+                label="Exam Type"
+                outlined
+                class="q-mb-md"
+                hint="e.g., Final Exam, Mid-term, Quiz"
+              />
+
+              <q-input
+                v-model="smartExamConfig.duration"
+                label="Duration"
+                outlined
+                class="q-mb-md"
+                hint="e.g., 60 minutes, 2 hours"
+              />
+
+              <q-input
+                v-model.number="smartExamConfig.totalQuestions"
+                type="number"
+                label="Total Questions"
+                outlined
+                class="q-mb-md"
+                min="5"
+                max="50"
+                hint="Number of questions to generate"
+              />
+
+              <q-select
+                v-model="smartExamConfig.questionTypes"
+                label="Question Types"
+                :options="[
+                  { label: 'Multiple Choice (MCQ)', value: 'mcq' },
+                  { label: 'Short Answer', value: 'short_answer' },
+                  { label: 'True/False', value: 'true_false' },
+                  { label: 'Fill in the Blanks', value: 'fill_blank' },
+                  { label: 'Essay', value: 'essay' }
+                ]"
+                multiple
+                outlined
+                class="q-mb-md"
+                hint="Select question types to include"
+              />
+
+              <q-select
+                v-model="smartExamConfig.difficulty"
+                label="Difficulty Level"
+                :options="['easy', 'medium', 'hard', 'mixed']"
+                outlined
+                class="q-mb-md"
+                hint="Overall difficulty of questions"
+              />
+            </div>
+
+            <q-stepper-navigation>
+              <q-btn @click="generateSmartExamPrompt" color="primary" label="Continue" unelevated />
+            </q-stepper-navigation>
+          </q-step>
+
+          <!-- Step 2: AI Information Request -->
+          <q-step
+            :name="2"
+            title="AI Information Request"
+            icon="chat"
+            :done="smartExamStep > 2"
+          >
+            <div class="q-pa-md">
+              <p class="text-body1 q-mb-md">
+                AI will ask for any missing information or suggest improvements.
+              </p>
+
+              <q-card v-if="smartExamPrompt" bordered class="q-mb-md">
+                <q-card-section class="bg-blue-1">
+                  <div class="text-subtitle2">AI Request Prompt</div>
+                </q-card-section>
+                <q-card-section>
+                  <q-markdown :source="smartExamPrompt" />
+                </q-card-section>
+                <q-card-actions>
+                  <q-btn flat @click="copySmartPrompt" color="primary" icon="content_copy" label="Copy" />
+                  <q-space />
+                  <q-btn flat color="secondary" label="Paste Response" @click="pasteSmartResponse" />
+                </q-card-actions>
+              </q-card>
+
+              <q-input
+                v-model="smartExamResponse"
+                label="AI Response"
+                type="textarea"
+                outlined
+                rows="10"
+                hint="Paste the AI response here"
+              />
+            </div>
+
+            <q-stepper-navigation>
+              <q-btn @click="parseSmartResponse" color="primary" label="Continue" unelevated />
+              <q-btn flat @click="smartExamStep = 1" color="grey" label="Back" class="q-ml-sm" />
+            </q-stepper-navigation>
+          </q-step>
+
+          <!-- Step 3: Summary & Confirmation -->
+          <q-step
+            :name="3"
+            title="Exam Summary"
+            icon="summarize"
+            :done="smartExamStep > 3"
+          >
+            <div class="q-pa-md">
+              <p class="text-body1 q-mb-md">
+                Review the exam summary before generation.
+              </p>
+
+              <q-card v-if="smartExamSummary" bordered class="q-mb-md">
+                <q-card-section class="bg-green-1">
+                  <div class="text-subtitle2">Exam Summary</div>
+                </q-card-section>
+                <q-card-section>
+                  <q-list>
+                    <q-item v-for="(value, key) in smartExamSummary" :key="key">
+                      <q-item-section avatar>
+                        <q-icon name="check_circle" color="green" />
+                      </q-item-section>
+                      <q-item-section>
+                        <q-item-label>{{ key }}</q-item-label>
+                        <q-item-label caption>{{ value }}</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-card-section>
+              </q-card>
+
+              <q-banner class="bg-orange-1 q-mb-md" rounded>
+                <template v-slot:avatar>
+                  <q-icon name="warning" color="orange" />
+                </template>
+                Review the summary carefully. Once confirmed, AI will generate the complete exam JSON.
+              </q-banner>
+            </div>
+
+            <q-stepper-navigation>
+              <q-btn @click="confirmSmartExam" color="positive" label="Confirm & Generate" unelevated />
+              <q-btn flat @click="smartExamStep = 2" color="grey" label="Back" class="q-ml-sm" />
+            </q-stepper-navigation>
+          </q-step>
+
+          <!-- Step 4: Generated Questions -->
+          <q-step
+            :name="4"
+            title="Generated Questions"
+            icon="quiz"
+            :done="smartExamStep > 4"
+          >
+            <div class="q-pa-md">
+              <p class="text-body1 q-mb-md">
+                AI has generated the exam questions. Review them below.
+              </p>
+
+              <q-card v-if="smartExamQuestions.length > 0" bordered class="q-mb-md">
+                <q-card-section class="bg-blue-1">
+                  <div class="text-subtitle2">Questions Summary</div>
+                </q-card-section>
+                <q-card-section>
+                  <q-table
+                    :rows="smartExamQuestions"
+                    :columns="[
+                      { name: 'id', label: '#', field: 'id', align: 'left' },
+                      { name: 'type', label: 'Type', field: 'type', align: 'left' },
+                      { name: 'marks', label: 'Marks', field: 'marks', align: 'left' },
+                      { name: 'content', label: 'Content', field: 'content', align: 'left' }
+                    ]"
+                    row-key="id"
+                    flat
+                    dense
+                  >
+                    <template v-slot:body-cell-content="props">
+                      <q-td :props="props">
+                        <div class="text-caption">{{ props.row.content.substring(0, 50) }}...</div>
+                      </q-td>
+                    </template>
+                  </q-table>
+                </q-card-section>
+              </q-card>
+            </div>
+
+            <q-stepper-navigation>
+              <q-btn @click="validateSmartExam" color="primary" label="Validate & Check Issues" unelevated />
+              <q-btn flat @click="smartExamStep = 3" color="grey" label="Back" class="q-ml-sm" />
+            </q-stepper-navigation>
+          </q-step>
+
+          <!-- Step 5: Issues & Recommendations -->
+          <q-step
+            :name="5"
+            title="Issues & Recommendations"
+            icon="fact_check"
+            :done="smartExamStep > 5"
+          >
+            <div class="q-pa-md">
+              <p class="text-body1 q-mb-md">
+                AI has checked the exam for issues and provided recommendations.
+              </p>
+
+              <q-card v-if="smartExamIssues.length > 0" bordered class="q-mb-md bg-red-1">
+                <q-card-section>
+                  <div class="text-subtitle2 text-negative">Issues Found</div>
+                </q-card-section>
+                <q-card-section>
+                  <q-list>
+                    <q-item v-for="(issue, index) in smartExamIssues" :key="index">
+                      <q-item-section avatar>
+                        <q-icon name="error" color="negative" />
+                      </q-item-section>
+                      <q-item-section>
+                        <q-item-label>{{ issue }}</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-card-section>
+              </q-card>
+
+              <q-card v-if="smartExamRecommendations.length > 0" bordered class="q-mb-md bg-green-1">
+                <q-card-section>
+                  <div class="text-subtitle2 text-positive">Recommendations</div>
+                </q-card-section>
+                <q-card-section>
+                  <q-table
+                    :rows="smartExamRecommendations"
+                    :columns="[
+                      { name: 'category', label: 'Category', field: 'category', align: 'left' },
+                      { name: 'issue', label: 'Issue', field: 'issue', align: 'left' },
+                      { name: 'recommendation', label: 'Recommendation', field: 'recommendation', align: 'left' },
+                      { name: 'priority', label: 'Priority', field: 'priority', align: 'left' }
+                    ]"
+                    row-key="category"
+                    flat
+                    dense
+                  >
+                    <template v-slot:body-cell-priority="props">
+                      <q-td :props="props">
+                        <q-chip :color="props.row.priority === 'high' ? 'red' : props.row.priority === 'medium' ? 'orange' : 'green'" text-color="white" size="sm">
+                          {{ props.row.priority }}
+                        </q-chip>
+                      </q-td>
+                    </template>
+                  </q-table>
+                </q-card-section>
+              </q-card>
+
+              <q-banner v-if="smartExamIssues.length === 0 && smartExamRecommendations.length === 0" class="bg-green-1" rounded>
+                <template v-slot:avatar>
+                  <q-icon name="check_circle" color="green" />
+                </template>
+                No issues found! The exam is ready to import.
+              </q-banner>
+            </div>
+
+            <q-stepper-navigation>
+              <q-btn @click="importSmartExam" color="positive" label="Import Exam" unelevated />
+              <q-btn flat @click="smartExamStep = 4" color="grey" label="Back" class="q-ml-sm" />
+            </q-stepper-navigation>
+          </q-step>
+        </q-stepper>
+      </q-card-section>
+    </q-card>
+  </q-dialog>
+
   <!-- AI Chat Dialog -->
   <q-dialog v-model="aiChatDialogOpen" maximized transition-show="slide-up" transition-hide="slide-down">
     <q-card class="q-pa-md">
@@ -2710,6 +3212,7 @@ import PrintFooter from './components/PrintFooter.vue'
 import FirstPageSettings from './components/FirstPageSettings.vue'
 import LastPageSettings from './components/LastPageSettings.vue'
 import ExamFileManager from './components/ExamFileManager.vue'
+import AnswerKey from './components/AnswerKey.vue'
 import { renderSectionTotalHTML } from './utils/sectionTotalTemplates'
 import { formatQuestionLabel } from './utils/questionNumbering'
  
@@ -2791,6 +3294,41 @@ const hasUnsavedChanges = ref(false)
 const autoSaveEnabled = ref(false)
 const autoSaveDebounceTimer = ref(null)
 const lastSavedState = ref(null)
+
+// Tools dropdown tab
+const toolsTab = ref('file')
+
+// Smart Exam Generator State
+const smartExamDialogOpen = ref(false)
+const smartExamStep = ref(1)
+const smartExamConfig = ref({
+  subject: '',
+  grade: '',
+  examType: '',
+  duration: '',
+  totalQuestions: 10,
+  questionTypes: ['mcq', 'short_answer'],
+  difficulty: 'mixed'
+})
+const smartExamPrompt = ref('')
+const smartExamResponse = ref('')
+const smartExamSummary = ref(null)
+const smartExamQuestions = ref([])
+const smartExamIssues = ref([])
+const smartExamRecommendations = ref([])
+const smartExamLoading = ref(false)
+
+// Copy From Dialog State
+const copyFromDialogOpen = ref(false)
+const copyFromFiles = ref([])
+const copyFromSelectedFile = ref(null)
+const copyFromOptions = ref({
+  copyQuestions: true,
+  copySettings: true,
+  copySections: true,
+  removeCurrentQuestions: false
+})
+const copyFromLoading = ref(false)
 
 // Full Exam AI Generation State
 const fullExamDialogOpen = ref(false)
@@ -2977,6 +3515,12 @@ const pageOptions = ref({
     showCompletionTime: false,
     customContent: '',
     skipPageNumber: false,
+    pageBreakBefore: true
+  },
+  answerKey: {
+    enabled: false,
+    showAtEnd: true,
+    showNotes: true,
     pageBreakBefore: true
   },
   questionSeparator: {
@@ -3440,6 +3984,296 @@ function openAIDialog() {
   aiDialogOpen.value = true
   step.value = quickMode.value ? 0 : 1
   resetAIState()
+}
+
+function openQuickImportDialog() {
+  quickMode.value = true
+  aiDialogOpen.value = true
+  step.value = 0
+  resetAIState()
+}
+
+function openSmartExamDialog() {
+  smartExamDialogOpen.value = true
+  smartExamStep.value = 1
+  smartExamConfig.value = {
+    subject: '',
+    grade: '',
+    examType: '',
+    duration: '',
+    totalQuestions: 10,
+    questionTypes: ['mcq', 'short_answer'],
+    difficulty: 'mixed'
+  }
+  smartExamPrompt.value = ''
+  smartExamResponse.value = ''
+  smartExamSummary.value = null
+  smartExamQuestions.value = []
+  smartExamIssues.value = []
+  smartExamRecommendations.value = []
+}
+
+function generateSmartExamPrompt() {
+  const config = smartExamConfig.value
+  let prompt = `# Smart Exam Generation - Information Gathering\n\n`
+  prompt += `I want to generate a complete exam. Here's what I have:\n\n`
+
+  // Show what we have
+  prompt += `## Current Information:\n`
+  if (config.subject) prompt += `- Subject: ${config.subject}\n`
+  if (config.grade) prompt += `- Grade Level: ${config.grade}\n`
+  if (config.examType) prompt += `- Exam Type: ${config.examType}\n`
+  if (config.duration) prompt += `- Duration: ${config.duration}\n`
+  if (config.totalQuestions) prompt += `- Total Questions: ${config.totalQuestions}\n`
+  if (config.questionTypes.length) prompt += `- Question Types: ${config.questionTypes.join(', ')}\n`
+  if (config.difficulty) prompt += `- Difficulty: ${config.difficulty}\n`
+
+  // Check what's missing
+  const missing = []
+  if (!config.subject) missing.push('subject')
+  if (!config.grade) missing.push('grade level')
+  if (!config.examType) missing.push('exam type')
+  if (!config.duration) missing.push('duration')
+  if (!config.totalQuestions) missing.push('question count')
+
+  if (missing.length > 0) {
+    prompt += `\n## Missing Information:\n`
+    missing.forEach(m => prompt += `- ${m}\n`)
+    prompt += `\nPlease provide 3-4 suggestions for each missing field and ask me to confirm.\n`
+  } else {
+    prompt += `\nAll information provided. Please provide a summary of what you will generate and ask for confirmation.\n`
+  }
+
+  prompt += `\nAfter confirmation, you will generate the complete exam JSON with proper validation.\n`
+  smartExamPrompt.value = prompt
+  smartExamStep.value = 2
+}
+
+function copySmartPrompt() {
+  navigator.clipboard.writeText(smartExamPrompt.value)
+  $q.notify({ type: 'positive', message: 'Prompt copied to clipboard', position: 'top' })
+}
+
+function pasteSmartResponse() {
+  navigator.clipboard.readText().then(text => {
+    smartExamResponse.value = text
+  }).catch(() => {
+    $q.notify({ type: 'warning', message: 'Could not read from clipboard', position: 'top' })
+  })
+}
+
+function parseSmartResponse() {
+  try {
+    const response = smartExamResponse.value
+    // Try to parse as JSON first
+    try {
+      const parsed = JSON.parse(response)
+      if (parsed.summary) {
+        smartExamSummary.value = parsed.summary
+      }
+      if (parsed.questions) {
+        smartExamQuestions.value = parsed.questions
+      }
+    } catch {
+      // If not JSON, extract summary from text
+      const summaryMatch = response.match(/## Summary\s*\n([\s\S]*?)(?=\n##|$)/)
+      if (summaryMatch) {
+        const summaryText = summaryMatch[1]
+        smartExamSummary.value = {
+          'Subject': smartExamConfig.value.subject || 'To be determined',
+          'Grade': smartExamConfig.value.grade || 'To be determined',
+          'Exam Type': smartExamConfig.value.examType || 'To be determined',
+          'Duration': smartExamConfig.value.duration || 'To be determined',
+          'Total Questions': smartExamConfig.value.totalQuestions,
+          'Question Types': smartExamConfig.value.questionTypes.join(', '),
+          'Difficulty': smartExamConfig.value.difficulty
+        }
+      }
+    }
+    smartExamStep.value = 3
+  } catch (e) {
+    $q.notify({ type: 'negative', message: 'Failed to parse response: ' + e.message, position: 'top' })
+  }
+}
+
+function confirmSmartExam() {
+  // Generate the full prompt for exam creation
+  const config = smartExamConfig.value
+  let prompt = `# Generate Complete Exam JSON\n\n`
+  prompt += `Generate a complete exam with the following specifications:\n\n`
+  prompt += `## Exam Specifications:\n`
+  prompt += `- Subject: ${config.subject}\n`
+  prompt += `- Grade Level: ${config.grade}\n`
+  prompt += `- Exam Type: ${config.examType}\n`
+  prompt += `- Duration: ${config.duration}\n`
+  prompt += `- Total Questions: ${config.totalQuestions}\n`
+  prompt += `- Question Types: ${config.questionTypes.join(', ')}\n`
+  prompt += `- Difficulty: ${config.difficulty}\n\n`
+
+  prompt += `## Requirements:\n`
+  prompt += `1. Generate valid JSON for the exam questions\n`
+  prompt += `2. Each question must have: id, type, marks, content, options (for MCQ), correct_answer\n`
+  prompt += `3. Ensure all questions are appropriate for the grade level\n`
+  prompt += `4. Mix difficulty levels as specified\n`
+  prompt += `5. Include clear and unambiguous questions\n\n`
+
+  prompt += `## Output Format:\n`
+  prompt += `Return ONLY valid JSON in this format:\n`
+  prompt += `{\n`
+  prompt += `  "questions": [\n`
+  prompt += `    {\n`
+  prompt += `      "id": 1,\n`
+  prompt += `      "type": "mcq",\n`
+  prompt += `      "marks": 2,\n`
+  prompt += `      "content": "Question text",\n`
+  prompt += `      "options": ["A", "B", "C", "D"],\n`
+  prompt += `      "correct_answer": "A"\n`
+  prompt += `    }\n`
+  prompt += `  ]\n`
+  prompt += `}\n`
+
+  smartExamPrompt.value = prompt
+  smartExamStep.value = 4
+}
+
+function validateSmartExam() {
+  // Generate validation prompt
+  let prompt = `# Validate Exam Questions\n\n`
+  prompt += `Review the following exam questions for issues:\n\n`
+  prompt += JSON.stringify(smartExamQuestions.value, null, 2)
+  prompt += `\n\n## Check for:\n`
+  prompt += `1. Invalid question types\n`
+  prompt += `2. Missing required fields\n`
+  prompt += `3. Ambiguous or unclear questions\n`
+  prompt += `4. Inappropriate difficulty for grade level\n`
+  prompt += `5. Duplicate questions\n`
+  prompt += `6. Formatting issues\n\n`
+
+  prompt += `## Output Format:\n`
+  prompt += `Return JSON with:\n`
+  prompt += `{\n`
+  prompt += `  "issues": ["list of issues found"],\n`
+  prompt += `  "recommendations": [\n`
+  prompt += `    {\n`
+  prompt += `      "category": "category name",\n`
+  prompt += `      "issue": "description of issue",\n`
+  prompt += `      "recommendation": "how to fix",\n`
+  prompt += `      "priority": "high|medium|low"\n`
+  prompt += `    }\n`
+  prompt += `  ]\n`
+  prompt += `}\n`
+
+  smartExamPrompt.value = prompt
+  smartExamStep.value = 5
+
+  // Simulate validation (in real implementation, this would call AI)
+  setTimeout(() => {
+    smartExamIssues.value = []
+    smartExamRecommendations.value = [
+      {
+        category: 'Question Clarity',
+        issue: 'Some questions may be ambiguous',
+        recommendation: 'Review questions for clarity and specificity',
+        priority: 'medium'
+      },
+      {
+        category: 'Difficulty Balance',
+        issue: 'Ensure difficulty matches grade level',
+        recommendation: 'Adjust question complexity accordingly',
+        priority: 'high'
+      }
+    ]
+  }, 500)
+}
+
+function importSmartExam() {
+  // Import the generated questions
+  sampleQuestions.value = [...smartExamQuestions.value]
+  hasUnsavedChanges.value = true
+  smartExamDialogOpen.value = false
+  $q.notify({ type: 'positive', message: 'Exam imported successfully!', position: 'top' })
+}
+
+function openCopyFromDialog() {
+  copyFromDialogOpen.value = true
+  copyFromSelectedFile.value = null
+  copyFromOptions.value = {
+    copyQuestions: true,
+    copySettings: true,
+    copySections: true,
+    removeCurrentQuestions: false
+  }
+  loadCopyFromFiles()
+}
+
+async function loadCopyFromFiles() {
+  copyFromLoading.value = true
+  try {
+    const response = await fetch('/list-saved-exams')
+    const data = await response.json()
+    if (data.success) {
+      copyFromFiles.value = data.exams
+    } else {
+      $q.notify({ type: 'negative', message: 'Failed to load saved exams', position: 'top' })
+    }
+  } catch (error) {
+    $q.notify({ type: 'negative', message: 'Error loading saved exams: ' + error.message, position: 'top' })
+  } finally {
+    copyFromLoading.value = false
+  }
+}
+
+async function handleCopyFrom() {
+  if (!copyFromSelectedFile.value) return
+
+  copyFromLoading.value = true
+  try {
+    const response = await fetch(`/load-saved-exam/${copyFromSelectedFile.value}`)
+    const data = await response.json()
+
+    if (data.success) {
+      const examData = data.exam
+
+      // Remove current questions if option is selected
+      if (copyFromOptions.value.removeCurrentQuestions) {
+        sampleQuestions.value = []
+      }
+
+      // Copy questions
+      if (copyFromOptions.value.copyQuestions && examData.questions) {
+        const newQuestions = examData.questions.map((q, index) => ({
+          ...q,
+          id: sampleQuestions.value.length + index + 1
+        }))
+        sampleQuestions.value = [...sampleQuestions.value, ...newQuestions]
+      }
+
+      // Copy settings
+      if (copyFromOptions.value.copySettings && examData.pageOptions) {
+        pageOptions.value = JSON.parse(JSON.stringify(examData.pageOptions))
+      }
+
+      // Copy sections
+      if (copyFromOptions.value.copySections) {
+        if (examData.sections) {
+          sections.value = JSON.parse(JSON.stringify(examData.sections))
+        }
+        if (examData.questionSectionMap) {
+          questionSectionMap.value = JSON.parse(JSON.stringify(examData.questionSectionMap))
+        }
+      }
+
+      hasUnsavedChanges.value = true
+      copyFromDialogOpen.value = false
+      $q.notify({ type: 'positive', message: 'Copied successfully!', position: 'top' })
+    } else {
+      $q.notify({ type: 'negative', message: 'Failed to load exam data', position: 'top' })
+    }
+  } catch (error) {
+    $q.notify({ type: 'negative', message: 'Error copying exam: ' + error.message, position: 'top' })
+  } finally {
+    copyFromLoading.value = false
+  }
 }
 
 function resetAIState() {
@@ -6085,6 +6919,64 @@ scriptContent += "})();";
   }
 
   html += '</table>'
+
+  // Add Answer Key at the end if enabled
+  const answerKeyEnabled = !!pageOptions.value?.answerKey?.enabled
+  const answerKeyShowAtEnd = pageOptions.value?.answerKey?.showAtEnd !== false
+  const answerKeyShowNotes = pageOptions.value?.answerKey?.showNotes !== false
+  const answerKeyPageBreakBefore = pageOptions.value?.answerKey?.pageBreakBefore !== false
+
+  if (answerKeyEnabled && answerKeyShowAtEnd) {
+    if (answerKeyPageBreakBefore) {
+      html += '<div class="page-break"></div>'
+    }
+
+    html += '<div class="answer-key-section" style="margin: 20px 0; page-break-inside: avoid;">'
+    html += '<h3 class="text-center" style="border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px;">Answer Key</h3>'
+
+    html += '<table style="width: 100%; border-collapse: collapse; font-size: 12px; margin: 20px 0;">'
+    html += '<thead style="background-color: #f5f5f5;">'
+    html += '<tr>'
+    html += '<th style="padding: 8px; border: 1px solid #ddd; font-weight: 600; color: #333; text-align: center; width: 60px;">#</th>'
+    html += '<th style="padding: 8px; border: 1px solid #ddd; font-weight: 600; color: #333;">Question</th>'
+    html += '<th style="padding: 8px; border: 1px solid #ddd; font-weight: 600; color: #333; text-align: center; width: 80px;">Marks</th>'
+    html += '<th style="padding: 8px; border: 1px solid #ddd; font-weight: 600; color: #333; text-align: center; width: 100px;">Answer</th>'
+    html += '</tr>'
+    html += '</thead>'
+    html += '<tbody>'
+
+    let answerIndex = 0
+    sampleQuestions.value.forEach((question) => {
+      answerIndex += 1
+      const questionText = question.content ? question.content.prompt?.replace(/<[^>]*>/g, '').substring(0, 100) + (question.content.prompt?.length > 100 ? '...' : '') : 'N/A'
+      const answerText = getAnswerKeyText(question)
+
+      html += '<tr style="' + (answerIndex % 2 === 0 ? 'background-color: #fafafa;' : '') + '">'
+      html += '<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">' + answerIndex + '</td>'
+      html += '<td style="padding: 8px; border: 1px solid #ddd; vertical-align: top; max-width: 300px; word-wrap: break-word; line-height: 1.4;">' + questionText + '</td>'
+      html += '<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">' + (question.marks || 0) + '</td>'
+      html += '<td style="padding: 8px; border: 1px solid #ddd; text-align: center;"><strong style="color: #1976d2;">' + answerText + '</strong></td>'
+      html += '</tr>'
+    })
+
+    const totalMarks = sampleQuestions.value.reduce((sum, q) => sum + (q.marks || 0), 0)
+    html += '<tr style="background-color: #e8f5e9; font-weight: 600;">'
+    html += '<td colspan="2" style="padding: 8px; border: 1px solid #ddd; text-align: right; border-top: 2px solid #4caf50;"><strong>Total:</strong></td>'
+    html += '<td style="padding: 8px; border: 1px solid #ddd; text-align: center; border-top: 2px solid #4caf50;"><strong>' + totalMarks + '</strong></td>'
+    html += '<td style="padding: 8px; border: 1px solid #ddd; border-top: 2px solid #4caf50;"></td>'
+    html += '</tr>'
+    html += '</tbody>'
+    html += '</table>'
+
+    if (answerKeyShowNotes) {
+      html += '<p style="margin-top: 15px; font-size: 10px; color: #666; border-top: 1px dashed #ccc; padding-top: 10px;">'
+      html += '<em>Note: This answer key should be separated from the exam paper before distribution to students.</em>'
+      html += '</p>'
+    }
+
+    html += '</div>'
+  }
+
   html += '</body></html>'
   return html
 }
@@ -6145,13 +7037,20 @@ function getPrintAnswerLines(question) {
   // For MCQ / True-False, usually no answer lines are needed
   if (type === 'multiple_choice' || type === 'true_false') return 0
 
-  const marks = Number(question?.marks || 1)
-  if (!Number.isFinite(marks)) return 3
+  // For other types, use the configured answer lines
+  const lines = Number(pageOptions.value?.answerLines?.defaultLines || 3)
+  return lines
+}
 
-  // Short answers: keep it compact
-  if (marks <= 1) return 2
-  if (marks <= 3) return 3
-  return 4
+function getAnswerKeyText(question) {
+  if (question.type === 'mcq' && question.correct_answer) {
+    return question.correct_answer
+  } else if (question.type === 'true_false' && question.correct_answer !== undefined) {
+    return question.correct_answer ? 'True' : 'False'
+  } else if (question.correct_answer) {
+    return question.correct_answer
+  }
+  return '-'
 }
 
 // Watch for changes and auto-save

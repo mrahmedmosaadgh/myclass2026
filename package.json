@@ -80,7 +80,7 @@
         "pinia-plugin-persistedstate": "^4.7.1",
         "pusher-js": "^8.4.0",
         "qrcode.vue": "^3.6.0",
-        "quasar": "^2.18.1",
+        "quasar": "^2.19.3",
         "simplebar-vue": "^2.4.0",
         "sortablejs": "^1.15.6",
         "tesseract.js": "^6.0.1",
