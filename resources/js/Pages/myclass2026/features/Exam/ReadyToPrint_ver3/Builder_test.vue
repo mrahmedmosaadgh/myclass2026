@@ -15,11 +15,15 @@
       <q-btn-group flat>
         <!-- Save/Load -->
         <ExamFileManager
+          :has-unsaved-changes="hasUnsavedChanges"
+          :auto-save-enabled="autoSaveEnabled"
           @save="handleSaveExam"
           @saveAs="handleSaveAs"
           @load="handleLoadExam"
           @delete="handleDeleteExam"
           @refresh="handleRefreshFiles"
+          @createNew="handleCreateNewExam"
+          @toggle-auto-save="toggleAutoSave"
           ref="fileManagerRef"
         />
 
@@ -2782,6 +2786,12 @@ const quickModeContext = ref({
 // Component version for backward compatibility
 const COMPONENT_VERSION = 'v3.0'
 
+// Unsaved changes tracking
+const hasUnsavedChanges = ref(false)
+const autoSaveEnabled = ref(false)
+const autoSaveDebounceTimer = ref(null)
+const lastSavedState = ref(null)
+
 // Full Exam AI Generation State
 const fullExamDialogOpen = ref(false)
 const fullExamStep = ref(1)
@@ -3826,11 +3836,17 @@ async function handleSaveExam() {
       pageBreaks: pageOptions.value.questionNumbering?.pageBreaksBefore || {}
     }
 
+    // Include exam_id if updating existing exam
+    if (lastSavedExamId.value) {
+      data.exam_id = lastSavedExamId.value
+    }
+
     console.log('Saving exam with data:', {
       questions_count: data.questions.length,
       sections_count: data.sections.length,
       questionSectionMap_count: Object.keys(data.questionSectionMap).length,
-      questions_sample: data.questions.slice(0, 2)
+      questions_sample: data.questions.slice(0, 2),
+      exam_id: data.exam_id
     })
 
     const response = await fetch('/api/exam/ready-to-print/save-exam', {
@@ -3848,9 +3864,11 @@ async function handleSaveExam() {
 
     if (response.ok) {
       lastSavedExamId.value = result.exam_id
+      hasUnsavedChanges.value = false
+      lastSavedState.value = getCurrentState()
       $q.notify({
         type: 'positive',
-        message: 'Exam saved successfully!',
+        message: data.exam_id ? 'Exam updated successfully!' : 'New exam created successfully!',
         position: 'top'
       })
     } else {
@@ -3869,6 +3887,94 @@ async function handleSaveExam() {
     })
   }
 }
+
+function handleCreateNewExam() {
+  $q.dialog({
+    title: 'Create New Exam',
+    message: 'Create a new blank exam? All current unsaved changes will be lost.',
+    cancel: true,
+    persistent: true
+  }).onOk(() => {
+    // Reset all exam data to default state
+    sampleQuestions.value = []
+    sections.value = []
+    questionSectionMap.value = {}
+    lastSavedExamId.value = null
+    hasUnsavedChanges.value = false
+    lastSavedState.value = null
+
+    // Reset page options to defaults
+    pageOptions.value = {
+      examTitle: { enabled: false, text: '' },
+      showMarksPerQuestion: true,
+      printHeader: {
+        enabled: true,
+        template1: { subject: '', grade: '', date: '', duration: '' },
+        pageMarginTopMm: 20
+      },
+      printFooter: { enabled: false },
+      firstPage: { enabled: false },
+      lastPage: { enabled: false },
+      questionNumbering: { startFrom: 1, pageBreaksBefore: {} },
+      sectionTotal: { enabled: false },
+      questionSeparator: { enabled: true },
+      mcqOptions: { layout: 'vertical' },
+      pageLayout: { margin: 'normal' }
+    }
+
+    $q.notify({
+      type: 'info',
+      message: 'New blank exam created',
+      position: 'top'
+    })
+  })
+}
+
+function getCurrentState() {
+  return JSON.stringify({
+    questions: sampleQuestions.value,
+    sections: sections.value,
+    questionSectionMap: questionSectionMap.value,
+    pageOptions: pageOptions.value
+  })
+}
+
+function markAsChanged() {
+  if (!hasUnsavedChanges.value) {
+    hasUnsavedChanges.value = true
+  }
+  triggerAutoSave()
+}
+
+function triggerAutoSave() {
+  if (!autoSaveEnabled.value || !lastSavedExamId.value) return
+
+  // Clear existing timer
+  if (autoSaveDebounceTimer.value) {
+    clearTimeout(autoSaveDebounceTimer.value)
+  }
+
+  // Set new timer for auto-save (debounce 2 seconds)
+  autoSaveDebounceTimer.value = setTimeout(() => {
+    handleSaveExam()
+  }, 2000)
+}
+
+function toggleAutoSave() {
+  autoSaveEnabled.value = !autoSaveEnabled.value
+  if (autoSaveEnabled.value && hasUnsavedChanges.value && lastSavedExamId.value) {
+    // Trigger immediate save when enabling auto-save
+    handleSaveExam()
+  }
+}
+
+// Watch for changes in exam data
+watch([sampleQuestions, sections, questionSectionMap, pageOptions], () => {
+  const currentState = getCurrentState()
+  if (lastSavedState.value && currentState !== lastSavedState.value) {
+    markAsChanged()
+  }
+}, { deep: true })
 
 async function openPrintPreview() {
   console.log('Opening print preview, lastSavedExamId:', lastSavedExamId.value)
