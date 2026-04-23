@@ -193,11 +193,21 @@ class ExamFileController extends Controller
         $safeName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $examName);
         $filename = "{$safeName}_{$examId}.pdf";
 
-        // Generate PDF using spatie/laravel-pdf
-        return Pdf::html($htmlContent)
+        // Ensure temp directory exists
+        $tempDir = storage_path('app/temp');
+        if (!is_dir($tempDir)) {
+            mkdir($tempDir, 0755, true);
+        }
+
+        // Generate PDF using spatie/laravel-pdf with dompdf driver
+        $pdf = Pdf::html($htmlContent)
             ->format('a4')
             ->margins(12, 12, 12, 12) // top, right, bottom, left in mm
-            ->download($filename);
+            ->save($tempDir . '/' . $filename);
+
+        // Return as download response
+        return response()->download($tempDir . '/' . $filename, $filename)
+            ->deleteFileAfterSend(true);
     }
 
     /**
