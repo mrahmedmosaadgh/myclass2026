@@ -4697,6 +4697,7 @@ function generatePrintHTML() {
   html += '<style>'
   html += '@page { size: A4; margin: 12mm; }'
   html += ' body { font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.5; margin: 0; padding: ' + bodyPadPx + 'px; counter-reset: page 0 pages 0; }'
+  html += ' @media print { @page { @bottom-center { content: counter(page); } } }'
   html += ' h1 { margin: 0 0 14pt; font-size: 22pt; }'
   html += ' h2 { margin: 14pt 0 6pt; font-size: 15pt; text-decoration: underline; }'
   // Header: touches the top of the physical page printable area.
@@ -4706,7 +4707,8 @@ function generatePrintHTML() {
   html += ' @media print { .footer-content { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 6mm 12mm; } }'
   html += ' @media print { .footer-left { flex: 1; min-width: 0; } }'
   html += ' @media print { .footer-right { flex: 0 0 auto; white-space: nowrap; text-align: right; } }'
-  html += ' @media print { .page-number { font-size: ' + pageNumberFontSize + 'pt; color: ' + pageNumberColor + '; } }'
+  html += ' @media print { .page-number { font-size: ' + pageNumberFontSize + 'pt; color: ' + pageNumberColor + '; font-weight: 600; } }'
+  html += ' @media print { .abs-page-number { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }'
   
   // Basic reset for the layout table
   html += ' table.print-layout { width: 100%; border: none; border-spacing: 0; border-collapse: collapse; }'
@@ -4738,8 +4740,11 @@ function generatePrintHTML() {
   html += ' .answer-line { border-bottom: 1px solid #ccc; height: 18pt; margin-bottom: 6pt; }'
   html += ' .page-break { page-break-before: always; height: 0; }'
   html += ' .page-number { display: block; z-index: 1000; white-space: nowrap; line-height: 1.2; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }'
-  html += ' .abs-page-number { position: absolute; z-index: 5000; font-family: Arial, sans-serif; pointer-events: none; white-space: nowrap; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }'
+  html += ' .abs-page-number { position: absolute; z-index: 5000; font-family: Arial, sans-serif; pointer-events: none; white-space: nowrap; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; font-weight: 500; }'
+  html += ' @media screen { .abs-page-number { background: rgba(255, 255, 255, 0.95); padding: 2px 8px; border-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); border: 1px solid rgba(0,0,0,0.08); } }'
+  html += ' @media print { .abs-page-number { background: transparent !important; box-shadow: none !important; border: none !important; padding: 0 !important; font-weight: 600 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; } }'
   html += ' @media print { body.has-abs-page-numbers .page-number { visibility: hidden !important; } }'
+  html += ' @media print { .abs-page-number::after { content: ""; display: block; position: absolute; bottom: -2px; left: 0; right: 0; height: 1px; } }'
   html += '</style>'
   html += '</head><body>'
 
@@ -4766,8 +4771,13 @@ scriptContent += "var pageBreaks = document.querySelectorAll('.page-break');";
 scriptContent += "if (pageBreaks.length > 0) {";
 scriptContent += "return pageBreaks.length + 1;";
 scriptContent += "}";
+scriptContent += "var header = document.getElementById('printHeaderRoot');";
+scriptContent += "var footer = document.querySelector('.print-footer');";
+scriptContent += "var headerHeight = header ? header.offsetHeight : 0;";
+scriptContent += "var footerHeight = footer ? footer.offsetHeight : 0;";
+scriptContent += "var availableHeight = pageHeightPx - headerHeight - footerHeight;";
 scriptContent += "var contentHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, document.body.offsetHeight, document.documentElement.offsetHeight);";
-scriptContent += "return Math.max(1, Math.ceil(contentHeight / pageHeightPx));";
+scriptContent += "return Math.max(1, Math.ceil(contentHeight / availableHeight));";
 scriptContent += "}";
 scriptContent += "function buildPreviewText(fmt, currentPage, totalPages){";
 scriptContent += "if (fmt === 'page') return String(currentPage);";
@@ -4823,23 +4833,30 @@ scriptContent += "el.className = 'abs-page-number';";
 scriptContent += "el.textContent = buildPreviewText(fmt, p, totalPages);";
 scriptContent += "el.style.fontSize = fontPt + 'pt';";
 scriptContent += "el.style.color = color;";
+scriptContent += "el.style.position = 'absolute';";
 scriptContent += "var pageTop = pagePositions[p - 1] || ((p - 1) * pageHeightPx);";
 scriptContent += "var pageBottom = pagePositions[p] || (p * pageHeightPx);";
+scriptContent += "var bottomMarginPx = mmToPx(12);";
 scriptContent += "if (pos.indexOf('top') === 0) {";
 scriptContent += "el.style.top = (pageTop + edgePadPx) + 'px';";
 scriptContent += "} else {";
-scriptContent += "el.style.top = (pageBottom - edgePadPx - Math.ceil(fontPt * 1.6)) + 'px';";
+scriptContent += "var bottomPos = pageBottom - bottomMarginPx + edgePadPx;";
+scriptContent += "el.style.top = bottomPos + 'px';";
 scriptContent += "}";
 scriptContent += "if (pos.indexOf('left') !== -1) {";
 scriptContent += "el.style.left = leftPadPx + 'px';";
 scriptContent += "el.style.textAlign = 'left';";
+scriptContent += "el.style.right = 'auto';";
 scriptContent += "} else if (pos.indexOf('right') !== -1) {";
 scriptContent += "el.style.right = rightPadPx + 'px';";
 scriptContent += "el.style.textAlign = 'right';";
+scriptContent += "el.style.left = 'auto';";
 scriptContent += "} else {";
 scriptContent += "el.style.left = '0';";
 scriptContent += "el.style.right = '0';";
 scriptContent += "el.style.textAlign = 'center';";
+scriptContent += "el.style.paddingLeft = leftPadPx + 'px';";
+scriptContent += "el.style.paddingRight = rightPadPx + 'px';";
 scriptContent += "}";
 scriptContent += "host.appendChild(el);";
 scriptContent += "}";
@@ -4866,6 +4883,8 @@ scriptContent += "}";
 scriptContent += "}";
 scriptContent += "updatePageNumberState();";
 scriptContent += "injectAbsolutePageNumbers();";
+scriptContent += "setTimeout(function(){ updatePageNumberState(); injectAbsolutePageNumbers(); }, 100);";
+scriptContent += "setTimeout(function(){ updatePageNumberState(); injectAbsolutePageNumbers(); }, 500);";
 scriptContent += "try {";
 scriptContent += "if (typeof useLastPageText !== 'undefined' && useLastPageText && lastPageText) {";
 scriptContent += "var footerTexts = document.querySelectorAll('.footer-text');";
@@ -4881,6 +4900,8 @@ scriptContent += "} catch(e) {}";
 scriptContent += "window.__printReady = true;";
 scriptContent += "}";
 scriptContent += "try { window.addEventListener('beforeprint', function(){ updatePageNumberState(); injectAbsolutePageNumbers(); }); } catch(e) {}";
+scriptContent += "try { window.addEventListener('afterprint', function(){ console.log('Print completed'); }); } catch(e) {}";
+scriptContent += "try { if (window.matchMedia) { var mediaQueryList = window.matchMedia('print'); mediaQueryList.addListener(function(mql) { if (mql.matches) { updatePageNumberState(); injectAbsolutePageNumbers(); } }); } } catch(e) {}";
 scriptContent += "setTimeout(function(){ updatePageNumberState(); injectAbsolutePageNumbers(); }, 100);";
 scriptContent += "window.addEventListener('load', function(){";
 scriptContent += "var imgs = document.querySelectorAll('img');";
