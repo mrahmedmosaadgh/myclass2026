@@ -24,7 +24,8 @@ import { computed, ref, watch } from 'vue'
 import { renderMathContent } from '../../ReadyToPrint_ver3/utils/mathRenderer'
 
 const props = defineProps({
-  exam: { type: Object, required: true }
+  exam: { type: Object, required: true },
+  previewSettings: { type: Object, default: null }
 })
 
 const frameRef = ref(null)
@@ -41,6 +42,26 @@ const normalized = computed(() => {
   return { questions, sections, settings }
 })
 
+const mcqOptions = computed(() => {
+  const fromExam = normalized.value.settings?.mcqOptions || {}
+  const fromPreview = props.previewSettings?.mcqOptions || {}
+  return { ...fromExam, ...fromPreview }
+})
+
+function labelForType(idx, type) {
+  const i = idx + 1
+  const letter = String.fromCharCode('A'.charCodeAt(0) + idx)
+  if (type === 'number') return i + ')'
+  if (type === 'custom') {
+    const tpl = mcqOptions.value?.customLabelTemplate || '{letter})'
+    return String(tpl)
+      .replaceAll('{i}', String(idx))
+      .replaceAll('{n}', String(i))
+      .replaceAll('{letter}', String(letter))
+  }
+  return letter + ')'
+}
+
 const html = computed(() => {
   const title = normalized.value.settings?.examTitle?.text || 'Exam'
 
@@ -54,7 +75,10 @@ const html = computed(() => {
   out += '.question { margin: 10px 0 16px; page-break-inside: avoid; }'
   out += '.qhdr { display:flex; justify-content: space-between; gap: 12px; font-weight: 600; }'
   out += '.opts { margin-top: 8px; }'
-  out += '.opt { margin: 4px 0; }'
+  out += '.opt { break-inside: avoid; }'
+  out += '.opt-row { display: flex; align-items: flex-start; }'
+  out += '.opt-label { font-weight: 600; color: #333; }'
+  out += '.opt-checkbox { width: 14px; height: 14px; border: 2px solid #333; display: inline-block; box-sizing: border-box; margin-top: 2px; }'
   out += '</style>'
   out += '</head><body>'
   out += '<div class="page">'
@@ -87,10 +111,63 @@ const html = computed(() => {
         out += '</div>'
         const opts = q.content?.options || q.options
         if (Array.isArray(opts) && opts.length) {
-          out += '<div class="opts">'
+          const colsRaw = Number(mcqOptions.value?.columns)
+          const cols = Number.isFinite(colsRaw) && colsRaw > 0 ? Math.floor(colsRaw) : 1
+          const optionGapRaw = Number(mcqOptions.value?.optionGapPt)
+          const optionGapPt = Number.isFinite(optionGapRaw) ? optionGapRaw : 6
+          const labelGapRaw = Number(mcqOptions.value?.labelGapPt)
+          const labelGapPt = Number.isFinite(labelGapRaw) ? labelGapRaw : 8
+
+          const labelStyle = mcqOptions.value?.labelStyle || 'letter'
+          const checkboxShowLabel = !!mcqOptions.value?.checkboxShowLabel
+          const checkboxLabelType = mcqOptions.value?.checkboxLabelType || 'letter'
+
+          const labelFontSizeRaw = Number(mcqOptions.value?.labelFontSizePt)
+          const labelFontSizePt = Number.isFinite(labelFontSizeRaw) && labelFontSizeRaw > 0 ? labelFontSizeRaw : null
+          const optionFontSizeRaw = Number(mcqOptions.value?.optionFontSizePt)
+          const optionFontSizePt = Number.isFinite(optionFontSizeRaw) && optionFontSizeRaw > 0 ? optionFontSizeRaw : null
+
+          const labelBold = !!mcqOptions.value?.labelBold
+          const optionBold = !!mcqOptions.value?.optionBold
+
+          out += '<div class="opts" style="display:grid; grid-template-columns:repeat(' + cols + ', minmax(0,1fr)); gap:' + optionGapPt + 'pt;">'
           opts.forEach((opt, idx) => {
-            const letter = String.fromCharCode('A'.charCodeAt(0) + idx)
-            out += '<div class="opt"><strong>' + letter + ')</strong> ' + renderMathContent(opt) + '</div>'
+            const labelText = labelStyle === 'checkbox'
+              ? (checkboxShowLabel ? labelForType(idx, checkboxLabelType) : '')
+              : labelForType(idx, labelStyle)
+
+            const labelTextStyle = 'style="' +
+              (labelFontSizePt != null ? ('font-size:' + labelFontSizePt + 'pt;') : '') +
+              (labelBold ? 'font-weight:700;' : '') +
+              '"'
+
+            const checkboxLabelTextStyle = 'style="' +
+              'margin-left:6pt;' +
+              (labelFontSizePt != null ? ('font-size:' + labelFontSizePt + 'pt;') : '') +
+              (labelBold ? 'font-weight:700;' : '') +
+              '"'
+            const optionTextStyle = 'style="' +
+              (optionFontSizePt != null ? ('font-size:' + optionFontSizePt + 'pt;') : '') +
+              (optionBold ? 'font-weight:700;' : '') +
+              '"'
+
+            out += '<div class="opt">'
+            out += '<div class="opt-row" style="gap:' + labelGapPt + 'pt;">'
+
+            if (labelStyle === 'checkbox') {
+              out += '<span class="opt-label" style="font-weight:normal;">'
+              out += '<span class="opt-checkbox"></span>'
+              if (checkboxShowLabel) {
+                out += '<span ' + checkboxLabelTextStyle + '>' + renderMathContent(labelText) + '</span>'
+              }
+              out += '</span>'
+            } else {
+              out += '<span class="opt-label" ' + labelTextStyle + '>' + renderMathContent(labelText) + '</span>'
+            }
+
+            out += '<span class="opt-text" ' + optionTextStyle + '>' + renderMathContent(opt) + '</span>'
+            out += '</div>'
+            out += '</div>'
           })
           out += '</div>'
         }

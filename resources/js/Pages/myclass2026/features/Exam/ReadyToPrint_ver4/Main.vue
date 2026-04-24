@@ -9,6 +9,7 @@
       <ThreeDotMenu
         @open-exam="openExamDialog"
         @open-my-exams="openMyExamsDialog"
+        @open-settings="openSettingsDialog"
       />
     </q-toolbar>
 
@@ -22,10 +23,17 @@
       @loaded="handleExamLoaded"
     />
 
+    <SettingsDialog
+      v-model="settingsOpen"
+      :initial-tab="settingsInitialTab"
+      v-model:settings="previewSettings"
+    />
+
     <div class="q-pa-md">
       <LivePrintPreview
         v-if="currentExam"
         :exam="currentExam"
+        :preview-settings="previewSettings"
       />
 
       <div v-else class="text-grey-7">
@@ -40,11 +48,32 @@ import { ref } from 'vue'
 import ThreeDotMenu from './components/ThreeDotMenu.vue'
 import OpenExamDialog from './components/OpenExamDialog.vue'
 import OpenMyExamsDialog from './components/OpenMyExamsDialog.vue'
+import SettingsDialog from './components/SettingsDialog.vue'
 import LivePrintPreview from './components/LivePrintPreview.vue'
 
 const openExamOpen = ref(false)
 const openMyExamsOpen = ref(false)
 const currentExam = ref(null)
+
+const settingsOpen = ref(false)
+const settingsInitialTab = ref('mcq')
+
+const previewSettings = ref({
+  mcqOptions: {
+    columns: 1,
+    optionGapPt: 6,
+    labelGapPt: 8,
+    labelStyle: 'letter',
+    customLabelTemplate: '{letter})',
+    checkboxStyle: 'box',
+    checkboxShowLabel: false,
+    checkboxLabelType: 'letter',
+    labelFontSizePt: 0,
+    optionFontSizePt: 0,
+    labelBold: false,
+    optionBold: false
+  }
+})
 
 function openExamDialog() {
   openExamOpen.value = true
@@ -54,8 +83,22 @@ function openMyExamsDialog() {
   openMyExamsOpen.value = true
 }
 
+function openSettingsDialog(mode) {
+  // mode: 'generate' | 'questions'
+  settingsInitialTab.value = mode === 'questions' ? 'questions' : 'mcq'
+  settingsOpen.value = true
+}
+
 function handleExamLoaded(exam) {
   currentExam.value = exam
+  // If the loaded exam has MCQ settings, use them as a base for preview.
+  const incoming = exam?.settings || exam?.pageOptions
+  if (incoming?.mcqOptions) {
+    previewSettings.value = {
+      ...previewSettings.value,
+      mcqOptions: { ...previewSettings.value.mcqOptions, ...incoming.mcqOptions }
+    }
+  }
 }
 </script>
 

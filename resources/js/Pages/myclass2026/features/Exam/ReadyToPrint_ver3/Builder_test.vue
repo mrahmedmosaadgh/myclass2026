@@ -330,65 +330,72 @@
       <div
         v-for="(question, index) in printSequence"
         :key="question.id"
-        class="question-row"
+        :class="['question-row', isEditMode ? 'question-row--edit' : '']"
       >
+        <!-- Edit mode toolbar: section selector + 3-dot menu -->
+        <div class="question-edit-bar" v-if="isEditMode">
+          <div class="question-edit-bar__left">
+            <span class="question-edit-bar__num text-grey-7">Q{{ index + 1 }}</span>
+            <q-select
+              dense
+              borderless
+              emit-value
+              map-options
+              :options="sectionOptions"
+              :model-value="getQuestionSectionId(question)"
+              @update:model-value="(val) => setQuestionSection(question, val)"
+              style="min-width: 160px"
+              class="question-edit-bar__section"
+            />
+          </div>
+          <div class="question-edit-bar__right">
+            <q-btn-dropdown
+              dense
+              flat
+              no-icon-animation
+              dropdown-icon="more_vert"
+              color="grey-7"
+              size="sm"
+              unelevated
+            >
+              <q-list dense style="min-width: 200px">
+                <q-item clickable v-close-popup @click="editQuestionContent(question)">
+                  <q-item-section avatar><q-icon name="edit" size="xs" color="primary" /></q-item-section>
+                  <q-item-section>Edit</q-item-section>
+                </q-item>
+                <q-item clickable v-close-popup @click="duplicateQuestion(question)">
+                  <q-item-section avatar><q-icon name="content_copy" size="xs" color="teal" /></q-item-section>
+                  <q-item-section>Copy / Duplicate</q-item-section>
+                </q-item>
+                <q-item clickable v-close-popup @click="openImageDialog(question)">
+                  <q-item-section avatar><q-icon name="image" size="xs" color="indigo" /></q-item-section>
+                  <q-item-section>{{ question?.content?.image ? 'Edit Image' : 'Add Image' }}</q-item-section>
+                </q-item>
+                <q-separator />
+                <q-item clickable v-close-popup @click="togglePageBreakBefore(question)">
+                  <q-item-section avatar><q-icon name="vertical_align_top" size="xs" color="orange-8" /></q-item-section>
+                  <q-item-section>{{ isPageBreakBefore(question) ? 'Remove' : 'Add' }} Page Break Before</q-item-section>
+                </q-item>
+                <q-item clickable v-close-popup @click="togglePageBreakAfter(question)">
+                  <q-item-section avatar><q-icon name="vertical_align_bottom" size="xs" color="orange-8" /></q-item-section>
+                  <q-item-section>{{ isPageBreakAfter(question) ? 'Remove' : 'Add' }} Page Break After</q-item-section>
+                </q-item>
+                <q-separator />
+                <q-item clickable v-close-popup @click="confirmDeleteQuestion(question.id)" class="text-negative">
+                  <q-item-section avatar><q-icon name="delete" size="xs" color="negative" /></q-item-section>
+                  <q-item-section>Delete</q-item-section>
+                </q-item>
+              </q-list>
+            </q-btn-dropdown>
+          </div>
+        </div>
+
         <div v-if="isPageBreakBefore(question)" class="page-break-marker">
           <div class="page-break-marker-line"></div>
           <div class="page-break-marker-label">PAGE BREAK</div>
           <div class="page-break-marker-line"></div>
         </div>
 
-        <div class="question-row-actions" v-if="isEditMode">
-          <q-select
-            dense
-            outlined
-            emit-value
-            map-options
-            :options="sectionOptions"
-            :model-value="getQuestionSectionId(question)"
-            @update:model-value="(val) => setQuestionSection(question, val)"
-            style="min-width: 180px"
-            class="q-mr-sm"
-          />
-
-          <div class="text-subtitle2 text-grey-8 q-mx-md">Question Actions</div>
-
-          <q-btn-dropdown
-            dense
-            flat
-            round
-            icon="more_vert"
-            color="grey-8"
-          >
-            <q-list>
-              <q-item clickable v-close-popup @click="editQuestionContent(question)">
-                <q-item-section avatar><q-icon name="edit" /></q-item-section>
-                <q-item-section>Edit Content</q-item-section>
-              </q-item>
-              <q-item clickable v-close-popup @click="duplicateQuestion(question)">
-                <q-item-section avatar><q-icon name="content_copy" /></q-item-section>
-                <q-item-section>Duplicate</q-item-section>
-              </q-item>
-              <q-item clickable v-close-popup @click="togglePageBreakBefore(question)">
-                <q-item-section avatar><q-icon name="vertical_align_bottom" /></q-item-section>
-                <q-item-section>{{ isPageBreakBefore(question) ? 'Remove' : 'Add' }} Page Break Before</q-item-section>
-              </q-item>
-              <q-item clickable v-close-popup @click="togglePageBreakAfter(question)">
-                <q-item-section avatar><q-icon name="vertical_align_top" /></q-item-section>
-                <q-item-section>Add Page Break After</q-item-section>
-              </q-item>
-              <q-item clickable v-close-popup @click="openImageDialog(question)">
-                <q-item-section avatar><q-icon name="image" /></q-item-section>
-                <q-item-section>{{ question?.content?.image ? 'Edit' : 'Add' }} Image</q-item-section>
-              </q-item>
-              <q-separator />
-              <q-item clickable v-close-popup @click="confirmDeleteQuestion(question.id)" class="text-negative">
-                <q-item-section avatar><q-icon name="delete" color="negative" /></q-item-section>
-                <q-item-section>Delete</q-item-section>
-              </q-item>
-            </q-list>
-          </q-btn-dropdown>
-        </div>
         <QuestionDisplay
           :question="question"
           :question-number="index + 1"
@@ -4051,6 +4058,15 @@ function isPageBreakBefore(question) {
   const map = pageOptions.value?.questionNumbering?.pageBreaksBefore || {}
   const qid = String(question?.id)
   return !!map[qid]
+}
+
+function isPageBreakAfter(question) {
+  const qid = String(question?.id)
+  if (!qid) return false
+  const idx = printSequence.value.findIndex(q => String(q?.id) === qid)
+  const nextQuestion = idx >= 0 ? printSequence.value[idx + 1] : null
+  if (!nextQuestion) return false
+  return isPageBreakBefore(nextQuestion)
 }
 
 async function togglePageBreakBefore(question) {
@@ -8034,6 +8050,69 @@ onMounted(async () => {
   position: relative;
 }
 
+.question-row--edit {
+  border: 1px solid transparent;
+  border-radius: 6px;
+  transition: border-color 0.15s;
+  margin-bottom: 16px;
+}
+
+.question-row--edit:hover {
+  border-color: #e0e0e0;
+}
+
+/* Edit mode top bar */
+.question-edit-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f5f7fa;
+  border: 1px solid #e3e8ef;
+  border-radius: 6px 6px 0 0;
+  padding: 4px 8px 4px 10px;
+  margin-bottom: 0;
+  gap: 8px;
+}
+
+.question-row--edit:hover .question-edit-bar {
+  border-color: #b0bec5;
+  background: #eef2f7;
+}
+
+.question-edit-bar__left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.question-edit-bar__num {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  color: #888;
+}
+
+.question-edit-bar__section {
+  font-size: 12px;
+}
+
+.question-edit-bar__right {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+/* When edit bar is present, give the question content a subtle left border */
+.question-row--edit :deep(.question-display) {
+  border-left: 3px solid #e3e8ef;
+  padding-left: 10px;
+  margin-top: 0;
+}
+
 .page-break-marker {
   display: flex;
   align-items: center;
@@ -8063,16 +8142,6 @@ onMounted(async () => {
   border-radius: 999px;
   padding: 4px 10px;
   letter-spacing: 0.08em;
-}
-
-.question-row-actions {
-  position: absolute;
-  top: 0;
-  right: 0;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: 2px;
 }
 
 .image-preview {
