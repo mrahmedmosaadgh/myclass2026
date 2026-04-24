@@ -2445,6 +2445,48 @@
             </q-item-section>
           </q-item>
         </q-list>
+
+        <q-separator class="q-my-md" />
+
+        <div class="text-subtitle2 q-mb-md">JSON Format Guide</div>
+        <q-expansion-item
+          icon="code"
+          label="View JSON Structure"
+          header-class="bg-grey-1"
+        >
+          <q-card>
+            <q-card-section class="bg-grey-2">
+              <div class="text-caption text-grey-7 q-mb-sm">Question JSON Format:</div>
+              <pre class="code-block">{
+  "id": "unique_id",
+  "type": "multiple_choice" | "short_answer" | "true_false" | "essay" | "fill_in_blank",
+  "marks": 1,
+  "content": {
+    "prompt": "Question text here",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "correct_answer": 0,
+    "explanation": "Optional explanation text"
+  }
+}</pre>
+
+              <div class="text-caption text-grey-7 q-mt-md q-mb-sm">Settings JSON Format:</div>
+              <pre class="code-block">{
+  "examTitle": { "enabled": true, "text": "Exam Name" },
+  "showMarksPerQuestion": true,
+  "showExplanationUnderQuestion": false,
+  "showCorrectAnswerUnderQuestion": false,
+  "printHeader": { "enabled": false, ... },
+  "printFooter": { "enabled": true, ... },
+  "answerKey": { "enabled": false, ... },
+  "mcqOptions": { "labelStyle": "letter", ... }
+}</pre>
+
+              <div class="text-caption text-grey-7 q-mt-md">
+                <strong>Note:</strong> For MCQ questions, <code>correct_answer</code> should be the 0-based index of the correct option (0 = A, 1 = B, etc.)
+              </div>
+            </q-card-section>
+          </q-card>
+        </q-expansion-item>
       </q-card-section>
 
       <q-card-actions align="right">
@@ -7903,6 +7945,18 @@ onMounted(async () => {
   margin-top: 16px;
   max-height: 300px;
   overflow-y: auto;
+}
+
+.code-block {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  padding: 12px;
+  border-radius: 4px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 12px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
 .paste-actions {
