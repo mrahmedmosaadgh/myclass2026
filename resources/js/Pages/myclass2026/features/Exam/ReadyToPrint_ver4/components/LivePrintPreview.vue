@@ -62,6 +62,31 @@ function labelForType(idx, type) {
   return letter + ')'
 }
 
+/**
+ * Returns the 0-based correct option index for an MCQ question.
+ * Reads correct_option_index (ver 3 canonical) with fallback to
+ * correct_answer (legacy) for backward compatibility.
+ */
+function getCorrectOptionIndex(q) {
+  if (q?.type !== 'multiple_choice') return null
+
+  // canonical field (ver 3)
+  const v = q.content?.correct_option_index
+    ?? q.content?.correct_answer
+    ?? q.correct_answer
+
+  if (typeof v === 'number' && Number.isFinite(v)) return v
+  if (typeof v === 'string' && v.trim() !== '' && !Number.isNaN(Number(v))) return Number(v)
+
+  // last resort: match by text against options
+  if (typeof v === 'string' && Array.isArray(q.content?.options)) {
+    const idx = q.content.options.findIndex(o => String(o).trim() === v.trim())
+    if (idx >= 0) return idx
+  }
+
+  return null
+}
+
 const html = computed(() => {
   const title = normalized.value.settings?.examTitle?.text || 'Exam'
 

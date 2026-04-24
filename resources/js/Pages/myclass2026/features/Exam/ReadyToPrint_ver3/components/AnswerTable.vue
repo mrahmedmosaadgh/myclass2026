@@ -59,8 +59,8 @@ function getQuestionText(question) {
 function getAnswerText(question) {
   let answer = '-'
   
-  // Check content.correct_answer first (new format), then fall back to question.correct_answer (old format)
-  const correctAnswer = question.content?.correct_answer ?? question.correct_answer
+  // correct_option_index is canonical (ver 3); fall back to correct_answer for legacy data
+  const correctAnswer = question.content?.correct_option_index ?? question.content?.correct_answer ?? question.correct_answer
   
   if (question.type === 'multiple_choice') {
     const v = correctAnswer

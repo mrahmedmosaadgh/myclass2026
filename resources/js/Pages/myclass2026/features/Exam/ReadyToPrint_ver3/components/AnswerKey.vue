@@ -16,7 +16,7 @@
             <strong>Q{{ d.index + 1 }}</strong>
             <span v-if="d.type === 'missing_answer'"> — Missing correct answer</span>
             <span v-else-if="d.type === 'invalid_json'"> — Invalid JSON in content: <code>{{ d.detail }}</code></span>
-            <span v-else-if="d.type === 'invalid_index'"> — correct_answer index out of range ({{ d.detail }})</span>
+            <span v-else-if="d.type === 'invalid_index'"> — correct_option_index out of range ({{ d.detail }})</span>
             <span v-else> — {{ d.detail }}</span>
           </li>
         </ul>
@@ -68,7 +68,7 @@ const diagnostics = computed(() => {
       }
     }
 
-    const correctAnswer = content?.correct_answer ?? q.correct_answer
+    const correctAnswer = content?.correct_option_index ?? content?.correct_answer ?? q.correct_answer
 
     // 2. Check for missing correct answer
     if (correctAnswer === undefined || correctAnswer === null || correctAnswer === '') {
@@ -113,13 +113,13 @@ watch(diagnostics, (issues) => {
         content: {
           prompt: '<question text>',
           options: q?.type === 'multiple_choice' ? ['Option A', 'Option B', 'Option C', 'Option D'] : undefined,
-          correct_answer: q?.type === 'multiple_choice' ? 0 : '<answer text>'
+          correct_option_index: q?.type === 'multiple_choice' ? 0 : '<answer text>'
         }
       }, null, 2))
     } else if (d.type === 'invalid_json') {
       console.error(`${label} — Invalid JSON in content: ${d.detail}`)
     } else if (d.type === 'invalid_index') {
-      console.warn(`${label} — correct_answer index out of range: ${d.detail}`)
+      console.warn(`${label} — correct_option_index out of range: ${d.detail}`)
     }
   })
   console.groupEnd()

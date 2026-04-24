@@ -2473,11 +2473,12 @@
               <pre class="code-block">{
   "id": "unique_id",
   "type": "multiple_choice" | "short_answer" | "true_false" | "essay" | "fill_in_blank",
+  "ver": 3,
   "marks": 1,
   "content": {
     "prompt": "Question text here",
     "options": ["Option A", "Option B", "Option C", "Option D"],
-    "correct_answer": 0,
+    "correct_option_index": 0,
     "explanation": "Optional explanation text"
   }
 }</pre>
@@ -2505,7 +2506,7 @@
 }</pre>
 
               <div class="text-caption text-grey-7 q-mt-md">
-                <strong>Note:</strong> For MCQ questions, <code>correct_answer</code> should be the 0-based index of the correct option (0 = A, 1 = B, etc.)
+                <strong>Note:</strong> For MCQ questions, <code>correct_option_index</code> should be the 0-based index of the correct option (0 = A, 1 = B, etc.)
               </div>
 
               <q-separator class="q-my-md" />
@@ -4297,7 +4298,7 @@ function confirmSmartExam() {
 
   prompt += `## Requirements:\n`
   prompt += `1. Generate valid JSON for the exam questions\n`
-  prompt += `2. Each question must have: id, type, marks, content, options (for MCQ), correct_answer\n`
+  prompt += `2. Each question must have: id, type, ver, marks, content, options (for MCQ), correct_option_index\n`
   prompt += `3. Ensure all questions are appropriate for the grade level\n`
   prompt += `4. Mix difficulty levels as specified\n`
   prompt += `5. Include clear and unambiguous questions\n\n`
@@ -4309,10 +4310,11 @@ function confirmSmartExam() {
   prompt += `    {\n`
   prompt += `      "id": 1,\n`
   prompt += `      "type": "mcq",\n`
+  prompt += `      "ver": 3,\n`
   prompt += `      "marks": 2,\n`
   prompt += `      "content": "Question text",\n`
   prompt += `      "options": ["A", "B", "C", "D"],\n`
-  prompt += `      "correct_answer": "A"\n`
+  prompt += `      "correct_option_index": 0\n`
   prompt += `    }\n`
   prompt += `  ]\n`
   prompt += `}\n`
@@ -4466,11 +4468,12 @@ function copyQuestionJsonExample() {
   const example = {
     id: "unique_id",
     type: "multiple_choice",
+    ver: 3,
     marks: 1,
     content: {
       prompt: "Question text here",
       options: ["Option A", "Option B", "Option C", "Option D"],
-      correct_answer: 0,
+      correct_option_index: 0,
       explanation: "Optional explanation text"
     }
   }
@@ -4664,7 +4667,7 @@ function generateExamCreationPrompt(subject, grade, examType, totalQuestions) {
   prompt += `### 3. Content Requirements\n`
   prompt += `- Use LaTeX for mathematical expressions: $\\frac{3}{4}$, $x^2$, $\\sqrt{16}$\n`
   prompt += `- Multiple choice must have 4 options (A, B, C, D)\n`
-  prompt += `- Include correct_answer for each question\n`
+  prompt += `- Include correct_option_index (0-based) for each MCQ question\n`
   prompt += `- Add explanation for complex questions\n`
   prompt += `- Make content age-appropriate for ${grade}\n\n`
   
@@ -4675,6 +4678,7 @@ function generateExamCreationPrompt(subject, grade, examType, totalQuestions) {
   prompt += `  {\n`
   prompt += `    "id": 1,\n`
   prompt += `    "type": "multiple_choice",\n`
+  prompt += `    "ver": 3,\n`
   prompt += `    "marks": 2,\n`
   prompt += `    "section": "Section 1: Multiple Choice",\n`
   prompt += `    "content": {\n`
@@ -4685,29 +4689,31 @@ function generateExamCreationPrompt(subject, grade, examType, totalQuestions) {
   prompt += `        "C) 5",\n`
   prompt += `        "D) 6"\n`
   prompt += `      ],\n`
-  prompt += `      "correct_answer": "B) 4",\n`
+  prompt += `      "correct_option_index": 1,\n`
   prompt += `      "explanation": "Basic addition: 2 + 2 = 4"\n`
   prompt += `    }\n`
   prompt += `  },\n`
   prompt += `  {\n`
   prompt += `    "id": 2,\n`
   prompt += `    "type": "short_answer",\n`
+  prompt += `    "ver": 3,\n`
   prompt += `    "marks": 3,\n`
   prompt += `    "section": "Section 2: Short Answer",\n`
   prompt += `    "content": {\n`
   prompt += `      "prompt": "Solve for x: $x + 5 = 12$",\n`
-  prompt += `      "correct_answer": "x = 7",\n`
+  prompt += `      "correct_option_index": "x = 7",\n`
   prompt += `      "explanation": "Subtract 5 from both sides: x = 12 - 5 = 7"\n`
   prompt += `    }\n`
   prompt += `  },\n`
   prompt += `  {\n`
   prompt += `    "id": 3,\n`
   prompt += `    "type": "true_false",\n`
+  prompt += `    "ver": 3,\n`
   prompt += `    "marks": 1,\n`
   prompt += `    "section": "Section 3: True or False",\n`
   prompt += `    "content": {\n`
   prompt += `      "prompt": "The sum of angles in a triangle is 180 degrees.",\n`
-  prompt += `      "correct_answer": "True",\n`
+  prompt += `      "correct_option_index": "True",\n`
   prompt += `      "explanation": "This is a fundamental property of triangles."\n`
   prompt += `    }\n`
   prompt += `  }\n`
@@ -5777,10 +5783,10 @@ function exportQuestionsOnly() {
       const qq = JSON.parse(JSON.stringify(q))
       if (qq?.type === 'multiple_choice') {
         const opts = qq?.content?.options
-        const correctText = qq?.content?.correct_answer
-        if ((qq?.correct_answer === null || qq?.correct_answer === undefined) && Array.isArray(opts) && typeof correctText === 'string') {
+        const correctText = qq?.content?.correct_option_index
+        if ((qq?.correct_option_index === null || qq?.correct_option_index === undefined) && Array.isArray(opts) && typeof correctText === 'string') {
           const idx = opts.findIndex(o => String(o).trim() === String(correctText).trim())
-          if (idx >= 0) qq.correct_answer = idx
+          if (idx >= 0) qq.correct_option_index = idx
         }
       }
       return qq
@@ -5814,10 +5820,10 @@ async function copyQuestionsToClipboard() {
       const qq = JSON.parse(JSON.stringify(q))
       if (qq?.type === 'multiple_choice') {
         const opts = qq?.content?.options
-        const correctText = qq?.content?.correct_answer
-        if ((qq?.correct_answer === null || qq?.correct_answer === undefined) && Array.isArray(opts) && typeof correctText === 'string') {
+        const correctText = qq?.content?.correct_option_index
+        if ((qq?.correct_option_index === null || qq?.correct_option_index === undefined) && Array.isArray(opts) && typeof correctText === 'string') {
           const idx = opts.findIndex(o => String(o).trim() === String(correctText).trim())
-          if (idx >= 0) qq.correct_answer = idx
+          if (idx >= 0) qq.correct_option_index = idx
         }
       }
       return qq
@@ -6109,6 +6115,7 @@ function generatePrompt() {
   prompt += `\n  {`
   prompt += `\n    "id": 1,`
   prompt += `\n    "type": "short_answer",`
+  prompt += `\n    "ver": 3,`
   prompt += `\n    "marks": 2,`
   prompt += `\n    "content": {`
   prompt += `\n      "prompt": "What is the sum of $2 \\frac{1}{5}$ and $1 \\frac{2}{5}$?"`
@@ -6117,11 +6124,12 @@ function generatePrompt() {
   prompt += `\n  {`
   prompt += `\n    "id": 2,`
   prompt += `\n    "type": "multiple_choice",`
+  prompt += `\n    "ver": 3,`
   prompt += `\n    "marks": 3,`
   prompt += `\n    "content": {`
   prompt += `\n      "prompt": "Solve for x: $x^2 + 2x - 8 = 0$",`
   prompt += `\n      "options": ["x = 2", "x = -4", "x = 2 or x = -4", "x = 4"],`
-  prompt += `\n      "correct_answer": "x = 2 or x = -4"`
+  prompt += `\n      "correct_option_index": 2`
   prompt += `\n    }`
   prompt += `\n  }`
   prompt += `\n]`
@@ -6240,9 +6248,9 @@ function generateFullExamPrompt() {
   prompt += `\n\nRequirements:`
   prompt += `\n- Return ONLY a JSON object with the complete exam structure`
   prompt += `\n- Include all sections with their questions`
-  prompt += `\n- Each question must have: id, type, marks, content with prompt and options (if applicable)`
+  prompt += `\n- Each question must have: id, type, ver, marks, content with prompt and options (if applicable)`
   prompt += `\n- Question types: "short_answer", "multiple_choice", "true_false", "essay", "fill_in_blank"`
-  prompt += `\n- For multiple_choice questions, include options array and correct_answer`
+  prompt += `\n- For multiple_choice questions, include options array and correct_option_index (0-based integer)`
   prompt += `\n- Use LaTeX notation for math: $x^2$ for inline, $$\\frac{a}{b}$$ for display`
   prompt += `\n- Do NOT include citations or source markers like [cite: 219] anywhere in the text`
 
@@ -6264,6 +6272,7 @@ function generateFullExamPrompt() {
   prompt += `\n        {`
   prompt += `\n          "id": 1,`
   prompt += `\n          "type": "short_answer",`
+  prompt += `\n          "ver": 3,`
   prompt += `\n          "marks": 2,`
   prompt += `\n          "content": {`
   prompt += `\n            "prompt": "Question text here..."`
@@ -6272,11 +6281,12 @@ function generateFullExamPrompt() {
   prompt += `\n        {`
   prompt += `\n          "id": 2,`
   prompt += `\n          "type": "multiple_choice",`
+  prompt += `\n          "ver": 3,`
   prompt += `\n          "marks": 3,`
   prompt += `\n          "content": {`
   prompt += `\n            "prompt": "Question text here...",`
   prompt += `\n            "options": ["Option A", "Option B", "Option C", "Option D"],`
-  prompt += `\n            "correct_answer": "Option A"`
+  prompt += `\n            "correct_option_index": 0`
   prompt += `\n          }`
   prompt += `\n        }`
   prompt += `\n      ]`
@@ -6333,6 +6343,7 @@ function processFullExamResponse() {
             newQuestions.push({
               id: questionId,
               type: question.type || 'short_answer',
+              ver: 3,
               marks: question.marks || 1,
               content: question.content || { prompt: '' }
             })
@@ -6510,6 +6521,7 @@ function acceptGeneratedExam() {
             newQuestions.push({
               id: questionId,
               type: question.type || 'short_answer',
+              ver: 3,
               marks: question.marks || 1,
               content: question.content || { prompt: '' }
             })
@@ -6557,7 +6569,7 @@ function openValidationDialog() {
   validationPrompt.value = `Please review these questions for errors and provide a corrected version in JSON format:
 
 Errors to check for:
-- Missing correct_answer for multiple_choice questions
+- Missing correct_option_index for multiple_choice questions
 - Duplicate questions (same or very similar content)
 - Empty or invalid question prompts
 - Invalid question types
@@ -6596,27 +6608,28 @@ function detectQuestionErrors() {
     
     // Check for missing correct answer in multiple choice
     if (q.type === 'multiple_choice') {
-      if (!q.content.correct_answer) {
+      if (q.content.correct_option_index === undefined || q.content.correct_option_index === null || q.content.correct_option_index === '') {
         errors.push({
           questionId: q.id,
           questionNumber: qNum,
           type: 'Missing correct answer',
           severity: 'error',
-          message: 'Multiple choice question is missing correct_answer field',
+          message: 'Multiple choice question is missing correct_option_index field',
           question: q.content.prompt || 'N/A'
         })
       }
       
-      // Check if correct_answer matches one of the options
-      if (q.content.correct_answer && q.content.options) {
-        const hasCorrectOption = q.content.options.includes(q.content.correct_answer)
+      // Check if correct_option_index is a valid index within options
+      if ((q.content.correct_option_index !== undefined && q.content.correct_option_index !== null) && q.content.options) {
+        const idx = Number(q.content.correct_option_index)
+        const hasCorrectOption = Number.isFinite(idx) && idx >= 0 && idx < q.content.options.length
         if (!hasCorrectOption) {
           errors.push({
             questionId: q.id,
             questionNumber: qNum,
             type: 'Invalid correct answer',
             severity: 'error',
-            message: `Correct answer "${q.content.correct_answer}" is not in the options`,
+            message: `correct_option_index "${q.content.correct_option_index}" is out of range (options: ${q.content.options.length})`,
             question: q.content.prompt || 'N/A'
           })
         }
@@ -6924,8 +6937,8 @@ function validateQuestion(question, index) {
       errors.push('Multiple choice questions need at least 2 options')
     }
     
-    if (!question.content.correct_answer) {
-      errors.push('Multiple choice questions need correct_answer')
+    if (!question.content.correct_option_index && question.content.correct_option_index !== 0) {
+      errors.push('Multiple choice questions need correct_option_index')
     }
   }
   
@@ -7868,8 +7881,8 @@ function getPrintAnswerLines(question) {
 
 function getAnswerKeyText(question) {
   if (question.type === 'multiple_choice') {
-    // Check content.correct_answer first (new format), then fall back to question.correct_answer (old format)
-    const v = question.content?.correct_answer ?? question.correct_answer
+    // correct_option_index is the canonical field (ver 3); fall back to correct_answer for legacy data
+    const v = question.content?.correct_option_index ?? question.content?.correct_answer ?? question.correct_answer
     const labelStyle = pageOptions.value?.mcqOptions?.labelStyle || 'letter'
     const customTpl = pageOptions.value?.mcqOptions?.customLabelTemplate || '{letter})'
 
@@ -7892,10 +7905,10 @@ function getAnswerKeyText(question) {
 
     if (typeof v === 'string' && v.trim() !== '') return v
   } else if (question.type === 'true_false') {
-    const v = question.content?.correct_answer ?? question.correct_answer
+    const v = question.content?.correct_option_index ?? question.content?.correct_answer ?? question.correct_answer
     if (v !== undefined) return v ? 'True' : 'False'
   } else {
-    const v = question.content?.correct_answer ?? question.correct_answer
+    const v = question.content?.correct_option_index ?? question.content?.correct_answer ?? question.correct_answer
     if (v) return v
   }
   return '-'
@@ -7905,8 +7918,8 @@ function getAnswerKeyChoiceLabel(question) {
   if (question?.type !== 'multiple_choice') return '-'
   const labelStyle = pageOptions.value?.mcqOptions?.labelStyle || 'letter'
   const customTpl = pageOptions.value?.mcqOptions?.customLabelTemplate || '{letter})'
-  // Check content.correct_answer first (new format), then fall back to question.correct_answer (old format)
-  const v = question?.content?.correct_answer ?? question?.correct_answer
+  // correct_option_index is canonical (ver 3); fall back to correct_answer for legacy data
+  const v = question?.content?.correct_option_index ?? question?.content?.correct_answer ?? question?.correct_answer
 
   const idx = (typeof v === 'number' && Number.isFinite(v))
     ? v

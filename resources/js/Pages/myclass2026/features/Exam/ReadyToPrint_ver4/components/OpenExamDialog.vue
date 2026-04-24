@@ -64,7 +64,49 @@ function openFromJson() {
     return
   }
 
-  emit('loaded', parsed)
+  // Normalize questions to the current format before emitting
+  const questions = (parsed.questions || parsed.sampleQuestions || []).map(normalizeQuestion)
+  emit('loaded', { ...parsed, questions })
   model.value = false
+}
+
+/**
+ * Migrate a question object to the current JSON format (ver 3):
+ * - Stamps ver: 3 if missing
+ * - Renames content.correct_answer → content.correct_option_index for MCQ
+ *   (resolves text-based correct_answer to a numeric index when possible)
+ */
+function normalizeQuestion(q) {
+  const out = { ...q }
+
+  // Stamp version
+  if (!out.ver) out.ver = 3
+
+  if (out.type === 'multiple_choice' && out.content) {
+    const c = { ...out.content }
+
+    // Already has correct_option_index — nothing to do
+    if (c.correct_option_index === undefined || c.correct_option_index === null) {
+      const legacy = c.correct_answer
+
+      if (legacy !== undefined && legacy !== null && legacy !== '') {
+        // If it's already a number or numeric string, use it directly
+        const asNum = Number(legacy)
+        if (!Number.isNaN(asNum) && Number.isFinite(asNum)) {
+          c.correct_option_index = asNum
+        } else if (typeof legacy === 'string' && Array.isArray(c.options)) {
+          // Try to match by text
+          const idx = c.options.findIndex(o => String(o).trim() === String(legacy).trim())
+          if (idx >= 0) c.correct_option_index = idx
+        }
+        // Remove the old field
+        delete c.correct_answer
+      }
+    }
+
+    out.content = c
+  }
+
+  return out
 }
 </script>

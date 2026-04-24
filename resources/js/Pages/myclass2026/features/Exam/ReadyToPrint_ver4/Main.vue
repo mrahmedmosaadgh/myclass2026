@@ -90,7 +90,16 @@ function openSettingsDialog(mode) {
 }
 
 function handleExamLoaded(exam) {
-  currentExam.value = exam
+  // Normalize questions to current format (ver 3: correct_option_index, ver field)
+  const normalizedExam = { ...exam }
+  if (Array.isArray(normalizedExam.questions)) {
+    normalizedExam.questions = normalizedExam.questions.map(normalizeQuestion)
+  } else if (Array.isArray(normalizedExam.sampleQuestions)) {
+    normalizedExam.sampleQuestions = normalizedExam.sampleQuestions.map(normalizeQuestion)
+  }
+
+  currentExam.value = normalizedExam
+
   // If the loaded exam has MCQ settings, use them as a base for preview.
   const incoming = exam?.settings || exam?.pageOptions
   if (incoming?.mcqOptions) {
@@ -99,6 +108,40 @@ function handleExamLoaded(exam) {
       mcqOptions: { ...previewSettings.value.mcqOptions, ...incoming.mcqOptions }
     }
   }
+}
+
+/**
+ * Migrate a question object to the current JSON format (ver 3):
+ * - Stamps ver: 3 if missing
+ * - Renames content.correct_answer → content.correct_option_index for MCQ
+ */
+function normalizeQuestion(q) {
+  const out = { ...q }
+
+  if (!out.ver) out.ver = 3
+
+  if (out.type === 'multiple_choice' && out.content) {
+    const c = { ...out.content }
+
+    if (c.correct_option_index === undefined || c.correct_option_index === null) {
+      const legacy = c.correct_answer
+
+      if (legacy !== undefined && legacy !== null && legacy !== '') {
+        const asNum = Number(legacy)
+        if (!Number.isNaN(asNum) && Number.isFinite(asNum)) {
+          c.correct_option_index = asNum
+        } else if (typeof legacy === 'string' && Array.isArray(c.options)) {
+          const idx = c.options.findIndex(o => String(o).trim() === String(legacy).trim())
+          if (idx >= 0) c.correct_option_index = idx
+        }
+        delete c.correct_answer
+      }
+    }
+
+    out.content = c
+  }
+
+  return out
 }
 </script>
 

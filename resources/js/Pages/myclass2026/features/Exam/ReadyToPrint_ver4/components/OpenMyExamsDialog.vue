@@ -136,6 +136,12 @@ async function openFile(file) {
 
     // Controller returns { success: true, data: { ... } }
     const exam = json?.data || json
+    // Normalize questions to current format before emitting
+    if (Array.isArray(exam.questions)) {
+      exam.questions = exam.questions.map(normalizeQuestion)
+    } else if (Array.isArray(exam.sampleQuestions)) {
+      exam.sampleQuestions = exam.sampleQuestions.map(normalizeQuestion)
+    }
     emit('loaded', exam)
     model.value = false
   } catch (e) {
@@ -153,5 +159,39 @@ function formatDate(iso) {
   } catch {
     return String(iso)
   }
+}
+
+/**
+ * Migrate a question object to the current JSON format (ver 3):
+ * - Stamps ver: 3 if missing
+ * - Renames content.correct_answer → content.correct_option_index for MCQ
+ */
+function normalizeQuestion(q) {
+  const out = { ...q }
+
+  if (!out.ver) out.ver = 3
+
+  if (out.type === 'multiple_choice' && out.content) {
+    const c = { ...out.content }
+
+    if (c.correct_option_index === undefined || c.correct_option_index === null) {
+      const legacy = c.correct_answer
+
+      if (legacy !== undefined && legacy !== null && legacy !== '') {
+        const asNum = Number(legacy)
+        if (!Number.isNaN(asNum) && Number.isFinite(asNum)) {
+          c.correct_option_index = asNum
+        } else if (typeof legacy === 'string' && Array.isArray(c.options)) {
+          const idx = c.options.findIndex(o => String(o).trim() === String(legacy).trim())
+          if (idx >= 0) c.correct_option_index = idx
+        }
+        delete c.correct_answer
+      }
+    }
+
+    out.content = c
+  }
+
+  return out
 }
 </script>

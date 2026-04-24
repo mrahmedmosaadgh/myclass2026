@@ -57,17 +57,24 @@ function getCorrectChoiceIndex(question) {
   const type = question?.type
   if (type !== 'multiple_choice') return null
 
-  const topLevel = question?.correct_answer
+  // correct_option_index is canonical (ver 3); fall back to correct_answer for legacy data
+  const topLevel = question?.correct_option_index ?? question?.correct_answer
   if (typeof topLevel === 'number' && Number.isFinite(topLevel)) return topLevel
   if (typeof topLevel === 'string' && topLevel.trim() !== '' && !Number.isNaN(Number(topLevel))) return Number(topLevel)
 
   const opts = question?.content?.options
-  const correctText = question?.content?.correct_answer
+  // Try content.correct_option_index first, then content.correct_answer
+  const correctRef = question?.content?.correct_option_index ?? question?.content?.correct_answer
 
+  // If it's already a numeric index
+  if (typeof correctRef === 'number' && Number.isFinite(correctRef)) return correctRef
+  if (typeof correctRef === 'string' && correctRef.trim() !== '' && !Number.isNaN(Number(correctRef))) return Number(correctRef)
+
+  // Fall back: match by text
   if (!Array.isArray(opts) || opts.length === 0) return null
-  if (typeof correctText !== 'string' || correctText.trim() === '') return null
+  if (typeof correctRef !== 'string' || correctRef.trim() === '') return null
 
-  const idx = opts.findIndex(o => String(o).trim() === String(correctText).trim())
+  const idx = opts.findIndex(o => String(o).trim() === String(correctRef).trim())
   return idx >= 0 ? idx : null
 }
 
