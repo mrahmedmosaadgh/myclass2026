@@ -185,6 +185,24 @@
                       <q-item-label caption>Questions only</q-item-label>
                     </q-item-section>
                   </q-item>
+                  <q-item clickable v-close-popup @click="copyQuestionsToClipboard">
+                    <q-item-section avatar>
+                      <q-icon name="content_copy" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Copy Questions</q-item-label>
+                      <q-item-label caption>Copy to clipboard</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                  <q-item clickable v-close-popup @click="updateQuestionsFromClipboard">
+                    <q-item-section avatar>
+                      <q-icon name="content_paste" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Update from Clipboard</q-item-label>
+                      <q-item-label caption>Paste questions from clipboard</q-item-label>
+                    </q-item-section>
+                  </q-item>
                 </q-list>
               </q-tab-panel>
 
@@ -398,6 +416,39 @@
         <q-card-section class="row items-center q-pb-none">
           <div class="text-h6">Settings</div>
           <q-space />
+          <q-select
+            v-model="selectedSettingsPreset"
+            :options="settingsPresets"
+            label="Preset"
+            dense
+            outlined
+            style="min-width: 150px;"
+            emit-value
+            map-options
+            @update:model-value="applySettingsPreset"
+          >
+            <template v-slot:append>
+              <q-btn
+                flat
+                dense
+                icon="add"
+                @click.stop="saveSettingsAsPreset"
+              />
+              <q-btn
+                v-if="selectedSettingsPreset !== 'default'"
+                flat
+                dense
+                icon="delete"
+                @click.stop="deleteSettingsPreset"
+              />
+            </template>
+          </q-select>
+          <q-btn
+            color="primary"
+            icon="save"
+            label="Save Settings"
+            @click="savePageState"
+          />
           <q-btn
             color="primary"
             icon="print"
@@ -449,6 +500,18 @@
               <q-toggle
                 v-model="pageOptions.showMarksPerQuestion"
                 label="Show marks for every question"
+                @update:model-value="savePageState"
+              />
+
+              <q-toggle
+                v-model="pageOptions.showExplanationUnderQuestion"
+                label="Show explanation under each question"
+                @update:model-value="savePageState"
+              />
+
+              <q-toggle
+                v-model="pageOptions.showCorrectAnswerUnderQuestion"
+                label="Show correct answer under each question"
                 @update:model-value="savePageState"
               />
 
@@ -1435,6 +1498,21 @@
                 @update:model-value="savePageState"
               />
 
+              <q-select
+                v-if="pageOptions.answerKey.enabled"
+                dense
+                outlined
+                :options="[
+                  { label: 'Full (Question + Marks + Answer)', value: 'full' },
+                  { label: 'Compact (Question # + Correct Choice)', value: 'compact_choice' }
+                ]"
+                emit-value
+                map-options
+                v-model="pageOptions.answerKey.template"
+                label="Answer key table template"
+                @update:model-value="savePageState"
+              />
+
               <q-toggle
                 v-if="pageOptions.answerKey.enabled"
                 v-model="pageOptions.answerKey.showAtEnd"
@@ -2343,7 +2421,17 @@
             </q-item-section>
             <q-item-section>
               <q-item-label>Copy Sections</q-item-label>
-              <q-item-label caption>Include section definitions and mappings</q-item-label>
+              <q-item-label caption>Include section structure and organization</q-item-label>
+            </q-item-section>
+          </q-item>
+
+          <q-item tag="label" v-ripple>
+            <q-item-section avatar>
+              <q-checkbox v-model="copyFromOptions.copyFullExamAsJson" color="accent" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Copy Full Exam as JSON</q-item-label>
+              <q-item-label caption>Replace entire current exam with the selected exam data</q-item-label>
             </q-item-section>
           </q-item>
 
@@ -2353,7 +2441,7 @@
             </q-item-section>
             <q-item-section>
               <q-item-label>Remove Current Questions</q-item-label>
-              <q-item-label caption>Clear existing questions before copying</q-item-label>
+              <q-item-label caption>Replace all current questions with copied ones</q-item-label>
             </q-item-section>
           </q-item>
         </q-list>
@@ -3326,7 +3414,8 @@ const copyFromOptions = ref({
   copyQuestions: true,
   copySettings: true,
   copySections: true,
-  removeCurrentQuestions: false
+  removeCurrentQuestions: false,
+  copyFullExamAsJson: false
 })
 const copyFromLoading = ref(false)
 
@@ -3390,6 +3479,10 @@ const parsedAiFeedback = ref([])
 const optionsOpen = ref(false)
 const settingsTab = ref('general')
 const footerSettingsTab = ref('layout')
+const selectedSettingsPreset = ref('default')
+const settingsPresets = ref([
+  { label: 'Default', value: 'default' }
+])
 
 // File manager reference
 const fileManagerRef = ref(null)
@@ -3448,6 +3541,8 @@ const pageOptions = ref({
     text: 'Math Questions Test'
   },
   showMarksPerQuestion: true,
+  showExplanationUnderQuestion: false,
+  showCorrectAnswerUnderQuestion: false,
   printHeader: {
     enabled: false,
     autoFit: true,
@@ -3521,6 +3616,7 @@ const pageOptions = ref({
     enabled: false,
     showAtEnd: true,
     showNotes: true,
+    template: 'full',
     pageBreakBefore: true
   },
   questionSeparator: {
@@ -4201,7 +4297,8 @@ function openCopyFromDialog() {
     copyQuestions: true,
     copySettings: true,
     copySections: true,
-    removeCurrentQuestions: false
+    removeCurrentQuestions: false,
+    copyFullExamAsJson: false
   }
   loadCopyFromFiles()
 }
@@ -4475,7 +4572,8 @@ async function loadPageState() {
     
     if (data?.questions) sampleQuestions.value = data.questions
     if (data?.settings) {
-      pageOptions.value = { ...pageOptions.value, ...data.settings }
+      // Deep merge settings to preserve all nested properties
+      pageOptions.value = deepMerge(pageOptions.value, data.settings)
       // Force enable footer and page numbers regardless of cached settings
       if (pageOptions.value.printFooter) {
         pageOptions.value.printFooter.enabled = true
@@ -4497,6 +4595,238 @@ async function loadPageState() {
   } catch (e) {
     console.error('Failed to load page state', e)
   }
+}
+
+// Deep merge utility function
+function deepMerge(target, source) {
+  const output = { ...target }
+  if (isObject(target) && isObject(source)) {
+    Object.keys(source).forEach(key => {
+      if (isObject(source[key])) {
+        if (!(key in target)) {
+          Object.assign(output, { [key]: source[key] })
+        } else {
+          output[key] = deepMerge(target[key], source[key])
+        }
+      } else {
+        Object.assign(output, { [key]: source[key] })
+      }
+    })
+  }
+  return output
+}
+
+function isObject(item) {
+  return item && typeof item === 'object' && !Array.isArray(item)
+}
+
+// Settings Presets Management
+const SETTINGS_PRESETS_KEY = 'exam-settings-presets'
+
+function loadSettingsPresets() {
+  try {
+    const saved = localStorage.getItem(SETTINGS_PRESETS_KEY)
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      settingsPresets.value = [
+        { label: 'Default', value: 'default' },
+        ...parsed
+      ]
+    }
+  } catch (e) {
+    console.error('Failed to load settings presets', e)
+  }
+}
+
+function saveSettingsPresets() {
+  try {
+    const customPresets = settingsPresets.value.filter(p => p.value !== 'default')
+    localStorage.setItem(SETTINGS_PRESETS_KEY, JSON.stringify(customPresets))
+  } catch (e) {
+    console.error('Failed to save settings presets', e)
+  }
+}
+
+function saveSettingsAsPreset() {
+  $q.dialog({
+    title: 'Save Settings as Preset',
+    message: 'Enter a name for this preset:',
+    prompt: {
+      model: '',
+      type: 'text',
+      attrs: { maxlength: 50 }
+    },
+    cancel: true,
+    persistent: true
+  }).onOk((name) => {
+    if (!name || !name.trim()) {
+      $q.notify({ type: 'warning', message: 'Please enter a name', position: 'top' })
+      return
+    }
+    const presetValue = 'preset_' + Date.now()
+    const preset = {
+      label: name.trim(),
+      value: presetValue,
+      settings: JSON.parse(JSON.stringify(pageOptions.value))
+    }
+    settingsPresets.value.push(preset)
+    selectedSettingsPreset.value = presetValue
+    saveSettingsPresets()
+    $q.notify({ type: 'positive', message: 'Preset saved', position: 'top' })
+  })
+}
+
+function applySettingsPreset(presetValue) {
+  if (presetValue === 'default') {
+    // Reset to default settings
+    pageOptions.value = {
+      examTitle: { enabled: true, text: 'Math Questions Test' },
+      showMarksPerQuestion: true,
+      showExplanationUnderQuestion: false,
+      showCorrectAnswerUnderQuestion: false,
+      printHeader: {
+        enabled: false,
+        autoFit: true,
+        heightPt: 120,
+        pageMarginTopMm: 0,
+        mode: 'html',
+        templateId: 'custom',
+        html: '',
+        imageUrl: '',
+        imageFit: 'contain',
+        template1: {
+          schoolName: 'AL-MUTAQADIMAH SCHOOLS (Al-Tadamon International School)',
+          period: 'first Academic period 2025 - 2026',
+          grade: '4',
+          subject: 'Math',
+          examType: 'V1',
+          gender: 'Boys'
+        }
+      },
+      printFooter: {
+        enabled: true,
+        autoFit: true,
+        heightPt: 90,
+        pageMarginBottomMm: 0,
+        bottomOffsetMm: 0,
+        mode: 'html',
+        html: '',
+        imageUrl: '',
+        imageFit: 'contain',
+        textFontSizePt: 12,
+        textColor: '#000000',
+        reserveSpace: true,
+        singleLine: true,
+        singleLineTopAlign: false,
+        showTopBorder: false,
+        showPageNumbers: true,
+        pageNumberPosition: 'bottom-center',
+        pageNumberFormat: 'page',
+        pageNumberFontSize: 10,
+        pageNumberColor: '#000000',
+        applyOffsetToPageNumbers: false,
+        lastPageText: '',
+        useLastPageText: false
+      },
+      firstPage: {
+        enabled: false,
+        type: 'title',
+        title: '',
+        subtitle: '',
+        titleAlignment: 'center',
+        coverTitle: '',
+        coverDescription: '',
+        coverImage: '',
+        customContent: '',
+        skipPageNumber: true,
+        pageBreakAfter: true
+      },
+      lastPage: {
+        enabled: false,
+        type: 'message',
+        title: 'End of Exam',
+        message: 'Thank you for completing the exam.',
+        alignment: 'center',
+        showTotalMarks: false,
+        showCompletionTime: false,
+        customContent: '',
+        skipPageNumber: false,
+        pageBreakBefore: true
+      },
+      answerKey: {
+        enabled: false,
+        showAtEnd: true,
+        showNotes: true,
+        template: 'full',
+        pageBreakBefore: true
+      },
+      questionSeparator: {
+        enabled: false,
+        lineStyle: 'solid',
+        color: '#1f3a5a',
+        thicknessPt: 1,
+        spaceBeforePt: 8,
+        spaceAfterPt: 12
+      },
+      mcqOptions: {
+        columns: 1,
+        optionGapPt: 6,
+        labelGapPt: 8,
+        labelStyle: 'letter',
+        customLabelTemplate: '{letter})',
+        checkboxStyle: 'box',
+        checkboxShowLabel: false,
+        checkboxLabelType: 'letter',
+        labelFontSizePt: 0,
+        optionFontSizePt: 0,
+        labelBold: false,
+        optionBold: false
+      },
+      sectionTotal: {
+        template: 'text',
+        prefix: 'Total:',
+        suffix: 'marks',
+        placement: 'normal',
+        offsetXPt: 0,
+        offsetYPt: 0,
+        boxTopHeightPt: 22
+      },
+      questionNumbering: {
+        style: 'question',
+        startAt: 1,
+        prefix: '',
+        suffix: '',
+        customTemplate: '{n}',
+        inlineWithText: false,
+        inlineGap: 8,
+        pageBreaksBefore: {}
+      }
+    }
+    $q.notify({ type: 'info', message: 'Reset to default settings', position: 'top' })
+  } else {
+    const preset = settingsPresets.value.find(p => p.value === presetValue)
+    if (preset && preset.settings) {
+      pageOptions.value = deepMerge(pageOptions.value, preset.settings)
+      $q.notify({ type: 'positive', message: 'Preset applied', position: 'top' })
+    }
+  }
+  savePageState()
+}
+
+function deleteSettingsPreset() {
+  if (selectedSettingsPreset.value === 'default') return
+  
+  $q.dialog({
+    title: 'Delete Preset',
+    message: 'Are you sure you want to delete this preset?',
+    cancel: true,
+    persistent: true
+  }).onOk(() => {
+    settingsPresets.value = settingsPresets.value.filter(p => p.value !== selectedSettingsPreset.value)
+    selectedSettingsPreset.value = 'default'
+    saveSettingsPresets()
+    $q.notify({ type: 'positive', message: 'Preset deleted', position: 'top' })
+  })
 }
 
 async function pasteQuestionImageUrlFromClipboard() {
@@ -4549,10 +4879,13 @@ async function savePageState() {
         // Include ALL pageOptions to ensure nothing is lost
         examTitle: pageOptions.value.examTitle,
         showMarksPerQuestion: pageOptions.value.showMarksPerQuestion,
+        showExplanationUnderQuestion: pageOptions.value.showExplanationUnderQuestion,
+        showCorrectAnswerUnderQuestion: pageOptions.value.showCorrectAnswerUnderQuestion,
         printHeader: pageOptions.value.printHeader,
         printFooter: pageOptions.value.printFooter,
         firstPage: pageOptions.value.firstPage,
         lastPage: pageOptions.value.lastPage,
+        answerKey: pageOptions.value.answerKey,
         questionNumbering: pageOptions.value.questionNumbering,
         sectionTotal: pageOptions.value.sectionTotal,
         questionSeparator: pageOptions.value.questionSeparator,
@@ -4563,7 +4896,7 @@ async function savePageState() {
       pageBreaks: pageOptions.value.questionNumbering?.pageBreaksBefore || {}
     }
 
-    await fetch('/exam/ready-to-print/api/save-data-v3', {
+    const response = await fetch('/exam/ready-to-print/api/save-data-v3', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -4572,8 +4905,26 @@ async function savePageState() {
       },
       body: JSON.stringify(data)
     })
+
+    const result = await response.json()
+    if (result.success) {
+      $q.notify({
+        type: 'positive',
+        message: 'Settings saved successfully',
+        position: 'top',
+        timeout: 2000
+      })
+    } else {
+      throw new Error('Save failed')
+    }
   } catch (e) {
     console.error('Failed to save page state', e)
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to save settings',
+      position: 'top',
+      timeout: 3000
+    })
   }
 }
 
@@ -4586,10 +4937,13 @@ async function handleSaveAs(fileName) {
       settings: {
         examTitle: pageOptions.value.examTitle,
         showMarksPerQuestion: pageOptions.value.showMarksPerQuestion,
+        showExplanationUnderQuestion: pageOptions.value.showExplanationUnderQuestion,
+        showCorrectAnswerUnderQuestion: pageOptions.value.showCorrectAnswerUnderQuestion,
         printHeader: pageOptions.value.printHeader,
         printFooter: pageOptions.value.printFooter,
         firstPage: pageOptions.value.firstPage,
         lastPage: pageOptions.value.lastPage,
+        answerKey: pageOptions.value.answerKey,
         questionNumbering: pageOptions.value.questionNumbering,
         sectionTotal: pageOptions.value.sectionTotal,
         questionSeparator: pageOptions.value.questionSeparator,
@@ -4654,10 +5008,13 @@ async function handleSaveExam() {
       settings: {
         examTitle: pageOptions.value.examTitle,
         showMarksPerQuestion: pageOptions.value.showMarksPerQuestion,
+        showExplanationUnderQuestion: pageOptions.value.showExplanationUnderQuestion,
+        showCorrectAnswerUnderQuestion: pageOptions.value.showCorrectAnswerUnderQuestion,
         printHeader: pageOptions.value.printHeader,
         printFooter: pageOptions.value.printFooter,
         firstPage: pageOptions.value.firstPage,
         lastPage: pageOptions.value.lastPage,
+        answerKey: pageOptions.value.answerKey,
         questionNumbering: pageOptions.value.questionNumbering,
         sectionTotal: pageOptions.value.sectionTotal,
         questionSeparator: pageOptions.value.questionSeparator,
@@ -4741,6 +5098,8 @@ function handleCreateNewExam() {
     pageOptions.value = {
       examTitle: { enabled: false, text: '' },
       showMarksPerQuestion: true,
+      showExplanationUnderQuestion: false,
+      showCorrectAnswerUnderQuestion: false,
       printHeader: {
         enabled: true,
         template1: { subject: '', grade: '', date: '', duration: '' },
@@ -5190,10 +5549,23 @@ function exportToJson() {
 
 function exportQuestionsOnly() {
   try {
+    const normalizedQuestions = (sampleQuestions.value || []).map((q) => {
+      const qq = JSON.parse(JSON.stringify(q))
+      if (qq?.type === 'multiple_choice') {
+        const opts = qq?.content?.options
+        const correctText = qq?.content?.correct_answer
+        if ((qq?.correct_answer === null || qq?.correct_answer === undefined) && Array.isArray(opts) && typeof correctText === 'string') {
+          const idx = opts.findIndex(o => String(o).trim() === String(correctText).trim())
+          if (idx >= 0) qq.correct_answer = idx
+        }
+      }
+      return qq
+    })
+
     const payload = {
       version: 1,
       exportedAt: new Date().toISOString(),
-      questions: sampleQuestions.value,
+      questions: normalizedQuestions,
       sections: sections.value,
       questionSectionMap: questionSectionMap.value
     }
@@ -5209,6 +5581,144 @@ function exportQuestionsOnly() {
   } catch (e) {
     console.error('Export questions failed', e)
     $q.notify({ type: 'negative', message: 'Export questions failed: ' + e.message, position: 'top' })
+  }
+}
+
+async function copyQuestionsToClipboard() {
+  try {
+    const normalizedQuestions = (sampleQuestions.value || []).map((q) => {
+      const qq = JSON.parse(JSON.stringify(q))
+      if (qq?.type === 'multiple_choice') {
+        const opts = qq?.content?.options
+        const correctText = qq?.content?.correct_answer
+        if ((qq?.correct_answer === null || qq?.correct_answer === undefined) && Array.isArray(opts) && typeof correctText === 'string') {
+          const idx = opts.findIndex(o => String(o).trim() === String(correctText).trim())
+          if (idx >= 0) qq.correct_answer = idx
+        }
+      }
+      return qq
+    })
+
+    const payload = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      questions: normalizedQuestions,
+      sections: sections.value,
+      questionSectionMap: questionSectionMap.value
+    }
+    const textToCopy = JSON.stringify(payload, null, 2)
+    
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(textToCopy)
+      $q.notify({ type: 'positive', message: 'Questions copied to clipboard!', position: 'top' })
+    } else {
+      const textArea = document.createElement("textarea")
+      textArea.value = textToCopy
+      textArea.style.top = "0"
+      textArea.style.left = "0"
+      textArea.style.position = "fixed"
+      document.body.appendChild(textArea)
+      textArea.focus()
+      textArea.select()
+      const successful = document.execCommand('copy')
+      document.body.removeChild(textArea)
+      if (successful) {
+        $q.notify({ type: 'positive', message: 'Questions copied to clipboard!', position: 'top' })
+      } else {
+        throw new Error('Clipboard write failed')
+      }
+    }
+  } catch (e) {
+    console.error('Copy to clipboard failed', e)
+    $q.notify({ type: 'negative', message: 'Failed to copy to clipboard: ' + e.message, position: 'top' })
+  }
+}
+
+async function updateQuestionsFromClipboard() {
+  try {
+    if (!navigator.clipboard || !navigator.clipboard.readText) {
+      $q.notify({ type: 'negative', message: 'Clipboard access is not supported in this browser.', position: 'top' })
+      return
+    }
+
+    const text = await navigator.clipboard.readText()
+    if (!text) {
+      $q.notify({ type: 'warning', message: 'Clipboard is empty', position: 'top' })
+      return
+    }
+    
+    let parsed
+    try {
+      parsed = JSON.parse(text)
+    } catch (e) {
+      $q.notify({ type: 'negative', message: 'Clipboard content is not valid JSON', position: 'top' })
+      return
+    }
+    
+    if (!parsed || (!parsed.questions && !Array.isArray(parsed))) {
+      $q.notify({ type: 'negative', message: 'No questions found in clipboard JSON', position: 'top' })
+      return
+    }
+    
+    const questionsArray = Array.isArray(parsed) ? parsed : parsed.questions
+    
+    $q.dialog({
+      title: 'Update Questions',
+      message: `Found ${questionsArray.length} questions in clipboard. What would you like to do?`,
+      options: {
+        type: 'radio',
+        model: 'replace',
+        items: [
+          { label: 'Replace all current questions', value: 'replace' },
+          { label: 'Append to current questions', value: 'append' }
+        ]
+      },
+      cancel: true,
+      persistent: true
+    }).onOk(async (action) => {
+      if (action === 'replace') {
+        sampleQuestions.value = questionsArray
+        if (parsed.sections && Array.isArray(parsed.sections)) {
+          sections.value = parsed.sections
+        }
+        if (parsed.questionSectionMap) {
+          questionSectionMap.value = parsed.questionSectionMap
+        }
+        
+        // Ensure default section mapping
+        const defaultSectionId = sections.value[0]?.id
+        if (defaultSectionId) {
+          questionsArray.forEach(q => {
+            const qid = String(q?.id)
+            if (!questionSectionMap.value[qid]) questionSectionMap.value[qid] = defaultSectionId
+          })
+        }
+
+        $q.notify({ type: 'positive', message: 'Questions replaced successfully', position: 'top' })
+      } else {
+        let maxId = 0
+        sampleQuestions.value.forEach(q => {
+          if (Number(q.id) > maxId) maxId = Number(q.id)
+        })
+        
+        const defaultSectionId = sections.value[0]?.id
+        const newQuestions = questionsArray.map(q => {
+          const newQ = { ...q, id: String(++maxId) }
+          if (defaultSectionId) {
+            questionSectionMap.value[newQ.id] = defaultSectionId
+          }
+          return newQ
+        })
+        
+        sampleQuestions.value = [...sampleQuestions.value, ...newQuestions]
+        $q.notify({ type: 'positive', message: 'Questions appended successfully', position: 'top' })
+      }
+      
+      await savePageState()
+    })
+  } catch (e) {
+    console.error('Update from clipboard failed', e)
+    $q.notify({ type: 'negative', message: 'Failed to read from clipboard. You may need to grant clipboard permissions.', position: 'top' })
   }
 }
 
@@ -5817,6 +6327,19 @@ function detectQuestionErrors() {
   sampleQuestions.value.forEach((q, index) => {
     const qNum = index + 1
     
+    // Skip if content is missing
+    if (!q.content) {
+      errors.push({
+        questionId: q.id,
+        questionNumber: qNum,
+        type: 'Missing content',
+        severity: 'error',
+        message: 'Question has no content',
+        question: 'N/A'
+      })
+      return
+    }
+    
     // Check for missing correct answer in multiple choice
     if (q.type === 'multiple_choice') {
       if (!q.content.correct_answer) {
@@ -5826,7 +6349,7 @@ function detectQuestionErrors() {
           type: 'Missing correct answer',
           severity: 'error',
           message: 'Multiple choice question is missing correct_answer field',
-          question: q.content.prompt
+          question: q.content.prompt || 'N/A'
         })
       }
       
@@ -5840,7 +6363,7 @@ function detectQuestionErrors() {
             type: 'Invalid correct answer',
             severity: 'error',
             message: `Correct answer "${q.content.correct_answer}" is not in the options`,
-            question: q.content.prompt
+            question: q.content.prompt || 'N/A'
           })
         }
       }
@@ -5854,7 +6377,7 @@ function detectQuestionErrors() {
         type: 'Empty question',
         severity: 'error',
         message: 'Question prompt is empty',
-        question: q.content.prompt
+        question: q.content.prompt || 'N/A'
       })
     }
     
@@ -5868,13 +6391,13 @@ function detectQuestionErrors() {
         type: 'Duplicate question',
         severity: 'warning',
         message: `This question is a duplicate of question ${duplicateIndex}`,
-        question: q.content.prompt
+        question: q.content.prompt || 'N/A'
       })
     } else if (promptLower) {
       seenPrompts.set(promptLower, qNum)
     }
     
-    // Check for invalid question type
+    // Check for invalid type
     const validTypes = ['short_answer', 'multiple_choice', 'true_false', 'essay', 'fill_in_blank']
     if (!validTypes.includes(q.type)) {
       errors.push({
@@ -5883,7 +6406,7 @@ function detectQuestionErrors() {
         type: 'Invalid type',
         severity: 'error',
         message: `Invalid question type: ${q.type}`,
-        question: q.content.prompt
+        question: q.content.prompt || 'N/A'
       })
     }
     
@@ -5895,7 +6418,7 @@ function detectQuestionErrors() {
         type: 'Missing options',
         severity: 'error',
         message: 'Multiple choice question must have at least 2 options',
-        question: q.content.prompt
+        question: q.content.prompt || 'N/A'
       })
     }
   })
@@ -6485,6 +7008,10 @@ function generatePrintHTML() {
   html += ' .question-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6pt; font-weight: bold; }'
   html += ' .question-content { margin-bottom: 8pt; }'
   html += ' .question-options { margin: 6pt 0 8pt; }'
+  html += ' .question-explanation { margin-top: 8pt; padding: 8pt; border-left: 3pt solid #1976d2; background: #f7fbff; font-size: 11pt; }'
+  html += ' .question-explanation-title { font-weight: 700; margin-bottom: 4pt; }'
+  html += ' .question-correct-answer { margin-top: 8pt; padding: 8pt; border-left: 3pt solid #43a047; background: #f1f8e9; font-size: 11pt; }'
+  html += ' .question-correct-answer-title { font-weight: 700; margin-bottom: 4pt; }'
   html += ' .question-options-grid { display: grid; grid-template-columns: repeat(' + mcqCols + ', minmax(0, 1fr)); gap: ' + mcqGapPt + 'pt; }'
   html += ' .option { display: flex; gap: ' + mcqLabelGapPt + 'pt; margin-bottom: 4pt; }'
   html += ' .option-label { min-width: 24px; font-weight: 600; }'
@@ -6851,7 +7378,7 @@ scriptContent += "})();";
         html += '<div class="question-header-inline">'
         html += '<div class="question-inline">'
         html += '<span class="question-inline-number">' + label + '</span>'
-        html += '<span class="question-inline-text">' + renderMathContent(question.content.prompt) + '</span>'
+        html += '<span class="question-inline-text">' + renderMathContent(question.content?.prompt || '') + '</span>'
         html += '</div>'
         html += showMarks ? ('<span>' + question.marks + ' marks</span>') : '<span></span>'
         html += '</div>'
@@ -6860,13 +7387,13 @@ scriptContent += "})();";
         html += '<span>' + label + '</span>'
         html += showMarks ? ('<span>' + question.marks + ' marks</span>') : '<span></span>'
         html += '</div>'
-        html += '<div class="question-content">' + renderMathContent(question.content.prompt) + '</div>'
+        html += '<div class="question-content">' + renderMathContent(question.content?.prompt || '') + '</div>'
       }
 
       if (Array.isArray(question.content?.options) && question.content.options.length > 0) {
         const style = pageOptions.value?.mcqOptions?.labelStyle || 'letter'
         const gridClass = question.type === 'multiple_choice' ? 'question-options question-options-grid' : 'question-options'
-        html += '<div class="' + gridClass + '">'
+        html += '<div class="' + gridClass + '">' 
         question.content.options.forEach((opt, idx) => {
           html += '<div class="option">'
           if (question.type === 'multiple_choice' && style === 'checkbox') {
@@ -6891,6 +7418,26 @@ scriptContent += "})();";
           html += '</div>'
         })
         html += '</div>'
+      }
+
+      if (pageOptions.value?.showExplanationUnderQuestion) {
+        const explanationText = question?.explanation || question?.content?.explanation
+        if (explanationText) {
+          html += '<div class="question-explanation">'
+          html += '<div class="question-explanation-title">Explanation:</div>'
+          html += '<div class="question-explanation-body">' + renderMathContent(explanationText) + '</div>'
+          html += '</div>'
+        }
+      }
+
+      if (pageOptions.value?.showCorrectAnswerUnderQuestion) {
+        const answerText = getAnswerKeyText(question)
+        if (answerText && answerText !== '-') {
+          html += '<div class="question-correct-answer">'
+          html += '<div class="question-correct-answer-title">Correct Answer:</div>'
+          html += '<div class="question-correct-answer-body">' + answerText + '</div>'
+          html += '</div>'
+        }
       }
 
       const linesCount = getPrintAnswerLines(question)
@@ -6925,6 +7472,7 @@ scriptContent += "})();";
   const answerKeyShowAtEnd = pageOptions.value?.answerKey?.showAtEnd !== false
   const answerKeyShowNotes = pageOptions.value?.answerKey?.showNotes !== false
   const answerKeyPageBreakBefore = pageOptions.value?.answerKey?.pageBreakBefore !== false
+  const answerKeyTemplate = pageOptions.value?.answerKey?.template || 'full'
 
   if (answerKeyEnabled && answerKeyShowAtEnd) {
     if (answerKeyPageBreakBefore) {
@@ -6934,39 +7482,65 @@ scriptContent += "})();";
     html += '<div class="answer-key-section" style="margin: 20px 0; page-break-inside: avoid;">'
     html += '<h3 class="text-center" style="border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px;">Answer Key</h3>'
 
-    html += '<table style="width: 100%; border-collapse: collapse; font-size: 12px; margin: 20px 0;">'
-    html += '<thead style="background-color: #f5f5f5;">'
-    html += '<tr>'
-    html += '<th style="padding: 8px; border: 1px solid #ddd; font-weight: 600; color: #333; text-align: center; width: 60px;">#</th>'
-    html += '<th style="padding: 8px; border: 1px solid #ddd; font-weight: 600; color: #333;">Question</th>'
-    html += '<th style="padding: 8px; border: 1px solid #ddd; font-weight: 600; color: #333; text-align: center; width: 80px;">Marks</th>'
-    html += '<th style="padding: 8px; border: 1px solid #ddd; font-weight: 600; color: #333; text-align: center; width: 100px;">Answer</th>'
-    html += '</tr>'
-    html += '</thead>'
-    html += '<tbody>'
-
-    let answerIndex = 0
-    sampleQuestions.value.forEach((question) => {
-      answerIndex += 1
-      const questionText = question.content ? question.content.prompt?.replace(/<[^>]*>/g, '').substring(0, 100) + (question.content.prompt?.length > 100 ? '...' : '') : 'N/A'
-      const answerText = getAnswerKeyText(question)
-
-      html += '<tr style="' + (answerIndex % 2 === 0 ? 'background-color: #fafafa;' : '') + '">'
-      html += '<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">' + answerIndex + '</td>'
-      html += '<td style="padding: 8px; border: 1px solid #ddd; vertical-align: top; max-width: 300px; word-wrap: break-word; line-height: 1.4;">' + questionText + '</td>'
-      html += '<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">' + (question.marks || 0) + '</td>'
-      html += '<td style="padding: 8px; border: 1px solid #ddd; text-align: center;"><strong style="color: #1976d2;">' + answerText + '</strong></td>'
+    if (answerKeyTemplate === 'compact_choice') {
+      html += '<table style="width: 100%; border-collapse: collapse; font-size: 12px; margin: 20px 0;">'
+      html += '<thead style="background-color: #f5f5f5;">'
+      html += '<tr>'
+      html += '<th style="padding: 8px; border: 1px solid #ddd; font-weight: 600; color: #333; text-align: center; width: 60px;">#</th>'
+      html += '<th style="padding: 8px; border: 1px solid #ddd; font-weight: 600; color: #333; text-align: center; width: 120px;">Correct Choice</th>'
       html += '</tr>'
-    })
+      html += '</thead>'
+      html += '<tbody>'
 
-    const totalMarks = sampleQuestions.value.reduce((sum, q) => sum + (q.marks || 0), 0)
-    html += '<tr style="background-color: #e8f5e9; font-weight: 600;">'
-    html += '<td colspan="2" style="padding: 8px; border: 1px solid #ddd; text-align: right; border-top: 2px solid #4caf50;"><strong>Total:</strong></td>'
-    html += '<td style="padding: 8px; border: 1px solid #ddd; text-align: center; border-top: 2px solid #4caf50;"><strong>' + totalMarks + '</strong></td>'
-    html += '<td style="padding: 8px; border: 1px solid #ddd; border-top: 2px solid #4caf50;"></td>'
-    html += '</tr>'
-    html += '</tbody>'
-    html += '</table>'
+      let answerIndex = 0
+      sampleQuestions.value.forEach((question) => {
+        answerIndex += 1
+        const choice = getAnswerKeyChoiceLabel(question)
+
+        html += '<tr style="' + (answerIndex % 2 === 0 ? 'background-color: #fafafa;' : '') + '">'
+        html += '<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">' + answerIndex + '</td>'
+        html += '<td style="padding: 8px; border: 1px solid #ddd; text-align: center;"><strong style="color: #1976d2;">' + choice + '</strong></td>'
+        html += '</tr>'
+      })
+
+      html += '</tbody>'
+      html += '</table>'
+    } else {
+      html += '<table style="width: 100%; border-collapse: collapse; font-size: 12px; margin: 20px 0;">'
+      html += '<thead style="background-color: #f5f5f5;">'
+      html += '<tr>'
+      html += '<th style="padding: 8px; border: 1px solid #ddd; font-weight: 600; color: #333; text-align: center; width: 60px;">#</th>'
+      html += '<th style="padding: 8px; border: 1px solid #ddd; font-weight: 600; color: #333;">Question</th>'
+      html += '<th style="padding: 8px; border: 1px solid #ddd; font-weight: 600; color: #333; text-align: center; width: 80px;">Marks</th>'
+      html += '<th style="padding: 8px; border: 1px solid #ddd; font-weight: 600; color: #333; text-align: center; width: 100px;">Answer</th>'
+      html += '</tr>'
+      html += '</thead>'
+      html += '<tbody>'
+
+      let answerIndex = 0
+      sampleQuestions.value.forEach((question) => {
+        answerIndex += 1
+        const prompt = question.content?.prompt || ''
+        const questionText = prompt ? prompt.replace(/<[^>]*>/g, '').substring(0, 100) + (prompt.length > 100 ? '...' : '') : 'N/A'
+        const answerText = getAnswerKeyText(question)
+
+        html += '<tr style="' + (answerIndex % 2 === 0 ? 'background-color: #fafafa;' : '') + '">'
+        html += '<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">' + answerIndex + '</td>'
+        html += '<td style="padding: 8px; border: 1px solid #ddd; vertical-align: top; max-width: 300px; word-wrap: break-word; line-height: 1.4;">' + questionText + '</td>'
+        html += '<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">' + (question.marks || 0) + '</td>'
+        html += '<td style="padding: 8px; border: 1px solid #ddd; text-align: center;"><strong style="color: #1976d2;">' + answerText + '</strong></td>'
+        html += '</tr>'
+      })
+
+      const totalMarks = sampleQuestions.value.reduce((sum, q) => sum + (q.marks || 0), 0)
+      html += '<tr style="background-color: #e8f5e9; font-weight: 600;">'
+      html += '<td colspan="2" style="padding: 8px; border: 1px solid #ddd; text-align: right; border-top: 2px solid #4caf50;"><strong>Total:</strong></td>'
+      html += '<td style="padding: 8px; border: 1px solid #ddd; text-align: center; border-top: 2px solid #4caf50;"><strong>' + totalMarks + '</strong></td>'
+      html += '<td style="padding: 8px; border: 1px solid #ddd; border-top: 2px solid #4caf50;"></td>'
+      html += '</tr>'
+      html += '</tbody>'
+      html += '</table>'
+    }
 
     if (answerKeyShowNotes) {
       html += '<p style="margin-top: 15px; font-size: 10px; color: #666; border-top: 1px dashed #ccc; padding-top: 10px;">'
@@ -7043,14 +7617,60 @@ function getPrintAnswerLines(question) {
 }
 
 function getAnswerKeyText(question) {
-  if (question.type === 'mcq' && question.correct_answer) {
-    return question.correct_answer
+  if (question.type === 'multiple_choice') {
+    const v = question.correct_answer
+    const labelStyle = pageOptions.value?.mcqOptions?.labelStyle || 'letter'
+    const customTpl = pageOptions.value?.mcqOptions?.customLabelTemplate || '{letter})'
+
+    const idx = (typeof v === 'number' && Number.isFinite(v))
+      ? v
+      : ((typeof v === 'string' && v.trim() !== '' && !Number.isNaN(Number(v))) ? Number(v) : null)
+
+    if (idx !== null) {
+      const n = idx + 1
+      const letter = String.fromCharCode('A'.charCodeAt(0) + idx)
+      if (labelStyle === 'number') return String(n)
+      if (labelStyle === 'custom') {
+        return String(customTpl)
+          .replaceAll('{i}', String(idx))
+          .replaceAll('{n}', String(n))
+          .replaceAll('{letter}', String(letter))
+      }
+      return letter
+    }
+
+    if (typeof v === 'string' && v.trim() !== '') return v
   } else if (question.type === 'true_false' && question.correct_answer !== undefined) {
     return question.correct_answer ? 'True' : 'False'
   } else if (question.correct_answer) {
     return question.correct_answer
   }
   return '-'
+}
+
+function getAnswerKeyChoiceLabel(question) {
+  if (question?.type !== 'multiple_choice') return '-'
+  const labelStyle = pageOptions.value?.mcqOptions?.labelStyle || 'letter'
+  const customTpl = pageOptions.value?.mcqOptions?.customLabelTemplate || '{letter})'
+  const v = question?.correct_answer
+
+  const idx = (typeof v === 'number' && Number.isFinite(v))
+    ? v
+    : ((typeof v === 'string' && v.trim() !== '' && !Number.isNaN(Number(v))) ? Number(v) : null)
+  if (idx === null) return '-'
+
+  const n = idx + 1
+  const letter = String.fromCharCode('A'.charCodeAt(0) + idx)
+  if (labelStyle === 'number') return String(n)
+  if (labelStyle === 'custom') {
+    const res = String(customTpl)
+      .replaceAll('{i}', String(idx))
+      .replaceAll('{n}', String(n))
+      .replaceAll('{letter}', String(letter))
+    // For the compact template we want just the choice symbol, not trailing punctuation/spaces.
+    return res.replace(/[)\.\s]+$/g, '')
+  }
+  return letter
 }
 
 // Watch for changes and auto-save
@@ -7064,6 +7684,7 @@ watch(
 )
 
 onMounted(async () => {
+  loadSettingsPresets()
   await loadPageState()
 })
 </script>

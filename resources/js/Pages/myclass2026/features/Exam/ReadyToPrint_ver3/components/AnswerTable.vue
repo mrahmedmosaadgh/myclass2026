@@ -55,8 +55,17 @@ function getQuestionText(question) {
 }
 
 function getAnswerText(question) {
-  if (question.type === 'mcq' && question.correct_answer) {
-    return question.correct_answer
+  if (question.type === 'multiple_choice') {
+    const v = question.correct_answer
+    if (typeof v === 'number' && Number.isFinite(v)) {
+      return String.fromCharCode('A'.charCodeAt(0) + v)
+    }
+    if (typeof v === 'string' && v.trim() !== '' && !Number.isNaN(Number(v))) {
+      return String.fromCharCode('A'.charCodeAt(0) + Number(v))
+    }
+    if (typeof v === 'string' && v.trim() !== '') {
+      return v
+    }
   } else if (question.type === 'true_false' && question.correct_answer !== undefined) {
     return question.correct_answer ? 'True' : 'False'
   } else if (question.correct_answer) {
