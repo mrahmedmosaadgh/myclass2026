@@ -43,6 +43,11 @@ Route::prefix('exam/ready-to-print')->name('exam.ready-to-print.')->group(functi
     Route::get('/builder-v4', function () {
         return Inertia::render('myclass2026/features/Exam/ReadyToPrint_ver4/Main');
     })->middleware(['auth'])->name('builder-v4');
+
+    // V4 test builder page with login requirement (alias to the main v4 page)
+    Route::get('/test-builder-v4', function () {
+        return Inertia::render('myclass2026/features/Exam/ReadyToPrint_ver4/Main');
+    })->middleware(['auth'])->name('test-builder-v4');
     
     // API routes for user-specific data storage
     Route::prefix('api')->group(function () {

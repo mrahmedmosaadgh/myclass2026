@@ -8,11 +8,17 @@
 
       <ThreeDotMenu
         @open-exam="openExamDialog"
+        @open-my-exams="openMyExamsDialog"
       />
     </q-toolbar>
 
     <OpenExamDialog
       v-model="openExamOpen"
+      @loaded="handleExamLoaded"
+    />
+
+    <OpenMyExamsDialog
+      v-model="openMyExamsOpen"
       @loaded="handleExamLoaded"
     />
 
@@ -33,13 +39,19 @@
 import { ref } from 'vue'
 import ThreeDotMenu from './components/ThreeDotMenu.vue'
 import OpenExamDialog from './components/OpenExamDialog.vue'
+import OpenMyExamsDialog from './components/OpenMyExamsDialog.vue'
 import LivePrintPreview from './components/LivePrintPreview.vue'
 
 const openExamOpen = ref(false)
+const openMyExamsOpen = ref(false)
 const currentExam = ref(null)
 
 function openExamDialog() {
   openExamOpen.value = true
+}
+
+function openMyExamsDialog() {
+  openMyExamsOpen.value = true
 }
 
 function handleExamLoaded(exam) {
