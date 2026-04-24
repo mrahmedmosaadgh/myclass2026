@@ -4719,7 +4719,36 @@ async function loadPageState() {
     const response = await fetch('/exam/ready-to-print/api/load-data-v3')
     const data = await response.json()
     
+    // Restore sections first (needed for question-section mapping)
+    if (data?.sections && Array.isArray(data.sections) && data.sections.length > 0) {
+      sections.value = data.sections
+    }
+    
+    // Ensure sections always has at least a default section
+    if (sections.value.length === 0) {
+      sections.value = [
+        { 
+          id: 'sec_default', 
+          title: 'Choose the correct answer :-', 
+          instructions: '',
+          lineBefore: false,
+          lineAfter: false,
+          pageBreakBefore: false,
+          lineStyle: 'solid',
+          lineThickness: 1,
+          lineColor: '#000000'
+        }
+      ]
+    }
+    
+    // Restore question-section mapping
+    if (data?.questionSectionMap && typeof data.questionSectionMap === 'object') {
+      questionSectionMap.value = data.questionSectionMap
+    }
+    
+    // Restore questions
     if (data?.questions) sampleQuestions.value = data.questions
+    
     if (data?.settings) {
       // Deep merge settings to preserve all nested properties
       pageOptions.value = deepMerge(pageOptions.value, data.settings)
@@ -4735,17 +4764,7 @@ async function loadPageState() {
       }
     }
     
-    // Restore sections if they exist in saved data
-    if (data?.sections && Array.isArray(data.sections)) {
-      sections.value = data.sections
-    }
-    
-    // Restore question-section mapping if it exists
-    if (data?.questionSectionMap && typeof data.questionSectionMap === 'object') {
-      questionSectionMap.value = data.questionSectionMap
-    }
-    
-    // Ensure every question has a section
+    // Ensure every question has a section (do this after all data is loaded)
     const defaultSectionId = sections.value[0]?.id
     sampleQuestions.value.forEach(q => {
       const qid = String(q?.id)
