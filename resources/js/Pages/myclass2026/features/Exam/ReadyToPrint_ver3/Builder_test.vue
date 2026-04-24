@@ -2456,7 +2456,17 @@
         >
           <q-card>
             <q-card-section class="bg-grey-2">
-              <div class="text-caption text-grey-7 q-mb-sm">Question JSON Format:</div>
+              <div class="row items-center justify-between q-mb-sm">
+                <div class="text-caption text-grey-7">Question JSON Format:</div>
+                <q-btn
+                  flat
+                  dense
+                  size="sm"
+                  icon="content_copy"
+                  label="Copy"
+                  @click="copyQuestionJsonExample"
+                />
+              </div>
               <pre class="code-block">{
   "id": "unique_id",
   "type": "multiple_choice" | "short_answer" | "true_false" | "essay" | "fill_in_blank",
@@ -2469,7 +2479,17 @@
   }
 }</pre>
 
-              <div class="text-caption text-grey-7 q-mt-md q-mb-sm">Settings JSON Format:</div>
+              <div class="row items-center justify-between q-mt-md q-mb-sm">
+                <div class="text-caption text-grey-7">Settings JSON Format:</div>
+                <q-btn
+                  flat
+                  dense
+                  size="sm"
+                  icon="content_copy"
+                  label="Copy"
+                  @click="copySettingsJsonExample"
+                />
+              </div>
               <pre class="code-block">{
   "examTitle": { "enabled": true, "text": "Exam Name" },
   "showMarksPerQuestion": true,
@@ -2483,6 +2503,17 @@
 
               <div class="text-caption text-grey-7 q-mt-md">
                 <strong>Note:</strong> For MCQ questions, <code>correct_answer</code> should be the 0-based index of the correct option (0 = A, 1 = B, etc.)
+              </div>
+
+              <q-separator class="q-my-md" />
+
+              <div class="row justify-center q-mt-md">
+                <q-btn
+                  color="primary"
+                  icon="content_copy"
+                  label="Copy Current Exam JSON (Both)"
+                  @click="copyCurrentExamJson"
+                />
               </div>
             </q-card-section>
           </q-card>
@@ -4415,6 +4446,78 @@ async function handleCopyFrom() {
   }
 }
 
+function copyQuestionJsonExample() {
+  const example = {
+    id: "unique_id",
+    type: "multiple_choice",
+    marks: 1,
+    content: {
+      prompt: "Question text here",
+      options: ["Option A", "Option B", "Option C", "Option D"],
+      correct_answer: 0,
+      explanation: "Optional explanation text"
+    }
+  }
+  navigator.clipboard.writeText(JSON.stringify(example, null, 2))
+    .then(() => {
+      $q.notify({ type: 'positive', message: 'Question JSON copied to clipboard', position: 'top' })
+    })
+    .catch((err) => {
+      $q.notify({ type: 'negative', message: 'Failed to copy: ' + err.message, position: 'top' })
+    })
+}
+
+function copySettingsJsonExample() {
+  const example = {
+    examTitle: { enabled: true, text: "Exam Name" },
+    showMarksPerQuestion: true,
+    showExplanationUnderQuestion: false,
+    showCorrectAnswerUnderQuestion: false,
+    printHeader: { enabled: false },
+    printFooter: { enabled: true },
+    answerKey: { enabled: false },
+    mcqOptions: { labelStyle: "letter" }
+  }
+  navigator.clipboard.writeText(JSON.stringify(example, null, 2))
+    .then(() => {
+      $q.notify({ type: 'positive', message: 'Settings JSON copied to clipboard', position: 'top' })
+    })
+    .catch((err) => {
+      $q.notify({ type: 'negative', message: 'Failed to copy: ' + err.message, position: 'top' })
+    })
+}
+
+function copyCurrentExamJson() {
+  const examData = {
+    questions: sampleQuestions.value,
+    settings: {
+      examTitle: pageOptions.value.examTitle,
+      showMarksPerQuestion: pageOptions.value.showMarksPerQuestion,
+      showExplanationUnderQuestion: pageOptions.value.showExplanationUnderQuestion,
+      showCorrectAnswerUnderQuestion: pageOptions.value.showCorrectAnswerUnderQuestion,
+      printHeader: pageOptions.value.printHeader,
+      printFooter: pageOptions.value.printFooter,
+      firstPage: pageOptions.value.firstPage,
+      lastPage: pageOptions.value.lastPage,
+      answerKey: pageOptions.value.answerKey,
+      questionSeparator: pageOptions.value.questionSeparator,
+      mcqOptions: pageOptions.value.mcqOptions,
+      sectionTotal: pageOptions.value.sectionTotal,
+      questionNumbering: pageOptions.value.questionNumbering,
+      pageLayout: pageOptions.value.pageLayout
+    },
+    sections: sections.value,
+    questionSectionMap: questionSectionMap.value
+  }
+  navigator.clipboard.writeText(JSON.stringify(examData, null, 2))
+    .then(() => {
+      $q.notify({ type: 'positive', message: 'Current exam JSON copied to clipboard', position: 'top' })
+    })
+    .catch((err) => {
+      $q.notify({ type: 'negative', message: 'Failed to copy: ' + err.message, position: 'top' })
+    })
+}
+
 function resetAIState() {
   generatedPrompt.value = ''
   aiResponse.value = ''
@@ -4626,6 +4729,16 @@ async function loadPageState() {
         if (!pageOptions.value.questionNumbering) pageOptions.value.questionNumbering = {}
         pageOptions.value.questionNumbering.pageBreaksBefore = data.pageBreaks
       }
+    }
+    
+    // Restore sections if they exist in saved data
+    if (data?.sections && Array.isArray(data.sections)) {
+      sections.value = data.sections
+    }
+    
+    // Restore question-section mapping if it exists
+    if (data?.questionSectionMap && typeof data.questionSectionMap === 'object') {
+      questionSectionMap.value = data.questionSectionMap
     }
     
     // Ensure every question has a section
@@ -4935,7 +5048,10 @@ async function savePageState() {
         pageLayout: pageOptions.value.pageLayout
       },
       // Also save page breaks separately for easy access
-      pageBreaks: pageOptions.value.questionNumbering?.pageBreaksBefore || {}
+      pageBreaks: pageOptions.value.questionNumbering?.pageBreaksBefore || {},
+      // Save sections and question-section mapping
+      sections: sections.value,
+      questionSectionMap: questionSectionMap.value
     }
 
     const response = await fetch('/exam/ready-to-print/api/save-data-v3', {
@@ -7660,7 +7776,8 @@ function getPrintAnswerLines(question) {
 
 function getAnswerKeyText(question) {
   if (question.type === 'multiple_choice') {
-    const v = question.correct_answer
+    // Check content.correct_answer first (new format), then fall back to question.correct_answer (old format)
+    const v = question.content?.correct_answer ?? question.correct_answer
     const labelStyle = pageOptions.value?.mcqOptions?.labelStyle || 'letter'
     const customTpl = pageOptions.value?.mcqOptions?.customLabelTemplate || '{letter})'
 
@@ -7682,10 +7799,12 @@ function getAnswerKeyText(question) {
     }
 
     if (typeof v === 'string' && v.trim() !== '') return v
-  } else if (question.type === 'true_false' && question.correct_answer !== undefined) {
-    return question.correct_answer ? 'True' : 'False'
-  } else if (question.correct_answer) {
-    return question.correct_answer
+  } else if (question.type === 'true_false') {
+    const v = question.content?.correct_answer ?? question.correct_answer
+    if (v !== undefined) return v ? 'True' : 'False'
+  } else {
+    const v = question.content?.correct_answer ?? question.correct_answer
+    if (v) return v
   }
   return '-'
 }
@@ -7694,7 +7813,8 @@ function getAnswerKeyChoiceLabel(question) {
   if (question?.type !== 'multiple_choice') return '-'
   const labelStyle = pageOptions.value?.mcqOptions?.labelStyle || 'letter'
   const customTpl = pageOptions.value?.mcqOptions?.customLabelTemplate || '{letter})'
-  const v = question?.correct_answer
+  // Check content.correct_answer first (new format), then fall back to question.correct_answer (old format)
+  const v = question?.content?.correct_answer ?? question?.correct_answer
 
   const idx = (typeof v === 'number' && Number.isFinite(v))
     ? v
