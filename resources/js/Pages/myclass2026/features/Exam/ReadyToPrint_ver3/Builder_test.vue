@@ -2300,7 +2300,7 @@
           :options="copyFromFiles"
           label="Select Exam"
           outlined
-          option-label="title"
+          option-label="name"
           option-value="id"
           emit-value
           map-options
