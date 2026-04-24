@@ -72,6 +72,10 @@ const previewSettings = ref({
     optionFontSizePt: 0,
     labelBold: false,
     optionBold: false
+  },
+  answerKey: {
+    enabled: true,
+    template: 'compact_choice_table'
   }
 })
 

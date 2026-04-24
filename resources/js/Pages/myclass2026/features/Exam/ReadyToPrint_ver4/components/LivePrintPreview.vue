@@ -22,6 +22,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { renderMathContent } from '../../ReadyToPrint_ver3/utils/mathRenderer'
+import { getAnswerKeyChoiceLabel } from './answerKey/utils/answerKeyFormat'
 
 const props = defineProps({
   exam: { type: Object, required: true },
@@ -48,6 +49,12 @@ const mcqOptions = computed(() => {
   return { ...fromExam, ...fromPreview }
 })
 
+const answerKeyOptions = computed(() => {
+  const fromExam = normalized.value.settings?.answerKey || {}
+  const fromPreview = props.previewSettings?.answerKey || {}
+  return { ...fromExam, ...fromPreview }
+})
+
 function labelForType(idx, type) {
   const i = idx + 1
   const letter = String.fromCharCode('A'.charCodeAt(0) + idx)
@@ -60,31 +67,6 @@ function labelForType(idx, type) {
       .replaceAll('{letter}', String(letter))
   }
   return letter + ')'
-}
-
-/**
- * Returns the 0-based correct option index for an MCQ question.
- * Reads correct_option_index (ver 3 canonical) with fallback to
- * correct_answer (legacy) for backward compatibility.
- */
-function getCorrectOptionIndex(q) {
-  if (q?.type !== 'multiple_choice') return null
-
-  // canonical field (ver 3)
-  const v = q.content?.correct_option_index
-    ?? q.content?.correct_answer
-    ?? q.correct_answer
-
-  if (typeof v === 'number' && Number.isFinite(v)) return v
-  if (typeof v === 'string' && v.trim() !== '' && !Number.isNaN(Number(v))) return Number(v)
-
-  // last resort: match by text against options
-  if (typeof v === 'string' && Array.isArray(q.content?.options)) {
-    const idx = q.content.options.findIndex(o => String(o).trim() === v.trim())
-    if (idx >= 0) return idx
-  }
-
-  return null
 }
 
 const html = computed(() => {
@@ -104,6 +86,13 @@ const html = computed(() => {
   out += '.opt-row { display: flex; align-items: flex-start; }'
   out += '.opt-label { font-weight: 600; color: #333; }'
   out += '.opt-checkbox { width: 14px; height: 14px; border: 2px solid #333; display: inline-block; box-sizing: border-box; margin-top: 2px; }'
+  out += '.ak { margin: 20px 0; page-break-inside: avoid; }'
+  out += '.ak-title { text-align:center; border-bottom: 2px solid #333; padding-bottom: 10px; margin: 0 0 15px; }'
+  out += '.ak-table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 20px 0; }'
+  out += '.ak-table thead { background: #f5f5f5; }'
+  out += '.ak-table th, .ak-table td { padding: 8px; border: 1px solid #ddd; }'
+  out += '.ak-table tbody tr:nth-child(even) { background: #fafafa; }'
+  out += '.ak-choice { color: #1976d2; font-weight: 700; }'
   out += '</style>'
   out += '</head><body>'
   out += '<div class="page">'
@@ -209,6 +198,27 @@ const html = computed(() => {
       out += '</div>'
       out += '</div>'
     })
+  }
+
+  const akEnabled = answerKeyOptions.value?.enabled !== false
+  const akTemplate = answerKeyOptions.value?.template || 'compact_choice_table'
+
+  if (akEnabled && akTemplate === 'compact_choice_table') {
+    // Answer key (compact choice table)
+    out += '<div class="ak">'
+    out += '<div class="ak-title">Answer Key</div>'
+    out += '<table class="ak-table">'
+    out += '<thead><tr><th style="width:60px; text-align:center;">#</th><th style="width:140px; text-align:center;">Correct Choice</th></tr></thead>'
+    out += '<tbody>'
+    normalized.value.questions.forEach((q, idx) => {
+      const choice = getAnswerKeyChoiceLabel(q, mcqOptions.value)
+      out += '<tr>'
+      out += '<td style="text-align:center;">' + String(idx + 1) + '</td>'
+      out += '<td style="text-align:center;"><span class="ak-choice">' + renderMathContent(choice) + '</span></td>'
+      out += '</tr>'
+    })
+    out += '</tbody></table>'
+    out += '</div>'
   }
 
   out += '</div>'

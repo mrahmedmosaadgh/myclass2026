@@ -45,7 +45,14 @@
             </q-item-section>
 
             <q-item-section side>
-              <q-btn dense flat icon="open_in_new" @click.stop="openFile(file)" />
+              <div class="row items-center no-wrap">
+                <ExamRowActionsMenu
+                  @copy-questions="copyPart(file, 'questions')"
+                  @copy-settings="copyPart(file, 'settings')"
+                  @copy-full="copyPart(file, 'full')"
+                />
+                <q-btn dense flat icon="open_in_new" @click.stop="openFile(file)" />
+              </div>
             </q-item-section>
           </q-item>
         </q-list>
@@ -64,6 +71,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useQuasar } from 'quasar'
 import { usePage } from '@inertiajs/vue3'
+import ExamRowActionsMenu from './ExamRowActionsMenu.vue'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false }
@@ -122,7 +130,19 @@ async function openFile(file) {
   if (!file?.id) return
   loading.value = true
   try {
-    const res = await fetch('/api/exam/ready-to-print/load-saved-exam/' + encodeURIComponent(file.id), {
+    const exam = await fetchExamById(file.id)
+
+    emit('loaded', exam)
+    model.value = false
+  } catch (e) {
+    $q.notify({ type: 'negative', message: String(e?.message || e), position: 'top' })
+  } finally {
+    loading.value = false
+  }
+}
+
+async function fetchExamById(examId) {
+  const res = await fetch('/api/exam/ready-to-print/load-saved-exam/' + encodeURIComponent(examId), {
       method: 'GET',
       headers: {
         Accept: 'application/json',
@@ -142,8 +162,27 @@ async function openFile(file) {
     } else if (Array.isArray(exam.sampleQuestions)) {
       exam.sampleQuestions = exam.sampleQuestions.map(normalizeQuestion)
     }
-    emit('loaded', exam)
-    model.value = false
+
+  return exam
+}
+
+async function copyPart(file, part) {
+  if (!file?.id) return
+  loading.value = true
+  try {
+    const exam = await fetchExamById(file.id)
+
+    let payload
+    if (part === 'questions') {
+      payload = exam?.questions || exam?.sampleQuestions || []
+    } else if (part === 'settings') {
+      payload = exam?.settings || exam?.pageOptions || {}
+    } else {
+      payload = exam
+    }
+
+    await navigator.clipboard.writeText(JSON.stringify(payload, null, 2))
+    $q.notify({ type: 'positive', message: 'Copied as JSON', position: 'top' })
   } catch (e) {
     $q.notify({ type: 'negative', message: String(e?.message || e), position: 'top' })
   } finally {

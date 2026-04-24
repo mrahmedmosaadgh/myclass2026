@@ -18,6 +18,7 @@
           align="left"
         >
           <q-tab name="mcq" label="MCQ" />
+          <q-tab name="answerKey" label="Answer Key" />
           <q-tab name="questions" label="Questions" />
         </q-tabs>
 
@@ -26,6 +27,10 @@
         <q-tab-panels v-model="tab" animated>
           <q-tab-panel name="mcq">
             <McqDisplaySettings v-model="localSettings" />
+          </q-tab-panel>
+
+          <q-tab-panel name="answerKey">
+            <AnswerKeySettings v-model="localSettings" />
           </q-tab-panel>
 
           <q-tab-panel name="questions">
@@ -48,6 +53,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import McqDisplaySettings from './settings/McqDisplaySettings.vue'
+import AnswerKeySettings from './settings/AnswerKeySettings.vue'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
