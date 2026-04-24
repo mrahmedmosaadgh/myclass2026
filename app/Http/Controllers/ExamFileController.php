@@ -97,6 +97,7 @@ class ExamFileController extends Controller
             ->map(function ($exam) {
                 return [
                     'id' => $exam->slug,
+                    'title' => $exam->name,
                     'name' => $exam->name,
                     'created_at' => $exam->created_at->toISOString(),
                     'updated_at' => $exam->updated_at->toISOString(),
@@ -104,7 +105,10 @@ class ExamFileController extends Controller
                 ];
             });
 
-        return response()->json(['files' => $exams]);
+        return response()->json([
+            'success' => true,
+            'exams' => $exams
+        ]);
     }
 
     /**
