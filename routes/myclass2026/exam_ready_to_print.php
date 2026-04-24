@@ -38,6 +38,11 @@ Route::prefix('exam/ready-to-print')->name('exam.ready-to-print.')->group(functi
     Route::get('/test-builder-v3', function () {
         return Inertia::render('myclass2026/features/Exam/ReadyToPrint_ver3/Builder_test');
     })->middleware(['auth'])->name('test-builder-v3');
+
+    // V4 main page with login requirement
+    Route::get('/builder-v4', function () {
+        return Inertia::render('myclass2026/features/Exam/ReadyToPrint_ver4/Main');
+    })->middleware(['auth'])->name('builder-v4');
     
     // API routes for user-specific data storage
     Route::prefix('api')->group(function () {

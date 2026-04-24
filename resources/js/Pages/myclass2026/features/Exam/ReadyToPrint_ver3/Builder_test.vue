@@ -261,6 +261,16 @@
         </div>
       </q-btn-dropdown>
 
+      <!-- Edit Mode Toggle -->
+      <q-toggle
+        v-model="isEditMode"
+        label="Edit Mode"
+        color="secondary"
+        class="q-mr-sm"
+        dark
+        keep-color
+      />
+
       <!-- Print Button (keep separate for quick access) -->
       <PrintActions
         :generate-print-html="generatePrintHTML"
@@ -328,7 +338,7 @@
           <div class="page-break-marker-line"></div>
         </div>
 
-        <div class="question-row-actions">
+        <div class="question-row-actions" v-if="isEditMode">
           <q-select
             dense
             outlined
@@ -341,57 +351,43 @@
             class="q-mr-sm"
           />
 
-          <div class="text-subtitle2 text-grey-8 q-mx-md">Print Layout</div>
+          <div class="text-subtitle2 text-grey-8 q-mx-md">Question Actions</div>
 
-          <q-btn
+          <q-btn-dropdown
             dense
             flat
             round
-            icon="edit"
+            icon="more_vert"
             color="grey-8"
-            title="Edit question content"
-            @click="editQuestionContent(question)"
-          />
-
-          <q-btn
-            dense
-            flat
-            round
-            icon="vertical_align_bottom"
-            color="grey-8"
-            :title="isPageBreakBefore(question) ? 'Remove page break before' : 'Add page break before'"
-            @click="togglePageBreakBefore(question)"
-          />
-
-          <q-btn
-            dense
-            flat
-            round
-            icon="vertical_align_top"
-            color="grey-8"
-            :title="'Add page break after'"
-            @click="togglePageBreakAfter(question)"
-          />
-
-          <q-btn
-            dense
-            flat
-            round
-            icon="image"
-            color="grey-8"
-            :title="question?.content?.image ? 'Edit question image' : 'Add question image'"
-            @click="openImageDialog(question)"
-          />
-
-          <q-btn
-            dense
-            flat
-            round
-            icon="delete"
-            color="negative"
-            title="Delete question"
-            @click="confirmDeleteQuestion(question.id)"
-          />
+          >
+            <q-list>
+              <q-item clickable v-close-popup @click="editQuestionContent(question)">
+                <q-item-section avatar><q-icon name="edit" /></q-item-section>
+                <q-item-section>Edit Content</q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup @click="duplicateQuestion(question)">
+                <q-item-section avatar><q-icon name="content_copy" /></q-item-section>
+                <q-item-section>Duplicate</q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup @click="togglePageBreakBefore(question)">
+                <q-item-section avatar><q-icon name="vertical_align_bottom" /></q-item-section>
+                <q-item-section>{{ isPageBreakBefore(question) ? 'Remove' : 'Add' }} Page Break Before</q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup @click="togglePageBreakAfter(question)">
+                <q-item-section avatar><q-icon name="vertical_align_top" /></q-item-section>
+                <q-item-section>Add Page Break After</q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup @click="openImageDialog(question)">
+                <q-item-section avatar><q-icon name="image" /></q-item-section>
+                <q-item-section>{{ question?.content?.image ? 'Edit' : 'Add' }} Image</q-item-section>
+              </q-item>
+              <q-separator />
+              <q-item clickable v-close-popup @click="confirmDeleteQuestion(question.id)" class="text-negative">
+                <q-item-section avatar><q-icon name="delete" color="negative" /></q-item-section>
+                <q-item-section>Delete</q-item-section>
+              </q-item>
+            </q-list>
+          </q-btn-dropdown>
         </div>
         <QuestionDisplay
           :question="question"
@@ -3385,6 +3381,7 @@ const $q = useQuasar()
 
 // Flag to prevent auto-save during initial load
 const isLoadingState = ref(false)
+const isEditMode = ref(false)
 
 const importFileInput = ref(null)
 const importQuestionsFileInput = ref(null)
@@ -6950,6 +6947,23 @@ function deleteQuestion(id) {
   sampleQuestions.value = sampleQuestions.value.filter(q => q.id !== id)
   delete questionSectionMap.value[String(id)]
   savePageState()
+}
+
+async function duplicateQuestion(question) {
+  const newId = Date.now() + Math.floor(Math.random() * 1000)
+  const newQuestion = JSON.parse(JSON.stringify(question))
+  newQuestion.id = newId
+
+  const idx = sampleQuestions.value.findIndex(q => q.id === question.id)
+  if (idx !== -1) {
+    sampleQuestions.value.splice(idx + 1, 0, newQuestion)
+    const sectionId = getQuestionSectionId(question)
+    if (sectionId) {
+      await setQuestionSection(newQuestion, sectionId)
+    } else {
+      savePageState()
+    }
+  }
 }
 
 function confirmDeleteQuestion(id) {
