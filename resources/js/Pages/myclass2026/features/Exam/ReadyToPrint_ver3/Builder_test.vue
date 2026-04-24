@@ -3365,7 +3365,6 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import { useQuasar } from 'quasar'
-import { renderToString } from 'katex'
 import QuestionDisplay from './components/QuestionDisplay.vue'
 import SectionTotalMark from './components/SectionTotalMark.vue'
 import PrintActions from './components/PrintActions.vue'
@@ -3376,6 +3375,7 @@ import ExamFileManager from './components/ExamFileManager.vue'
 import AnswerKey from './components/AnswerKey.vue'
 import { renderSectionTotalHTML } from './utils/sectionTotalTemplates'
 import { formatQuestionLabel } from './utils/questionNumbering'
+import { renderMathContent } from './utils/mathRenderer'
  
 
 const PAGE_STATE_KEY = 'exam_ready_to_print_test_builder_state_v1'
@@ -4741,9 +4741,18 @@ async function loadPageState() {
       ]
     }
     
-    // Restore question-section mapping
+    // Restore question-section mapping with validation
+    const validSectionIds = new Set(sections.value.map(s => s.id))
     if (data?.questionSectionMap && typeof data.questionSectionMap === 'object') {
-      questionSectionMap.value = data.questionSectionMap
+      const normalizedMap = {}
+      Object.keys(data.questionSectionMap).forEach(key => {
+        const sectionId = data.questionSectionMap[key]
+        // Only keep mappings to valid sections
+        if (validSectionIds.has(sectionId)) {
+          normalizedMap[key] = sectionId
+        }
+      })
+      questionSectionMap.value = normalizedMap
     }
     
     // Restore questions
@@ -4764,11 +4773,30 @@ async function loadPageState() {
       }
     }
     
-    // Ensure every question has a section (do this after all data is loaded)
+    // Ensure every question has a valid section mapping (do this after all data is loaded)
     const defaultSectionId = sections.value[0]?.id
     sampleQuestions.value.forEach(q => {
       const qid = String(q?.id)
-      if (defaultSectionId && !questionSectionMap.value[qid]) questionSectionMap.value[qid] = defaultSectionId
+      // Try multiple ID formats for the map lookup (handles both "1" and "q1" formats)
+      const mapKeys = [qid, 'q' + qid]
+      let mappedSection = null
+      for (const key of mapKeys) {
+        if (questionSectionMap.value[key]) {
+          mappedSection = questionSectionMap.value[key]
+          break
+        }
+      }
+      // Use the question's section property if available and valid
+      if (!mappedSection && q.section && validSectionIds.has(q.section)) {
+        mappedSection = q.section
+      }
+      // Fall back to default section
+      if (!mappedSection && defaultSectionId) {
+        mappedSection = defaultSectionId
+      }
+      if (mappedSection) {
+        questionSectionMap.value[qid] = mappedSection
+      }
     })
   } catch (e) {
     console.error('Failed to load page state', e)
@@ -5864,16 +5892,46 @@ async function updateQuestionsFromClipboard() {
         if (parsed.sections && Array.isArray(parsed.sections)) {
           sections.value = parsed.sections
         }
-        if (parsed.questionSectionMap) {
-          questionSectionMap.value = parsed.questionSectionMap
+        
+        // Handle questionSectionMap with validation
+        if (parsed.questionSectionMap && typeof parsed.questionSectionMap === 'object') {
+          // Normalize question IDs in the map to match the actual question IDs
+          const normalizedMap = {}
+          const validSectionIds = new Set(sections.value.map(s => s.id))
+          
+          Object.keys(parsed.questionSectionMap).forEach(key => {
+            const sectionId = parsed.questionSectionMap[key]
+            // Check if this section exists
+            if (validSectionIds.has(sectionId)) {
+              normalizedMap[key] = sectionId
+            }
+          })
+          questionSectionMap.value = normalizedMap
         }
         
-        // Ensure default section mapping
+        // Ensure every question has a valid section mapping
         const defaultSectionId = sections.value[0]?.id
         if (defaultSectionId) {
           questionsArray.forEach(q => {
             const qid = String(q?.id)
-            if (!questionSectionMap.value[qid]) questionSectionMap.value[qid] = defaultSectionId
+            // Try multiple ID formats for the map lookup
+            const mapKeys = [qid, 'q' + qid]
+            let mappedSection = null
+            for (const key of mapKeys) {
+              if (questionSectionMap.value[key]) {
+                mappedSection = questionSectionMap.value[key]
+                break
+              }
+            }
+            // Use the question's section property if available and valid
+            if (!mappedSection && q.section && validSectionIds.has(q.section)) {
+              mappedSection = q.section
+            }
+            // Fall back to default section
+            if (!mappedSection) {
+              mappedSection = defaultSectionId
+            }
+            questionSectionMap.value[qid] = mappedSection
           })
         }
 
@@ -7704,14 +7762,20 @@ scriptContent += "})();";
       sampleQuestions.value.forEach((question) => {
         answerIndex += 1
         const prompt = question.content?.prompt || ''
-        const questionText = prompt ? prompt.replace(/<[^>]*>/g, '').substring(0, 100) + (prompt.length > 100 ? '...' : '') : 'N/A'
+        // Render math content for question text, then truncate if needed
+        let questionText = renderMathContent(prompt)
+        if (!questionText) {
+          questionText = 'N/A'
+        }
         const answerText = getAnswerKeyText(question)
+        // Also render math in answer text for LaTeX support
+        const renderedAnswer = renderMathContent(answerText)
 
         html += '<tr style="' + (answerIndex % 2 === 0 ? 'background-color: #fafafa;' : '') + '">'
         html += '<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">' + answerIndex + '</td>'
         html += '<td style="padding: 8px; border: 1px solid #ddd; vertical-align: top; max-width: 300px; word-wrap: break-word; line-height: 1.4;">' + questionText + '</td>'
         html += '<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">' + (question.marks || 0) + '</td>'
-        html += '<td style="padding: 8px; border: 1px solid #ddd; text-align: center;"><strong style="color: #1976d2;">' + answerText + '</strong></td>'
+        html += '<td style="padding: 8px; border: 1px solid #ddd; text-align: center;"><strong style="color: #1976d2;">' + renderedAnswer + '</strong></td>'
         html += '</tr>'
       })
 
@@ -7736,33 +7800,6 @@ scriptContent += "})();";
 
   html += '</body></html>'
   return html
-}
-
-function renderMathContent(content) {
-  if (!content) return ''
-
-  let text = String(content)
-    .replace(/\[\s*cite\s*:\s*\d+\s*\]/gi, '')
-    .replace(/\s{2,}/g, ' ')
-    .trim()
-
-  text = text.replace(/\$\$([^$]+)\$\$/g, (match, math) => {
-    try {
-      return renderToString(math, { throwOnError: false, displayMode: true })
-    } catch (e) {
-      return match
-    }
-  })
-
-  text = text.replace(/\$([^$]+)\$/g, (match, math) => {
-    try {
-      return renderToString(math, { throwOnError: false })
-    } catch (e) {
-      return match
-    }
-  })
-
-  return text
 }
 
 function optionLabel(idx) {

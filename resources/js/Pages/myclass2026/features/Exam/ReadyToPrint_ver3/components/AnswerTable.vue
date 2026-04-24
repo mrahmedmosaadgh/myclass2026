@@ -13,11 +13,11 @@
         <tr v-for="(question, index) in questions" :key="question.id">
           <td class="text-center">{{ index + 1 }}</td>
           <td>
-            <div class="question-content">{{ getQuestionText(question) }}</div>
+            <div class="question-content" v-html="getQuestionText(question)"></div>
           </td>
           <td class="text-center">{{ question.marks }}</td>
           <td class="text-center">
-            <span class="answer-text">{{ getAnswerText(question) }}</span>
+            <span class="answer-text" v-html="getAnswerText(question)"></span>
           </td>
         </tr>
       </tbody>
@@ -34,6 +34,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { renderMathContent } from '../utils/mathRenderer'
 
 const props = defineProps({
   questions: {
@@ -47,31 +48,37 @@ const totalMarks = computed(() => {
 })
 
 function getQuestionText(question) {
-  if (question.content) {
-    // Strip HTML tags for cleaner display
-    return question.content.replace(/<[^>]*>/g, '').substring(0, 100) + (question.content.length > 100 ? '...' : '')
+  const prompt = question.content?.prompt || question.content || ''
+  if (prompt) {
+    // Render math content (HTML and LaTeX)
+    return renderMathContent(prompt)
   }
   return 'N/A'
 }
 
 function getAnswerText(question) {
+  let answer = '-'
+  
+  // Check content.correct_answer first (new format), then fall back to question.correct_answer (old format)
+  const correctAnswer = question.content?.correct_answer ?? question.correct_answer
+  
   if (question.type === 'multiple_choice') {
-    const v = question.correct_answer
+    const v = correctAnswer
     if (typeof v === 'number' && Number.isFinite(v)) {
-      return String.fromCharCode('A'.charCodeAt(0) + v)
+      answer = String.fromCharCode('A'.charCodeAt(0) + v)
+    } else if (typeof v === 'string' && v.trim() !== '' && !Number.isNaN(Number(v))) {
+      answer = String.fromCharCode('A'.charCodeAt(0) + Number(v))
+    } else if (typeof v === 'string' && v.trim() !== '') {
+      answer = v
     }
-    if (typeof v === 'string' && v.trim() !== '' && !Number.isNaN(Number(v))) {
-      return String.fromCharCode('A'.charCodeAt(0) + Number(v))
-    }
-    if (typeof v === 'string' && v.trim() !== '') {
-      return v
-    }
-  } else if (question.type === 'true_false' && question.correct_answer !== undefined) {
-    return question.correct_answer ? 'True' : 'False'
-  } else if (question.correct_answer) {
-    return question.correct_answer
+  } else if (question.type === 'true_false' && correctAnswer !== undefined) {
+    answer = correctAnswer ? 'True' : 'False'
+  } else if (correctAnswer) {
+    answer = correctAnswer
   }
-  return '-'
+  
+  // Render math content for LaTeX support
+  return renderMathContent(answer)
 }
 </script>
 
