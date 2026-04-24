@@ -3383,6 +3383,9 @@ const PAGE_STATE_KEY = 'exam_ready_to_print_test_builder_state_v1'
 const page = usePage()
 const $q = useQuasar()
 
+// Flag to prevent auto-save during initial load
+const isLoadingState = ref(false)
+
 const importFileInput = ref(null)
 const importQuestionsFileInput = ref(null)
 const questionImageInput = ref(null)
@@ -4711,6 +4714,7 @@ function generateExamCreationPrompt(subject, grade, examType, totalQuestions) {
 }
 
 async function loadPageState() {
+  isLoadingState.value = true
   try {
     const response = await fetch('/exam/ready-to-print/api/load-data-v3')
     const data = await response.json()
@@ -4749,6 +4753,8 @@ async function loadPageState() {
     })
   } catch (e) {
     console.error('Failed to load page state', e)
+  } finally {
+    isLoadingState.value = false
   }
 }
 
@@ -7839,6 +7845,8 @@ function getAnswerKeyChoiceLabel(question) {
 watch(
   [sampleQuestions, pageOptions],
   async () => {
+    // Skip auto-save during initial load to prevent overwriting loaded data
+    if (isLoadingState.value) return
     await nextTick()
     await savePageState()
   },
