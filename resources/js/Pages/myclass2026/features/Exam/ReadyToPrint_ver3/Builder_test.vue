@@ -4211,8 +4211,8 @@ async function loadCopyFromFiles() {
   try {
     const response = await fetch('/api/exam/ready-to-print/list-saved-exams')
     const data = await response.json()
-    if (data.success) {
-      copyFromFiles.value = data.exams
+    if (data.files) {
+      copyFromFiles.value = data.files
     } else {
       $q.notify({ type: 'negative', message: 'Failed to load saved exams', position: 'top' })
     }
@@ -4232,7 +4232,7 @@ async function handleCopyFrom() {
     const data = await response.json()
 
     if (data.success) {
-      const examData = data.exam
+      const examData = data.data
 
       // Remove current questions if option is selected
       if (copyFromOptions.value.removeCurrentQuestions) {

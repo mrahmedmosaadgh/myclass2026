@@ -105,10 +105,7 @@ class ExamFileController extends Controller
                 ];
             });
 
-        return response()->json([
-            'success' => true,
-            'exams' => $exams
-        ]);
+        return response()->json(['files' => $exams]);
     }
 
     /**
