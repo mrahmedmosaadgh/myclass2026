@@ -4209,7 +4209,7 @@ function openCopyFromDialog() {
 async function loadCopyFromFiles() {
   copyFromLoading.value = true
   try {
-    const response = await fetch('/list-saved-exams')
+    const response = await fetch('/api/exam/ready-to-print/list-saved-exams')
     const data = await response.json()
     if (data.success) {
       copyFromFiles.value = data.exams
@@ -4228,7 +4228,7 @@ async function handleCopyFrom() {
 
   copyFromLoading.value = true
   try {
-    const response = await fetch(`/load-saved-exam/${copyFromSelectedFile.value}`)
+    const response = await fetch(`/api/exam/ready-to-print/load-saved-exam/${copyFromSelectedFile.value}`)
     const data = await response.json()
 
     if (data.success) {
