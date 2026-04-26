@@ -108,6 +108,16 @@ export function usePaste() {
     });
   }
 
+  function createMarkdownElement(text = '') {
+    finishPaste({
+      ...getBaseProps(),
+      type: 'markdown',
+      content: text,
+      width: 700,
+      height: 400
+    });
+  }
+
   function createImageElement(src) {
     const img = new Image();
     img.onload = () => {
@@ -123,6 +133,27 @@ export function usePaste() {
         width = (600 / height) * width;
         height = 600;
       }
+
+      finishPaste({
+        ...getBaseProps(),
+        type: 'image',
+        src,
+        width,
+        height
+      });
+    };
+    img.src = src;
+  }
+
+  function createImageElementOriginal(src, { newSlide = false } = {}) {
+    if (newSlide) {
+      presentation.addSlide();
+    }
+
+    const img = new Image();
+    img.onload = () => {
+      const width = img.width || 300;
+      const height = img.height || 200;
 
       finishPaste({
         ...getBaseProps(),
@@ -171,7 +202,9 @@ export function usePaste() {
     handlePaste,
     createTextElement,
     createMathElement,
+    createMarkdownElement,
     createImageElement,
+    createImageElementOriginal,
     createHTMLElement,
     createRectangleElement,
     pasteElement

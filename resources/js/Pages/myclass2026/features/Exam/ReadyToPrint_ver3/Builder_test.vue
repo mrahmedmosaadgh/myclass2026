@@ -2,7 +2,7 @@
   <Head :title="pageTitle" />
   <div class="exam-test-page">
     <!-- Quasar Toolbar -->
-    <q-toolbar class="bg-primary text-white">
+    <q-toolbar class="bg-primary text-white exam-toolbar">
       <!-- Title -->
       <q-icon name="quiz" size="md" class="q-mr-sm" />
       <q-toolbar-title shrink>
@@ -1244,6 +1244,14 @@
 
             <div class="sections-editor">
               <div class="section-row" v-for="s in sections" :key="s.id">
+                <q-toggle
+                  dense
+                  v-model="s.forceQuestionsToEssay"
+                  label="Essay"
+                  :title="'Force all questions in this section to be essay (hide options, add workspace)'"
+                  class="q-mr-sm"
+                  @update:model-value="savePageState"
+                />
                 <q-input
                   dense
                   outlined
@@ -1495,47 +1503,116 @@
 
           <q-tab-panel name="answerKey">
             <div class="options-grid">
+
+              <!-- ── Enable / master toggle ── -->
               <q-toggle
                 v-model="pageOptions.answerKey.enabled"
                 label="Enable Answer Key"
+                color="primary"
                 @update:model-value="savePageState"
               />
 
-              <q-select
+              <!-- ── Live coverage summary ── -->
+              <q-banner
                 v-if="pageOptions.answerKey.enabled"
-                dense
-                outlined
-                :options="[
-                  { label: 'Full (Question + Marks + Answer)', value: 'full' },
-                  { label: 'Compact (Question # + Correct Choice)', value: 'compact_choice' }
-                ]"
-                emit-value
-                map-options
-                v-model="pageOptions.answerKey.template"
-                label="Answer key table template"
-                @update:model-value="savePageState"
-              />
+                rounded
+                :class="answerKeyCoverage.missing === 0 ? 'bg-green-1 text-green-9' : 'bg-orange-1 text-orange-9'"
+              >
+                <template #avatar>
+                  <q-icon :name="answerKeyCoverage.missing === 0 ? 'check_circle' : 'warning'" />
+                </template>
+                <span class="text-caption">
+                  <strong>{{ answerKeyCoverage.covered }}</strong> of
+                  <strong>{{ answerKeyCoverage.total }}</strong> questions have a correct answer set.
+                  <span v-if="answerKeyCoverage.missing > 0">
+                    — <strong>{{ answerKeyCoverage.missing }}</strong> missing.
+                  </span>
+                </span>
+              </q-banner>
 
-              <q-toggle
-                v-if="pageOptions.answerKey.enabled"
-                v-model="pageOptions.answerKey.showAtEnd"
-                label="Show at end of exam"
-                @update:model-value="savePageState"
-              />
+              <template v-if="pageOptions.answerKey.enabled">
+                <q-separator class="full-width" />
 
-              <q-toggle
-                v-if="pageOptions.answerKey.enabled"
-                v-model="pageOptions.answerKey.pageBreakBefore"
-                label="Page break before answer key"
-                @update:model-value="savePageState"
-              />
+                <!-- ── Template ── -->
+                <div class="text-caption text-grey-7 full-width q-mt-xs">Answer Key Table</div>
 
-              <q-toggle
-                v-if="pageOptions.answerKey.enabled"
-                v-model="pageOptions.answerKey.showNotes"
-                label="Show notes below answer key"
-                @update:model-value="savePageState"
-              />
+                <q-select
+                  dense
+                  outlined
+                  :options="[
+                    { label: 'Full  (# · Question · Marks · Answer)', value: 'full' },
+                    { label: 'Compact  (# · Correct Choice only)', value: 'compact_choice' }
+                  ]"
+                  emit-value
+                  map-options
+                  v-model="pageOptions.answerKey.template"
+                  label="Table template"
+                  @update:model-value="savePageState"
+                />
+
+                <!-- ── Title ── -->
+                <q-input
+                  dense
+                  outlined
+                  v-model="pageOptions.answerKey.title"
+                  label='Answer key heading (default: "Answer Key")'
+                  clearable
+                  @blur="savePageState"
+                />
+
+                <!-- ── Placement ── -->
+                <q-separator class="full-width" />
+                <div class="text-caption text-grey-7 full-width q-mt-xs">Placement</div>
+
+                <q-toggle
+                  v-model="pageOptions.answerKey.showAtEnd"
+                  label="Append answer key at end of exam"
+                  @update:model-value="savePageState"
+                />
+
+                <q-toggle
+                  v-model="pageOptions.answerKey.pageBreakBefore"
+                  label="Start answer key on a new page"
+                  @update:model-value="savePageState"
+                />
+
+                <!-- ── Per-question inline display ── -->
+                <q-separator class="full-width" />
+                <div class="text-caption text-grey-7 full-width q-mt-xs">Inline (under each question)</div>
+
+                <q-toggle
+                  v-model="pageOptions.showCorrectAnswerUnderQuestion"
+                  label="Show correct answer under each question"
+                  @update:model-value="savePageState"
+                />
+
+                <q-toggle
+                  v-model="pageOptions.showExplanationUnderQuestion"
+                  label="Show explanation under each question"
+                  @update:model-value="savePageState"
+                />
+
+                <!-- ── Footer note ── -->
+                <q-separator class="full-width" />
+                <div class="text-caption text-grey-7 full-width q-mt-xs">Footer Note</div>
+
+                <q-toggle
+                  v-model="pageOptions.answerKey.showNotes"
+                  label='Show "separate before distribution" note'
+                  @update:model-value="savePageState"
+                />
+
+                <q-input
+                  v-if="pageOptions.answerKey.showNotes"
+                  dense
+                  outlined
+                  type="textarea"
+                  rows="2"
+                  v-model="pageOptions.answerKey.notesText"
+                  label="Custom note text (leave blank for default)"
+                  @blur="savePageState"
+                />
+              </template>
             </div>
           </q-tab-panel>
         </q-tab-panels>
@@ -3697,6 +3774,8 @@ const pageOptions = ref({
     enabled: false,
     showAtEnd: true,
     showNotes: true,
+    notesText: '',
+    title: '',
     template: 'full',
     pageBreakBefore: true
   },
@@ -3741,6 +3820,18 @@ const pageOptions = ref({
     inlineGap: 8,
     pageBreaksBefore: {}
   }
+})
+
+/** How many questions have a correct answer set (for the settings banner). */
+const answerKeyCoverage = computed(() => {
+  const qs = sampleQuestions.value || []
+  const total = qs.length
+  let covered = 0
+  qs.forEach(q => {
+    const v = q.content?.correct_option_index ?? q.content?.correct_answer ?? q.correct_answer
+    if (v !== undefined && v !== null && v !== '') covered++
+  })
+  return { total, covered, missing: total - covered }
 })
 
 const printSequence = computed(() => {
@@ -3956,87 +4047,6 @@ async function pasteFooterHtml() {
   }
 }
 
-async function handleHeaderImageFile(event) {
-  try {
-    const file = event?.target?.files?.[0]
-    if (!file) return
-
-    const reader = new FileReader()
-    reader.onload = async () => {
-      pageOptions.value.printHeader.imageUrl = String(reader.result || '')
-      await savePageState()
-    }
-    reader.readAsDataURL(file)
-  } catch (e) {
-    console.error('Header image load failed', e)
-    $q.notify({ type: 'negative', message: 'Failed to load image: ' + e.message, position: 'top' })
-  }
-}
-
-async function removeHeaderImage() {
-  pageOptions.value.printHeader.imageUrl = ''
-  await savePageState()
-}
-
-async function pasteHeaderImageUrlFromClipboard() {
-  try {
-    const text = await navigator.clipboard.readText()
-    if (!text || !String(text).trim()) {
-      $q.notify({ type: 'warning', message: 'Clipboard is empty.', position: 'top' })
-      return
-    }
-    pageOptions.value.printHeader.imageUrl = String(text).trim()
-    await savePageState()
-  } catch (e) {
-    console.error('Paste header URL failed', e)
-    $q.notify({ type: 'warning', message: 'Clipboard paste blocked. Please allow clipboard permission or paste manually.', position: 'top' })
-  }
-}
-
-async function pasteHeaderImageFromClipboard() {
-  try {
-    if (!navigator.clipboard?.read) {
-      $q.notify({ type: 'warning', message: 'Clipboard image paste is not supported in this browser. Use Choose Image instead.', position: 'top' })
-      return
-    }
-
-    const items = await navigator.clipboard.read()
-    for (const item of items) {
-      const imgType = item.types.find(t => t.startsWith('image/'))
-      if (!imgType) continue
-
-      const blob = await item.getType(imgType)
-      const reader = new FileReader()
-      reader.onload = async () => {
-        pageOptions.value.printHeader.imageUrl = String(reader.result || '')
-        await savePageState()
-      }
-      reader.readAsDataURL(blob)
-      return
-    }
-
-    $q.notify({ type: 'warning', message: 'No image found in clipboard.', position: 'top' })
-  } catch (e) {
-    console.error('Paste header image failed', e)
-    $q.notify({ type: 'warning', message: 'Clipboard image paste blocked. Please allow clipboard permission or use Choose Image.', position: 'top' })
-  }
-}
-
-async function pasteHeaderHtmlFromClipboard() {
-  try {
-    const text = await navigator.clipboard.readText()
-    if (!text || !String(text).trim()) {
-      $q.notify({ type: 'warning', message: 'Clipboard is empty.', position: 'top' })
-      return
-    }
-    pageOptions.value.printHeader.html = String(text).trim()
-    await savePageState()
-  } catch (e) {
-    console.error('Paste header HTML failed', e)
-    $q.notify({ type: 'warning', message: 'Clipboard paste blocked. Please allow clipboard permission or paste manually.', position: 'top' })
-  }
-}
-
 const questionSeparatorStyle = computed(() => {
   const sep = pageOptions.value?.questionSeparator || {}
   const style = String(sep.lineStyle || 'solid')
@@ -4123,6 +4133,7 @@ const sections = ref([
     id: 'sec_default', 
     title: 'Choose the correct answer :-', 
     instructions: '',
+    forceQuestionsToEssay: false,
     lineBefore: false,
     lineAfter: false,
     pageBreakBefore: false,
@@ -4303,21 +4314,23 @@ function confirmSmartExam() {
   prompt += `4. Mix difficulty levels as specified\n`
   prompt += `5. Include clear and unambiguous questions\n\n`
 
-  prompt += `## Output Format:\n`
-  prompt += `Return ONLY valid JSON in this format:\n`
-  prompt += `{\n`
-  prompt += `  "questions": [\n`
-  prompt += `    {\n`
-  prompt += `      "id": 1,\n`
-  prompt += `      "type": "mcq",\n`
-  prompt += `      "ver": 3,\n`
-  prompt += `      "marks": 2,\n`
-  prompt += `      "content": "Question text",\n`
+  prompt += `## JSON Output Format:\n\n`
+  prompt += `Return ONLY valid JSON in this format:\n\n`
+  prompt += `\`\`\`json\n`
+  prompt += `[\n`
+  prompt += `  {\n`
+  prompt += `    "id": 1,\n`
+  prompt += `    "type": "multiple_choice",\n`
+  prompt += `    "ver": 3,\n`
+  prompt += `    "marks": 2,\n`
+  prompt += `    "content": {\n`
+  prompt += `      "prompt": "What is $2 + 2$?",\n`
   prompt += `      "options": ["A", "B", "C", "D"],\n`
   prompt += `      "correct_option_index": 0\n`
   prompt += `    }\n`
-  prompt += `  ]\n`
-  prompt += `}\n`
+  prompt += `  }\n`
+  prompt += `]\n`
+  prompt += `\`\`\`\n`
 
   smartExamPrompt.value = prompt
   smartExamStep.value = 4
@@ -4683,12 +4696,7 @@ function generateExamCreationPrompt(subject, grade, examType, totalQuestions) {
   prompt += `    "section": "Section 1: Multiple Choice",\n`
   prompt += `    "content": {\n`
   prompt += `      "prompt": "What is $2 + 2$?",\n`
-  prompt += `      "options": [\n`
-  prompt += `        "A) 3",\n`
-  prompt += `        "B) 4",\n`
-  prompt += `        "C) 5",\n`
-  prompt += `        "D) 6"\n`
-  prompt += `      ],\n`
+  prompt += `      "options": ["A", "B", "C", "D"],\n`
   prompt += `      "correct_option_index": 1,\n`
   prompt += `      "explanation": "Basic addition: 2 + 2 = 4"\n`
   prompt += `    }\n`
@@ -4750,6 +4758,7 @@ async function loadPageState() {
           id: 'sec_default', 
           title: 'Choose the correct answer :-', 
           instructions: '',
+          forceQuestionsToEssay: false,
           lineBefore: false,
           lineAfter: false,
           pageBreakBefore: false,
@@ -4984,6 +4993,8 @@ function applySettingsPreset(presetValue) {
         enabled: false,
         showAtEnd: true,
         showNotes: true,
+        notesText: '',
+        title: '',
         template: 'full',
         pageBreakBefore: true
       },
@@ -5095,6 +5106,68 @@ async function pasteQuestionImageFromClipboard() {
   } catch (e) {
     console.error('Paste image failed', e)
     $q.notify({ type: 'warning', message: 'Clipboard image paste blocked. Please allow clipboard permission or use Choose Image.', position: 'top' })
+  }
+}
+
+async function pasteHeaderImageUrlFromClipboard() {
+  try {
+    const text = await navigator.clipboard.readText()
+    if (!text || !String(text).trim()) {
+      $q.notify({ type: 'warning', message: 'Clipboard is empty.', position: 'top' })
+      return
+    }
+    pageOptions.value.printHeader.imageUrl = String(text).trim()
+    saveSettingsPresets()
+    $q.notify({ type: 'positive', message: 'Header image URL pasted from clipboard', position: 'top' })
+  } catch (e) {
+    console.error('Paste header URL failed', e)
+    $q.notify({ type: 'warning', message: 'Clipboard paste blocked. Please allow clipboard permission or paste manually.', position: 'top' })
+  }
+}
+
+async function pasteHeaderImageFromClipboard() {
+  try {
+    if (!navigator.clipboard?.read) {
+      $q.notify({ type: 'warning', message: 'Clipboard image paste is not supported in this browser. Use Choose Image instead.', position: 'top' })
+      return
+    }
+
+    const items = await navigator.clipboard.read()
+    for (const item of items) {
+      const imgType = item.types.find(t => t.startsWith('image/'))
+      if (!imgType) continue
+
+      const blob = await item.getType(imgType)
+      const reader = new FileReader()
+      reader.onload = () => {
+        pageOptions.value.printHeader.imageUrl = String(reader.result || '')
+        saveSettingsPresets()
+        $q.notify({ type: 'positive', message: 'Header image pasted from clipboard', position: 'top' })
+      }
+      reader.readAsDataURL(blob)
+      return
+    }
+
+    $q.notify({ type: 'warning', message: 'No image found in clipboard.', position: 'top' })
+  } catch (e) {
+    console.error('Paste header image failed', e)
+    $q.notify({ type: 'warning', message: 'Clipboard image paste blocked. Please allow clipboard permission or use Choose Image.', position: 'top' })
+  }
+}
+
+async function pasteHeaderHtmlFromClipboard() {
+  try {
+    const text = await navigator.clipboard.readText()
+    if (!text || !String(text).trim()) {
+      $q.notify({ type: 'warning', message: 'Clipboard is empty.', position: 'top' })
+      return
+    }
+    pageOptions.value.printHeader.html = String(text).trim()
+    saveSettingsPresets()
+    $q.notify({ type: 'positive', message: 'Header HTML pasted from clipboard', position: 'top' })
+  } catch (e) {
+    console.error('Paste header HTML failed', e)
+    $q.notify({ type: 'warning', message: 'Clipboard paste blocked. Please allow clipboard permission or paste manually.', position: 'top' })
   }
 }
 
@@ -5693,6 +5766,7 @@ async function addSection() {
     id, 
     title: 'New Section', 
     instructions: '',
+    forceQuestionsToEssay: false,
     lineBefore: false,
     lineAfter: false,
     pageBreakBefore: false,
@@ -5920,7 +5994,7 @@ async function updateQuestionsFromClipboard() {
           
           Object.keys(parsed.questionSectionMap).forEach(key => {
             const sectionId = parsed.questionSectionMap[key]
-            // Check if this section exists
+            // Only keep mappings to valid sections
             if (validSectionIds.has(sectionId)) {
               normalizedMap[key] = sectionId
             }
@@ -6048,7 +6122,7 @@ async function handleImportFile(event, questionsOnly = false) {
         return
       }
 
-      if (Array.isArray(parsed.sampleQuestions)) sampleQuestions.value = parsed.sampleQuestions
+      if (parsed.questions && Array.isArray(parsed.questions)) sampleQuestions.value = parsed.questions
       if (parsed.pageOptions) pageOptions.value = { ...pageOptions.value, ...parsed.pageOptions }
       if (Array.isArray(parsed.sections) && parsed.sections.length > 0) sections.value = parsed.sections
       if (parsed.questionSectionMap && typeof parsed.questionSectionMap === 'object') questionSectionMap.value = parsed.questionSectionMap
@@ -6092,7 +6166,7 @@ function generatePrompt() {
   prompt += `\n\nRequirements:`
   prompt += `\n- Return ONLY a JSON array of question objects`
   prompt += `\n- Do NOT include citations or source markers like [cite: 219] anywhere in the text`
-  prompt += `\n- Each question should have: id (number), type (string), marks (number), content with prompt (string)`
+  prompt += `\n- Each question should have: id (number), type (string), marks (number), content with prompt and options (if applicable)`
   prompt += `\n- Question types: "short_answer", "multiple_choice", or "true_false"`
   prompt += `\n- Marks should be between 1-5 points based on difficulty`
 
@@ -7107,18 +7181,6 @@ function saveQuestionImage() {
   savePageState()
 }
 
-function formatPageNumberPreviewText(format, currentPage = 1, totalPages = 1) {
-  console.log('[PAGE NUMBER DEBUG - VUE] formatPageNumberPreviewText called:', { format, currentPage, totalPages })
-  let result = ''
-  if (format === 'page') result = String(currentPage)
-  else if (format === 'page-of') result = currentPage + ' of ' + totalPages
-  else if (format === 'page-slash') result = 'Page ' + currentPage + ' / ' + totalPages
-  else if (format === 'fraction') result = currentPage + '/' + totalPages
-  else result = String(currentPage)
-  console.log('[PAGE NUMBER DEBUG - VUE] formatPageNumberPreviewText result:', result)
-  return result
-}
-
 function generateFooterComponentHTML() {
   const footerText = pageOptions.value?.printFooter?.html || ''
   const showPageNumbers = !!pageOptions.value?.printFooter?.showPageNumbers
@@ -7127,7 +7189,7 @@ function generateFooterComponentHTML() {
   const pageNumberColor = String(pageOptions.value?.printFooter?.pageNumberColor || '#000000')
   const singleLine = pageOptions.value?.printFooter?.singleLine === true
   const singleLineTopAlign = pageOptions.value?.printFooter?.singleLineTopAlign === true
-  const initialPreviewText = formatPageNumberPreviewText(pageNumberFormat, 1, 1)
+  const initialPreviewText = ''
   
   let html = '<div class="footer-content"'
   
@@ -7164,7 +7226,8 @@ function generateFooterComponentHTML() {
     }
     html += '>'
     
-    html += '<div class="page-number" data-format="' + pageNumberFormat + '" data-total-pages="1" data-preview="' + escapeHtml(initialPreviewText) + '" style="font-size:' + pageNumberFontSize + 'pt; color:' + pageNumberColor + '; --page-number-color:' + pageNumberColor + ';">' + escapeHtml(initialPreviewText)
+    html += '<div class="page-number" data-format="' + pageNumberFormat + '" style="font-size:' + pageNumberFontSize + 'pt; color:' + pageNumberColor + '; --page-number-color:' + pageNumberColor + ';">'
+    html += '<span class="page-number-content" data-format="' + pageNumberFormat + '"></span>'
     html += '</div>'
     
     html += '</div>'
@@ -7177,7 +7240,16 @@ function generateFooterComponentHTML() {
 function generatePrintHTML() {
   const examTitleEnabled = !!pageOptions.value?.examTitle?.enabled
   const examTitleTextRaw = String(pageOptions.value?.examTitle?.text || 'Math Questions Test')
-  const docTitle = examTitleEnabled ? examTitleTextRaw : 'Math Questions Print'
+  const baseTitle = (examTitleEnabled ? examTitleTextRaw : 'Math Questions Print')
+  const now = new Date()
+  const dd = String(now.getDate()).padStart(2, '0')
+  const mm = String(now.getMonth() + 1).padStart(2, '0')
+  const yyyy = String(now.getFullYear())
+  const HH = String(now.getHours()).padStart(2, '0')
+  const MM = String(now.getMinutes()).padStart(2, '0')
+  const timestamp = dd + '-' + mm + '-' + yyyy + '_' + HH + '-' + MM
+  const safeTitle = String(baseTitle).replace(/[<>:"/\\|?*]/g, '').trim() || 'Exam'
+  const docTitle = safeTitle + '_' + timestamp
   let html = '<!DOCTYPE html><html><head><title>' + escapeHtml(docTitle) + '</title>'
   html += '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">'
   const inlineGap = Number(pageOptions.value?.questionNumbering?.inlineGap)
@@ -7233,8 +7305,6 @@ function generatePrintHTML() {
     : (!!footerHtml.trim() || showPageNumbers)
   const pageNumberPosition = String(pageOptions.value?.printFooter?.pageNumberPosition || 'bottom-center')
   const pageNumberFormat = String(pageOptions.value?.printFooter?.pageNumberFormat || 'page')
-  console.log('[PAGE NUMBER DEBUG - GENERATE] pageNumberFormat from settings:', pageNumberFormat)
-  console.log('[PAGE NUMBER DEBUG - GENERATE] pageOptions.printFooter:', pageOptions.value?.printFooter)
   const pageNumberFontSize = Number(pageOptions.value?.printFooter?.pageNumberFontSize) || 10
   const pageNumberColor = String(pageOptions.value?.printFooter?.pageNumberColor || '#000000')
   const extraFooterMarginMm = (() => {
@@ -7263,7 +7333,11 @@ function generatePrintHTML() {
   html += '<style>'
   html += '@page { size: A4; margin: 12mm; }'
   html += ' body { font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.5; margin: 0; padding: ' + bodyPadPx + 'px; counter-reset: page 0 pages 0; }'
-  html += ' @media print { @page { @bottom-center { content: counter(page); } } }'
+  html += ' @media print { .page-number-content[data-format="page"]::after { content: counter(page); } }'
+  html += ' @media print { .page-number-content[data-format="page-of"]::after { content: counter(page) " of " counter(pages); } }'
+  html += ' @media print { .page-number-content[data-format="page-slash"]::after { content: "Page " counter(page) " / " counter(pages); } }'
+  html += ' @media print { .page-number-content[data-format="fraction"]::after { content: counter(page) "/" counter(pages); } }'
+  html += ' @media screen { .page-number-content[data-format]::after { content: ""; } }'
   html += ' h1 { margin: 0 0 14pt; font-size: 22pt; }'
   html += ' h2 { margin: 14pt 0 6pt; font-size: 15pt; text-decoration: underline; }'
   // Header: touches the top of the physical page printable area.
@@ -7274,7 +7348,6 @@ function generatePrintHTML() {
   html += ' @media print { .footer-left { flex: 1; min-width: 0; } }'
   html += ' @media print { .footer-right { flex: 0 0 auto; white-space: nowrap; text-align: right; } }'
   html += ' @media print { .page-number { font-size: ' + pageNumberFontSize + 'pt; color: ' + pageNumberColor + '; font-weight: 600; } }'
-  html += ' @media print { .abs-page-number { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }'
   
   // Basic reset for the layout table
   html += ' table.print-layout { width: 100%; border: none; border-spacing: 0; border-collapse: collapse; }'
@@ -7310,11 +7383,6 @@ function generatePrintHTML() {
   html += ' .answer-line { border-bottom: 1px solid #ccc; height: 18pt; margin-bottom: 6pt; }'
   html += ' .page-break { page-break-before: always; height: 0; }'
   html += ' .page-number { display: block; z-index: 1000; white-space: nowrap; line-height: 1.2; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }'
-  html += ' .abs-page-number { position: absolute; z-index: 5000; font-family: Arial, sans-serif; pointer-events: none; white-space: nowrap; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; font-weight: 500; }'
-  html += ' @media screen { .abs-page-number { background: rgba(255, 255, 255, 0.95); padding: 2px 8px; border-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); border: 1px solid rgba(0,0,0,0.08); } }'
-  html += ' @media print { .abs-page-number { background: transparent !important; box-shadow: none !important; border: none !important; padding: 0 !important; font-weight: 600 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; } }'
-  html += ' @media print { body.has-abs-page-numbers .page-number { visibility: hidden !important; } }'
-  html += ' @media print { .abs-page-number::after { content: ""; display: block; position: absolute; bottom: -2px; left: 0; right: 0; height: 1px; } }'
   html += '</style>'
   html += '</head><body>'
 
@@ -7334,125 +7402,6 @@ scriptContent += "var px = d.getBoundingClientRect().height || d.offsetHeight ||
 scriptContent += "d.remove();";
 scriptContent += "return Math.max(1, px);";
 scriptContent += "}";
-scriptContent += "function estimateTotalPages(){";
-scriptContent += "var PAGE_MARGIN_MM = 12;";
-scriptContent += "var pageHeightPx = mmToPx(297 - (PAGE_MARGIN_MM * 2));";
-scriptContent += "var pageBreaks = document.querySelectorAll('.page-break');";
-scriptContent += "if (pageBreaks.length > 0) {";
-scriptContent += "return pageBreaks.length + 1;";
-scriptContent += "}";
-scriptContent += "var header = document.getElementById('printHeaderRoot');";
-scriptContent += "var footer = document.querySelector('.print-footer');";
-scriptContent += "var headerHeight = header ? header.offsetHeight : 0;";
-scriptContent += "var footerHeight = footer ? footer.offsetHeight : 0;";
-scriptContent += "var availableHeight = pageHeightPx - headerHeight - footerHeight;";
-scriptContent += "var contentHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, document.body.offsetHeight, document.documentElement.offsetHeight);";
-scriptContent += "return Math.max(1, Math.ceil(contentHeight / availableHeight));";
-scriptContent += "}";
-scriptContent += "function buildPreviewText(fmt, currentPage, totalPages){";
-scriptContent += "console.log('[PAGE NUMBER DEBUG] buildPreviewText called with:', { fmt: fmt, currentPage: currentPage, totalPages: totalPages });";
-scriptContent += "var result = '';";
-scriptContent += "if (fmt === 'page') { result = String(currentPage); }";
-scriptContent += "else if (fmt === 'page-of') { result = currentPage + ' of ' + totalPages; }";
-scriptContent += "else if (fmt === 'page-slash') { result = 'Page ' + currentPage + ' / ' + totalPages; }";
-scriptContent += "else if (fmt === 'fraction') { result = currentPage + '/' + totalPages; }";
-scriptContent += "else { result = String(currentPage); }";
-scriptContent += "console.log('[PAGE NUMBER DEBUG] buildPreviewText result:', result);";
-scriptContent += "return result;";
-scriptContent += "}";
-scriptContent += "function updatePageNumberState(){";
-scriptContent += "try {";
-scriptContent += "var els = document.querySelectorAll('.page-number');";
-scriptContent += "if (!els || !els.length) return;";
-scriptContent += "var totalPages = estimateTotalPages();";
-scriptContent += "for (var i = 0; i < els.length; i++) {";
-scriptContent += "var el = els[i];";
-scriptContent += "var fmt = el.getAttribute('data-format') || '" + pageNumberFormat + "';";
-scriptContent += "var preview = buildPreviewText(fmt, 1, totalPages);";
-scriptContent += "el.setAttribute('data-total-pages', String(totalPages));";
-scriptContent += "el.setAttribute('data-preview', preview);";
-scriptContent += "el.textContent = preview;";
-scriptContent += "}";
-scriptContent += "} catch(e) {}";
-scriptContent += "}";
-scriptContent += "function injectAbsolutePageNumbers(){";
-scriptContent += "try {";
-scriptContent += "var enabled = " + (showPageNumbers ? 'true' : 'false') + ";";
-scriptContent += "var existing = document.querySelectorAll('.abs-page-number');";
-scriptContent += "for (var x = 0; x < existing.length; x++) {";
-scriptContent += "if (existing[x] && existing[x].parentNode) existing[x].parentNode.removeChild(existing[x]);";
-scriptContent += "}";
-scriptContent += "try { document.body.classList.remove('has-abs-page-numbers'); } catch(e) {}";
-scriptContent += "if (!enabled) { console.log('[PAGE NUMBER DEBUG] Page numbers disabled'); return; }";
-scriptContent += "var totalPages = estimateTotalPages();";
-scriptContent += "console.log('[PAGE NUMBER DEBUG] Total pages estimated:', totalPages);";
-scriptContent += "if (!totalPages || totalPages < 1) { console.log('[PAGE NUMBER DEBUG] Invalid total pages'); return; }";
-scriptContent += "var host = document.querySelector('.print-container') || document.body;";
-scriptContent += "var fmt = '" + pageNumberFormat + "';";
-scriptContent += "console.log('[PAGE NUMBER DEBUG] injectAbsolutePageNumbers - format from settings:', fmt);";
-scriptContent += "var pos = '" + pageNumberPosition + "';";
-scriptContent += "console.log('[PAGE NUMBER DEBUG] injectAbsolutePageNumbers - position:', pos);";
-scriptContent += "var fontPt = " + pageNumberFontSize + ";";
-scriptContent += "var color = '" + pageNumberColor + "';";
-scriptContent += "var pageHeightPx = mmToPx(297 - 24);";
-scriptContent += "console.log('[PAGE NUMBER DEBUG] pageHeightPx:', pageHeightPx);";
-scriptContent += "var leftPadPx = mmToPx(12);";
-scriptContent += "var rightPadPx = mmToPx(12);";
-scriptContent += "var edgePadPx = mmToPx(6);";
-scriptContent += "var pageBreaks = document.querySelectorAll('.page-break');";
-scriptContent += "var pagePositions = [0];";
-scriptContent += "console.log('[PAGE NUMBER DEBUG] Found', pageBreaks.length, 'explicit page breaks');";
-scriptContent += "for (var i = 0; i < pageBreaks.length; i++) {";
-scriptContent += "var rect = pageBreaks[i].getBoundingClientRect();";
-scriptContent += "var scrollTop = window.pageYOffset || document.documentElement.scrollTop;";
-scriptContent += "var breakPos = rect.top + scrollTop;";
-scriptContent += "pagePositions.push(breakPos);";
-scriptContent += "console.log('[PAGE NUMBER DEBUG] Page break', i, 'at position:', breakPos);";
-scriptContent += "}";
-scriptContent += "console.log('[PAGE NUMBER DEBUG] Page positions array:', pagePositions);";
-scriptContent += "console.log('[PAGE NUMBER DEBUG] Creating page numbers for', totalPages, 'pages');";
-scriptContent += "for (var p = 1; p <= totalPages; p++) {";
-scriptContent += "var el = document.createElement('div');";
-scriptContent += "el.className = 'abs-page-number';";
-scriptContent += "var pageText = buildPreviewText(fmt, p, totalPages);";
-scriptContent += "el.textContent = pageText;";
-scriptContent += "console.log('[PAGE NUMBER DEBUG] Page', p, 'text:', pageText);";
-scriptContent += "el.style.fontSize = fontPt + 'pt';";
-scriptContent += "el.style.color = color;";
-scriptContent += "el.style.position = 'absolute';";
-scriptContent += "var pageTop = (p - 1) * pageHeightPx;";
-scriptContent += "var pageBottom = p * pageHeightPx;";
-scriptContent += "var bottomMarginPx = mmToPx(12);";
-scriptContent += "var fontHeightPx = Math.ceil(fontPt * 1.6);";
-scriptContent += "console.log('[PAGE NUMBER DEBUG] Page', p, 'positioning - pageTop:', pageTop, 'pageBottom:', pageBottom, 'pageHeightPx:', pageHeightPx);";
-scriptContent += "if (pos.indexOf('top') === 0) {";
-scriptContent += "el.style.top = (pageTop + edgePadPx) + 'px';";
-scriptContent += "console.log('[PAGE NUMBER DEBUG] Top position:', (pageTop + edgePadPx) + 'px');";
-scriptContent += "} else {";
-scriptContent += "var bottomPos = pageBottom - fontHeightPx - edgePadPx;";
-scriptContent += "el.style.top = bottomPos + 'px';";
-scriptContent += "console.log('[PAGE NUMBER DEBUG] Bottom position:', bottomPos + 'px', '(pageBottom:', pageBottom, '- fontHeight:', fontHeightPx, '- edgePad:', edgePadPx, ')');";
-scriptContent += "}";
-scriptContent += "if (pos.indexOf('left') !== -1) {";
-scriptContent += "el.style.left = leftPadPx + 'px';";
-scriptContent += "el.style.textAlign = 'left';";
-scriptContent += "el.style.right = 'auto';";
-scriptContent += "} else if (pos.indexOf('right') !== -1) {";
-scriptContent += "el.style.right = rightPadPx + 'px';";
-scriptContent += "el.style.textAlign = 'right';";
-scriptContent += "el.style.left = 'auto';";
-scriptContent += "} else {";
-scriptContent += "el.style.left = '0';";
-scriptContent += "el.style.right = '0';";
-scriptContent += "el.style.textAlign = 'center';";
-scriptContent += "el.style.paddingLeft = leftPadPx + 'px';";
-scriptContent += "el.style.paddingRight = rightPadPx + 'px';";
-scriptContent += "}";
-scriptContent += "host.appendChild(el);";
-scriptContent += "}";
-scriptContent += "try { document.body.classList.add('has-abs-page-numbers'); } catch(e) {}";
-scriptContent += "} catch(e) {}";
-scriptContent += "}";
 scriptContent += "function doMeasure(){";
 scriptContent += "try {";
 scriptContent += "var h = document.getElementById('printHeaderRoot');";
@@ -7471,10 +7420,8 @@ scriptContent += "var fExtraPx = Math.ceil(" + extraFooterMarginMm + " * 96 / 25
 scriptContent += "fs.style.height = (fPx + fExtraPx) + 'px';";
 scriptContent += "}";
 scriptContent += "}";
-scriptContent += "updatePageNumberState();";
-scriptContent += "injectAbsolutePageNumbers();";
-scriptContent += "setTimeout(function(){ updatePageNumberState(); injectAbsolutePageNumbers(); }, 100);";
-scriptContent += "setTimeout(function(){ updatePageNumberState(); injectAbsolutePageNumbers(); }, 500);";
+scriptContent += "setTimeout(function(){}, 100);";
+scriptContent += "setTimeout(function(){}, 500);";
 scriptContent += "try {";
 scriptContent += "if (typeof useLastPageText !== 'undefined' && useLastPageText && lastPageText) {";
 scriptContent += "var footerTexts = document.querySelectorAll('.footer-text');";
@@ -7490,10 +7437,10 @@ scriptContent += "} catch(e) {}";
 scriptContent += "window.__printReady = true;";
 scriptContent += "} catch(e) { console.error('[PAGE NUMBER DEBUG] Error in doMeasure:', e); }";
 scriptContent += "}";
-scriptContent += "try { window.addEventListener('beforeprint', function(){ updatePageNumberState(); injectAbsolutePageNumbers(); }); } catch(e) {}";
+scriptContent += "try { window.addEventListener('beforeprint', function(){}); } catch(e) {}";
 scriptContent += "try { window.addEventListener('afterprint', function(){ console.log('Print completed'); }); } catch(e) {}";
-scriptContent += "try { if (window.matchMedia) { var mediaQueryList = window.matchMedia('print'); mediaQueryList.addListener(function(mql) { if (mql.matches) { updatePageNumberState(); injectAbsolutePageNumbers(); } }); } } catch(e) {}";
-scriptContent += "setTimeout(function(){ updatePageNumberState(); injectAbsolutePageNumbers(); }, 100);";
+scriptContent += "try { if (window.matchMedia) { var mediaQueryList = window.matchMedia('print'); mediaQueryList.addListener(function(mql) { if (mql.matches) {} }); } } catch(e) {}";
+scriptContent += "setTimeout(function(){}, 100);";
 scriptContent += "window.addEventListener('load', function(){";
 scriptContent += "var imgs = document.querySelectorAll('img');";
 scriptContent += "if (!imgs.length) { doMeasure(); return; }";
@@ -7634,6 +7581,8 @@ scriptContent += "})();";
       html += '<div class="section-line-after" style="border-bottom: ' + lineThickness + 'px ' + lineStyle + ' ' + lineColor + '; margin-top: 10pt;"></div>'
     }
 
+    const forceEssay = !!section.forceQuestionsToEssay
+
     sectionQuestions.forEach((question) => {
       globalIndex += 1
       const label = renderMathContent(formatQuestionLabel(globalIndex, pageOptions.value.questionNumbering))
@@ -7674,7 +7623,7 @@ scriptContent += "})();";
         html += '<div class="question-content">' + renderMathContent(question.content?.prompt || '') + '</div>'
       }
 
-      if (Array.isArray(question.content?.options) && question.content.options.length > 0) {
+      if (!forceEssay && Array.isArray(question.content?.options) && question.content.options.length > 0) {
         const style = pageOptions.value?.mcqOptions?.labelStyle || 'letter'
         const gridClass = question.type === 'multiple_choice' ? 'question-options question-options-grid' : 'question-options'
         html += '<div class="' + gridClass + '">' 
@@ -7724,7 +7673,7 @@ scriptContent += "})();";
         }
       }
 
-      const linesCount = getPrintAnswerLines(question)
+      const linesCount = getPrintAnswerLines(forceEssay ? ({ ...question, type: 'essay' }) : question)
       if (linesCount > 0) {
         html += '<div class="answer-area">'
         for (let i = 0; i < linesCount; i++) {
@@ -7764,7 +7713,8 @@ scriptContent += "})();";
     }
 
     html += '<div class="answer-key-section" style="margin: 20px 0; page-break-inside: avoid;">'
-    html += '<h3 class="text-center" style="border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px;">Answer Key</h3>'
+    const akTitle = pageOptions.value?.answerKey?.title?.trim() || 'Answer Key'
+    html += '<h3 class="text-center" style="border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px;">' + akTitle + '</h3>'
 
     if (answerKeyTemplate === 'compact_choice') {
       html += '<table style="width: 100%; border-collapse: collapse; font-size: 12px; margin: 20px 0;">'
@@ -7833,8 +7783,10 @@ scriptContent += "})();";
     }
 
     if (answerKeyShowNotes) {
+      const defaultNote = 'Note: This answer key should be separated from the exam paper before distribution to students.'
+      const noteText = pageOptions.value?.answerKey?.notesText?.trim() || defaultNote
       html += '<p style="margin-top: 15px; font-size: 10px; color: #666; border-top: 1px dashed #ccc; padding-top: 10px;">'
-      html += '<em>Note: This answer key should be separated from the exam paper before distribution to students.</em>'
+      html += '<em>' + noteText + '</em>'
       html += '</p>'
     }
 
@@ -7963,6 +7915,15 @@ onMounted(async () => {
   min-height: 100vh;
   background: #fafafa;
   padding: 20px;
+  padding-top: 80px;
+}
+
+.exam-toolbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
 }
 
 .test-header {

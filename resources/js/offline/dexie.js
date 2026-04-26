@@ -456,6 +456,8 @@ class EducationDB extends Dexie {
         current_slide_index: presentationData.currentSlideIndex || 0,
         use_phases: presentationData.usePhases || false,
         has_initialized_phases: presentationData.hasInitializedPhases || false,
+        groups: presentationData.groups || null,
+        game_settings: presentationData.gameSettings || null,
         metadata: {
           size: JSON.stringify(presentationData).length,
           slideCount: (presentationData.slides || []).length,
@@ -504,6 +506,8 @@ class EducationDB extends Dexie {
         currentSlideIndex: presentation.current_slide_index,
         usePhases: presentation.use_phases,
         hasInitializedPhases: presentation.has_initialized_phases,
+        groups: presentation.groups || null,
+        gameSettings: presentation.game_settings || null,
         metadata: presentation.metadata
       };
     } catch (error) {

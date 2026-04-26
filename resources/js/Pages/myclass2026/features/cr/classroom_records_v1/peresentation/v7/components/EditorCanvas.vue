@@ -20,9 +20,7 @@ const drawCurrentPos = ref({ x: 0, y: 0 });
 const tempRect = ref(null);
 
 const fitScale = computed(() => {
-  const w = wrapperWidth.value || window.innerWidth;
-  const raw = w > 0 ? w / SLIDE_BASE_WIDTH : 1;
-  return Math.min(1, raw);
+  return 1;
 });
 
 const canvasScale = computed(() => {
@@ -146,7 +144,12 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div ref="wrapperRef" class="canvas-wrapper" :class="{ 'present-mode': !ui.isEditMode, 'draw-rect-mode': ui.isDrawRectangleMode }" :style="{ height: calculateWrapperHeight() + 'px' }">
+  <div
+    ref="wrapperRef"
+    class="canvas-wrapper"
+    :class="{ 'present-mode': !ui.isEditMode, 'draw-rect-mode': ui.isDrawRectangleMode }"
+    :style="{ height: calculateWrapperHeight() + 'px', '--canvas-scale': canvasScale }"
+  >
     <div
       class="canvas"
       :class="{ 'present-mode-canvas': !ui.isEditMode }"

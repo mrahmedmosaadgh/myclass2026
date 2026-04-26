@@ -42,6 +42,7 @@
               :question="block.question"
               :question-number="getQuestionNumber(block)"
               :show-answer-area="true"
+              :force-essay="isSectionForcingEssay(block.sectionId)"
             />
           </div>
 
@@ -88,6 +89,11 @@ const pageSetup = computed(() => renderSnapshot.value.pageSetup)
 const headerConfig = computed(() => renderSnapshot.value.headerConfig)
 const footerConfig = computed(() => renderSnapshot.value.footerConfig)
 const pages = computed(() => renderSnapshot.value.pages || [])
+
+function isSectionForcingEssay(sectionId) {
+  const s = store.exam.sections.find(x => x.id === sectionId)
+  return !!s?.rules?.forceQuestionsToEssay
+}
 
 const documentStyle = computed(() => ({
   width: pageSetup.value.paper === 'A4' ? '210mm' : '216mm',

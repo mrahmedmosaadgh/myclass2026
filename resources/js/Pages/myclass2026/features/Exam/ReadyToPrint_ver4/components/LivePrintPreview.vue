@@ -22,7 +22,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { renderMathContent } from '../../ReadyToPrint_ver3/utils/mathRenderer'
-import { getAnswerKeyChoiceLabel } from './answerKey/utils/answerKeyFormat'
+import { getAnswerKeyChoiceLabel, getCorrectOptionIndex } from './answerKey/utils/answerKeyFormat'
 
 const props = defineProps({
   exam: { type: Object, required: true },
@@ -53,6 +53,13 @@ const answerKeyOptions = computed(() => {
   const fromExam = normalized.value.settings?.answerKey || {}
   const fromPreview = props.previewSettings?.answerKey || {}
   return { ...fromExam, ...fromPreview }
+})
+
+const showMarks = computed(() => {
+  const fromExam = normalized.value.settings?.showMarksPerQuestion
+  const fromPreview = props.previewSettings?.showMarksPerQuestion
+  // default false
+  return (fromPreview ?? fromExam ?? false) === true
 })
 
 function labelForType(idx, type) {
@@ -121,7 +128,7 @@ const html = computed(() => {
         out += '<div class="question">'
         out += '<div class="qhdr">'
         out += '<div>' + n + ') ' + renderMathContent(q.content?.prompt || q.prompt || '') + '</div>'
-        out += '<div>' + (q.marks ?? '') + '</div>'
+        out += '<div>' + (showMarks.value ? String(q.marks ?? '') : '') + '</div>'
         out += '</div>'
         const opts = q.content?.options || q.options
         if (Array.isArray(opts) && opts.length) {
@@ -194,7 +201,7 @@ const html = computed(() => {
       out += '<div class="question">'
       out += '<div class="qhdr">'
       out += '<div>' + (i + 1) + ') ' + renderMathContent(q.content?.prompt || q.prompt || '') + '</div>'
-      out += '<div>' + (q.marks ?? '') + '</div>'
+      out += '<div>' + (showMarks.value ? String(q.marks ?? '') : '') + '</div>'
       out += '</div>'
       out += '</div>'
     })
@@ -215,6 +222,35 @@ const html = computed(() => {
       out += '<tr>'
       out += '<td style="text-align:center;">' + String(idx + 1) + '</td>'
       out += '<td style="text-align:center;"><span class="ak-choice">' + renderMathContent(choice) + '</span></td>'
+      out += '</tr>'
+    })
+    out += '</tbody></table>'
+    out += '</div>'
+  }
+
+  if (akEnabled && akTemplate === 'choice_with_text_table') {
+    // Answer key (choice + text table)
+    out += '<div class="ak">'
+    out += '<div class="ak-title">Answer Key</div>'
+    out += '<table class="ak-table">'
+    out += '<thead><tr>' +
+      '<th style="width:60px; text-align:center;">#</th>' +
+      '<th style="width:140px; text-align:center;">Correct Choice</th>' +
+      '<th style="text-align:left;">Choice Text</th>' +
+      '</tr></thead>'
+    out += '<tbody>'
+    normalized.value.questions.forEach((q, idx) => {
+      const choice = getAnswerKeyChoiceLabel(q, mcqOptions.value)
+      const optIdx = getCorrectOptionIndex(q)
+      const options = q?.content?.options
+      const choiceText = (Array.isArray(options) && Number.isFinite(Number(optIdx)) && Number(optIdx) >= 0 && Number(optIdx) < options.length)
+        ? String(options[Number(optIdx)] ?? '')
+        : '-'
+
+      out += '<tr>'
+      out += '<td style="text-align:center;">' + String(idx + 1) + '</td>'
+      out += '<td style="text-align:center;"><span class="ak-choice">' + renderMathContent(choice) + '</span></td>'
+      out += '<td style="text-align:left;">' + renderMathContent(choiceText) + '</td>'
       out += '</tr>'
     })
     out += '</tbody></table>'

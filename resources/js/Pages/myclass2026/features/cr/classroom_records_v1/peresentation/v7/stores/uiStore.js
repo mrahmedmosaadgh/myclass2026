@@ -9,11 +9,19 @@ export const useUIStore = defineStore('ui', () => {
   const isGroupQuizGeneratorOpen = ref(false);
   const showDistributionModal = ref(false);
   const isSlideNavVisible = ref(true);
+  const areEditToolsVisible = ref(true);
+  const isFocusMode = ref(false);
   const lastPointer = ref({ x: 150, y: 150 });
   const pasteOffset = ref(0);
   const zoomLevel = ref(100); // Zoom percentage (50-200)
   const presentModeLayout = ref('single'); // 'single' | 'continuous'
+  const isPagesView = ref(false); // Edit-mode continuous pages view (PDF-like)
   const isDrawRectangleMode = ref(false); // Click-and-drag rectangle drawing mode
+
+  const focusPrevState = ref({
+    isSlideNavVisible: true,
+    areEditToolsVisible: true
+  });
 
   function selectElement(id) {
     if (!isEditMode.value) return;
@@ -33,8 +41,34 @@ export const useUIStore = defineStore('ui', () => {
     presentModeLayout.value = presentModeLayout.value === 'continuous' ? 'single' : 'continuous';
   }
 
+  function togglePagesView() {
+    isPagesView.value = !isPagesView.value;
+    if (isPagesView.value) {
+      selectedElementId.value = null;
+    }
+  }
+
   function toggleSlideNav() {
     isSlideNavVisible.value = !isSlideNavVisible.value;
+  }
+
+  function toggleEditTools() {
+    areEditToolsVisible.value = !areEditToolsVisible.value;
+  }
+
+  function toggleFocusMode() {
+    isFocusMode.value = !isFocusMode.value;
+    if (isFocusMode.value) {
+      focusPrevState.value = {
+        isSlideNavVisible: isSlideNavVisible.value,
+        areEditToolsVisible: areEditToolsVisible.value
+      };
+      isSlideNavVisible.value = false;
+      areEditToolsVisible.value = false;
+    } else {
+      isSlideNavVisible.value = !!focusPrevState.value.isSlideNavVisible;
+      areEditToolsVisible.value = !!focusPrevState.value.areEditToolsVisible;
+    }
   }
 
   function updateLastPointer(x, y) {
@@ -83,16 +117,22 @@ export const useUIStore = defineStore('ui', () => {
     isGroupQuizGeneratorOpen,
     showDistributionModal,
     isSlideNavVisible,
+    areEditToolsVisible,
+    isFocusMode,
     lastPointer,
     pasteOffset,
     zoomLevel,
     presentModeLayout,
+    isPagesView,
     isDrawRectangleMode,
     selectElement,
     clearSelection,
     toggleMode,
     togglePresentModeLayout,
+    togglePagesView,
     toggleSlideNav,
+    toggleEditTools,
+    toggleFocusMode,
     updateLastPointer,
     incrementPasteOffset,
     zoomIn,

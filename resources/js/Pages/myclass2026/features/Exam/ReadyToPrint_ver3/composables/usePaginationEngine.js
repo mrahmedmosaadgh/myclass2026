@@ -98,11 +98,13 @@ export function usePaginationEngine(exam) {
 
       // Questions
       for (const question of section.questions || []) {
+        const forceEssay = !!section?.rules?.forceQuestionsToEssay
+        const plannedQuestion = forceEssay ? { ...question, type: 'essay' } : question
         blocks.push({
           type: 'question',
           sectionId: section.id,
           questionId: question.id,
-          question,
+          question: plannedQuestion,
         })
       }
     }

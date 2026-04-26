@@ -18,7 +18,7 @@
     </div>
 
     <QuestionMCQ
-      v-if="question?.type === 'multiple_choice'"
+      v-if="isMcq"
       :question="question"
       :format="format"
       :mcq-options="mcqOptions"
@@ -49,7 +49,7 @@
 
       <div v-else class="question-content" :style="questionTextStyle" v-html="renderedContent"></div>
 
-      <div class="question-options" v-if="hasOptions">
+      <div class="question-options" v-if="effectiveHasOptions">
         <div class="option" v-for="(opt, idx) in renderedOptions" :key="idx">
           <span class="option-label">{{ optionLabel(idx) }}</span>
           <span class="option-text" :style="optionsTextStyle" v-html="opt"></span>
@@ -103,6 +103,10 @@ const props = defineProps({
   answerLinesOverride: {
     type: Number,
     default: null
+  },
+  forceEssay: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -148,8 +152,16 @@ const hasOptions = computed(() => {
   return Array.isArray(opts) && opts.length > 0
 })
 
+const effectiveHasOptions = computed(() => {
+  return !props.forceEssay && hasOptions.value
+})
+
+const isMcq = computed(() => {
+  return !props.forceEssay && props.question?.type === 'multiple_choice'
+})
+
 const renderedOptions = computed(() => {
-  if (!hasOptions.value) return []
+  if (!effectiveHasOptions.value) return []
   return props.question.content.options.map(opt => renderMath(opt))
 })
 

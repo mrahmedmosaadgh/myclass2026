@@ -33,6 +33,7 @@ const model = computed({
 })
 
 const templates = [
-  { label: 'Compact choice table (# / Correct Choice)', value: 'compact_choice_table' }
+  { label: 'Compact choice table (# / Correct Choice)', value: 'compact_choice_table' },
+  { label: 'Choice + text table (# / Correct Choice / Choice Text)', value: 'choice_with_text_table' }
 ]
 </script>

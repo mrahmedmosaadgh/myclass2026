@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed, watch, nextTick } from 'vue';
 import { useIndexedDBStorage } from '../composables/useIndexedDBStorage.js';
+import { useGameStore } from './gameStore';
 
 const DEFAULT_SLIDE_HEIGHT = 600;
 
@@ -28,15 +29,79 @@ function normalizeSlide(slide = {}) {
   return normalized;
 }
 
+function isValidHexColor(c) {
+  return typeof c === 'string' && /^#[0-9a-fA-F]{6}$/.test(c.trim());
+}
+
+function normalizeGroups(groups) {
+  if (!Array.isArray(groups)) return null;
+  return groups
+    .filter(g => g && typeof g === 'object')
+    .map((g, idx) => {
+      const id = String(g.id ?? `g${idx + 1}`).trim() || `g${idx + 1}`;
+      const name = String(g.name ?? `Group ${idx + 1}`).trim() || `Group ${idx + 1}`;
+      const scoreNum = Number(g.score ?? 0);
+      const score = Number.isFinite(scoreNum) ? scoreNum : 0;
+      const color = isValidHexColor(g.color) ? String(g.color).trim() : '#8b5cf6';
+      return { id, name, score, color };
+    });
+}
+
+function normalizeGameSettings(settings) {
+  if (!settings || typeof settings !== 'object') return null;
+  const correctPoints = Number(settings.correctPoints);
+  const wrongPoints = Number(settings.wrongPoints);
+  return {
+    correctPoints: Number.isFinite(correctPoints) ? correctPoints : 10,
+    wrongPoints: Number.isFinite(wrongPoints) ? wrongPoints : 0,
+    allowNegativeScore: !!settings.allowNegativeScore
+  };
+}
+
 function createSlide(overrides = {}) {
   return normalizeSlide({
     ...overrides
   });
 }
 
+function generateElementId() {
+  return 'el-' + Date.now() + Math.floor(Math.random() * 1000) + Math.random().toString(36).substring(2, 6);
+}
+
+function normalizeElement(el = {}) {
+  const normalized = { ...el };
+  normalized.id = normalized.id ? String(normalized.id) : generateElementId();
+  normalized.type = typeof normalized.type === 'string' ? normalized.type : 'text';
+  normalized.x = Number.isFinite(Number(normalized.x)) ? Number(normalized.x) : 0;
+  normalized.y = Number.isFinite(Number(normalized.y)) ? Number(normalized.y) : 0;
+  normalized.width = Number.isFinite(Number(normalized.width)) ? Number(normalized.width) : 200;
+  normalized.height = Number.isFinite(Number(normalized.height)) ? Number(normalized.height) : 80;
+  normalized.zIndex = Number.isFinite(Number(normalized.zIndex)) ? Number(normalized.zIndex) : 1;
+  normalized.visibilityOption = typeof normalized.visibilityOption === 'string' ? normalized.visibilityOption : 'shown-clickable';
+  normalized.isVisible = normalized.isVisible !== false;
+  if (normalized.hiddenOpacity !== undefined) {
+    const ho = Number(normalized.hiddenOpacity);
+    normalized.hiddenOpacity = Number.isFinite(ho) ? ho : 0.05;
+  }
+  if (normalized.content !== undefined) {
+    normalized.content = typeof normalized.content === 'string' ? normalized.content : String(normalized.content ?? '');
+  }
+  if (normalized.src !== undefined) {
+    normalized.src = typeof normalized.src === 'string' ? normalized.src : String(normalized.src ?? '');
+  }
+  return normalized;
+}
+
+function normalizeSlideDeep(slide = {}) {
+  const s = normalizeSlide(slide);
+  s.elements = Array.isArray(s.elements) ? s.elements.map(normalizeElement) : [];
+  return s;
+}
+
 export const usePresentationStore = defineStore('presentation', () => {
   const saveStatus = ref('saved'); // 'saved' | 'saving'
   const indexedDBStorage = useIndexedDBStorage();
+  const gameStore = useGameStore();
 
   const defaultSlides = [
     createSlide({
@@ -98,6 +163,16 @@ export const usePresentationStore = defineStore('presentation', () => {
           ? currentPresentation.slides.map(normalizeSlide)
           : JSON.parse(JSON.stringify(defaultSlides)).map(normalizeSlide);
         currentSlideIndex.value = currentPresentation.currentSlideIndex || 0;
+
+        const normalizedGroups = normalizeGroups(currentPresentation.groups);
+        if (normalizedGroups && normalizedGroups.length) {
+          gameStore.groups = normalizedGroups;
+        }
+
+        const normalizedSettings = normalizeGameSettings(currentPresentation.gameSettings);
+        if (normalizedSettings) {
+          gameStore.gameSettings = normalizedSettings;
+        }
       }
     } catch (e) {
       console.warn('Failed to load presentation from IndexedDB, using defaults.', e);
@@ -131,6 +206,8 @@ export const usePresentationStore = defineStore('presentation', () => {
           hasInitializedPhases: hasInitializedPhases.value,
           slides: JSON.parse(JSON.stringify(slides.value)), // Deep clone to avoid circular references
           currentSlideIndex: currentSlideIndex.value,
+          groups: JSON.parse(JSON.stringify(gameStore.groups)),
+          gameSettings: JSON.parse(JSON.stringify(gameStore.gameSettings)),
           lastSaved: new Date().toISOString()
         };
 
@@ -188,6 +265,13 @@ export const usePresentationStore = defineStore('presentation', () => {
     triggerAutoSave();
   }, { deep: true });
 
+  watch([
+    () => gameStore.groups,
+    () => gameStore.gameSettings
+  ], () => {
+    triggerAutoSave();
+  }, { deep: true });
+
   function resetPresentation() {
     // Clear current presentation metadata
     if (indexedDBStorage.isStorageAvailable()) {
@@ -200,6 +284,17 @@ export const usePresentationStore = defineStore('presentation', () => {
     hasInitializedPhases.value = false;
     slides.value = JSON.parse(JSON.stringify(defaultSlides)).map(normalizeSlide);
     currentSlideIndex.value = 0;
+
+    gameStore.groups = [
+      { id: 'g1', name: 'Group A', score: 0, color: '#ef4444' },
+      { id: 'g2', name: 'Group B', score: 0, color: '#3b82f6' },
+      { id: 'g3', name: 'Group C', score: 0, color: '#10b981' }
+    ];
+    gameStore.gameSettings = {
+      correctPoints: 10,
+      wrongPoints: 0,
+      allowNegativeScore: false
+    };
   }
 
   const currentSlide = computed(() => {
@@ -268,6 +363,54 @@ export const usePresentationStore = defineStore('presentation', () => {
         currentSlideIndex.value = slides.value.length - 1;
       }
     }
+  }
+
+  function getCurrentSlideJson(pretty = true) {
+    const slide = slides.value?.[currentSlideIndex.value];
+    if (!slide) return '';
+    const payload = JSON.parse(JSON.stringify(slide));
+    return JSON.stringify(payload, null, pretty ? 2 : 0);
+  }
+
+  function appendSlidesFromJson(rawJson, { insertAfterCurrent = true } = {}) {
+    const text = typeof rawJson === 'string' ? rawJson.trim() : '';
+    if (!text) {
+      return { ok: false, error: 'Empty JSON' };
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(text);
+    } catch (e) {
+      return { ok: false, error: 'Invalid JSON' };
+    }
+
+    const incoming = Array.isArray(parsed) ? parsed : [parsed];
+    const slidesToAdd = incoming
+      .filter(s => s && typeof s === 'object')
+      .map((s) => {
+        const copy = JSON.parse(JSON.stringify(s));
+        copy.id = generateSlideId();
+        if (Array.isArray(copy.elements)) {
+          copy.elements = copy.elements.map((el) => ({
+            ...el,
+            id: generateElementId()
+          }));
+        }
+        return normalizeSlideDeep(copy);
+      });
+
+    if (!slidesToAdd.length) {
+      return { ok: false, error: 'No valid slide objects found' };
+    }
+
+    const insertIndex = insertAfterCurrent
+      ? Math.min(slides.value.length, currentSlideIndex.value + 1)
+      : slides.value.length;
+
+    slides.value.splice(insertIndex, 0, ...slidesToAdd);
+    currentSlideIndex.value = insertIndex;
+    return { ok: true, added: slidesToAdd.length };
   }
 
   function selectSlide(index) {
@@ -388,6 +531,16 @@ export const usePresentationStore = defineStore('presentation', () => {
       usePhases.value = !!data.usePhases;
       hasInitializedPhases.value = true;
       currentSlideIndex.value = 0;
+
+      const normalizedGroups = normalizeGroups(data.groups);
+      if (normalizedGroups && normalizedGroups.length) {
+        gameStore.groups = normalizedGroups;
+      }
+
+      const normalizedSettings = normalizeGameSettings(data.gameSettings);
+      if (normalizedSettings) {
+        gameStore.gameSettings = normalizedSettings;
+      }
       
       // If this presentation has an ID, set it as current
       if (data.id && indexedDBStorage.isStorageAvailable()) {
@@ -431,6 +584,8 @@ export const usePresentationStore = defineStore('presentation', () => {
         hasInitializedPhases: hasInitializedPhases.value,
         slides: slides.value,
         currentSlideIndex: currentSlideIndex.value,
+        groups: JSON.parse(JSON.stringify(gameStore.groups)),
+        gameSettings: JSON.parse(JSON.stringify(gameStore.gameSettings)),
         lastSaved: new Date().toISOString()
       };
 
@@ -467,6 +622,8 @@ export const usePresentationStore = defineStore('presentation', () => {
         hasInitializedPhases: hasInitializedPhases.value,
         slides: JSON.parse(JSON.stringify(slides.value)), // Deep clone to avoid circular references
         currentSlideIndex: currentSlideIndex.value,
+        groups: JSON.parse(JSON.stringify(gameStore.groups)),
+        gameSettings: JSON.parse(JSON.stringify(gameStore.gameSettings)),
         lastSaved: new Date().toISOString()
       };
 
@@ -492,6 +649,8 @@ export const usePresentationStore = defineStore('presentation', () => {
         currentSlideIndex: currentSlideIndex.value,
         usePhases: usePhases.value,
         hasInitializedPhases: hasInitializedPhases.value,
+        groups: JSON.parse(JSON.stringify(gameStore.groups)),
+        gameSettings: JSON.parse(JSON.stringify(gameStore.gameSettings)),
         metadata: {
           lastSaved: new Date().toISOString()
         }
@@ -562,6 +721,8 @@ export const usePresentationStore = defineStore('presentation', () => {
     deleteSlide,
     deleteSlideById,
     loadPresentation,
+    getCurrentSlideJson,
+    appendSlidesFromJson,
     resetPresentation,
     saveStatus,
     // Enhanced methods

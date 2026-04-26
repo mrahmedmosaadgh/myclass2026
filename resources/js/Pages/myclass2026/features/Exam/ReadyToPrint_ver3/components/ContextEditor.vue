@@ -18,6 +18,12 @@
           rows="3"
           @update:model-value="updateSection"
         />
+
+        <q-toggle
+          v-model="sectionForm.forceQuestionsToEssay"
+          label="Force questions to be essay (hide options, add workspace)"
+          @update:model-value="updateSection"
+        />
       </q-form>
     </div>
 
@@ -50,6 +56,37 @@
           rows="4"
           @update:model-value="updateQuestion"
         />
+
+        <div v-if="questionForm.type === 'mcq'">
+          <div style="font-weight:600; margin-bottom: 6px;">Options</div>
+
+          <q-input
+            v-for="(opt, idx) in (questionForm.content.options || [])"
+            :key="idx"
+            v-model="questionForm.content.options[idx]"
+            :label="'Option ' + (idx + 1)"
+            outlined
+            dense
+            @update:model-value="updateQuestion"
+          >
+            <template #append>
+              <q-btn
+                flat
+                dense
+                round
+                icon="delete"
+                @click="removeOption(idx)"
+              />
+            </template>
+          </q-input>
+
+          <q-btn
+            flat
+            icon="add"
+            label="Add option"
+            @click="addOption"
+          />
+        </div>
       </q-form>
     </div>
 
@@ -76,6 +113,7 @@ const selectedQuestion = computed(() => store.selectedQuestion)
 const sectionForm = reactive({
   title: '',
   instructions: '',
+  forceQuestionsToEssay: false,
 })
 
 const questionForm = reactive({
@@ -96,6 +134,7 @@ watch(selectedSection, (section) => {
   if (section) {
     sectionForm.title = section.title || ''
     sectionForm.instructions = section.instructions || ''
+    sectionForm.forceQuestionsToEssay = !!section.rules?.forceQuestionsToEssay
   }
 }, { immediate: true })
 
@@ -103,15 +142,40 @@ watch(selectedQuestion, (question) => {
   if (question) {
     questionForm.type = question.type || 'text'
     questionForm.marks = question.marks || 1
-    questionForm.content = question.content || { prompt: '' }
+    const content = question.content || { prompt: '' }
+    questionForm.content = {
+      ...content,
+      options: Array.isArray(content.options) ? [...content.options] : (questionForm.type === 'mcq' ? ['', '', '', ''] : []),
+    }
   }
 }, { immediate: true })
+
+function ensureOptionsArray() {
+  if (!questionForm.content) questionForm.content = { prompt: '' }
+  if (!Array.isArray(questionForm.content.options)) questionForm.content.options = []
+}
+
+function addOption() {
+  ensureOptionsArray()
+  questionForm.content.options.push('')
+  updateQuestion()
+}
+
+function removeOption(idx) {
+  ensureOptionsArray()
+  questionForm.content.options.splice(idx, 1)
+  updateQuestion()
+}
 
 function updateSection() {
   if (!selectedSection.value) return
   store.updateSection(selectedSection.value.id, {
     title: sectionForm.title,
     instructions: sectionForm.instructions,
+    rules: {
+      ...(selectedSection.value.rules || {}),
+      forceQuestionsToEssay: !!sectionForm.forceQuestionsToEssay,
+    },
   })
 }
 

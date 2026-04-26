@@ -22,9 +22,7 @@ const wrapperWidth = ref(0);
 let resizeObserver;
 
 const fitScale = computed(() => {
-  const w = wrapperWidth.value || window.innerWidth;
-  const raw = w > 0 ? w / props.baseWidth : 1;
-  return Math.min(1, raw);
+  return 1;
 });
 
 const canvasScale = computed(() => {
@@ -87,6 +85,13 @@ onUnmounted(() => {
         </div>
 
         <div v-else-if="el.type === 'math'" :style="{ color: el.color || '#000' }">
+          <EditableMath
+            :content="normalizeContent(el.content)"
+            :is-edit-mode="false"
+          />
+        </div>
+
+        <div v-else-if="el.type === 'markdown'" :style="{ color: el.color || '#000' }">
           <EditableMath
             :content="normalizeContent(el.content)"
             :is-edit-mode="false"

@@ -53,6 +53,8 @@ export function useIndexedDBStorage() {
         currentSlideIndex: presentation.currentSlideIndex || 0,
         usePhases: presentation.usePhases || false,
         hasInitializedPhases: presentation.hasInitializedPhases || false,
+        groups: presentation.groups || null,
+        gameSettings: presentation.gameSettings || null,
         metadata: {
           size: JSON.stringify(presentation).length,
           slideCount: (presentation.slides || []).length,

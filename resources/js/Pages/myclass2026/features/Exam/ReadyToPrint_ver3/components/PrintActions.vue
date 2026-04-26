@@ -180,10 +180,19 @@ function openPopupWindow() {
   return w
 }
 
+function extractTitleFromHtml(html) {
+  const m = String(html).match(/<title[^>]*>([\s\S]*?)<\/title>/i)
+  const title = (m && m[1] ? String(m[1]).trim() : '')
+  return title || 'Exam'
+}
+
 function writeHtmlToWindow(w, html) {
   w.document.open()
   w.document.write(html)
   w.document.close()
+  try {
+    w.document.title = extractTitleFromHtml(html)
+  } catch {}
   w.focus()
 }
 

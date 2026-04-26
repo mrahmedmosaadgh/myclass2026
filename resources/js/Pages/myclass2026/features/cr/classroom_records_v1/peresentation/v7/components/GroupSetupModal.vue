@@ -11,6 +11,11 @@ const activeTab = ref('setup'); // 'setup' | 'qrcodes'
 const printAreaRef = ref(null);
 const a4PreviewScale = ref(1);
 
+const showGroupsJsonDialog = ref(false);
+const groupsJsonText = ref('');
+const groupsJsonErrors = ref([]);
+const groupsJsonSuccess = ref('');
+
 function close() {
   gameStore.isGroupSetupOpen = false;
 }
@@ -27,6 +32,148 @@ function handleScoreChange(groupId, val) {
   if (group) {
     group.score = Number(val) || 0;
   }
+}
+
+function normalizeGroupId(id, takenIds) {
+  const raw = String(id ?? '').trim();
+  const base = raw ? (raw.toLowerCase().startsWith('g') ? raw : `g${raw}`) : `g${Date.now()}`;
+  let next = base;
+  let i = 1;
+  while (takenIds.has(next)) {
+    next = `${base}_${i}`;
+    i += 1;
+  }
+  takenIds.add(next);
+  return next;
+}
+
+function isValidHexColor(c) {
+  if (typeof c !== 'string') return false;
+  return /^#[0-9a-fA-F]{6}$/.test(c.trim());
+}
+
+function parseAndValidateGroupsJson(text) {
+  const errors = [];
+  let parsed;
+  try {
+    parsed = JSON.parse(String(text ?? ''));
+  } catch {
+    return { ok: false, errors: ['Invalid JSON. Please paste valid JSON.'], groups: [] };
+  }
+
+  const rawGroups = Array.isArray(parsed) ? parsed : parsed?.groups;
+  if (!Array.isArray(rawGroups)) {
+    return {
+      ok: false,
+      errors: ['JSON must be an array of groups, or an object like { "groups": [...] }.'],
+      groups: []
+    };
+  }
+
+  if (rawGroups.length === 0) {
+    return { ok: false, errors: ['Groups list is empty.'], groups: [] };
+  }
+
+  if (rawGroups.length > 50) {
+    errors.push('Too many groups (max 50).');
+  }
+
+  const takenIds = new Set();
+  const cleaned = [];
+
+  rawGroups.forEach((g, idx) => {
+    if (!g || typeof g !== 'object') {
+      errors.push(`Group #${idx + 1} must be an object.`);
+      return;
+    }
+
+    const name = String(g.name ?? '').trim();
+    if (!name) {
+      errors.push(`Group #${idx + 1}: name is required.`);
+    }
+
+    const color = g.color ?? '';
+    if (!isValidHexColor(color)) {
+      errors.push(`Group #${idx + 1}: color must be a hex value like #3b82f6.`);
+    }
+
+    const scoreNum = Number(g.score ?? 0);
+    if (!Number.isFinite(scoreNum)) {
+      errors.push(`Group #${idx + 1}: score must be a number.`);
+    }
+
+    const id = normalizeGroupId(g.id ?? `g${idx + 1}`, takenIds);
+
+    cleaned.push({
+      id,
+      name: name || `Group ${idx + 1}`,
+      score: Number.isFinite(scoreNum) ? scoreNum : 0,
+      color: isValidHexColor(color) ? String(color).trim() : '#8b5cf6'
+    });
+  });
+
+  if (errors.length > 0) {
+    return { ok: false, errors, groups: [] };
+  }
+
+  return { ok: true, errors: [], groups: cleaned };
+}
+
+async function copyGroupsJson() {
+  groupsJsonSuccess.value = '';
+  groupsJsonErrors.value = [];
+  const payload = JSON.stringify(gameStore.groups, null, 2);
+
+  try {
+    if (navigator?.clipboard?.writeText) {
+      await navigator.clipboard.writeText(payload);
+    } else {
+      const textarea = document.createElement('textarea');
+      textarea.value = payload;
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      textarea.style.top = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
+    groupsJsonSuccess.value = 'Copied groups JSON to clipboard.';
+    window.setTimeout(() => {
+      groupsJsonSuccess.value = '';
+    }, 1600);
+  } catch {
+    groupsJsonErrors.value = ['Failed to copy. Your browser may block clipboard access.'];
+  }
+}
+
+function openPasteGroupsJson() {
+  groupsJsonErrors.value = [];
+  groupsJsonSuccess.value = '';
+  groupsJsonText.value = '';
+  showGroupsJsonDialog.value = true;
+}
+
+function closePasteGroupsJson() {
+  showGroupsJsonDialog.value = false;
+}
+
+function applyPastedGroupsJson() {
+  groupsJsonErrors.value = [];
+  groupsJsonSuccess.value = '';
+
+  const result = parseAndValidateGroupsJson(groupsJsonText.value);
+  if (!result.ok) {
+    groupsJsonErrors.value = result.errors;
+    return;
+  }
+
+  gameStore.groups = result.groups;
+  closePasteGroupsJson();
+  groupsJsonSuccess.value = 'Groups imported successfully.';
+  window.setTimeout(() => {
+    groupsJsonSuccess.value = '';
+  }, 1600);
 }
 
 const printOptionIds = computed(() => ['A', 'B', 'C', 'D']);
@@ -142,7 +289,16 @@ async function downloadQrCodesPdf() {
         <div class="groups-section">
           <div class="groups-header">
             <h3>Active Groups ({{ gameStore.groups.length }})</h3>
-            <button class="btn-text" @click="gameStore.resetScores">Reset All Scores</button>
+            <div class="groups-header-actions">
+              <button class="btn-text" @click="copyGroupsJson">Copy Groups JSON</button>
+              <button class="btn-text" @click="openPasteGroupsJson">Paste Groups JSON</button>
+              <button class="btn-text" @click="gameStore.resetScores">Reset All Scores</button>
+            </div>
+          </div>
+
+          <div v-if="groupsJsonSuccess" class="json-success">{{ groupsJsonSuccess }}</div>
+          <div v-if="groupsJsonErrors.length" class="json-errors">
+            <div v-for="(e, i) in groupsJsonErrors" :key="'json-err-' + i">{{ e }}</div>
           </div>
           
           <div class="groups-list">
@@ -169,6 +325,24 @@ async function downloadQrCodesPdf() {
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
             Add Group
           </button>
+        </div>
+
+        <div v-if="showGroupsJsonDialog" class="json-dialog-backdrop" @click.self="closePasteGroupsJson">
+          <div class="json-dialog">
+            <div class="json-dialog-header">
+              <strong>Paste Groups JSON</strong>
+              <button class="close-btn" @click="closePasteGroupsJson" aria-label="Close">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+            <div class="json-dialog-body">
+              <textarea v-model="groupsJsonText" class="json-textarea" rows="10" placeholder='Paste JSON array like: [{"id":"g1","name":"Group A","score":0,"color":"#ef4444"}]'></textarea>
+              <div class="json-dialog-actions">
+                <button class="btn-secondary" @click="closePasteGroupsJson">Cancel</button>
+                <button class="btn-primary" @click="applyPastedGroupsJson">Import</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -514,6 +688,11 @@ async function downloadQrCodesPdf() {
   justify-content: space-between;
   align-items: center;
 }
+.groups-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 .groups-header h3 {
   margin: 0;
   font-size: 1rem;
@@ -618,4 +797,80 @@ async function downloadQrCodesPdf() {
   cursor: pointer;
 }
 .btn-primary:hover { background: #4338ca; }
+
+.json-success {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.json-errors {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.json-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 11000;
+  backdrop-filter: blur(4px);
+}
+
+.json-dialog {
+  width: 720px;
+  max-width: 92vw;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.json-dialog-header {
+  padding: 14px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f8fafc;
+}
+
+.json-dialog-body {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.json-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  resize: vertical;
+}
+
+.json-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
 </style>

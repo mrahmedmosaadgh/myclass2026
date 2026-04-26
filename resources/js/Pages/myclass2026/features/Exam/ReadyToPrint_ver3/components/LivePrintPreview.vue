@@ -208,6 +208,12 @@ function onPrint() {
   emit('print')
 }
 
+function extractTitleFromHtml(html) {
+  const m = String(html).match(/<title[^>]*>([\s\S]*?)<\/title>/i)
+  const title = (m && m[1] ? String(m[1]).trim() : '')
+  return title || 'Exam'
+}
+
 function openInTab() {
   const w = window.open('', '_blank', 'width=850,height=1100,scrollbars=yes,resizable=yes')
   if (!w) return
@@ -215,6 +221,9 @@ function openInTab() {
   w.document.open()
   w.document.write(base)
   w.document.close()
+  try {
+    w.document.title = extractTitleFromHtml(base)
+  } catch {}
   w.focus()
 }
 
@@ -397,7 +406,6 @@ function buildPreviewHtml(base, extraMm) {
   display: flex;
   flex-direction: column;
 }
-.lpp-sidebar-section { }
 .lpp-sidebar-label {
   font-size: 11px;
   font-weight: 600;

@@ -59,6 +59,7 @@ const settingsOpen = ref(false)
 const settingsInitialTab = ref('mcq')
 
 const previewSettings = ref({
+  showMarksPerQuestion: false,
   mcqOptions: {
     columns: 1,
     optionGapPt: 6,

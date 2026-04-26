@@ -9,6 +9,7 @@
 <script setup>
 import { computed } from 'vue'
 import AnswerKeyCompactChoiceTable from './answerKey/templates/AnswerKeyCompactChoiceTable.vue'
+import AnswerKeyChoiceWithTextTable from './answerKey/templates/AnswerKeyChoiceWithTextTable.vue'
 
 const props = defineProps({
   questions: { type: Array, required: true },
@@ -18,6 +19,7 @@ const props = defineProps({
 
 const templateComponent = computed(() => {
   if (props.template === 'compact_choice_table') return AnswerKeyCompactChoiceTable
+  if (props.template === 'choice_with_text_table') return AnswerKeyChoiceWithTextTable
   return AnswerKeyCompactChoiceTable
 })
 </script>

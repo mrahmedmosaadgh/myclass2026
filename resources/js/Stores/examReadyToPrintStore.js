@@ -49,7 +49,10 @@ const createSection = (partial = {}) => ({
     id: partial.id ?? crypto.randomUUID(),
     title: partial.title ?? '',
     instructions: partial.instructions ?? '',
-    rules: partial.rules ?? {},
+    rules: {
+        forceQuestionsToEssay: false,
+        ...(partial.rules ?? {}),
+    },
     questions: partial.questions ?? [],
 })
 

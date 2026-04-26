@@ -161,6 +161,22 @@ function handleClick() {
       />
     </div>
 
+    <!-- MARKDOWN (Rich Text: Markdown + LaTeX) -->
+    <div 
+      v-else-if="element.type === 'markdown'" 
+      class="text-container"
+      :class="{ 'text-selected': isSelected }"
+      :style="{ color: element.color || '#000' }"
+    >
+      <EditableMath 
+        :content="element.content"
+        :placeholder="'Type Markdown (tables, headings) and LaTeX: $...$ or $$...$$'"
+        :isEditMode="ui.isEditMode"
+        @update="(newContent) => update({ content: newContent })"
+        @select="if(ui.isEditMode) { ui.selectElement(element.id); showContextMenu = false; }"
+      />
+    </div>
+
     <!-- INTERACTIVE MCQ (VER 2) -->
     <InteractiveMCQ
       v-else-if="element.type === 'mcq'"
@@ -485,6 +501,8 @@ function handleClick() {
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   border: 1px solid #e5e7eb;
   z-index: 1000;
+  transform: scale(calc(1 / var(--canvas-scale, 1)));
+  transform-origin: top right;
 }
 
 /* Invisible bridge so mouse doesn't trigger mouseleave in the gap */

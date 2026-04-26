@@ -214,6 +214,10 @@ function openFullscreenPrint() {
     const html = generatePrintHTML()
     printWindow.document.write(html)
     printWindow.document.close()
+    try {
+      const m = String(html).match(/<title[^>]*>([\s\S]*?)<\/title>/i)
+      printWindow.document.title = (m && m[1] ? String(m[1]).trim() : '') || 'Exam'
+    } catch {}
     printWindow.focus()
   }
 }
@@ -280,7 +284,18 @@ function generatePrintHTML() {
   const bottomOffsetMm = Number(printFooter.bottomOffsetMm) || 0
   const applyOffsetToPageNumbers = !!printFooter.applyOffsetToPageNumbers
   
-  let html = '<!DOCTYPE html><html><head><title>Exam Print Preview</title>'
+  const baseTitle = String(store.exam?.title || '').trim() || 'Exam'
+  const now = new Date()
+  const dd = String(now.getDate()).padStart(2, '0')
+  const mm = String(now.getMonth() + 1).padStart(2, '0')
+  const yyyy = String(now.getFullYear())
+  const HH = String(now.getHours()).padStart(2, '0')
+  const MM = String(now.getMinutes()).padStart(2, '0')
+  const timestamp = dd + '-' + mm + '-' + yyyy + '_' + HH + '-' + MM
+  const safeTitle = String(baseTitle).replace(/[<>:"/\\|?*]/g, '').trim() || 'Exam'
+  const docTitle = safeTitle + '_' + timestamp
+
+  let html = '<!DOCTYPE html><html><head><title>' + docTitle + '</title>'
   html += '<script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"><\/script>'
   html += '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">'
   
