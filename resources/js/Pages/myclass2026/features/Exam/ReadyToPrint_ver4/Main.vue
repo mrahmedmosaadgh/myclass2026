@@ -323,13 +323,33 @@ async function openServerPrintDebug() {
       }
     })
 
+    const contentType = (response.headers.get('content-type') || '').toLowerCase()
+
+    if (!contentType.includes('application/json')) {
+      const raw = await response.text().catch(() => '')
+      if (response.ok && raw) {
+        w.document.write(raw)
+        w.document.close()
+        return
+      }
+      throw new Error('Debug endpoint did not return JSON payload')
+    }
+
     const payload = await response.json().catch(() => null)
     if (!response.ok) {
       throw new Error(payload?.message || 'Failed to load debug print payload')
     }
 
+    if (!payload || typeof payload !== 'object') {
+      throw new Error('Invalid debug payload received from server')
+    }
+
     const report = payload?.paginationReport || {}
     const html = payload?.html || ''
+
+    if (!payload?.paginationReport && !payload?.html) {
+      throw new Error('Debug payload missing pagination report and HTML content')
+    }
 
     const escaped = (v) => String(v ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
     const reportPretty = escaped(JSON.stringify(report, null, 2))
