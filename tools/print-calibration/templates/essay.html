@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en" data-layout-version="v1.0">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Essay Template</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.4;
+      letter-spacing: 0;
+      word-break: normal;
+      font-size: 12pt;
+    }
+
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      padding: 12mm;
+      background: white;
+    }
+
+    .question {
+      margin-bottom: 4mm;
+    }
+
+    .stem {
+      font-weight: bold;
+      margin-bottom: 3mm;
+    }
+
+    .answer-area {
+      border: 1px solid #ccc;
+      min-height: 60mm;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent,
+        transparent 6mm,
+        #e5e5e5 6mm,
+        #e5e5e5 6.5mm
+      );
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="question essay" id="test-block">
+      <div class="stem">Sample essay question stem text requiring a longer written response.</div>
+      <div class="answer-area"></div>
+    </div>
+  </div>
+</body>
+</html>

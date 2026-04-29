@@ -62,6 +62,16 @@ return [
         'timeout' => env('LIGHTPANDA_TIMEOUT', 30),
     ],
 
+    'print_pdf' => [
+        'node_binary' => env('PRINT_PDF_NODE_BINARY', 'node'),
+        'script_path' => env('PRINT_PDF_SCRIPT_PATH', base_path('tools/print-calibration/render-pdf.js')),
+        'working_dir' => env('PRINT_PDF_WORKING_DIR', base_path('tools/print-calibration')),
+        'timeout' => env('PRINT_PDF_TIMEOUT', 60),
+        'max_pages' => env('PRINT_PDF_MAX_PAGES', 60),
+        'strict_environment_check' => env('PRINT_PDF_STRICT_ENV_CHECK', true),
+        'metrics_path' => env('PRINT_PDF_METRICS_PATH', base_path('tools/print-calibration/metrics.v1.json')),
+    ],
+
     'firebase' => [
         'api_key' => env('VITE_FIREBASE_API_KEY'),
         'auth_domain' => env('VITE_FIREBASE_AUTH_DOMAIN'),

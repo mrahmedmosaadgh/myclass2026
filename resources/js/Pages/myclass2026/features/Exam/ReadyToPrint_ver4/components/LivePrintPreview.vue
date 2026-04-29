@@ -4,6 +4,23 @@
       <div class="text-subtitle1">Live Print Preview</div>
       <q-space />
       <q-btn
+        color="amber-8"
+        text-color="white"
+        icon="bug_report"
+        label="Debug Print"
+        class="q-mr-sm"
+        @click="$emit('debug-print')"
+      />
+      <q-btn
+        color="secondary"
+        icon="picture_as_pdf"
+        label="Download PDF"
+        class="q-mr-sm"
+        :loading="pdfGenerating"
+        :disable="pdfGenerating"
+        @click="$emit('download-pdf')"
+      />
+      <q-btn
         color="primary"
         icon="print"
         label="Print"
@@ -26,8 +43,11 @@ import { getAnswerKeyChoiceLabel, getCorrectOptionIndex } from './answerKey/util
 
 const props = defineProps({
   exam: { type: Object, required: true },
-  previewSettings: { type: Object, default: null }
+  previewSettings: { type: Object, default: null },
+  pdfGenerating: { type: Boolean, default: false }
 })
+
+defineEmits(['download-pdf', 'debug-print'])
 
 const frameRef = ref(null)
 

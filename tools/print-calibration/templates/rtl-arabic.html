@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-layout-version="v1.0">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RTL Arabic Template</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.4;
+      letter-spacing: 0;
+      word-break: normal;
+      font-size: 12pt;
+    }
+
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      padding: 12mm;
+      background: white;
+    }
+
+    .question {
+      margin-bottom: 4mm;
+    }
+
+    .stem {
+      font-weight: bold;
+      margin-bottom: 3mm;
+    }
+
+    .choices ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .choices li {
+      margin-bottom: 2mm;
+      padding-right: 20px;
+      position: relative;
+    }
+
+    .choices li::before {
+      content: attr(data-label);
+      position: absolute;
+      right: 0;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="question mcq" id="test-block">
+      <div class="stem">نص عينة للسؤال مع خيارات متعددة.</div>
+      <div class="choices">
+        <ul>
+          <li data-label="أ">الخيار الأول</li>
+          <li data-label="ب">الخيار الثاني</li>
+          <li data-label="ج">الخيار الثالث</li>
+          <li data-label="د">الخيار الرابع</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

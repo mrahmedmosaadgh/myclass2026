@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en" data-layout-version="v1.0">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Long Text Template</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.4;
+      letter-spacing: 0;
+      word-break: normal;
+      font-size: 12pt;
+    }
+
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      padding: 12mm;
+      background: white;
+    }
+
+    .question {
+      margin-bottom: 4mm;
+    }
+
+    .stem {
+      font-weight: bold;
+      margin-bottom: 3mm;
+    }
+
+    .long-text {
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="question long-text" id="test-block">
+      <div class="stem">Sample question with long text content that spans multiple lines to test line-height and spacing calculations accurately.</div>
+      <div class="long-text">
+        This is an extended text block that simulates a question with substantial content. The purpose is to measure how the rendering engine handles paragraphs of text, including line breaks, spacing between elements, and overall vertical space consumption. Accurate measurement of such blocks is critical for pagination decisions.
+      </div>
+    </div>
+  </div>
+</body>
+</html>

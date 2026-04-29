@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en" data-layout-version="v1.0">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mixed Validation Case</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.4;
+      letter-spacing: 0;
+      word-break: normal;
+      font-size: 12pt;
+    }
+
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      padding: 12mm;
+      background: white;
+    }
+
+    #test-block > .block {
+      margin-bottom: 2mm;
+    }
+
+    .stem {
+      font-weight: bold;
+      margin-bottom: 3mm;
+    }
+
+    .choices ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .choices li {
+      margin-bottom: 2mm;
+      padding-left: 20px;
+      position: relative;
+    }
+
+    .choices li::before {
+      content: attr(data-label);
+      position: absolute;
+      left: 0;
+      font-weight: bold;
+    }
+
+    .long-text p {
+      margin-bottom: 2mm;
+    }
+
+    .rtl {
+      direction: rtl;
+      text-align: right;
+    }
+
+    .rtl li {
+      padding-left: 0;
+      padding-right: 20px;
+    }
+
+    .rtl li::before {
+      left: auto;
+      right: 0;
+    }
+
+    .image-container {
+      width: 100%;
+      max-height: 120mm;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+    }
+
+    .image-placeholder {
+      width: 100mm;
+      height: 80mm;
+      background: #ddd;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div id="test-block">
+      <div class="block mcq">
+        <div class="stem">Mixed case MCQ block with four choices.</div>
+        <div class="choices">
+          <ul>
+            <li data-label="A">First option</li>
+            <li data-label="B">Second option</li>
+            <li data-label="C">Third option</li>
+            <li data-label="D">Fourth option</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="block long-text">
+        <div class="stem">Sample question with long text content that spans multiple lines to test line-height and spacing calculations accurately.</div>
+        <p>
+          This is an extended text block that simulates a question with substantial content. The purpose is to measure how the rendering engine handles paragraphs of text, including line breaks, spacing between elements, and overall vertical space consumption. Accurate measurement of such blocks is critical for pagination decisions.
+        </p>
+      </div>
+
+      <div class="block rtl">
+        <div class="stem">كتلة نص عربي مع خيارات.</div>
+        <div class="choices">
+          <ul>
+            <li data-label="أ">الخيار الأول</li>
+            <li data-label="ب">الخيار الثاني</li>
+            <li data-label="ج">الخيار الثالث</li>
+            <li data-label="د">الخيار الرابع</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="block image-block">
+        <div class="stem">Mixed case image block.</div>
+        <div class="image-container">
+          <div class="image-placeholder">[Diagram Placeholder]</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "layoutMetricsBinding": {
+    "v1.0": "metrics-v1"
+  },
+  "lockedArtifacts": {
+    "metrics-v1": {
+      "file": "metrics.v1.json",
+      "frozen": true,
+      "hash": "sha256-649ca0c0ac5436a78b192957fe8a4de0eb7f7374d83678e79768e16abba1695d"
+    }
+  }
+}

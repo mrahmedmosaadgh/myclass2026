@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en" data-layout-version="v1.0">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCQ 4 Choices Template</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.4;
+      letter-spacing: 0;
+      word-break: normal;
+      font-size: 12pt;
+    }
+
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      padding: 12mm;
+      background: white;
+    }
+
+    .question {
+      margin-bottom: 4mm;
+    }
+
+    .stem {
+      font-weight: bold;
+      margin-bottom: 3mm;
+    }
+
+    .choices ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .choices li {
+      margin-bottom: 2mm;
+      padding-left: 20px;
+      position: relative;
+    }
+
+    .choices li::before {
+      content: attr(data-label);
+      position: absolute;
+      left: 0;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="question mcq" id="test-block">
+      <div class="stem">Sample question stem text for MCQ with four choices.</div>
+      <div class="choices">
+        <ul>
+          <li data-label="A">First option text</li>
+          <li data-label="B">Second option text</li>
+          <li data-label="C">Third option text</li>
+          <li data-label="D">Fourth option text</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

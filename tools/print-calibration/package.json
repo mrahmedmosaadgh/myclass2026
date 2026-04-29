@@ -1,0 +1,12 @@
+{
+  "name": "print-calibration",
+  "version": "1.0.0",
+  "description": "Metrics calibration tool for ReadyToPrint v3",
+  "scripts": {
+    "calibrate": "node calibrate.js --layout=v1",
+    "validate": "node validate.js"
+  },
+  "dependencies": {
+    "puppeteer": "24.15.0"
+  }
+}

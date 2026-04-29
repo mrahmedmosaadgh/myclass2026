@@ -6,281 +6,203 @@
       <!-- Title -->
       <q-icon name="quiz" size="md" class="q-mr-sm" />
       <q-toolbar-title shrink>
-        {{ pageOptions.examTitle?.enabled ? pageOptions.examTitle?.text : 'Exam Builder' }}
+        {{ pageOptions.examTitle?.text || 'Exam Builder' }}
       </q-toolbar-title>
 
       <q-space />
 
-      <!-- Exam File Manager -->
-      <ExamFileManager
-        :has-unsaved-changes="hasUnsavedChanges"
-        :auto-save-enabled="autoSaveEnabled"
-        @save="handleSaveExam"
-        @saveAs="handleSaveAs"
-        @load="handleLoadExam"
-        @delete="handleDeleteExam"
-        @refresh="handleRefreshFiles"
-        @createNew="handleCreateNewExam"
-        @toggle-auto-save="toggleAutoSave"
-        ref="fileManagerRef"
+      <q-btn
+        flat
+        dense
+        icon="print"
+        label="Print"
+        @click="printDirect"
+        class="q-mr-xs"
       />
 
-      <!-- Tools Dropdown with Tabs -->
-      <q-btn-dropdown flat round dense icon="more_vert">
-        <div class="row no-wrap q-pa-md" style="min-width: 400px;">
-          <div class="col">
-            <q-tabs v-model="toolsTab" dense class="text-grey" active-color="primary" indicator-color="primary" align="left" narrow-indicator>
-              <q-tab name="file" label="File" />
-              <q-tab name="print" label="Print" />
-              <q-tab name="ai" label="AI Tools" />
-              <q-tab name="import" label="Import" />
-              <q-tab name="export" label="Export" />
-              <q-tab name="tools" label="Utilities" />
-            </q-tabs>
+      <q-btn
+        flat
+        dense
+        icon="add_circle"
+        label="New"
+        @click="handleCreateNewExam"
+        class="q-mr-xs"
+      />
 
-            <q-separator />
+      <q-btn
+        flat
+        dense
+        icon="content_copy"
+        label="Duplicate"
+        @click="duplicateCurrentExam"
+        class="q-mr-xs"
+      />
 
-            <q-tab-panels v-model="toolsTab" animated class="bg-transparent">
-              <!-- File Tab -->
-              <q-tab-panel name="file" class="q-pa-none">
-                <q-list dense>
-                  <q-item clickable v-close-popup @click="handleSaveExam">
-                    <q-item-section avatar>
-                      <q-icon name="save" />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>Save Exam</q-item-label>
-                      <q-item-label caption>Save current exam</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                  <q-item clickable v-close-popup @click="handleCreateNewExam">
-                    <q-item-section avatar>
-                      <q-icon name="add_circle" />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>Create New Exam</q-item-label>
-                      <q-item-label caption>Start fresh</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                  <q-item clickable v-close-popup @click="openCopyFromDialog">
-                    <q-item-section avatar>
-                      <q-icon name="content_copy" />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>Copy From</q-item-label>
-                      <q-item-label caption>Copy from saved exam</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                </q-list>
-              </q-tab-panel>
+      <q-btn-dropdown flat dense icon="settings" label="Settings" class="q-mr-xs">
+        <q-list dense style="min-width: 240px">
+          <q-item>
+            <q-item-section avatar><q-icon name="picture_as_pdf" /></q-item-section>
+            <q-item-section>
+              <q-toggle
+                v-model="pdfPreviewMode"
+                label="PDF View"
+                dense
+              />
+            </q-item-section>
+          </q-item>
 
-              <!-- Print Tab -->
-              <q-tab-panel name="print" class="q-pa-none">
-                <q-list dense>
-                  <q-item clickable v-close-popup @click="openPrintPreview">
-                    <q-item-section avatar>
-                      <q-icon name="preview" />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>Print Preview</q-item-label>
-                      <q-item-label caption>Preview before printing</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                </q-list>
-              </q-tab-panel>
-
-              <!-- AI Tools Tab -->
-              <q-tab-panel name="ai" class="q-pa-none">
-                <q-list dense>
-                  <q-item clickable v-close-popup @click="openSmartExamDialog">
-                    <q-item-section avatar>
-                      <q-icon name="auto_awesome" color="positive" />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>Smart Exam Generator</q-item-label>
-                      <q-item-label caption>AI-guided exam creation</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                  <q-item clickable v-close-popup @click="openQuickImportDialog">
-                    <q-item-section avatar>
-                      <q-icon name="bolt" color="primary" />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>Quick Import</q-item-label>
-                      <q-item-label caption>Fast AI question import</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                  <q-item clickable v-close-popup @click="openAIDialog">
-                    <q-item-section avatar>
-                      <q-icon name="smart_toy" color="primary" />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>Import AI Questions</q-item-label>
-                      <q-item-label caption>Custom AI import</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                  <q-item clickable v-close-popup @click="openFullExamDialog">
-                    <q-item-section avatar>
-                      <q-icon name="auto_awesome" color="primary" />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>Generate Full Exam</q-item-label>
-                      <q-item-label caption>Complete exam generation</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                  <q-item clickable v-close-popup @click="openAIChatDialog">
-                    <q-item-section avatar>
-                      <q-icon name="chat" color="primary" />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>AI Chat Generation</q-item-label>
-                      <q-item-label caption>Interactive AI chat</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                </q-list>
-              </q-tab-panel>
-
-              <!-- Import Tab -->
-              <q-tab-panel name="import" class="q-pa-none">
-                <q-list dense>
-                  <q-item clickable v-close-popup @click="triggerImportFile">
-                    <q-item-section avatar>
-                      <q-icon name="upload_file" />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>Import Full JSON</q-item-label>
-                      <q-item-label caption>Complete exam file</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                  <q-item clickable v-close-popup @click="triggerImportQuestionsFile">
-                    <q-item-section avatar>
-                      <q-icon name="question_answer" />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>Import Questions</q-item-label>
-                      <q-item-label caption>Questions only</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                </q-list>
-              </q-tab-panel>
-
-              <!-- Export Tab -->
-              <q-tab-panel name="export" class="q-pa-none">
-                <q-list dense>
-                  <q-item clickable v-close-popup @click="exportToJson">
-                    <q-item-section avatar>
-                      <q-icon name="download" />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>Export Full JSON</q-item-label>
-                      <q-item-label caption>Complete exam file</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                  <q-item clickable v-close-popup @click="exportQuestionsOnly">
-                    <q-item-section avatar>
-                      <q-icon name="download_done" />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>Export Questions</q-item-label>
-                      <q-item-label caption>Questions only</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                  <q-item clickable v-close-popup @click="copyQuestionsToClipboard">
-                    <q-item-section avatar>
-                      <q-icon name="content_copy" />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>Copy Questions</q-item-label>
-                      <q-item-label caption>Copy to clipboard</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                  <q-item clickable v-close-popup @click="updateQuestionsFromClipboard">
-                    <q-item-section avatar>
-                      <q-icon name="content_paste" />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>Update from Clipboard</q-item-label>
-                      <q-item-label caption>Paste questions from clipboard</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                </q-list>
-              </q-tab-panel>
-
-              <!-- Utilities Tab -->
-              <q-tab-panel name="tools" class="q-pa-none">
-                <q-list dense>
-                  <q-item clickable v-close-popup @click="forceRegenerateHtml">
-                    <q-item-section avatar>
-                      <q-icon name="refresh" />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>Regenerate HTML</q-item-label>
-                      <q-item-label caption>Force HTML refresh</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                  <q-item clickable v-close-popup @click="testPageNumbers">
-                    <q-item-section avatar>
-                      <q-icon name="filter_4" />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>Test Page Numbers</q-item-label>
-                      <q-item-label caption>Generate 4 test pages</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                  <q-item clickable v-close-popup @click="openValidationDialog">
-                    <q-item-section avatar>
-                      <q-icon name="fact_check" />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>Validate Questions</q-item-label>
-                      <q-item-label caption>Check question format</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                  <q-item clickable v-close-popup @click="firstLastPageOpen = true">
-                    <q-item-section avatar>
-                      <q-icon name="auto_stories" />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>First &amp; Last Page</q-item-label>
-                      <q-item-label caption>Configure cover pages</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                  <q-item clickable v-close-popup @click="optionsOpen = true">
-                    <q-item-section avatar>
-                      <q-icon name="settings" />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>Settings</q-item-label>
-                      <q-item-label caption>Page options</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                </q-list>
-              </q-tab-panel>
-            </q-tab-panels>
-          </div>
-        </div>
+          <q-item v-if="pdfPreviewMode">
+            <q-item-section avatar><q-icon name="edit" /></q-item-section>
+            <q-item-section>
+              <q-toggle
+                v-model="pdfInlineEditMode"
+                label="Inline Edit (PDF)"
+                dense
+              />
+            </q-item-section>
+          </q-item>
+          <q-separator />
+          <q-item clickable v-close-popup @click="optionsOpen = true">
+            <q-item-section avatar><q-icon name="tune" /></q-item-section>
+            <q-item-section>
+              <q-item-label>Page Settings</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item clickable v-close-popup @click="firstLastPageOpen = true">
+            <q-item-section avatar><q-icon name="auto_stories" /></q-item-section>
+            <q-item-section>
+              <q-item-label>Cover Pages</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item clickable v-close-popup @click="answerKeyOpen = true">
+            <q-item-section avatar><q-icon name="vpn_key" /></q-item-section>
+            <q-item-section>
+              <q-item-label>Answer Key</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-separator />
+          <q-item clickable v-close-popup @click="isEditMode = !isEditMode">
+            <q-item-section avatar><q-icon :name="isEditMode ? 'edit_off' : 'edit'" /></q-item-section>
+            <q-item-section>
+              <q-item-label>{{ isEditMode ? 'Exit Edit Mode' : 'Edit Mode' }}</q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-list>
       </q-btn-dropdown>
 
-      <!-- Edit Mode Toggle -->
-      <q-toggle
-        v-model="isEditMode"
-        label="Edit Mode"
-        color="secondary"
-        class="q-mr-sm"
-        dark
-        keep-color
-      />
+      <!-- Single dropdown for remaining actions -->
+      <q-btn-dropdown flat dense icon="menu" label="Actions" class="q-mr-xs">
+        <q-list dense style="min-width: 260px">
+          <q-item clickable v-close-popup @click="handleSaveExam">
+            <q-item-section avatar><q-icon name="save" /></q-item-section>
+            <q-item-section>
+              <q-item-label>Save</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item clickable v-close-popup @click="openSaveAsDialog">
+            <q-item-section avatar><q-icon name="save_as" /></q-item-section>
+            <q-item-section>
+              <q-item-label>Save As</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item clickable v-close-popup @click="duplicateCurrentExam">
+            <q-item-section avatar><q-icon name="content_copy" /></q-item-section>
+            <q-item-section>
+              <q-item-label>Duplicate (Create Copy)</q-item-label>
+            </q-item-section>
+          </q-item>
 
-      <!-- Print Button (keep separate for quick access) -->
-      <PrintActions
-        :generate-print-html="generatePrintHTML"
-        :extra-margin-mm="pageOptions.printHeader.pageMarginTopMm ?? 0"
-        :exam-title="pageOptions.examTitle.enabled ? pageOptions.examTitle.text : ''"
-        :exam-subject="pageOptions.printHeader.template1?.subject || ''"
-        :exam-grade="pageOptions.printHeader.template1?.grade || ''"
-        :exam-id="lastSavedExamId"
-        @update:extra-margin-mm="(v) => { pageOptions.printHeader.pageMarginTopMm = v; savePageState() }"
-      />
+          <q-separator />
+
+          <q-item clickable v-close-popup @click="exportToJson">
+            <q-item-section avatar><q-icon name="download" /></q-item-section>
+            <q-item-section>
+              <q-item-label>Download (Export JSON)</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item clickable v-close-popup @click="triggerImportFile">
+            <q-item-section avatar><q-icon name="upload_file" /></q-item-section>
+            <q-item-section>
+              <q-item-label>Import JSON</q-item-label>
+            </q-item-section>
+          </q-item>
+
+          <q-separator />
+
+          <q-item clickable v-close-popup @click="openFileManagerDialog">
+            <q-item-section avatar><q-icon name="folder_open" /></q-item-section>
+            <q-item-section>
+              <q-item-label>Manage Files</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item clickable v-close-popup @click="openCopyFromDialog">
+            <q-item-section avatar><q-icon name="content_copy" /></q-item-section>
+            <q-item-section>
+              <q-item-label>Copy From Saved</q-item-label>
+            </q-item-section>
+          </q-item>
+
+          <q-separator />
+
+          <q-item clickable v-close-popup @click="openSmartExamDialog">
+            <q-item-section avatar><q-icon name="auto_awesome" /></q-item-section>
+            <q-item-section>
+              <q-item-label>Smart Exam Generator</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item clickable v-close-popup @click="openQuickImportDialog">
+            <q-item-section avatar><q-icon name="bolt" /></q-item-section>
+            <q-item-section>
+              <q-item-label>Quick Import</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item clickable v-close-popup @click="openAIDialog">
+            <q-item-section avatar><q-icon name="smart_toy" /></q-item-section>
+            <q-item-section>
+              <q-item-label>Import AI Questions</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item clickable v-close-popup @click="openFullExamDialog">
+            <q-item-section avatar><q-icon name="psychology" /></q-item-section>
+            <q-item-section>
+              <q-item-label>Generate Full Exam</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item clickable v-close-popup @click="openAIChatDialog">
+            <q-item-section avatar><q-icon name="chat" /></q-item-section>
+            <q-item-section>
+              <q-item-label>AI Chat</q-item-label>
+            </q-item-section>
+          </q-item>
+
+          <q-separator />
+
+          <q-item clickable v-close-popup @click="forceRegenerateHtml">
+            <q-item-section avatar><q-icon name="refresh" /></q-item-section>
+            <q-item-section>
+              <q-item-label>Regenerate HTML</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item clickable v-close-popup @click="openValidationDialog">
+            <q-item-section avatar><q-icon name="fact_check" /></q-item-section>
+            <q-item-section>
+              <q-item-label>Validate Questions</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item clickable v-close-popup @click="copyQuestionsToClipboard">
+            <q-item-section avatar><q-icon name="content_copy" /></q-item-section>
+            <q-item-section>
+              <q-item-label>Copy Questions</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item clickable v-close-popup @click="updateQuestionsFromClipboard">
+            <q-item-section avatar><q-icon name="content_paste" /></q-item-section>
+            <q-item-section>
+              <q-item-label>Paste Questions</q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </q-btn-dropdown>
     </q-toolbar>
 
     <input
@@ -315,23 +237,48 @@
       @change="handleFooterImageFile"
     />
 
-    <div class="sections-summary" v-if="sections.length">
-      <div class="section-chip" v-for="s in sections" :key="s.id">
-        <span class="section-chip-title">{{ s.title }}</span>
-        <SectionTotalMark
-          :total="sectionTotalMarks(s.id)"
-          :options="pageOptions.sectionTotal"
-        />
-      </div>
+    <!-- Hidden ExamFileManager for dialog functionality -->
+    <ExamFileManager
+      ref="fileManagerRef"
+      :show-save-button="false"
+      :show-manage-button="false"
+      :has-unsaved-changes="hasUnsavedChanges"
+      :auto-save-enabled="autoSaveEnabled"
+      @save="handleSaveExam"
+      @saveAs="handleSaveAs"
+      @load="handleLoadExam"
+      @delete="handleDeleteExam"
+      @refresh="handleRefreshFiles"
+      @createNew="handleCreateNewExam"
+      @toggle-auto-save="toggleAutoSave"
+    />
+
+    <div v-if="pdfPreviewMode && !pdfInlineEditMode" class="pdf-preview-container">
+      <iframe
+        v-if="pdfPreviewHtml"
+        :srcdoc="pdfPreviewHtml"
+        class="pdf-preview-iframe"
+      />
     </div>
 
-    <!-- Questions display -->
-    <div class="questions-container">
-      <div
-        v-for="(question, index) in printSequence"
-        :key="question.id"
-        :class="['question-row', isEditMode ? 'question-row--edit' : '']"
-      >
+    <template v-else>
+      <div class="sections-summary" v-if="sections.length">
+        <div class="section-chip" v-for="s in sections" :key="s.id">
+          <span class="section-chip-title">{{ s.title }}</span>
+          <SectionTotalMark
+            :total="sectionTotalMarks(s.id)"
+            :options="pageOptions.sectionTotal"
+          />
+        </div>
+      </div>
+
+      <!-- Questions display -->
+      <div :class="['questions-container', (pdfPreviewMode ? 'questions-container--pdf' : '')]">
+        <div
+          v-for="(question, index) in printSequence"
+          :key="question.id"
+          :class="['question-row', isEditMode ? 'question-row--edit' : '']"
+        >
         <!-- Edit mode toolbar: section selector + 3-dot menu -->
         <div class="question-edit-bar" v-if="isEditMode">
           <div class="question-edit-bar__left">
@@ -394,24 +341,29 @@
           <div class="page-break-marker-line"></div>
           <div class="page-break-marker-label">PAGE BREAK</div>
           <div class="page-break-marker-line"></div>
+
         </div>
 
         <QuestionDisplay
           :question="question"
           :question-number="index + 1"
-          :numbering-options="pageOptions.questionNumbering"
-          :mcq-options="pageOptions.mcqOptions"
-          :show-answer-area="true"
-          :answer-lines-override="3"
+          :total-questions="printSequence.length"
+          :force-essay="isSectionForcingEssay(getQuestionSectionId(question))"
           :show-marks="pageOptions.showMarksPerQuestion"
+          :mcq-options="pageOptions.mcqOptions"
+          :answer-lines="getPrintAnswerLines(question)"
+          :answer-line-style="pageOptions.answerLines"
+          :math-render="renderMathContent"
         />
-        <div
-          v-if="pageOptions.questionSeparator?.enabled"
-          class="question-separator"
-          :style="questionSeparatorStyle"
-        ></div>
+
+        <div v-if="isPageBreakAfter(question)" class="page-break-marker">
+          <div class="page-break-marker-line"></div>
+          <div class="page-break-marker-label">PAGE BREAK</div>
+          <div class="page-break-marker-line"></div>
+        </div>
       </div>
     </div>
+  </template>
 
     <!-- Settings Dialog -->
     <q-dialog v-model="optionsOpen">
@@ -1541,12 +1493,19 @@
                   outlined
                   :options="[
                     { label: 'Full  (# · Question · Marks · Answer)', value: 'full' },
-                    { label: 'Compact  (# · Correct Choice only)', value: 'compact_choice' }
+                    { label: 'Compact  (# · Correct Choice only)', value: 'compact_choice' },
+                    { label: 'Compact  (# · Letter · Correct Option Text)', value: 'compact_letter_text' }
                   ]"
                   emit-value
                   map-options
                   v-model="pageOptions.answerKey.template"
                   label="Table template"
+                  @update:model-value="savePageState"
+                />
+
+                <q-toggle
+                  v-model="pageOptions.answerKey.mcqShowOptionText"
+                  label="MCQ: show correct option text (instead of A/B/C/D)"
                   @update:model-value="savePageState"
                 />
 
@@ -3413,7 +3372,14 @@
   </q-dialog>
 
   <!-- Edit Question Dialog -->
-  <q-dialog v-model="editQuestionOpen">
+  <EditMCQDialog
+    v-if="questionToEdit && questionToEdit.type === 'multiple_choice'"
+    v-model="editQuestionOpen"
+    :question="questionToEdit"
+    @save="saveEditedMCQ"
+  />
+
+  <q-dialog v-else v-model="editQuestionOpen">
     <q-card style="min-width: 500px;">
       <q-card-section class="row items-center q-pb-none">
         <div class="text-h6">Edit Question</div>
@@ -3448,8 +3414,8 @@ import { usePage } from '@inertiajs/vue3'
 import { useQuasar } from 'quasar'
 import QuestionDisplay from './components/QuestionDisplay.vue'
 import SectionTotalMark from './components/SectionTotalMark.vue'
-import PrintActions from './components/PrintActions.vue'
 import PrintFooter from './components/PrintFooter.vue'
+import EditMCQDialog from './components/EditMCQDialog.vue'
 import FirstPageSettings from './components/FirstPageSettings.vue'
 import LastPageSettings from './components/LastPageSettings.vue'
 import ExamFileManager from './components/ExamFileManager.vue'
@@ -3646,6 +3612,8 @@ const settingsPresets = ref([
 const fileManagerRef = ref(null)
 const lastSavedExamId = ref(null)
 
+const LAST_EXAM_ID_STORAGE_KEY = 'rtp_v3_lastSavedExamId'
+
 // Print preview dialog
 const printPreviewOpen = ref(false)
 const printPreviewHtml = ref('')
@@ -3777,6 +3745,7 @@ const pageOptions = ref({
     notesText: '',
     title: '',
     template: 'full',
+    mcqShowOptionText: false,
     pageBreakBefore: true
   },
   questionSeparator: {
@@ -3904,9 +3873,9 @@ function buildTemplate1HTML(cfg) {
 
   return (
     '<style>' +
-    ' .exam-header { width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; border: 4px double #00AEEF; margin-top: 0; }' +
-    ' .exam-header td { border: 1px solid #00AEEF; padding: 8px 12px; font-weight: bold; color: #000; font-size: 14px; }' +
-    ' .center-text { text-align: center; font-size: 16px; }' +
+    ' .exam-header { width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; border: 3px double #00AEEF; margin-top: 0; }' +
+    ' .exam-header td { border: 1px solid #00AEEF; padding: 4px 8px; font-weight: bold; color: #000; font-size: 13px; }' +
+    ' .center-text { text-align: center; font-size: 14px; }' +
     ' .checkbox-group { display: inline-flex; align-items: center; gap: 10px; }' +
     ' .box { display: inline-block; width: 15px; height: 15px; border: 1px solid black; vertical-align: middle; margin-right: 5px; }' +
     ' .box-filled { background-color: black; }' +
@@ -3973,6 +3942,28 @@ function triggerHeaderImageFile() {
     headerImageFileInput.value.value = ''
     headerImageFileInput.value.click()
   }
+}
+
+function openSaveAsDialog() {
+  const currentTitle = pageOptions.value.examTitle?.enabled ? pageOptions.value.examTitle.text : ''
+  $q.dialog({
+    title: 'Save As',
+    message: 'Enter a name for the copy:',
+    prompt: {
+      model: currentTitle ? `${currentTitle} (Copy)` : 'Untitled Exam (Copy)',
+      type: 'text'
+    },
+    cancel: true,
+    persistent: true
+  }).onOk((val) => {
+    const name = String(val || '').trim()
+    if (!name) return
+    handleSaveAs(name)
+  })
+}
+
+function duplicateCurrentExam() {
+  openSaveAsDialog()
 }
 
 function triggerFooterImageFile() {
@@ -4144,6 +4135,35 @@ const sections = ref([
 ])
 
 const questionSectionMap = ref({})
+
+// Inline (PDF-like) preview mode
+const pdfPreviewMode = ref(true)
+const pdfInlineEditMode = ref(false)
+const pdfPreviewHtml = ref('')
+
+function refreshPdfPreviewHtml() {
+  try {
+    pdfPreviewHtml.value = generatePrintHTML()
+  } catch (e) {
+    console.error('Failed to build PDF preview HTML', e)
+    pdfPreviewHtml.value = ''
+  }
+}
+
+watch(pdfPreviewMode, (v) => {
+  if (!v) pdfInlineEditMode.value = false
+  if (v) refreshPdfPreviewHtml()
+})
+
+watch(pdfInlineEditMode, (v) => {
+  if (v) {
+    isEditMode.value = true
+  }
+})
+
+watch([sampleQuestions, pageOptions, sections, questionSectionMap], () => {
+  if (pdfPreviewMode.value) refreshPdfPreviewHtml()
+}, { deep: true })
 
 const sectionOptions = computed(() => sections.value.map(s => ({ label: s.title, value: s.id })))
 
@@ -4996,6 +5016,7 @@ function applySettingsPreset(presetValue) {
         notesText: '',
         title: '',
         template: 'full',
+        mcqShowOptionText: false,
         pageBreakBefore: true
       },
       questionSeparator: {
@@ -5233,6 +5254,9 @@ async function savePageState() {
 
 async function handleSaveAs(fileName) {
   try {
+    if (typeof fileName !== 'string' || fileName.trim() === '') {
+      throw new Error('Missing file name')
+    }
     const data = {
       name: fileName,
       questions: sampleQuestions.value,
@@ -5394,6 +5418,7 @@ function handleCreateNewExam() {
     sections.value = []
     questionSectionMap.value = {}
     lastSavedExamId.value = null
+    try { localStorage.removeItem(LAST_EXAM_ID_STORAGE_KEY) } catch (e) {}
     hasUnsavedChanges.value = false
     lastSavedState.value = null
 
@@ -5473,74 +5498,62 @@ watch([sampleQuestions, sections, questionSectionMap, pageOptions], () => {
 }, { deep: true })
 
 async function openPrintPreview() {
-  console.log('Opening print preview, lastSavedExamId:', lastSavedExamId.value)
+  await printDirect()
+}
 
-  if (!lastSavedExamId.value) {
-    // Auto-save first
-    await handleSaveExam()
-    if (!lastSavedExamId.value) {
-      $q.notify({
-        type: 'warning',
-        message: 'Please save the exam first to generate print preview',
-        position: 'top'
-      })
+async function printDirect() {
+  try {
+    const livePdfIframe = document.querySelector('.pdf-preview-iframe')
+    if (pdfPreviewMode.value && livePdfIframe && livePdfIframe.contentWindow) {
+      livePdfIframe.contentWindow.focus()
+      livePdfIframe.contentWindow.print()
       return
     }
-  }
 
-  try {
-    const url = `/api/exam/ready-to-print/print-html/${lastSavedExamId.value}`
-    console.log('Fetching HTML from:', url)
+    const html = generatePrintHTML()
+    const iframe = document.createElement('iframe')
+    iframe.style.position = 'fixed'
+    iframe.style.right = '0'
+    iframe.style.bottom = '0'
+    iframe.style.width = '0'
+    iframe.style.height = '0'
+    iframe.style.border = '0'
+    iframe.style.opacity = '0'
+    iframe.style.pointerEvents = 'none'
+    iframe.srcdoc = html
+    document.body.appendChild(iframe)
 
-    const response = await fetch(url, {
-      headers: {
-        'Accept': 'text/html'
-      }
-    })
+    iframe.onload = () => {
+      const win = iframe.contentWindow
+      const start = Date.now()
+      const maxWaitMs = 4000
 
-    console.log('Response status:', response.status, response.statusText)
-
-    if (response.ok) {
-      const html = await response.text()
-      console.log('HTML length:', html.length)
-      console.log('HTML preview (first 500 chars):', html.substring(0, 500))
-
-      // Check if questions section exists
-      const hasQuestions = html.includes('class="question"')
-      const hasSectionHeader = html.includes('class="section-header"')
-      console.log('HTML contains questions:', hasQuestions)
-      console.log('HTML contains section headers:', hasSectionHeader)
-
-      // Find and log the questions section
-      const questionStart = html.indexOf('class="question"')
-      if (questionStart !== -1) {
-        console.log('Questions section found at position:', questionStart)
-        console.log('Questions section preview:', html.substring(questionStart, questionStart + 500))
-      } else {
-        console.log('No questions section found in HTML')
-        // Find where the content section starts
-        const contentStart = html.indexOf('<body>')
-        if (contentStart !== -1) {
-          console.log('Body content preview:', html.substring(contentStart, contentStart + 1000))
+      const tryPrint = () => {
+        try {
+          if (!win) return
+          const ready = !!win.__printReady
+          const timedOut = (Date.now() - start) > maxWaitMs
+          if (!ready && !timedOut) {
+            setTimeout(tryPrint, 60)
+            return
+          }
+          win.focus()
+          win.print()
+        } finally {
+          setTimeout(() => {
+            try { iframe.remove() } catch (e) {}
+          }, 1000)
         }
       }
 
-      printPreviewHtml.value = html
-      printPreviewOpen.value = true
-    } else {
-      const errorText = await response.text()
-      console.log('Error response:', errorText)
-      $q.notify({
-        type: 'negative',
-        message: 'Failed to load print preview',
-        position: 'top'
-      })
+      // Give the iframe a moment to run its internal load+measure script, then poll.
+      setTimeout(tryPrint, 60)
     }
   } catch (e) {
-    console.error('Failed to load print preview', e)
+    console.error('Direct print failed', e)
     $q.notify({
       type: 'negative',
-      message: 'Failed to load print preview: ' + e.message,
+      message: 'Print failed: ' + e.message,
       position: 'top'
     })
   }
@@ -5729,6 +5742,9 @@ function testPageNumbers() {
 }
 
 async function handleLoadExam(data) {
+  if (data?.id) {
+    lastSavedExamId.value = data.id
+  }
   if (data.questions) sampleQuestions.value = data.questions
   if (data.settings) {
     pageOptions.value = { ...pageOptions.value, ...data.settings }
@@ -5747,6 +5763,9 @@ async function handleLoadExam(data) {
     if (defaultSectionId && !questionSectionMap.value[qid]) questionSectionMap.value[qid] = defaultSectionId
   })
 
+  hasUnsavedChanges.value = false
+  lastSavedState.value = getCurrentState()
+
   await savePageState()
 }
 
@@ -5758,6 +5777,12 @@ function handleDeleteExam(fileId) {
 function handleRefreshFiles(files) {
   // Handle refresh if needed
   console.log('Files refreshed:', files)
+}
+
+function openFileManagerDialog() {
+  if (fileManagerRef.value) {
+    fileManagerRef.value.openDialog()
+  }
 }
 
 async function addSection() {
@@ -5790,6 +5815,11 @@ async function removeSection(sectionId) {
 function getQuestionSectionId(question) {
   const qid = String(question?.id)
   return questionSectionMap.value[qid] || sections.value[0]?.id
+}
+
+function isSectionForcingEssay(sectionId) {
+  const s = sections.value.find(x => x.id === sectionId)
+  return !!s?.forceQuestionsToEssay
 }
 
 async function setQuestionSection(question, sectionId) {
@@ -7088,6 +7118,27 @@ function editQuestionContent(question) {
   editQuestionOpen.value = true
 }
 
+function saveEditedMCQ(payload) {
+  if (!questionToEdit.value) return
+  if (!questionToEdit.value.content) questionToEdit.value.content = {}
+
+  questionToEdit.value.content.prompt = payload?.prompt ?? ''
+  if (Array.isArray(payload?.options)) {
+    questionToEdit.value.content.options = payload.options
+  }
+  if (payload?.correct_option_index !== undefined) {
+    questionToEdit.value.content.correct_option_index = payload.correct_option_index
+  }
+  if (payload?.explanation !== undefined) {
+    questionToEdit.value.content.explanation = payload.explanation
+  }
+
+  savePageState()
+  questionToEdit.value = null
+  editQuestionPrompt.value = ''
+  editQuestionOpen.value = false
+}
+
 function saveEditedQuestion() {
   if (questionToEdit.value) {
     if (!questionToEdit.value.content) questionToEdit.value.content = {}
@@ -7331,7 +7382,7 @@ function generatePrintHTML() {
     'margin-top:' + sepBeforePt + 'pt; margin-bottom:' + sepAfterPt + 'pt; border-bottom:' + sepThicknessPt + 'pt ' + sepStyle + ' ' + sepColor + ';'
 
   html += '<style>'
-  html += '@page { size: A4; margin: 12mm; }'
+  html += '@page { size: A4; margin: ' + ((headerEnabled && hasHeaderContent) ? '6mm 12mm 12mm 12mm' : '12mm') + '; }'
   html += ' body { font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.5; margin: 0; padding: ' + bodyPadPx + 'px; counter-reset: page 0 pages 0; }'
   html += ' @media print { .page-number-content[data-format="page"]::after { content: counter(page); } }'
   html += ' @media print { .page-number-content[data-format="page-of"]::after { content: counter(page) " of " counter(pages); } }'
@@ -7382,6 +7433,7 @@ function generatePrintHTML() {
   html += ' .answer-area { border-top: 1px solid #ccc; margin-top: 10pt; padding-top: 8pt; }'
   html += ' .answer-line { border-bottom: 1px solid #ccc; height: 18pt; margin-bottom: 6pt; }'
   html += ' .page-break { page-break-before: always; height: 0; }'
+  html += ' @media screen { body { background: #e9ecef; padding: 36px; } .print-layout { width: 210mm; margin: 18px auto; background: #fff; box-shadow: 0 8px 24px rgba(0,0,0,0.12); } .page-break { display: block; height: 18px; margin: 24px 0; border-top: 2px dashed #c0c0c0; } }'
   html += ' .page-number { display: block; z-index: 1000; white-space: nowrap; line-height: 1.2; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }'
   html += '</style>'
   html += '</head><body>'
@@ -7721,7 +7773,9 @@ scriptContent += "})();";
       html += '<thead style="background-color: #f5f5f5;">'
       html += '<tr>'
       html += '<th style="padding: 8px; border: 1px solid #ddd; font-weight: 600; color: #333; text-align: center; width: 60px;">#</th>'
-      html += '<th style="padding: 8px; border: 1px solid #ddd; font-weight: 600; color: #333; text-align: center; width: 120px;">Correct Choice</th>'
+      html += '<th style="padding: 8px; border: 1px solid #ddd; font-weight: 600; color: #333; text-align: center; width: 90px;">Letter</th>'
+      html += '<th style="padding: 8px; border: 1px solid #ddd; font-weight: 600; color: #333;">Correct Option</th>'
+      html += '<th style="padding: 8px; border: 1px solid #ddd; font-weight: 600; color: #333; text-align: center; width: 60px;">✓</th>'
       html += '</tr>'
       html += '</thead>'
       html += '<tbody>'
@@ -7729,11 +7783,40 @@ scriptContent += "})();";
       let answerIndex = 0
       sampleQuestions.value.forEach((question) => {
         answerIndex += 1
-        const choice = getAnswerKeyChoiceLabel(question)
+        const choiceSymbol = getAnswerKeyChoiceSymbol(question)
+        const choiceText = getAnswerKeyChoiceText(question)
 
         html += '<tr style="' + (answerIndex % 2 === 0 ? 'background-color: #fafafa;' : '') + '">'
         html += '<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">' + answerIndex + '</td>'
-        html += '<td style="padding: 8px; border: 1px solid #ddd; text-align: center;"><strong style="color: #1976d2;">' + choice + '</strong></td>'
+        html += '<td style="padding: 8px; border: 1px solid #ddd; text-align: center;"><strong style="color: #1976d2;">' + choiceSymbol + '</strong></td>'
+        html += '<td style="padding: 8px; border: 1px solid #ddd; vertical-align: top; line-height: 1.35;">' + choiceText + '</td>'
+        html += '<td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-weight: 800; color: #2e7d32;">' + (choiceSymbol !== '-' ? '✔' : '') + '</td>'
+        html += '</tr>'
+      })
+
+      html += '</tbody>'
+      html += '</table>'
+    } else if (answerKeyTemplate === 'compact_letter_text') {
+      html += '<table style="width: 100%; border-collapse: collapse; font-size: 12px; margin: 20px 0;">'
+      html += '<thead style="background-color: #f5f5f5;">'
+      html += '<tr>'
+      html += '<th style="padding: 8px; border: 1px solid #ddd; font-weight: 600; color: #333; text-align: center; width: 60px;">#</th>'
+      html += '<th style="padding: 8px; border: 1px solid #ddd; font-weight: 600; color: #333; text-align: center; width: 90px;">Letter</th>'
+      html += '<th style="padding: 8px; border: 1px solid #ddd; font-weight: 600; color: #333;">Correct Option</th>'
+      html += '</tr>'
+      html += '</thead>'
+      html += '<tbody>'
+
+      let answerIndex = 0
+      sampleQuestions.value.forEach((question) => {
+        answerIndex += 1
+        const choiceSymbol = getAnswerKeyChoiceSymbol(question)
+        const choiceText = getAnswerKeyChoiceText(question)
+
+        html += '<tr style="' + (answerIndex % 2 === 0 ? 'background-color: #fafafa;' : '') + '">'
+        html += '<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">' + answerIndex + '</td>'
+        html += '<td style="padding: 8px; border: 1px solid #ddd; text-align: center;"><strong style="color: #1976d2;">' + choiceSymbol + '</strong></td>'
+        html += '<td style="padding: 8px; border: 1px solid #ddd; vertical-align: top; line-height: 1.35;">' + choiceText + '</td>'
         html += '</tr>'
       })
 
@@ -7832,11 +7915,29 @@ function getPrintAnswerLines(question) {
 }
 
 function getAnswerKeyText(question) {
+  // Check if question is in a section that forces essay mode
+  const sectionId = getQuestionSectionId(question)
+  const section = sections.value.find(s => s.id === sectionId)
+  const forceEssay = !!section?.forceQuestionsToEssay
+  const showOptText = !!pageOptions.value?.answerKey?.mcqShowOptionText
+
   if (question.type === 'multiple_choice') {
     // correct_option_index is the canonical field (ver 3); fall back to correct_answer for legacy data
     const v = question.content?.correct_option_index ?? question.content?.correct_answer ?? question.correct_answer
     const labelStyle = pageOptions.value?.mcqOptions?.labelStyle || 'letter'
     const customTpl = pageOptions.value?.mcqOptions?.customLabelTemplate || '{letter})'
+
+    // If section forces essay, return the actual option text instead of letter
+    if (forceEssay || showOptText) {
+      const idx = (typeof v === 'number' && Number.isFinite(v))
+        ? v
+        : ((typeof v === 'string' && v.trim() !== '' && !Number.isNaN(Number(v))) ? Number(v) : null)
+
+      if (idx !== null && Array.isArray(question.content?.options)) {
+        const optionText = question.content.options[idx]?.text || question.content.options[idx]
+        if (optionText) return String(optionText)
+      }
+    }
 
     const idx = (typeof v === 'number' && Number.isFinite(v))
       ? v
@@ -7868,6 +7969,67 @@ function getAnswerKeyText(question) {
 
 function getAnswerKeyChoiceLabel(question) {
   if (question?.type !== 'multiple_choice') return '-'
+  const sectionId = getQuestionSectionId(question)
+  const section = sections.value.find(s => s.id === sectionId)
+  const forceEssay = !!section?.forceQuestionsToEssay
+  const showOptText = !!pageOptions.value?.answerKey?.mcqShowOptionText
+
+  const labelStyle = pageOptions.value?.mcqOptions?.labelStyle || 'letter'
+  const customTpl = pageOptions.value?.mcqOptions?.customLabelTemplate || '{letter})'
+  // correct_option_index is canonical (ver 3); fall back to correct_answer for legacy data
+  const v = question?.content?.correct_option_index ?? question?.content?.correct_answer ?? question?.correct_answer
+
+  const idx = (typeof v === 'number' && Number.isFinite(v))
+    ? v
+    : ((typeof v === 'string' && v.trim() !== '' && !Number.isNaN(Number(v))) ? Number(v) : null)
+  if (idx === null) return '-'
+
+  if (forceEssay || showOptText) {
+    if (Array.isArray(question.content?.options)) {
+      const optionText = question.content.options[idx]?.text || question.content.options[idx]
+      if (optionText) return renderMathContent(String(optionText))
+    }
+  }
+
+  const n = idx + 1
+  const letter = String.fromCharCode('A'.charCodeAt(0) + idx)
+  if (labelStyle === 'number') return String(n)
+  if (labelStyle === 'custom') {
+    const res = String(customTpl)
+      .replaceAll('{i}', String(idx))
+      .replaceAll('{n}', String(n))
+      .replaceAll('{letter}', String(letter))
+    // For the compact template we want just the choice symbol, not trailing punctuation/spaces.
+    return res.replace(/[)\.\s]+$/g, '')
+  }
+  return letter
+}
+
+function getAnswerKeyChoiceText(question) {
+  if (!question) return '-'
+
+  if (question?.type === 'multiple_choice') {
+    const v = question?.content?.correct_option_index ?? question?.content?.correct_answer ?? question?.correct_answer
+    const idx = (typeof v === 'number' && Number.isFinite(v))
+      ? v
+      : ((typeof v === 'string' && v.trim() !== '' && !Number.isNaN(Number(v))) ? Number(v) : null)
+    if (idx === null) return '-'
+
+    if (Array.isArray(question.content?.options)) {
+      const optionText = question.content.options[idx]?.text || question.content.options[idx]
+      if (optionText) return renderMathContent(String(optionText))
+    }
+    return '-'
+  }
+
+  // Fallback for non-MCQ: keep it readable in the compact table.
+  const raw = getAnswerKeyText(question)
+  return renderMathContent(String(raw || '-'))
+}
+
+function getAnswerKeyChoiceSymbol(question) {
+  if (question?.type !== 'multiple_choice') return '-'
+
   const labelStyle = pageOptions.value?.mcqOptions?.labelStyle || 'letter'
   const customTpl = pageOptions.value?.mcqOptions?.customLabelTemplate || '{letter})'
   // correct_option_index is canonical (ver 3); fall back to correct_answer for legacy data
@@ -7886,7 +8048,6 @@ function getAnswerKeyChoiceLabel(question) {
       .replaceAll('{i}', String(idx))
       .replaceAll('{n}', String(n))
       .replaceAll('{letter}', String(letter))
-    // For the compact template we want just the choice symbol, not trailing punctuation/spaces.
     return res.replace(/[)\.\s]+$/g, '')
   }
   return letter
@@ -7907,6 +8068,20 @@ watch(
 onMounted(async () => {
   loadSettingsPresets()
   await loadPageState()
+
+  try {
+    const savedExamId = localStorage.getItem(LAST_EXAM_ID_STORAGE_KEY)
+    if (savedExamId && !lastSavedExamId.value) {
+      lastSavedExamId.value = savedExamId
+    }
+  } catch (e) {}
+})
+
+watch(lastSavedExamId, (v) => {
+  try {
+    if (v) localStorage.setItem(LAST_EXAM_ID_STORAGE_KEY, String(v))
+    else localStorage.removeItem(LAST_EXAM_ID_STORAGE_KEY)
+  } catch (e) {}
 })
 </script>
 
@@ -7954,6 +8129,21 @@ onMounted(async () => {
   flex-wrap: wrap;
   gap: 10px;
   margin: 0 0 16px;
+}
+
+.pdf-preview-container {
+  height: calc(100vh - 120px);
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #e0e0e0;
+  background: #e9ecef;
+}
+
+.pdf-preview-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
 }
 
 .section-chip {
@@ -8018,6 +8208,21 @@ onMounted(async () => {
   border-radius: 8px;
   padding: 24px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.questions-container--pdf {
+  background: #e9ecef;
+  box-shadow: none;
+  padding: 36px;
+}
+
+.questions-container--pdf .question-row {
+  background: #fff;
+  border-radius: 0;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  width: 210mm;
+  margin: 0 auto 18px;
+  padding: 24px;
 }
 
 .question-row {

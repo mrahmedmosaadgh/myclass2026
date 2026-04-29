@@ -4,6 +4,28 @@
       <q-icon name="quiz" size="md" class="q-mr-sm" />
       <q-toolbar-title>Ready To Print v4</q-toolbar-title>
 
+      <q-btn
+        flat
+        dense
+        icon="open_in_new"
+        label="Server Print"
+        class="q-mr-sm"
+        :loading="openingPrintHtml"
+        :disable="!currentExam"
+        @click="openServerPrintHtml"
+      />
+
+      <q-btn
+        flat
+        dense
+        icon="picture_as_pdf"
+        label="Server PDF"
+        class="q-mr-sm"
+        :loading="pdfGenerating"
+        :disable="!currentExam"
+        @click="downloadServerPdf"
+      />
+
       <q-space />
 
       <ThreeDotMenu
@@ -34,6 +56,9 @@
         v-if="currentExam"
         :exam="currentExam"
         :preview-settings="previewSettings"
+        :pdf-generating="pdfGenerating"
+        @download-pdf="downloadServerPdf"
+        @debug-print="openServerPrintDebug"
       />
 
       <div v-else class="text-grey-7">
@@ -45,11 +70,14 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useQuasar } from 'quasar'
 import ThreeDotMenu from './components/ThreeDotMenu.vue'
 import OpenExamDialog from './components/OpenExamDialog.vue'
 import OpenMyExamsDialog from './components/OpenMyExamsDialog.vue'
 import SettingsDialog from './components/SettingsDialog.vue'
 import LivePrintPreview from './components/LivePrintPreview.vue'
+
+const $q = useQuasar()
 
 const openExamOpen = ref(false)
 const openMyExamsOpen = ref(false)
@@ -57,6 +85,8 @@ const currentExam = ref(null)
 
 const settingsOpen = ref(false)
 const settingsInitialTab = ref('mcq')
+const pdfGenerating = ref(false)
+const openingPrintHtml = ref(false)
 
 const previewSettings = ref({
   showMarksPerQuestion: false,
@@ -112,6 +142,203 @@ function handleExamLoaded(exam) {
       ...previewSettings.value,
       mcqOptions: { ...previewSettings.value.mcqOptions, ...incoming.mcqOptions }
     }
+  }
+}
+
+function generatePrintFileName() {
+  const exam = currentExam.value || {}
+  const title = String(exam?.name || exam?.settings?.examTitle?.text || 'Exam').trim()
+  const date = new Date().toISOString().slice(0, 10)
+  return `${title} - ${date}`.replace(/[<>:"/\\|?*]/g, '').slice(0, 200)
+}
+
+function getCurrentExamId() {
+  const id = currentExam.value?.id
+  return id ? String(id) : ''
+}
+
+function ensureExamIdOrNotify() {
+  const examId = getCurrentExamId()
+  if (examId) return examId
+
+  $q.notify({
+    type: 'warning',
+    message: 'This exam has no saved ID yet. Open a saved exam from "Open My Exams" to use server print/PDF.',
+    position: 'top'
+  })
+  return ''
+}
+
+async function openServerPrintHtml() {
+  if (openingPrintHtml.value) return
+  const examId = ensureExamIdOrNotify()
+  if (!examId) return
+
+  openingPrintHtml.value = true
+  try {
+    const response = await fetch(`/api/exam/ready-to-print/print-html/${encodeURIComponent(examId)}`, {
+      headers: {
+        Accept: 'text/html, application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+
+    const contentType = response.headers.get('content-type') || ''
+    if (!response.ok) {
+      if (contentType.includes('application/json')) {
+        const errorData = await response.json()
+        throw new Error(errorData?.message || 'Failed to generate print HTML')
+      }
+      const text = await response.text()
+      throw new Error(text.substring(0, 200) || 'Failed to generate print HTML')
+    }
+
+    if (contentType.includes('application/json')) {
+      const payload = await response.json()
+      throw new Error(payload?.message || 'Unexpected JSON response for print HTML')
+    }
+
+    const html = await response.text()
+    const w = window.open('', '_blank')
+    if (!w) {
+      throw new Error('Popup blocked. Please allow popups to open print preview.')
+    }
+    w.document.write(html)
+    w.document.close()
+  } catch (error) {
+    $q.notify({ type: 'negative', message: String(error?.message || error), position: 'top' })
+  } finally {
+    openingPrintHtml.value = false
+  }
+}
+
+async function downloadServerPdf() {
+  if (pdfGenerating.value) return
+  const examId = ensureExamIdOrNotify()
+  if (!examId) return
+
+  pdfGenerating.value = true
+  try {
+    const response = await fetch(`/api/exam/ready-to-print/generate-pdf/${encodeURIComponent(examId)}`, {
+      headers: {
+        Accept: 'application/pdf, text/html, application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+
+    const contentType = response.headers.get('content-type') || ''
+
+    if (!response.ok) {
+      if (contentType.includes('application/json')) {
+        const errorData = await response.json()
+        throw new Error(errorData?.message || 'Failed to generate PDF')
+      }
+      const text = await response.text()
+      throw new Error(text.substring(0, 200) || 'Failed to generate PDF')
+    }
+
+    if (contentType.includes('application/json')) {
+      const payload = await response.json()
+      throw new Error(payload?.message || 'Unexpected JSON response for PDF')
+    }
+
+    if (contentType.includes('text/html')) {
+      const html = await response.text()
+      const w = window.open('', '_blank')
+      if (!w) {
+        throw new Error('Popup blocked. Please allow popups to use HTML print fallback.')
+      }
+      w.document.write(html)
+      w.document.close()
+      w.onload = () => w.print()
+      return
+    }
+
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${generatePrintFileName()}.pdf`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(url)
+  } catch (error) {
+    $q.notify({ type: 'negative', message: String(error?.message || error), position: 'top' })
+  } finally {
+    pdfGenerating.value = false
+  }
+}
+
+async function openServerPrintDebug() {
+  if (openingPrintHtml.value) return
+  const examId = ensureExamIdOrNotify()
+  if (!examId) return
+
+  openingPrintHtml.value = true
+  try {
+    const response = await fetch(`/api/exam/ready-to-print/print-html/${encodeURIComponent(examId)}?debug=1`, {
+      headers: {
+        Accept: 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+
+    const payload = await response.json().catch(() => null)
+    if (!response.ok) {
+      throw new Error(payload?.message || 'Failed to load debug print payload')
+    }
+
+    const report = payload?.paginationReport || {}
+    const html = payload?.html || ''
+
+    const w = window.open('', '_blank')
+    if (!w) {
+      throw new Error('Popup blocked. Please allow popups to open debug print view.')
+    }
+
+    const escaped = (v) => String(v ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+    const reportPretty = escaped(JSON.stringify(report, null, 2))
+    const scriptCloseTag = '</scr' + 'ipt>'
+    const htmlJson = JSON.stringify(String(html)).replaceAll(scriptCloseTag, '<\\/script>')
+
+    w.document.write(`<!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>Print Debug - ${escaped(examId)}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 0; }
+            .wrap { display: grid; grid-template-columns: 38% 62%; min-height: 100vh; }
+            .left { padding: 12px; border-right: 1px solid #ddd; overflow: auto; background: #fafafa; }
+            .right { padding: 0; }
+            h3 { margin: 0 0 10px; }
+            pre { white-space: pre-wrap; word-break: break-word; font-size: 12px; line-height: 1.45; }
+            iframe { border: 0; width: 100%; height: 100vh; }
+          </style>
+        </head>
+        <body>
+          <div class="wrap">
+            <div class="left">
+              <h3>Pagination Report</h3>
+              <pre>${reportPretty}</pre>
+            </div>
+            <div class="right">
+              <iframe id="previewFrame"></iframe>
+            </div>
+          </div>
+          <script>
+            const html = ${htmlJson}
+            const frame = document.getElementById('previewFrame')
+            if (frame) frame.srcdoc = html
+          <\/script>
+        </body>
+      </html>`)
+    w.document.close()
+  } catch (error) {
+    $q.notify({ type: 'negative', message: String(error?.message || error), position: 'top' })
+  } finally {
+    openingPrintHtml.value = false
   }
 }
 
