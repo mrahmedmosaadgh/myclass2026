@@ -15,9 +15,18 @@
         flat
         dense
         icon="print"
-        label="Print"
-        @click="printDirect"
+        label="New Print"
+        @click="printNewDirect"
         :loading="openingPrintHtml"
+        class="q-mr-xs"
+      />
+
+      <q-btn
+        flat
+        dense
+        icon="print"
+        label="Old Print"
+        @click="printOldDirect"
         class="q-mr-xs"
       />
 
@@ -5511,7 +5520,7 @@ watch([sampleQuestions, sections, questionSectionMap, pageOptions], () => {
 }, { deep: true })
 
 async function openPrintPreview() {
-  await printDirect()
+  await printNewDirect()
 }
 
 function ensureSavedExamIdOrNotify() {
@@ -5561,7 +5570,7 @@ async function openServerPrintHtml() {
         throw new Error(data?.message || 'Failed to generate print HTML')
       }
       const text = await response.text()
-      throw new Error(text.substring(0, 200) || 'Failed to generate print HTML')
+      throw new Error(`Failed to generate print HTML (${response.status}): ` + (text.substring(0, 200) || 'Unknown server error'))
     }
 
     const html = await response.text()
@@ -5650,13 +5659,24 @@ async function downloadServerPdf() {
   }
 }
 
-async function printDirect() {
+async function printNewDirect() {
   try {
-    if (lastSavedExamId.value) {
-      await openServerPrintHtml()
-      return
-    }
+    const ok = await openServerPrintHtml()
+    if (ok) return
+  } catch (e) {
+    console.error('New print failed', e)
+    $q.notify({
+      type: 'warning',
+      message: 'New print failed, using old print fallback.',
+      position: 'top'
+    })
+  }
 
+  await printOldDirect()
+}
+
+async function printOldDirect() {
+  try {
     const livePdfIframe = document.querySelector('.pdf-preview-iframe')
     if (pdfPreviewMode.value && livePdfIframe && livePdfIframe.contentWindow) {
       livePdfIframe.contentWindow.focus()
@@ -5704,7 +5724,7 @@ async function printDirect() {
       setTimeout(tryPrint, 60)
     }
   } catch (e) {
-    console.error('Direct print failed', e)
+    console.error('Old print failed', e)
     $q.notify({
       type: 'negative',
       message: 'Print failed: ' + e.message,
