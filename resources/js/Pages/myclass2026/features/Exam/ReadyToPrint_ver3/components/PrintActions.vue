@@ -396,9 +396,50 @@ function openLivePreview() {
   livePreviewRef.value?.show(props.extraMarginMm)
 }
 
+async function openServerPrintHtml() {
+  if (!props.examId) {
+    throw new Error('No exam ID provided. Please save the exam first.')
+  }
+
+  const w = window.open('', '_blank')
+  if (!w) {
+    throw new Error('Popup blocked. Please allow popups to open print preview.')
+  }
+
+  w.document.write('<!doctype html><html><head><meta charset="utf-8" /><title>Loading...</title></head><body style="font-family: Arial, sans-serif; padding: 16px;">Loading print preview...</body></html>')
+  w.document.close()
+
+  const response = await fetch(`/api/exam/ready-to-print/print-html/${encodeURIComponent(props.examId)}`, {
+    headers: {
+      Accept: 'text/html, application/json',
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+
+  const contentType = (response.headers.get('content-type') || '').toLowerCase()
+  if (!response.ok) {
+    if (contentType.includes('application/json')) {
+      const data = await response.json().catch(() => ({}))
+      throw new Error(data?.message || 'Failed to generate print HTML')
+    }
+    const text = await response.text()
+    throw new Error(text.substring(0, 200) || 'Failed to generate print HTML')
+  }
+
+  const html = await response.text()
+  w.document.write(html)
+  w.document.close()
+}
+
 async function downloadPDF() {
   if (pdfGenerating.value) return
   pdfGenerating.value = true
+
+  const fallbackWindow = window.open('', '_blank')
+  if (fallbackWindow) {
+    fallbackWindow.document.write('<!doctype html><html><head><meta charset="utf-8" /><title>Loading...</title></head><body style="font-family: Arial, sans-serif; padding: 16px;">Preparing PDF...</body></html>')
+    fallbackWindow.document.close()
+  }
   
   try {
     if (!props.examId) {
@@ -435,17 +476,20 @@ async function downloadPDF() {
     if (contentType.includes('text/html')) {
       // Server returned HTML as fallback - open in new window for print-to-PDF
       const html = await response.text()
-      const printWindow = window.open('', '_blank')
-      if (printWindow) {
-        printWindow.document.write(html)
-        printWindow.document.close()
-        printWindow.onload = function() {
-          printWindow.print()
+      if (fallbackWindow) {
+        fallbackWindow.document.write(html)
+        fallbackWindow.document.close()
+        fallbackWindow.onload = function() {
+          fallbackWindow.print()
         }
       } else {
         throw new Error('Popup blocked. Please allow popups to use print-to-PDF fallback.')
       }
       return
+    }
+
+    if (fallbackWindow) {
+      try { fallbackWindow.close() } catch (e) {}
     }
     
     // Get the blob and create download link
@@ -460,6 +504,9 @@ async function downloadPDF() {
     document.body.removeChild(a)
     
   } catch (error) {
+    if (fallbackWindow) {
+      try { fallbackWindow.close() } catch (e) {}
+    }
     console.error('PDF generation failed:', error)
     alert('PDF generation failed: ' + error.message)
   } finally {
@@ -467,7 +514,16 @@ async function downloadPDF() {
   }
 }
 
-function print() {
+async function print() {
+  if (props.examId) {
+    try {
+      await openServerPrintHtml()
+      return
+    } catch (error) {
+      console.error('Server print failed, falling back to local print:', error)
+    }
+  }
+
   if (selectedMethod.value === 'v2') {
     printV2()
     return

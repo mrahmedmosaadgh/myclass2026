@@ -17,6 +17,17 @@
         icon="print"
         label="Print"
         @click="printDirect"
+        :loading="openingPrintHtml"
+        class="q-mr-xs"
+      />
+
+      <q-btn
+        flat
+        dense
+        icon="picture_as_pdf"
+        label="PDF"
+        @click="downloadServerPdf"
+        :loading="pdfGenerating"
         class="q-mr-xs"
       />
 
@@ -3611,6 +3622,8 @@ const settingsPresets = ref([
 // File manager reference
 const fileManagerRef = ref(null)
 const lastSavedExamId = ref(null)
+const openingPrintHtml = ref(false)
+const pdfGenerating = ref(false)
 
 const LAST_EXAM_ID_STORAGE_KEY = 'rtp_v3_lastSavedExamId'
 
@@ -5501,8 +5514,149 @@ async function openPrintPreview() {
   await printDirect()
 }
 
+function ensureSavedExamIdOrNotify() {
+  if (lastSavedExamId.value) {
+    return String(lastSavedExamId.value)
+  }
+
+  $q.notify({
+    type: 'warning',
+    message: 'Please save the exam first to use server print/PDF.',
+    position: 'top'
+  })
+  return ''
+}
+
+async function openServerPrintHtml() {
+  if (openingPrintHtml.value) return
+  const examId = ensureSavedExamIdOrNotify()
+  if (!examId) return false
+
+  const w = window.open('', '_blank')
+  if (!w) {
+    $q.notify({
+      type: 'negative',
+      message: 'Popup blocked. Please allow popups to open print preview.',
+      position: 'top'
+    })
+    return false
+  }
+  w.document.write('<!doctype html><html><head><meta charset="utf-8" /><title>Loading...</title></head><body style="font-family: Arial, sans-serif; padding: 16px;">Loading print preview...</body></html>')
+  w.document.close()
+
+  openingPrintHtml.value = true
+  try {
+    const response = await fetch(`/api/exam/ready-to-print/print-html/${encodeURIComponent(examId)}`, {
+      method: 'GET',
+      headers: {
+        Accept: 'text/html, application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+
+    const contentType = (response.headers.get('content-type') || '').toLowerCase()
+    if (!response.ok) {
+      if (contentType.includes('application/json')) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data?.message || 'Failed to generate print HTML')
+      }
+      const text = await response.text()
+      throw new Error(text.substring(0, 200) || 'Failed to generate print HTML')
+    }
+
+    const html = await response.text()
+    w.document.write(html)
+    w.document.close()
+    return true
+  } catch (e) {
+    try { w.close() } catch {}
+    $q.notify({
+      type: 'negative',
+      message: 'Server print failed: ' + (e?.message || e),
+      position: 'top'
+    })
+    return false
+  } finally {
+    openingPrintHtml.value = false
+  }
+}
+
+async function downloadServerPdf() {
+  if (pdfGenerating.value) return
+  const examId = ensureSavedExamIdOrNotify()
+  if (!examId) return
+
+  const fallbackWindow = window.open('', '_blank')
+  if (fallbackWindow) {
+    fallbackWindow.document.write('<!doctype html><html><head><meta charset="utf-8" /><title>Loading...</title></head><body style="font-family: Arial, sans-serif; padding: 16px;">Preparing PDF...</body></html>')
+    fallbackWindow.document.close()
+  }
+
+  pdfGenerating.value = true
+  try {
+    const response = await fetch(`/api/exam/ready-to-print/generate-pdf/${encodeURIComponent(examId)}`, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/pdf, text/html, application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+
+    const contentType = (response.headers.get('content-type') || '').toLowerCase()
+    if (!response.ok) {
+      if (contentType.includes('application/json')) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data?.message || 'Failed to generate PDF')
+      }
+      const text = await response.text()
+      throw new Error(text.substring(0, 200) || 'Failed to generate PDF')
+    }
+
+    if (contentType.includes('text/html')) {
+      const html = await response.text()
+      if (!fallbackWindow) {
+        throw new Error('Popup blocked. Please allow popups to use HTML print fallback.')
+      }
+      fallbackWindow.document.write(html)
+      fallbackWindow.document.close()
+      fallbackWindow.onload = () => fallbackWindow.print()
+      return
+    }
+
+    if (fallbackWindow) {
+      try { fallbackWindow.close() } catch {}
+    }
+
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'Exam.pdf'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(url)
+  } catch (e) {
+    if (fallbackWindow) {
+      try { fallbackWindow.close() } catch {}
+    }
+    $q.notify({
+      type: 'negative',
+      message: 'PDF generation failed: ' + (e?.message || e),
+      position: 'top'
+    })
+  } finally {
+    pdfGenerating.value = false
+  }
+}
+
 async function printDirect() {
   try {
+    if (lastSavedExamId.value) {
+      await openServerPrintHtml()
+      return
+    }
+
     const livePdfIframe = document.querySelector('.pdf-preview-iframe')
     if (pdfPreviewMode.value && livePdfIframe && livePdfIframe.contentWindow) {
       livePdfIframe.contentWindow.focus()

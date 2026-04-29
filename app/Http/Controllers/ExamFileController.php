@@ -385,14 +385,20 @@ class ExamFileController extends Controller
                     'trace' => $fallbackError->getTraceAsString()
                 ]);
 
-                return response()->json([
-                    'message' => 'PDF generation failed: ' . $e->getMessage()
-                ], 500);
+                $safeMessage = htmlspecialchars('PDF generation failed. Please use browser print as fallback.', ENT_QUOTES, 'UTF-8');
+                return response("<!doctype html><html><head><meta charset=\"utf-8\"><title>PDF Fallback</title></head><body style=\"font-family:Arial,sans-serif;padding:16px;\"><h3>PDF Fallback</h3><p>{$safeMessage}</p></body></html>", 200, [
+                    'Content-Type' => 'text/html',
+                    'X-PDF-Fallback' => 'true',
+                    'X-PDF-Fallback-Reason' => 'fallback_render_error',
+                ]);
             }
 
-            return response()->json([
-                'message' => 'PDF generation failed and HTML fallback was unavailable.'
-            ], 500);
+            $safeMessage = htmlspecialchars('PDF generation failed and exam HTML fallback was unavailable.', ENT_QUOTES, 'UTF-8');
+            return response("<!doctype html><html><head><meta charset=\"utf-8\"><title>PDF Fallback</title></head><body style=\"font-family:Arial,sans-serif;padding:16px;\"><h3>PDF Fallback</h3><p>{$safeMessage}</p></body></html>", 200, [
+                'Content-Type' => 'text/html',
+                'X-PDF-Fallback' => 'true',
+                'X-PDF-Fallback-Reason' => 'fallback_exam_unavailable',
+            ]);
         }
     }
 
