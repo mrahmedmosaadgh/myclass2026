@@ -334,7 +334,7 @@ class ExamFileController extends Controller
                 'Content-Disposition' => 'attachment; filename="' . $filename . '"',
                 'Content-Length' => strlen($pdfOutput),
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             \Log::error('PDF generation failed: ' . $e->getMessage(), [
                 'exam_id' => $examId,
                 'trace' => $e->getTraceAsString()
@@ -379,11 +379,20 @@ class ExamFileController extends Controller
                         'X-PDF-Fallback' => 'true',
                     ]);
                 }
-            } catch (\Exception $fallbackError) {
+            } catch (\Throwable $fallbackError) {
+                \Log::error('PDF fallback HTML generation failed: ' . $fallbackError->getMessage(), [
+                    'exam_id' => $examId,
+                    'trace' => $fallbackError->getTraceAsString()
+                ]);
+
                 return response()->json([
                     'message' => 'PDF generation failed: ' . $e->getMessage()
                 ], 500);
             }
+
+            return response()->json([
+                'message' => 'PDF generation failed and HTML fallback was unavailable.'
+            ], 500);
         }
     }
 
