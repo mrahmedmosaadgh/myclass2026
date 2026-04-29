@@ -174,6 +174,18 @@ async function openServerPrintHtml() {
   const examId = ensureExamIdOrNotify()
   if (!examId) return
 
+  const w = window.open('', '_blank')
+  if (!w) {
+    $q.notify({
+      type: 'negative',
+      message: 'Popup blocked. Please allow popups to open print preview.',
+      position: 'top'
+    })
+    return
+  }
+  w.document.write('<!doctype html><html><head><meta charset="utf-8" /><title>Loading...</title></head><body style="font-family: Arial, sans-serif; padding: 16px;">Loading print preview...</body></html>')
+  w.document.close()
+
   openingPrintHtml.value = true
   try {
     const response = await fetch(`/api/exam/ready-to-print/print-html/${encodeURIComponent(examId)}`, {
@@ -199,13 +211,12 @@ async function openServerPrintHtml() {
     }
 
     const html = await response.text()
-    const w = window.open('', '_blank')
-    if (!w) {
-      throw new Error('Popup blocked. Please allow popups to open print preview.')
-    }
     w.document.write(html)
     w.document.close()
   } catch (error) {
+    try {
+      w.close()
+    } catch {}
     $q.notify({ type: 'negative', message: String(error?.message || error), position: 'top' })
   } finally {
     openingPrintHtml.value = false
@@ -216,6 +227,12 @@ async function downloadServerPdf() {
   if (pdfGenerating.value) return
   const examId = ensureExamIdOrNotify()
   if (!examId) return
+
+  const fallbackWindow = window.open('', '_blank')
+  if (fallbackWindow) {
+    fallbackWindow.document.write('<!doctype html><html><head><meta charset="utf-8" /><title>Loading...</title></head><body style="font-family: Arial, sans-serif; padding: 16px;">Preparing PDF...</body></html>')
+    fallbackWindow.document.close()
+  }
 
   pdfGenerating.value = true
   try {
@@ -244,14 +261,19 @@ async function downloadServerPdf() {
 
     if (contentType.includes('text/html')) {
       const html = await response.text()
-      const w = window.open('', '_blank')
-      if (!w) {
+      if (!fallbackWindow) {
         throw new Error('Popup blocked. Please allow popups to use HTML print fallback.')
       }
-      w.document.write(html)
-      w.document.close()
-      w.onload = () => w.print()
+      fallbackWindow.document.write(html)
+      fallbackWindow.document.close()
+      fallbackWindow.onload = () => fallbackWindow.print()
       return
+    }
+
+    if (fallbackWindow) {
+      try {
+        fallbackWindow.close()
+      } catch {}
     }
 
     const blob = await response.blob()
@@ -264,6 +286,11 @@ async function downloadServerPdf() {
     document.body.removeChild(a)
     window.URL.revokeObjectURL(url)
   } catch (error) {
+    if (fallbackWindow) {
+      try {
+        fallbackWindow.close()
+      } catch {}
+    }
     $q.notify({ type: 'negative', message: String(error?.message || error), position: 'top' })
   } finally {
     pdfGenerating.value = false
@@ -274,6 +301,18 @@ async function openServerPrintDebug() {
   if (openingPrintHtml.value) return
   const examId = ensureExamIdOrNotify()
   if (!examId) return
+
+  const w = window.open('', '_blank')
+  if (!w) {
+    $q.notify({
+      type: 'negative',
+      message: 'Popup blocked. Please allow popups to open debug print view.',
+      position: 'top'
+    })
+    return
+  }
+  w.document.write('<!doctype html><html><head><meta charset="utf-8" /><title>Loading...</title></head><body style="font-family: Arial, sans-serif; padding: 16px;">Loading debug print view...</body></html>')
+  w.document.close()
 
   openingPrintHtml.value = true
   try {
@@ -291,11 +330,6 @@ async function openServerPrintDebug() {
 
     const report = payload?.paginationReport || {}
     const html = payload?.html || ''
-
-    const w = window.open('', '_blank')
-    if (!w) {
-      throw new Error('Popup blocked. Please allow popups to open debug print view.')
-    }
 
     const escaped = (v) => String(v ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
     const reportPretty = escaped(JSON.stringify(report, null, 2))
@@ -336,6 +370,9 @@ async function openServerPrintDebug() {
       </html>`)
     w.document.close()
   } catch (error) {
+    try {
+      w.close()
+    } catch {}
     $q.notify({ type: 'negative', message: String(error?.message || error), position: 'top' })
   } finally {
     openingPrintHtml.value = false

@@ -296,6 +296,18 @@ class ExamFileController extends Controller
                 'meta' => $puppeteerResult['meta'] ?? null,
             ]);
 
+            if (!class_exists(\Dompdf\Dompdf::class) || !class_exists(\Dompdf\Options::class)) {
+                \Log::warning('Dompdf classes unavailable; returning HTML print fallback', [
+                    'exam_id' => $examId,
+                ]);
+
+                return response($htmlContent, 200, [
+                    'Content-Type' => 'text/html',
+                    'X-PDF-Fallback' => 'true',
+                    'X-PDF-Fallback-Reason' => 'dompdf_unavailable',
+                ]);
+            }
+
             // Sanitize HTML - remove problematic elements for dompdf
             $htmlContent = $this->sanitizeHtmlForPdf($htmlContent);
 
