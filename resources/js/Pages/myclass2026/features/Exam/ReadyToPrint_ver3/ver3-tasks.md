@@ -70,6 +70,7 @@ Status file for `ver3.md` roadmap items (checked against current implementation 
 - ✅ Oversized question handling improved: explicit single-item forced overflow path is now tracked and exempted from false overflow-violation noise.
 - ✅ Strict/Flex pagination mode contract is now wired end-to-end (settings → `ExamPaginationService`) with mode reported in pagination debug output.
 - ✅ Ver3 settings UI now includes a visible `Pagination mode` selector (`Strict` / `Flex`) and persists it in `pageOptions` defaults/reset/save flows.
+- ✅ Pagination mode observability completed: `print-html` debug payload includes active mode and response headers now expose `X-Pagination-Mode` for print/PDF/fallback responses.
 
 ---
 

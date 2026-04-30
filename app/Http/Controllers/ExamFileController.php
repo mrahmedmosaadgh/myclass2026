@@ -178,12 +178,14 @@ class ExamFileController extends Controller
         $paginationReport = $renderPayload['paginationReport'] ?? null;
         $htmlContent = (string) ($renderPayload['html'] ?? '');
         $cacheStatus = !empty($renderPayload['cacheHit']) ? 'hit' : 'miss';
+        $paginationMode = $this->resolvePaginationMode($paginationReport, $renderPayload['data']['settings'] ?? []);
 
         $debugMode = request()->boolean('debug');
         if ($debugMode) {
             return response()->json([
                 'success' => true,
                 'examId' => $examId,
+                'paginationMode' => $paginationMode,
                 'paginationReport' => $paginationReport,
                 'html' => $htmlContent,
                 'cache' => [
@@ -200,7 +202,8 @@ class ExamFileController extends Controller
             ->header('X-Print-Cache', $cacheStatus)
             ->header('X-Print-Cache-Bypass', !empty($renderPayload['cacheBypassed']) ? '1' : '0')
             ->header('X-Print-Cache-Key', (string) ($renderPayload['cacheKey'] ?? ''))
-            ->header('X-Render-Fingerprint', (string) ($renderPayload['fingerprint'] ?? ''));
+            ->header('X-Render-Fingerprint', (string) ($renderPayload['fingerprint'] ?? ''))
+            ->header('X-Pagination-Mode', $paginationMode);
 
         if (is_array($paginationReport)) {
             $response->header('X-Pagination-Total-Pages', (string) ($paginationReport['totalPages'] ?? 1));
@@ -237,6 +240,10 @@ class ExamFileController extends Controller
             $htmlContent = (string) ($renderPayload['html'] ?? '');
             $pdfCacheStatus = 'miss';
             $pdfCacheKey = 'rtp:pdf:v1:' . $exam->slug . ':' . ($renderPayload['fingerprint'] ?? 'na');
+            $paginationMode = $this->resolvePaginationMode(
+                $renderPayload['paginationReport'] ?? null,
+                $renderPayload['data']['settings'] ?? []
+            );
             $cachedPdfBase64 = Cache::get($pdfCacheKey);
 
             if (is_string($cachedPdfBase64) && $cachedPdfBase64 !== '') {
@@ -257,6 +264,7 @@ class ExamFileController extends Controller
                         'X-PDF-Cache-Key' => $pdfCacheKey,
                         'X-Print-Cache-Bypass' => !empty($renderPayload['cacheBypassed']) ? '1' : '0',
                         'X-Render-Fingerprint' => (string) ($renderPayload['fingerprint'] ?? ''),
+                        'X-Pagination-Mode' => $paginationMode,
                     ]);
                 }
             }
@@ -281,6 +289,7 @@ class ExamFileController extends Controller
                     'X-PDF-Cache-Key' => $pdfCacheKey,
                     'X-Print-Cache-Bypass' => !empty($renderPayload['cacheBypassed']) ? '1' : '0',
                     'X-Render-Fingerprint' => (string) ($renderPayload['fingerprint'] ?? ''),
+                    'X-Pagination-Mode' => $paginationMode,
                 ]);
             }
 
@@ -302,6 +311,7 @@ class ExamFileController extends Controller
                     'X-Print-Cache' => !empty($renderPayload['cacheHit']) ? 'hit' : 'miss',
                     'X-Print-Cache-Bypass' => !empty($renderPayload['cacheBypassed']) ? '1' : '0',
                     'X-Render-Fingerprint' => (string) ($renderPayload['fingerprint'] ?? ''),
+                    'X-Pagination-Mode' => $paginationMode,
                 ]);
             }
 
@@ -370,6 +380,8 @@ class ExamFileController extends Controller
                     ];
 
                     $htmlContent = $this->generatePrintHtml($data);
+                    $fallbackModeRaw = (string) ($data['settings']['paginationMode'] ?? $data['settings']['renderMode'] ?? 'strict');
+                    $fallbackPaginationMode = in_array($fallbackModeRaw, ['strict', 'flex'], true) ? $fallbackModeRaw : 'strict';
                     
                     return response($htmlContent, 200, [
                         'Content-Type' => 'text/html',
@@ -377,6 +389,7 @@ class ExamFileController extends Controller
                         'X-Print-Cache' => !empty($renderPayload['cacheHit']) ? 'hit' : 'miss',
                         'X-Print-Cache-Bypass' => !empty($renderPayload['cacheBypassed']) ? '1' : '0',
                         'X-Render-Fingerprint' => (string) ($renderPayload['fingerprint'] ?? ''),
+                        'X-Pagination-Mode' => $fallbackPaginationMode,
                     ]);
                 }
             } catch (\Throwable $fallbackError) {
@@ -679,5 +692,19 @@ class ExamFileController extends Controller
                 'data' => $data,
             ]
         );
+    }
+
+    private function resolvePaginationMode($paginationReport, $settings): string
+    {
+        $modeRaw = 'strict';
+
+        if (is_array($paginationReport) && isset($paginationReport['mode'])) {
+            $modeRaw = (string) $paginationReport['mode'];
+        } elseif (is_array($settings)) {
+            $modeRaw = (string) ($settings['paginationMode'] ?? $settings['renderMode'] ?? 'strict');
+        }
+
+        $mode = strtolower($modeRaw);
+        return in_array($mode, ['strict', 'flex'], true) ? $mode : 'strict';
     }
 }
