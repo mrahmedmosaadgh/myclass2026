@@ -490,6 +490,21 @@
                 @update:model-value="savePageState"
               />
 
+              <q-select
+                dense
+                outlined
+                :options="[
+                  { label: 'Strict (recommended for final exams)', value: 'strict' },
+                  { label: 'Flex (tighter packing for drafts/worksheets)', value: 'flex' }
+                ]"
+                emit-value
+                map-options
+                v-model="pageOptions.paginationMode"
+                label="Pagination mode"
+                hint="Strict enforces conservative page-break rules; Flex allows tighter layout."
+                @update:model-value="savePageState"
+              />
+
               <q-toggle
                 v-model="pageOptions.questionSeparator.enabled"
                 label="Line after each question"
@@ -1134,6 +1149,30 @@
                             v-model="pageOptions.printFooter.pageNumberColor"
                             label="Color"
                             @update:model-value="savePageState"
+                          />
+                        </div>
+                        <div class="col-12 col-md-6">
+                          <q-input
+                            dense
+                            outlined
+                            type="number"
+                            min="1"
+                            v-model.number="pageOptions.printFooter.pageNumberStartAtQuestion"
+                            label="Start numbering from question #"
+                            hint="Page containing this question becomes the numbering start page"
+                            @blur="savePageState"
+                          />
+                        </div>
+                        <div class="col-12 col-md-6">
+                          <q-input
+                            dense
+                            outlined
+                            type="number"
+                            min="1"
+                            v-model.number="pageOptions.printFooter.pageNumberStartValue"
+                            label="Start page number value"
+                            hint="Example: 1 means selected question page shows page 1"
+                            @blur="savePageState"
                           />
                         </div>
                       </div>
@@ -3691,6 +3730,7 @@ const pageOptions = ref({
   showMarksPerQuestion: true,
   showExplanationUnderQuestion: false,
   showCorrectAnswerUnderQuestion: false,
+  paginationMode: 'strict',
   printHeader: {
     enabled: false,
     autoFit: true,
@@ -3731,6 +3771,8 @@ const pageOptions = ref({
     pageNumberFormat: 'page',
     pageNumberFontSize: 10,
     pageNumberColor: '#000000',
+    pageNumberStartAtQuestion: 1,
+    pageNumberStartValue: 1,
     applyOffsetToPageNumbers: false,
     lastPageText: '',
     useLastPageText: false
@@ -4962,6 +5004,7 @@ function applySettingsPreset(presetValue) {
       showMarksPerQuestion: true,
       showExplanationUnderQuestion: false,
       showCorrectAnswerUnderQuestion: false,
+      paginationMode: 'strict',
       printHeader: {
         enabled: false,
         autoFit: true,
@@ -5002,6 +5045,8 @@ function applySettingsPreset(presetValue) {
         pageNumberFormat: 'page',
         pageNumberFontSize: 10,
         pageNumberColor: '#000000',
+        pageNumberStartAtQuestion: 1,
+        pageNumberStartValue: 1,
         applyOffsetToPageNumbers: false,
         lastPageText: '',
         useLastPageText: false
@@ -5450,12 +5495,13 @@ function handleCreateNewExam() {
       showMarksPerQuestion: true,
       showExplanationUnderQuestion: false,
       showCorrectAnswerUnderQuestion: false,
+      paginationMode: 'strict',
       printHeader: {
         enabled: true,
         template1: { subject: '', grade: '', date: '', duration: '' },
         pageMarginTopMm: 20
       },
-      printFooter: { enabled: false },
+      printFooter: { enabled: false, pageNumberStartAtQuestion: 1, pageNumberStartValue: 1 },
       firstPage: { enabled: false },
       lastPage: { enabled: false },
       questionNumbering: { startFrom: 1, pageBreaksBefore: {} },
@@ -7532,6 +7578,15 @@ function generatePrintHTML() {
   const pageNumberFormat = String(pageOptions.value?.printFooter?.pageNumberFormat || 'page')
   const pageNumberFontSize = Number(pageOptions.value?.printFooter?.pageNumberFontSize) || 10
   const pageNumberColor = String(pageOptions.value?.printFooter?.pageNumberColor || '#000000')
+  const pageNumberStartAtQuestionRaw = Number(pageOptions.value?.printFooter?.pageNumberStartAtQuestion)
+  const pageNumberStartAtQuestion = Number.isFinite(pageNumberStartAtQuestionRaw) && pageNumberStartAtQuestionRaw > 0
+    ? Math.floor(pageNumberStartAtQuestionRaw)
+    : 1
+  const pageNumberStartValueRaw = Number(pageOptions.value?.printFooter?.pageNumberStartValue)
+  const pageNumberStartValue = Number.isFinite(pageNumberStartValueRaw) && pageNumberStartValueRaw > 0
+    ? Math.floor(pageNumberStartValueRaw)
+    : 1
+  const pageCounterResetValue = Math.max(0, pageNumberStartValue - 1)
   const extraFooterMarginMm = (() => {
     const v = Number(pageOptions.value?.printFooter?.pageMarginBottomMm)
     return Number.isFinite(v) && v > 0 ? v : 0
@@ -7563,6 +7618,8 @@ function generatePrintHTML() {
   html += ' @media print { .page-number-content[data-format="page-slash"]::after { content: "Page " counter(page) " / " counter(pages); } }'
   html += ' @media print { .page-number-content[data-format="fraction"]::after { content: counter(page) "/" counter(pages); } }'
   html += ' @media screen { .page-number-content[data-format]::after { content: ""; } }'
+  html += ' .page-counter-reset-marker { display: block; height: 0; margin: 0; padding: 0; line-height: 0; }'
+  html += ' @media print { .page-counter-reset-marker { counter-reset: page ' + pageCounterResetValue + '; } }'
   html += ' h1 { margin: 0 0 14pt; font-size: 22pt; }'
   html += ' h2 { margin: 14pt 0 6pt; font-size: 15pt; text-decoration: underline; }'
   // Header: touches the top of the physical page printable area.
@@ -7815,6 +7872,9 @@ scriptContent += "})();";
       const breaksMap = pageOptions.value?.questionNumbering?.pageBreaksBefore || {}
       if (breaksMap[String(question?.id)]) {
         html += '<div class="page-break"></div>'
+      }
+      if (showPageNumbers && globalIndex === pageNumberStartAtQuestion) {
+        html += '<div class="page-counter-reset-marker" data-start-question="' + globalIndex + '"></div>'
       }
       html += '<div class="question">'
       const img = question?.content?.image

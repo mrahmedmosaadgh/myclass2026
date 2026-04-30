@@ -101,6 +101,7 @@ const html = computed(() => {
 
   let out = ''
   out += '<!DOCTYPE html><html><head><meta charset="utf-8" />'
+  out += '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">'
   out += '<style>'
   out += '@page { size: A4; margin: 12mm; }'
   out += 'body { font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.5; margin: 0; padding: 0; }'

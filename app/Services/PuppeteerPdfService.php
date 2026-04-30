@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Log;
+use JsonException;
 
 class PuppeteerPdfService
 {
@@ -12,6 +13,8 @@ class PuppeteerPdfService
     protected int $timeout;
     protected int $maxPages;
     protected bool $strictEnvironmentCheck;
+    protected string $bindingPath;
+    protected string $layoutVersion;
     protected string $metricsPath;
 
     public function __construct()
@@ -22,6 +25,8 @@ class PuppeteerPdfService
         $this->timeout = (int) config('services.print_pdf.timeout', 60);
         $this->maxPages = (int) config('services.print_pdf.max_pages', 60);
         $this->strictEnvironmentCheck = (bool) config('services.print_pdf.strict_environment_check', true);
+        $this->bindingPath = (string) config('services.print_pdf.binding_path', base_path('tools/print-calibration/layout-metrics-binding.json'));
+        $this->layoutVersion = (string) config('services.print_pdf.layout_version', 'v1.0');
         $this->metricsPath = (string) config('services.print_pdf.metrics_path', base_path('tools/print-calibration/metrics.v1.json'));
     }
 
@@ -99,12 +104,11 @@ class PuppeteerPdfService
             return null;
         }
 
-        if (!is_file($this->metricsPath)) {
-            return "Metrics file not found for environment validation: {$this->metricsPath}";
+        [$metrics, $metricsError] = $this->loadValidatedMetricsRuntime();
+        if ($metricsError !== null) {
+            return $metricsError;
         }
 
-        $metricsRaw = file_get_contents($this->metricsPath);
-        $metrics = json_decode($metricsRaw ?: '', true);
         $expected = $metrics['environment'] ?? null;
 
         if (!is_array($expected)) {
@@ -126,6 +130,99 @@ class PuppeteerPdfService
         }
 
         return null;
+    }
+
+    protected function loadValidatedMetricsRuntime(): array
+    {
+        if (!is_file($this->bindingPath)) {
+            return [null, "Binding file not found for PDF runtime validation: {$this->bindingPath}"];
+        }
+
+        $bindingData = json_decode((string) file_get_contents($this->bindingPath), true);
+        if (!is_array($bindingData)) {
+            return [null, 'Binding file is invalid JSON'];
+        }
+
+        $metricsVersion = $bindingData['layoutMetricsBinding'][$this->layoutVersion] ?? null;
+        if (!is_string($metricsVersion) || $metricsVersion === '') {
+            return [null, "No metrics binding found for layoutVersion {$this->layoutVersion}"];
+        }
+
+        $artifact = $bindingData['lockedArtifacts'][$metricsVersion] ?? null;
+        $isFrozen = $artifact['frozen'] ?? null;
+        $metricsRelativeFile = $artifact['file'] ?? null;
+
+        if ($isFrozen !== true) {
+            return [null, "Locked artifact for {$metricsVersion} is not frozen"];
+        }
+
+        if (!is_string($metricsRelativeFile) || $metricsRelativeFile === '') {
+            return [null, "Locked artifact missing file for metricsVersion {$metricsVersion}"];
+        }
+
+        $boundMetricsPath = base_path('tools/print-calibration/' . ltrim($metricsRelativeFile, '/'));
+        if (!is_file($boundMetricsPath)) {
+            return [null, "Metrics file not found for runtime validation: {$boundMetricsPath}"];
+        }
+
+        $configuredPath = realpath($this->metricsPath) ?: $this->metricsPath;
+        $boundPath = realpath($boundMetricsPath) ?: $boundMetricsPath;
+        if ($configuredPath !== $boundPath) {
+            return [null, "Configured metrics path does not match bound artifact path: {$this->metricsPath}"];
+        }
+
+        $metricsRaw = file_get_contents($boundMetricsPath);
+        $metrics = json_decode($metricsRaw ?: '', true);
+        if (!is_array($metrics) || !is_array($metrics['values'] ?? null)) {
+            return [null, 'Metrics file has invalid structure'];
+        }
+
+        $metricsLayoutVersion = (string) ($metrics['layoutVersion'] ?? '');
+        if ($metricsLayoutVersion !== $this->layoutVersion) {
+            return [null, "Metrics layoutVersion mismatch: expected {$this->layoutVersion}, got {$metricsLayoutVersion}"];
+        }
+
+        $metricsDataVersion = (string) ($metrics['metricsVersion'] ?? '');
+        if ($metricsDataVersion !== $metricsVersion) {
+            return [null, "Metrics version mismatch: expected {$metricsVersion}, got {$metricsDataVersion}"];
+        }
+
+        $expectedIntegrityHash = (string) ($metrics['hash'] ?? '');
+        if ($expectedIntegrityHash === '') {
+            return [null, 'Metrics file hash is missing'];
+        }
+
+        $computedIntegrityHash = $this->computeMetricsIntegrityHash($metrics);
+        if ($computedIntegrityHash === null) {
+            return [null, 'Unable to compute metrics integrity hash'];
+        }
+
+        if ($expectedIntegrityHash !== $computedIntegrityHash) {
+            return [null, 'Metrics integrity hash mismatch'];
+        }
+
+        return [$metrics, null];
+    }
+
+    protected function computeMetricsIntegrityHash(array $metricsData): ?string
+    {
+        $payload = [
+            'values' => $metricsData['values'] ?? null,
+            'font' => $metricsData['font'] ?? null,
+            'lineHeight' => $metricsData['lineHeight'] ?? null,
+        ];
+
+        try {
+            $json = json_encode($payload, JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            return null;
+        }
+
+        if (!is_string($json)) {
+            return null;
+        }
+
+        return 'sha256-' . hash('sha256', $json);
     }
 
     protected function runProcess(string $cmd, string $cwd, int $timeout): array

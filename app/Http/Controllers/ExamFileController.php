@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -163,6 +164,7 @@ class ExamFileController extends Controller
     public function getPrintHtml($examId)
     {
         $userId = Auth::id();
+        $bypassCache = request()->boolean('cache_bust') || request()->boolean('refresh');
 
         $exam = Exam::where('user_id', $userId)
             ->where('slug', $examId)
@@ -172,34 +174,10 @@ class ExamFileController extends Controller
             return response()->json(['message' => 'Exam not found'], 404);
         }
 
-        // Convert database model to JSON format
-        $questions = $exam->questions->map(function ($question) {
-            return [
-                'id' => $question->metadata['id'] ?? $question->id,
-                'type' => $question->type,
-                'marks' => $question->marks,
-                'section' => $question->section,
-                'content' => $question->content,
-                'options' => $question->options,
-                'correct_answer' => $question->correct_answer,
-                'explanation' => $question->explanation,
-            ];
-        })->toArray();
-
-        $data = [
-            'id' => $exam->slug,
-            'name' => $exam->name,
-            'created_at' => $exam->created_at->toISOString(),
-            'updated_at' => $exam->updated_at->toISOString(),
-            'questions' => $questions,
-            'settings' => $exam->settings,
-            'sections' => $exam->metadata['sections'] ?? [],
-            'questionSectionMap' => $exam->metadata['questionSectionMap'] ?? [],
-            'pageBreaks' => $exam->metadata['pageBreaks'] ?? [],
-        ];
-
-        $paginationReport = null;
-        $htmlContent = $this->generatePrintHtml($data, $paginationReport);
+        $renderPayload = $this->getCachedPrintPayload($exam, $bypassCache);
+        $paginationReport = $renderPayload['paginationReport'] ?? null;
+        $htmlContent = (string) ($renderPayload['html'] ?? '');
+        $cacheStatus = !empty($renderPayload['cacheHit']) ? 'hit' : 'miss';
 
         $debugMode = request()->boolean('debug');
         if ($debugMode) {
@@ -208,11 +186,21 @@ class ExamFileController extends Controller
                 'examId' => $examId,
                 'paginationReport' => $paginationReport,
                 'html' => $htmlContent,
+                'cache' => [
+                    'status' => $cacheStatus,
+                    'bypassed' => !empty($renderPayload['cacheBypassed']),
+                    'key' => $renderPayload['cacheKey'] ?? null,
+                    'fingerprint' => $renderPayload['fingerprint'] ?? null,
+                ],
             ]);
         }
 
         $response = response($htmlContent)
-            ->header('Content-Type', 'text/html');
+            ->header('Content-Type', 'text/html')
+            ->header('X-Print-Cache', $cacheStatus)
+            ->header('X-Print-Cache-Bypass', !empty($renderPayload['cacheBypassed']) ? '1' : '0')
+            ->header('X-Print-Cache-Key', (string) ($renderPayload['cacheKey'] ?? ''))
+            ->header('X-Render-Fingerprint', (string) ($renderPayload['fingerprint'] ?? ''));
 
         if (is_array($paginationReport)) {
             $response->header('X-Pagination-Total-Pages', (string) ($paginationReport['totalPages'] ?? 1));
@@ -228,6 +216,8 @@ class ExamFileController extends Controller
      */
     public function generatePdf($examId)
     {
+        $renderPayload = ['cacheHit' => false];
+        $bypassCache = request()->boolean('cache_bust') || request()->boolean('refresh');
         try {
             // Increase memory limit for PDF generation
             ini_set('memory_limit', '512M');
@@ -243,37 +233,36 @@ class ExamFileController extends Controller
                 return response()->json(['message' => 'Exam not found'], 404);
             }
 
-            // Convert database model to JSON format
-            $questions = $exam->questions->map(function ($question) {
-                return [
-                    'id' => $question->metadata['id'] ?? $question->id,
-                    'type' => $question->type,
-                    'marks' => $question->marks,
-                    'section' => $question->section,
-                    'content' => $question->content,
-                    'options' => $question->options,
-                    'correct_answer' => $question->correct_answer,
-                    'explanation' => $question->explanation,
-                ];
-            })->toArray();
+            $renderPayload = $this->getCachedPrintPayload($exam, $bypassCache);
+            $htmlContent = (string) ($renderPayload['html'] ?? '');
+            $pdfCacheStatus = 'miss';
+            $pdfCacheKey = 'rtp:pdf:v1:' . $exam->slug . ':' . ($renderPayload['fingerprint'] ?? 'na');
+            $cachedPdfBase64 = Cache::get($pdfCacheKey);
 
-            $data = [
-                'id' => $exam->slug,
-                'name' => $exam->name,
-                'created_at' => $exam->created_at->toISOString(),
-                'updated_at' => $exam->updated_at->toISOString(),
-                'questions' => $questions,
-                'settings' => $exam->settings,
-                'sections' => $exam->metadata['sections'] ?? [],
-                'questionSectionMap' => $exam->metadata['questionSectionMap'] ?? [],
-                'pageBreaks' => $exam->metadata['pageBreaks'] ?? [],
-            ];
+            if (is_string($cachedPdfBase64) && $cachedPdfBase64 !== '') {
+                $cachedPdf = base64_decode($cachedPdfBase64, true);
+                if (is_string($cachedPdf) && $cachedPdf !== '') {
+                    $pdfCacheStatus = 'hit';
 
-            // Generate HTML
-            $htmlContent = $this->generatePrintHtml($data);
+                    $examName = $exam->name ?? 'exam';
+                    $safeName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $examName);
+                    $filename = "{$safeName}_{$examId}.pdf";
+
+                    return response($cachedPdf, 200, [
+                        'Content-Type' => 'application/pdf',
+                        'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                        'Content-Length' => strlen($cachedPdf),
+                        'X-PDF-Engine' => 'puppeteer',
+                        'X-PDF-Cache' => $pdfCacheStatus,
+                        'X-PDF-Cache-Key' => $pdfCacheKey,
+                        'X-Print-Cache-Bypass' => !empty($renderPayload['cacheBypassed']) ? '1' : '0',
+                        'X-Render-Fingerprint' => (string) ($renderPayload['fingerprint'] ?? ''),
+                    ]);
+                }
+            }
 
             // Generate filename
-            $examName = $data['name'] ?? 'exam';
+            $examName = $exam->name ?? 'exam';
             $safeName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $examName);
             $filename = "{$safeName}_{$examId}.pdf";
 
@@ -281,12 +270,17 @@ class ExamFileController extends Controller
 
             if (!$puppeteerResult['error']) {
                 $pdfOutput = $puppeteerResult['pdf'];
+                Cache::put($pdfCacheKey, base64_encode($pdfOutput), now()->addMinutes(20));
 
                 return response($pdfOutput, 200, [
                     'Content-Type' => 'application/pdf',
                     'Content-Disposition' => 'attachment; filename="' . $filename . '"',
                     'Content-Length' => strlen($pdfOutput),
                     'X-PDF-Engine' => 'puppeteer',
+                    'X-PDF-Cache' => $pdfCacheStatus,
+                    'X-PDF-Cache-Key' => $pdfCacheKey,
+                    'X-Print-Cache-Bypass' => !empty($renderPayload['cacheBypassed']) ? '1' : '0',
+                    'X-Render-Fingerprint' => (string) ($renderPayload['fingerprint'] ?? ''),
                 ]);
             }
 
@@ -305,6 +299,9 @@ class ExamFileController extends Controller
                     'Content-Type' => 'text/html',
                     'X-PDF-Fallback' => 'true',
                     'X-PDF-Fallback-Reason' => 'dompdf_unavailable',
+                    'X-Print-Cache' => !empty($renderPayload['cacheHit']) ? 'hit' : 'miss',
+                    'X-Print-Cache-Bypass' => !empty($renderPayload['cacheBypassed']) ? '1' : '0',
+                    'X-Render-Fingerprint' => (string) ($renderPayload['fingerprint'] ?? ''),
                 ]);
             }
 
@@ -377,6 +374,9 @@ class ExamFileController extends Controller
                     return response($htmlContent, 200, [
                         'Content-Type' => 'text/html',
                         'X-PDF-Fallback' => 'true',
+                        'X-Print-Cache' => !empty($renderPayload['cacheHit']) ? 'hit' : 'miss',
+                        'X-Print-Cache-Bypass' => !empty($renderPayload['cacheBypassed']) ? '1' : '0',
+                        'X-Render-Fingerprint' => (string) ($renderPayload['fingerprint'] ?? ''),
                     ]);
                 }
             } catch (\Throwable $fallbackError) {
@@ -469,6 +469,8 @@ class ExamFileController extends Controller
         $printHeader = $settings['printHeader'] ?? [];
         $printFooter = $settings['printFooter'] ?? [];
         $questionSeparator = $settings['questionSeparator'] ?? [];
+        $paginationModeRaw = strtolower((string) ($settings['paginationMode'] ?? $settings['renderMode'] ?? 'strict'));
+        $paginationMode = in_array($paginationModeRaw, ['strict', 'flex'], true) ? $paginationModeRaw : 'strict';
 
         $pageBreakLookup = [];
         foreach ($pageBreaks as $questionId => $enabled) {
@@ -555,7 +557,10 @@ class ExamFileController extends Controller
         $pagination = app(ExamPaginationService::class)->paginate(
             $renderSections,
             'v1.0',
-            ['questionSeparatorEnabled' => (bool) ($questionSeparator['enabled'] ?? false)]
+            [
+                'questionSeparatorEnabled' => (bool) ($questionSeparator['enabled'] ?? false),
+                'mode' => $paginationMode,
+            ]
         );
 
         $pageBreakLookup = array_merge($pageBreakLookup, $pagination['pageBreakLookup'] ?? []);
@@ -586,5 +591,93 @@ class ExamFileController extends Controller
         // For now, just return the text as-is
         // KaTeX will render it on the client side
         return htmlspecialchars($text ?? '');
+    }
+
+    private function buildExamRenderData(Exam $exam): array
+    {
+        $questions = $exam->questions->map(function ($question) {
+            return [
+                'id' => $question->metadata['id'] ?? $question->id,
+                'type' => $question->type,
+                'marks' => $question->marks,
+                'section' => $question->section,
+                'content' => $question->content,
+                'options' => $question->options,
+                'correct_answer' => $question->correct_answer,
+                'explanation' => $question->explanation,
+            ];
+        })->toArray();
+
+        return [
+            'id' => $exam->slug,
+            'name' => $exam->name,
+            'created_at' => $exam->created_at->toISOString(),
+            'updated_at' => $exam->updated_at->toISOString(),
+            'questions' => $questions,
+            'settings' => $exam->settings,
+            'sections' => $exam->metadata['sections'] ?? [],
+            'questionSectionMap' => $exam->metadata['questionSectionMap'] ?? [],
+            'pageBreaks' => $exam->metadata['pageBreaks'] ?? [],
+        ];
+    }
+
+    private function buildRenderFingerprint(array $data): string
+    {
+        $payload = [
+            'id' => $data['id'] ?? null,
+            'settings' => $data['settings'] ?? null,
+            'sections' => $data['sections'] ?? null,
+            'questionSectionMap' => $data['questionSectionMap'] ?? null,
+            'pageBreaks' => $data['pageBreaks'] ?? null,
+            'questions' => $data['questions'] ?? null,
+            'layoutVersion' => 'v1.0',
+        ];
+
+        return sha1(json_encode($payload));
+    }
+
+    private function getCachedPrintPayload(Exam $exam, bool $forceRefresh = false): array
+    {
+        $data = $this->buildExamRenderData($exam);
+        $fingerprint = $this->buildRenderFingerprint($data);
+        $cacheKey = 'rtp:print_html:v1:' . $exam->slug . ':' . $fingerprint;
+        $cacheBypassed = $forceRefresh;
+
+        if ($forceRefresh) {
+            $paginationReport = null;
+            $htmlContent = $this->generatePrintHtml($data, $paginationReport);
+            $payload = [
+                'html' => $htmlContent,
+                'paginationReport' => $paginationReport,
+            ];
+            Cache::put($cacheKey, $payload, now()->addMinutes(20));
+            $cacheHit = false;
+        } else {
+            $cacheHit = Cache::has($cacheKey);
+            $payload = Cache::remember($cacheKey, now()->addMinutes(20), function () use ($data) {
+                $paginationReport = null;
+                $htmlContent = $this->generatePrintHtml($data, $paginationReport);
+
+                return [
+                    'html' => $htmlContent,
+                    'paginationReport' => $paginationReport,
+                ];
+            });
+        }
+
+        return array_merge(
+            [
+                'html' => '',
+                'paginationReport' => null,
+            ],
+            is_array($payload) ? $payload : [],
+            [
+                'cacheKey' => $cacheKey,
+                'cacheHit' => $cacheHit,
+                'cacheBypassed' => $cacheBypassed,
+                'fingerprint' => $fingerprint,
+                'data' => $data,
+            ]
+        );
     }
 }
