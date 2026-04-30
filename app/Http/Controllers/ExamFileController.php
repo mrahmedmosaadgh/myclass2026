@@ -646,36 +646,60 @@ class ExamFileController extends Controller
             'layoutVersion' => 'v1.0',
         ];
 
-        return sha1(json_encode($payload));
+        $encoded = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if (!is_string($encoded) || $encoded === '') {
+            $encoded = serialize($payload);
+        }
+
+        return sha1($encoded);
     }
 
     private function getCachedPrintPayload(Exam $exam, bool $forceRefresh = false): array
     {
         $data = $this->buildExamRenderData($exam);
-        $fingerprint = $this->buildRenderFingerprint($data);
-        $cacheKey = 'rtp:print_html:v1:' . $exam->slug . ':' . $fingerprint;
         $cacheBypassed = $forceRefresh;
+        $cacheHit = false;
 
-        if ($forceRefresh) {
+        try {
+            $fingerprint = $this->buildRenderFingerprint($data);
+            $cacheKey = 'rtp:print_html:v1:' . $exam->slug . ':' . $fingerprint;
+
+            if ($forceRefresh) {
+                $paginationReport = null;
+                $htmlContent = $this->generatePrintHtml($data, $paginationReport);
+                $payload = [
+                    'html' => $htmlContent,
+                    'paginationReport' => $paginationReport,
+                ];
+                Cache::put($cacheKey, $payload, now()->addMinutes(20));
+                $cacheHit = false;
+            } else {
+                $cacheHit = Cache::has($cacheKey);
+                $payload = Cache::remember($cacheKey, now()->addMinutes(20), function () use ($data) {
+                    $paginationReport = null;
+                    $htmlContent = $this->generatePrintHtml($data, $paginationReport);
+
+                    return [
+                        'html' => $htmlContent,
+                        'paginationReport' => $paginationReport,
+                    ];
+                });
+            }
+        } catch (\Throwable $cacheError) {
+            \Log::warning('Print cache pipeline failed; falling back to direct render', [
+                'exam_id' => $exam->slug,
+                'error' => $cacheError->getMessage(),
+            ]);
+
             $paginationReport = null;
             $htmlContent = $this->generatePrintHtml($data, $paginationReport);
             $payload = [
                 'html' => $htmlContent,
                 'paginationReport' => $paginationReport,
             ];
-            Cache::put($cacheKey, $payload, now()->addMinutes(20));
-            $cacheHit = false;
-        } else {
-            $cacheHit = Cache::has($cacheKey);
-            $payload = Cache::remember($cacheKey, now()->addMinutes(20), function () use ($data) {
-                $paginationReport = null;
-                $htmlContent = $this->generatePrintHtml($data, $paginationReport);
-
-                return [
-                    'html' => $htmlContent,
-                    'paginationReport' => $paginationReport,
-                ];
-            });
+            $fingerprint = 'nocache-' . sha1((string) $exam->slug . ':' . (string) ($exam->updated_at?->timestamp ?? time()));
+            $cacheKey = 'rtp:print_html:v1:' . $exam->slug . ':' . $fingerprint;
+            $cacheBypassed = true;
         }
 
         return array_merge(
