@@ -447,7 +447,7 @@ async function downloadPDF() {
     }
     
     // Call the backend API to generate and download PDF
-    const response = await fetch(`/api/exam/ready-to-print/generate-pdf/${props.examId}`, {
+    const response = await fetch(`/api/exam/ready-to-print/generate-pdf/${encodeURIComponent(props.examId)}`, {
       headers: {
         'Accept': 'application/pdf, text/html, application/json',
         'X-Requested-With': 'XMLHttpRequest'
@@ -508,7 +508,12 @@ async function downloadPDF() {
       try { fallbackWindow.close() } catch (e) {}
     }
     console.error('PDF generation failed:', error)
-    alert('PDF generation failed: ' + error.message)
+    try {
+      await openServerPrintHtml()
+      alert('PDF generation failed. Opened print preview fallback instead.')
+    } catch (fallbackError) {
+      alert('PDF generation failed: ' + (error?.message || error) + '\nPrint fallback also failed: ' + (fallbackError?.message || fallbackError))
+    }
   } finally {
     pdfGenerating.value = false
   }

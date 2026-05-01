@@ -134,18 +134,13 @@
 
           <q-separator />
 
-          <q-item clickable v-close-popup @click="exportToJson">
-            <q-item-section avatar><q-icon name="download" /></q-item-section>
-            <q-item-section>
-              <q-item-label>Download (Export JSON)</q-item-label>
-            </q-item-section>
-          </q-item>
-          <q-item clickable v-close-popup @click="triggerImportFile">
-            <q-item-section avatar><q-icon name="upload_file" /></q-item-section>
-            <q-item-section>
-              <q-item-label>Import JSON</q-item-label>
-            </q-item-section>
-          </q-item>
+          <JsonImportExportActions
+            v-model:sample-questions="sampleQuestions"
+            v-model:page-options="pageOptions"
+            v-model:sections="sections"
+            v-model:question-section-map="questionSectionMap"
+            :save-page-state="savePageState"
+          />
 
           <q-separator />
 
@@ -224,22 +219,6 @@
         </q-list>
       </q-btn-dropdown>
     </q-toolbar>
-
-    <input
-      ref="importFileInput"
-      type="file"
-      accept="application/json,.json"
-      style="display: none"
-      @change="handleImportFile"
-    />
-
-    <input
-      ref="importQuestionsFileInput"
-      type="file"
-      accept="application/json,.json"
-      style="display: none"
-      @change="(e) => handleImportFile(e, true)"
-    />
 
     <input
       ref="headerImageFileInput"
@@ -3479,6 +3458,7 @@ import FirstPageSettings from './components/FirstPageSettings.vue'
 import LastPageSettings from './components/LastPageSettings.vue'
 import ExamFileManager from './components/ExamFileManager.vue'
 import AnswerKey from './components/AnswerKey.vue'
+import JsonImportExportActions from './components/JsonImportExportActions.vue'
 import { renderSectionTotalHTML } from './utils/sectionTotalTemplates'
 import { formatQuestionLabel } from './utils/questionNumbering'
 import { renderMathContent } from './utils/mathRenderer'
@@ -3493,8 +3473,6 @@ const $q = useQuasar()
 const isLoadingState = ref(false)
 const isEditMode = ref(false)
 
-const importFileInput = ref(null)
-const importQuestionsFileInput = ref(null)
 const questionImageInput = ref(null)
 
 const imageDialogOpen = ref(false)
@@ -6054,90 +6032,6 @@ function sectionTotalMarks(sectionId) {
     .reduce((sum, q) => sum + (Number(q?.marks) || 0), 0)
 }
 
-function getExportPayload() {
-  return {
-    version: 1,
-    exportedAt: new Date().toISOString(),
-    sampleQuestions: sampleQuestions.value,
-    pageOptions: pageOptions.value,
-    sections: sections.value,
-    questionSectionMap: questionSectionMap.value
-  }
-}
-
-function generateExportFileName(suffix) {
-  const examTitle = pageOptions.value.examTitle?.enabled ? pageOptions.value.examTitle.text : ''
-  const subject = pageOptions.value.printHeader?.template1?.subject || ''
-  const grade = pageOptions.value.printHeader?.template1?.grade || ''
-  const date = new Date().toISOString().split('T')[0]
-  
-  const parts = []
-  if (examTitle) parts.push(examTitle)
-  if (subject) parts.push(subject)
-  if (grade) parts.push(grade)
-  parts.push(date)
-  parts.push(suffix)
-  
-  return parts
-    .join(' - ')
-    .replace(/[<>:"/\\|?*]/g, '')
-    .substring(0, 200) + '.json'
-}
-
-function exportToJson() {
-  try {
-    const payload = getExportPayload()
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = generateExportFileName('Full Export')
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-  } catch (e) {
-    console.error('Export failed', e)
-    $q.notify({ type: 'negative', message: 'Export failed: ' + e.message, position: 'top' })
-  }
-}
-
-function exportQuestionsOnly() {
-  try {
-    const normalizedQuestions = (sampleQuestions.value || []).map((q) => {
-      const qq = JSON.parse(JSON.stringify(q))
-      if (qq?.type === 'multiple_choice') {
-        const opts = qq?.content?.options
-        const correctText = qq?.content?.correct_option_index
-        if ((qq?.correct_option_index === null || qq?.correct_option_index === undefined) && Array.isArray(opts) && typeof correctText === 'string') {
-          const idx = opts.findIndex(o => String(o).trim() === String(correctText).trim())
-          if (idx >= 0) qq.correct_option_index = idx
-        }
-      }
-      return qq
-    })
-
-    const payload = {
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      questions: normalizedQuestions,
-      sections: sections.value,
-      questionSectionMap: questionSectionMap.value
-    }
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = generateExportFileName('Questions Only')
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    URL.revokeObjectURL(url)
-  } catch (e) {
-    console.error('Export questions failed', e)
-    $q.notify({ type: 'negative', message: 'Export questions failed: ' + e.message, position: 'top' })
-  }
-}
-
 async function copyQuestionsToClipboard() {
   try {
     const normalizedQuestions = (sampleQuestions.value || []).map((q) => {
@@ -6303,93 +6197,6 @@ async function updateQuestionsFromClipboard() {
   } catch (e) {
     console.error('Update from clipboard failed', e)
     $q.notify({ type: 'negative', message: 'Failed to read from clipboard. You may need to grant clipboard permissions.', position: 'top' })
-  }
-}
-
-function triggerImportFile() {
-  if (importFileInput.value) {
-    importFileInput.value.value = ''
-    importFileInput.value.click()
-  }
-}
-
-function triggerImportQuestionsFile() {
-  if (importQuestionsFileInput.value) {
-    importQuestionsFileInput.value.value = ''
-    importQuestionsFileInput.value.click()
-  }
-}
-
-async function handleImportFile(event, questionsOnly = false) {
-  try {
-    const file = event?.target?.files?.[0]
-    if (!file) return
-
-    const text = await file.text()
-    const parsed = JSON.parse(text)
-
-    if (questionsOnly) {
-      // Import questions only (without page settings)
-      if (parsed.questions && Array.isArray(parsed.questions)) {
-        sampleQuestions.value = parsed.questions
-        if (parsed.sections && Array.isArray(parsed.sections)) {
-          sections.value = parsed.sections
-        }
-        if (parsed.questionSectionMap) {
-          questionSectionMap.value = parsed.questionSectionMap
-        }
-        await savePageState()
-        $q.notify({ type: 'positive', message: 'Questions imported successfully!', position: 'top' })
-      } else if (Array.isArray(parsed)) {
-        // Allow importing a plain questions array
-        sampleQuestions.value = parsed
-        const defaultSectionId = sections.value[0]?.id
-        parsed.forEach(q => {
-          const qid = String(q?.id)
-          if (defaultSectionId && !questionSectionMap.value[qid]) questionSectionMap.value[qid] = defaultSectionId
-        })
-        await savePageState()
-        $q.notify({ type: 'positive', message: 'Questions imported successfully!', position: 'top' })
-      } else {
-        $q.notify({ type: 'negative', message: 'Invalid questions file format', position: 'top' })
-      }
-    } else {
-      // Full import (with page settings)
-      if (Array.isArray(parsed)) {
-        // Allow importing a plain questions array
-        sampleQuestions.value = parsed
-        const defaultSectionId = sections.value[0]?.id
-        parsed.forEach(q => {
-          const qid = String(q?.id)
-          if (defaultSectionId && !questionSectionMap.value[qid]) questionSectionMap.value[qid] = defaultSectionId
-        })
-        await savePageState()
-        return
-      }
-
-      if (!parsed || typeof parsed !== 'object') {
-        $q.notify({ type: 'negative', message: 'Invalid JSON file format.', position: 'top' })
-        return
-      }
-
-      if (parsed.questions && Array.isArray(parsed.questions)) sampleQuestions.value = parsed.questions
-      if (parsed.pageOptions) pageOptions.value = { ...pageOptions.value, ...parsed.pageOptions }
-      if (Array.isArray(parsed.sections) && parsed.sections.length > 0) sections.value = parsed.sections
-      if (parsed.questionSectionMap && typeof parsed.questionSectionMap === 'object') questionSectionMap.value = parsed.questionSectionMap
-
-      // Ensure every question has a section
-      const defaultSectionId = sections.value[0]?.id
-      sampleQuestions.value.forEach(q => {
-        const qid = String(q?.id)
-        if (defaultSectionId && !questionSectionMap.value[qid]) questionSectionMap.value[qid] = defaultSectionId
-      })
-
-      await savePageState()
-      $q.notify({ type: 'positive', message: 'Import successful!', position: 'top' })
-    }
-  } catch (e) {
-    console.error('Import failed', e)
-    $q.notify({ type: 'negative', message: 'Import failed: ' + e.message, position: 'top' })
   }
 }
 

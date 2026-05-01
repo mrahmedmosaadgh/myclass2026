@@ -71,6 +71,8 @@ Status file for `ver3.md` roadmap items (checked against current implementation 
 - ✅ Strict/Flex pagination mode contract is now wired end-to-end (settings → `ExamPaginationService`) with mode reported in pagination debug output.
 - ✅ Ver3 settings UI now includes a visible `Pagination mode` selector (`Strict` / `Flex`) and persists it in `pageOptions` defaults/reset/save flows.
 - ✅ Pagination mode observability completed: `print-html` debug payload includes active mode and response headers now expose `X-Pagination-Mode` for print/PDF/fallback responses.
+- ✅ Ver3 JSON import improved with robust schema normalization (`questions` + `sampleQuestions`), mapping validation, and friendly import summary dialog (imported/missing/warnings/source metadata).
+- ✅ Ver3 JSON import/export actions refactored into reusable component: `components/JsonImportExportActions.vue` (same path scope) and wired via v-model bindings.
 
 ---
 
