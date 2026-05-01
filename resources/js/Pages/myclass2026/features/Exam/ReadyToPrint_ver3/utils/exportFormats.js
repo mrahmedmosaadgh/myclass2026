@@ -6,6 +6,78 @@
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableCell, TableRow, WidthType, BorderStyle } from 'docx'
 
 /**
+ * Convert LaTeX math to readable plain text for Word export
+ * This converts LaTeX patterns to Unicode characters and readable formats
+ */
+function latexToPlainText(text) {
+  if (!text) return ''
+
+  let result = String(text)
+
+  // Remove \text{} commands and keep the content
+  result = result.replace(/\\text\{([^}]+)\}/g, '$1')
+
+  // Convert fractions \frac{a}{b} to a/b
+  result = result.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
+
+  // Convert common math symbols
+  result = result.replace(/\\times/g, '×')
+  result = result.replace(/\\div/g, '÷')
+  result = result.replace(/\\pm/g, '±')
+  result = result.replace(/\\neq/g, '≠')
+  result = result.replace(/\\leq/g, '≤')
+  result = result.replace(/\\geq/g, '≥')
+  result = result.replace(/\\approx/g, '≈')
+  result = result.replace(/\\infty/g, '∞')
+  result = result.replace(/\\pi/g, 'π')
+  result = result.replace(/\\theta/g, 'θ')
+  result = result.replace(/\\alpha/g, 'α')
+  result = result.replace(/\\beta/g, 'β')
+  result = result.replace(/\\gamma/g, 'γ')
+  result = result.replace(/\\delta/g, 'δ')
+  result = result.replace(/\\sum/g, 'Σ')
+  result = result.replace(/\\prod/g, '∏')
+  result = result.replace(/\\sqrt\{([^}]+)\}/g, '√($1)')
+
+  // Convert superscripts ^{...}
+  result = result.replace(/\^\{([^}]+)\}/g, '^$1')
+  result = result.replace(/\^([0-9a-zA-Z])/g, '^$1')
+
+  // Convert subscripts _{...}
+  result = result.replace(/_\{([^}]+)\}/g, '_$1')
+  result = result.replace(/_([0-9a-zA-Z])/g, '_$1')
+
+  // Remove remaining LaTeX commands (simple approach)
+  result = result.replace(/\\[a-zA-Z]+/g, '')
+
+  // Clean up remaining braces
+  result = result.replace(/[{}]/g, '')
+
+  return result
+}
+
+/**
+ * Process text by extracting and converting LaTeX math
+ */
+function processLatexForWord(text) {
+  if (!text) return ''
+
+  let result = String(text)
+
+  // Process inline math $...$
+  result = result.replace(/\$([^$]+)\$/g, (match, math) => {
+    return latexToPlainText(math)
+  })
+
+  // Process display math $$...$$
+  result = result.replace(/\$\$([^$]+)\$\$/g, (match, math) => {
+    return latexToPlainText(math)
+  })
+
+  return result
+}
+
+/**
  * Generate filename for export
  */
 export function generateExportFileName(suffix, pageOptions = {}) {
@@ -122,7 +194,9 @@ export async function exportToWord(data) {
       }
 
       sectionQs.forEach((q, idx) => {
-        const questionText = `${idx + 1}. ${q.content?.prompt || ''}`
+        // Process LaTeX in prompt
+        const processedPrompt = processLatexForWord(q.content?.prompt || '')
+        const questionText = `${idx + 1}. ${processedPrompt}`
         const marks = q.marks ? ` (${q.marks} marks)` : ''
 
         children.push(
@@ -142,9 +216,11 @@ export async function exportToWord(data) {
         if (q.type === 'multiple_choice' && q.content?.options) {
           const optionLabels = ['A', 'B', 'C', 'D', 'E', 'F']
           q.content.options.forEach((opt, optIdx) => {
+            // Process LaTeX in options
+            const processedOpt = processLatexForWord(opt)
             children.push(
               new Paragraph({
-                text: `   ${optionLabels[optIdx] || optIdx + 1}) ${opt}`,
+                text: `   ${optionLabels[optIdx] || optIdx + 1}) ${processedOpt}`,
                 indent: { left: 720 },
                 spacing: { after: 50 }
               })
@@ -155,9 +231,11 @@ export async function exportToWord(data) {
         // Add options for True/False
         if (q.type === 'true_false' && q.content?.options) {
           q.content.options.forEach((opt, optIdx) => {
+            // Process LaTeX in options
+            const processedOpt = processLatexForWord(opt)
             children.push(
               new Paragraph({
-                text: `   ${optIdx === 0 ? 'True' : 'False'}) ${opt}`,
+                text: `   ${optIdx === 0 ? 'True' : 'False'}) ${processedOpt}`,
                 indent: { left: 720 },
                 spacing: { after: 50 }
               })
