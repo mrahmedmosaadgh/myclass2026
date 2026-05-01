@@ -377,26 +377,41 @@ function generatePrintContent() {
 
 function renderMathContent(content) {
   if (!content) return ''
-  
+
+  let text = String(content)
+
+  // Strip citations
+  text = text.replace(/\[\s*cite\s*:\s*\d+\s*\]/gi, '')
+
+  // Normalize whitespace
+  text = text.replace(/\s{2,}/g, ' ').trim()
+
+  const katexConfig = {
+    throwOnError: false,
+    macros: {
+      "\\text": "\\text"
+    }
+  }
+
   // Replace LaTeX math expressions with rendered math
-  content = content.replace(/\$\$([^$]+)\$\$/g, (match, math) => {
+  text = text.replace(/\$\$([^$]+)\$\$/g, (match, math) => {
     try {
-      return katex.renderToString(math, { throwOnError: false })
+      return katex.renderToString(math, { ...katexConfig, displayMode: true })
     } catch (e) {
       return match
     }
   })
-  
+
   // Replace inline math expressions
-  content = content.replace(/\$([^$]+)\$/g, (match, math) => {
+  text = text.replace(/\$([^$]+)\$/g, (match, math) => {
     try {
-      return katex.renderToString(math, { throwOnError: false })
+      return katex.renderToString(math, katexConfig)
     } catch (e) {
       return match
     }
   })
-  
-  return content
+
+  return text
 }
 </script>
 

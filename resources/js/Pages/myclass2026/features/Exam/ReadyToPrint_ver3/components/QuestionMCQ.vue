@@ -3,7 +3,7 @@
     <div class="question-prompt" :style="questionStyle">
       <div class="prompt-inline">
         <slot name="label"></slot>
-        <span v-html="renderedPrompt"></span>
+        <TextRenderer :content="renderedPrompt" />
       </div>
     </div>
 
@@ -18,7 +18,9 @@
             <span :style="labelTextStyle">{{ optionLabel(idx) }}</span>
           </template>
         </span>
-        <span class="option-text" :style="optionTextStyle" v-html="opt"></span>
+        <span class="option-text" :style="optionTextStyle">
+          <TextRenderer :content="opt" />
+        </span>
       </div>
     </div>
   </div>
@@ -26,7 +28,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { renderToString } from 'katex'
+import TextRenderer from './TextRenderer.vue'
 
 const props = defineProps({
   question: {
@@ -86,42 +88,12 @@ function checkboxLabel(idx) {
   return labelForType(idx, checkboxLabelType.value)
 }
 
-function stripCitations(text) {
-  if (!text) return ''
-  return String(text)
-    .replace(/\[\s*cite\s*:\s*\d+\s*\]/gi, '')
-    .replace(/\s{2,}/g, ' ')
-    .trim()
-}
-
-function renderMath(text) {
-  let content = stripCitations(text)
-
-  content = content.replace(/\$\$([^$]+)\$\$/g, (match, math) => {
-    try {
-      return renderToString(math, { throwOnError: false, displayMode: true })
-    } catch (e) {
-      return match
-    }
-  })
-
-  content = content.replace(/\$([^$]+)\$/g, (match, math) => {
-    try {
-      return renderToString(math, { throwOnError: false })
-    } catch (e) {
-      return match
-    }
-  })
-
-  return content
-}
-
-const renderedPrompt = computed(() => renderMath(props.question?.content?.prompt || ''))
+const renderedPrompt = computed(() => props.question?.content?.prompt || '')
 
 const renderedOptions = computed(() => {
   const opts = props.question?.content?.options
   if (!Array.isArray(opts)) return []
-  return opts.map(o => renderMath(o))
+  return opts
 })
 
 const optionsLayoutStyle = computed(() => {

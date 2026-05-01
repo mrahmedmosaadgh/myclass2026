@@ -398,7 +398,7 @@ function copyFullExamFormat() {
   const example = {
     version: 1,
     exportedAt: new Date().toISOString(),
-    sampleQuestions: [
+    questions: [
       {
         id: 1,
         type: 'short_answer',
@@ -431,7 +431,7 @@ function copyFullExamFormat() {
         }
       }
     ],
-    pageOptions: {
+    settings: {
       examTitle: {
         enabled: true,
         text: 'Midterm Exam'

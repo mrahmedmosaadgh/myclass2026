@@ -6,7 +6,20 @@
       <!-- Title -->
       <q-icon name="quiz" size="md" class="q-mr-sm" />
       <q-toolbar-title shrink>
-        {{ pageOptions.examTitle?.text || 'Exam Builder' }}
+        <q-input
+          v-if="editingTitle"
+          dense
+          outlined
+          dark
+          v-model="pageOptions.examTitle.text"
+          label="Exam title"
+          @blur="editingTitle = false; savePageState()"
+          @keyup.enter="editingTitle = false; savePageState()"
+          class="title-input"
+        />
+        <span v-else @dblclick="editingTitle = true" class="cursor-pointer">
+          {{ pageOptions.examTitle?.text || 'Exam Builder' }}
+        </span>
       </q-toolbar-title>
 
       <q-space />
@@ -106,6 +119,14 @@
             <q-item-section>
               <q-item-label>Settings</q-item-label>
               <q-item-label caption>Reusable settings panel</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-separator />
+          <q-item clickable v-close-popup @click="generalAIPromptDialogOpen = true">
+            <q-item-section avatar><q-icon name="auto_awesome" /></q-item-section>
+            <q-item-section>
+              <q-item-label>Generate AI Prompt</q-item-label>
+              <q-item-label caption>General prompt with all settings & validation</q-item-label>
             </q-item-section>
           </q-item>
           <q-separator />
@@ -249,6 +270,13 @@
       :page-options="pageOptions"
       @update:page-options="pageOptions = $event"
       @save="savePageState"
+    />
+
+    <!-- General AI Prompt Dialog -->
+    <AIPromptGenerator
+      v-model="generalAIPromptDialogOpen"
+      :page-options="pageOptions"
+      :sample-questions="sampleQuestions"
     />
 
     <!-- Hidden ExamFileManager for dialog functionality -->
@@ -3464,7 +3492,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
-import { usePage } from '@inertiajs/vue3'
+import { usePage, router } from '@inertiajs/vue3'
 import { useQuasar } from 'quasar'
 import QuestionDisplay from './components/QuestionDisplay.vue'
 import SectionTotalMark from './components/SectionTotalMark.vue'
@@ -3476,6 +3504,10 @@ import ExamFileManager from './components/ExamFileManager.vue'
 import AnswerKey from './components/AnswerKey.vue'
 import JsonImportExportActions from './components/JsonImportExportActions.vue'
 import SettingsPanel from './components/SettingsPanel.vue'
+import AIPromptGenerator from './components/AIPromptGenerator.vue'
+import TextRenderer from './components/TextRenderer.vue'
+import { useAIPrompts } from './composables/useAIPrompts'
+import { useQuestionValidation } from './composables/useQuestionValidation'
 import { renderSectionTotalHTML } from './utils/sectionTotalTemplates'
 import { formatQuestionLabel } from './utils/questionNumbering'
 import { renderMathContent } from './utils/mathRenderer'
@@ -3535,12 +3567,15 @@ const sampleQuestions = ref([
 // AI Import State
 const aiDialogOpen = ref(false)
 const step = ref(1)
-const generatedPrompt = ref('')
+const generalAIPromptDialogOpen = ref(false)
 const aiResponse = ref('')
 const parsedQuestions = ref([])
 const selectedQuestions = ref([])
 const pasteError = ref('')
 const firstLastPageOpen = ref(false)
+
+// Use AI composables
+const { detectQuestionErrors } = useQuestionValidation()
 
 // Quick Mode State
 const quickMode = ref(false)
@@ -3662,6 +3697,7 @@ const settingsPresets = ref([
   { label: 'Default', value: 'default' }
 ])
 const settingsPanelOpen = ref(false)
+const editingTitle = ref(false)
 
 // File manager reference
 const fileManagerRef = ref(null)
@@ -3721,7 +3757,7 @@ function applyVisibleInlinePageNumberPreset() {
 const pageOptions = ref({
   examTitle: {
     enabled: true,
-    text: 'Math Questions Test'
+    text: 'New Exam'
   },
   showMarksPerQuestion: true,
   showExplanationUnderQuestion: false,
@@ -5014,7 +5050,7 @@ function applySettingsPreset(presetValue) {
   if (presetValue === 'default') {
     // Reset to default settings
     pageOptions.value = {
-      examTitle: { enabled: true, text: 'Math Questions Test' },
+      examTitle: { enabled: true, text: 'New Exam' },
       showMarksPerQuestion: true,
       showExplanationUnderQuestion: false,
       showCorrectAnswerUnderQuestion: false,
@@ -5476,7 +5512,7 @@ function handleCreateNewExam() {
 
     // Reset page options to defaults
     pageOptions.value = {
-      examTitle: { enabled: false, text: '' },
+      examTitle: { enabled: true, text: 'New Exam' },
       showMarksPerQuestion: true,
       showExplanationUnderQuestion: false,
       showCorrectAnswerUnderQuestion: false,
@@ -5949,6 +5985,7 @@ function testPageNumbers() {
 async function handleLoadExam(data) {
   if (data?.id) {
     lastSavedExamId.value = data.id
+    updateUrlWithExamId(data.id)
   }
   if (data.questions) sampleQuestions.value = data.questions
   if (data.settings) {
@@ -5972,6 +6009,60 @@ async function handleLoadExam(data) {
   lastSavedState.value = getCurrentState()
 
   await savePageState()
+}
+
+function updateUrlWithExamId(examId) {
+  const url = new URL(window.location.href)
+  url.searchParams.set('exam_id', examId)
+  window.history.replaceState({}, '', url)
+}
+
+async function loadExamFromUrl() {
+  const urlParams = new URLSearchParams(window.location.search)
+  const examId = urlParams.get('exam_id')
+
+  if (examId) {
+    try {
+      const response = await fetch(`/exam/ready-to-print/load-saved-exam/${examId}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'X-CSRF-TOKEN': page.props.csrf_token || ''
+        }
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        if (result.success && result.data) {
+          await handleLoadExam(result.data)
+          $q.notify({
+            type: 'positive',
+            message: 'Exam loaded successfully',
+            position: 'top'
+          })
+        } else {
+          $q.notify({
+            type: 'negative',
+            message: result.message || 'Failed to load exam',
+            position: 'top'
+          })
+        }
+      } else {
+        $q.notify({
+          type: 'negative',
+          message: 'Failed to load exam',
+          position: 'top'
+        })
+      }
+    } catch (error) {
+      console.error('Error loading exam:', error)
+      $q.notify({
+        type: 'negative',
+        message: 'Error loading exam',
+        position: 'top'
+      })
+    }
+  }
 }
 
 function handleDeleteExam(fileId) {
@@ -6224,7 +6315,7 @@ async function pasteFromClipboard() {
 
 function generatePrompt() {
   const { topic, grade, questionCount, latexSupport, htmlSupport, instructions } = aiConfig.value
-  
+
   let prompt = `Generate ${questionCount} math questions for ${grade} students on the topic of "${topic}".`
 
   prompt += `\n\nRequirements:`
@@ -6272,8 +6363,6 @@ function generatePrompt() {
   prompt += `\n  }`
   prompt += `\n]`
   prompt += `\n\`\`\``
-
-  generatedPrompt.value = prompt
 }
 
 function formatQuestionType(type) {
@@ -6293,15 +6382,6 @@ function showGenerationPreview() {
 function confirmAndGeneratePrompt() {
   showPreviewDialog.value = false
   generatePrompt()
-}
-
-function copyPrompt() {
-  navigator.clipboard.writeText(generatedPrompt.value).then(() => {
-    // Show success notification (you can add Quasar notify here)
-    console.log('Prompt copied to clipboard')
-  }).catch(err => {
-    console.error('Failed to copy prompt', err)
-  })
 }
 
 // Full Exam AI Generation Functions
@@ -6699,136 +6779,27 @@ function regenerateExam() {
 
 // Question Validation and Revision Functions
 function openValidationDialog() {
-  // Detect errors in questions
-  questionErrors.value = detectQuestionErrors()
-  
+  // Detect errors in questions using composable
+  questionErrors.value = detectQuestionErrors(sampleQuestions.value)
+
   // Generate AI prompt for validation
   const questionsJson = JSON.stringify(sampleQuestions.value, null, 2)
   validationPrompt.value = `Please review these questions for errors and provide a corrected version in JSON format:
 
 Errors to check for:
 - Missing correct_option_index for multiple_choice questions
-- Duplicate questions (same or very similar content)
-- Empty or invalid question prompts
+- Invalid correct_option_index (out of range)
+- Duplicate questions
+- Empty prompts
 - Invalid question types
 - Missing required fields
 
-Questions JSON:
-\`\`\`json
+Questions:
 ${questionsJson}
-\`\`\`
 
-Please return ONLY a corrected JSON array of questions with the same structure. Fix any errors you find.`
-  
-  questionsForValidation.value = validationPrompt.value
+Return ONLY the corrected JSON array.`
+
   validationDialogOpen.value = true
-}
-
-function detectQuestionErrors() {
-  const errors = []
-  const seenPrompts = new Map()
-  
-  sampleQuestions.value.forEach((q, index) => {
-    const qNum = index + 1
-    
-    // Skip if content is missing
-    if (!q.content) {
-      errors.push({
-        questionId: q.id,
-        questionNumber: qNum,
-        type: 'Missing content',
-        severity: 'error',
-        message: 'Question has no content',
-        question: 'N/A'
-      })
-      return
-    }
-    
-    // Check for missing correct answer in multiple choice
-    if (q.type === 'multiple_choice') {
-      if (q.content.correct_option_index === undefined || q.content.correct_option_index === null || q.content.correct_option_index === '') {
-        errors.push({
-          questionId: q.id,
-          questionNumber: qNum,
-          type: 'Missing correct answer',
-          severity: 'error',
-          message: 'Multiple choice question is missing correct_option_index field',
-          question: q.content.prompt || 'N/A'
-        })
-      }
-      
-      // Check if correct_option_index is a valid index within options
-      if ((q.content.correct_option_index !== undefined && q.content.correct_option_index !== null) && q.content.options) {
-        const idx = Number(q.content.correct_option_index)
-        const hasCorrectOption = Number.isFinite(idx) && idx >= 0 && idx < q.content.options.length
-        if (!hasCorrectOption) {
-          errors.push({
-            questionId: q.id,
-            questionNumber: qNum,
-            type: 'Invalid correct answer',
-            severity: 'error',
-            message: `correct_option_index "${q.content.correct_option_index}" is out of range (options: ${q.content.options.length})`,
-            question: q.content.prompt || 'N/A'
-          })
-        }
-      }
-    }
-    
-    // Check for empty prompt
-    if (!q.content.prompt || q.content.prompt.trim() === '') {
-      errors.push({
-        questionId: q.id,
-        questionNumber: qNum,
-        type: 'Empty question',
-        severity: 'error',
-        message: 'Question prompt is empty',
-        question: q.content.prompt || 'N/A'
-      })
-    }
-    
-    // Check for duplicates
-    const promptLower = q.content.prompt?.toLowerCase().trim() || ''
-    if (promptLower && seenPrompts.has(promptLower)) {
-      const duplicateIndex = seenPrompts.get(promptLower)
-      errors.push({
-        questionId: q.id,
-        questionNumber: qNum,
-        type: 'Duplicate question',
-        severity: 'warning',
-        message: `This question is a duplicate of question ${duplicateIndex}`,
-        question: q.content.prompt || 'N/A'
-      })
-    } else if (promptLower) {
-      seenPrompts.set(promptLower, qNum)
-    }
-    
-    // Check for invalid type
-    const validTypes = ['short_answer', 'multiple_choice', 'true_false', 'essay', 'fill_in_blank']
-    if (!validTypes.includes(q.type)) {
-      errors.push({
-        questionId: q.id,
-        questionNumber: qNum,
-        type: 'Invalid type',
-        severity: 'error',
-        message: `Invalid question type: ${q.type}`,
-        question: q.content.prompt || 'N/A'
-      })
-    }
-    
-    // Check for missing options in multiple choice
-    if (q.type === 'multiple_choice' && (!q.content.options || q.content.options.length < 2)) {
-      errors.push({
-        questionId: q.id,
-        questionNumber: qNum,
-        type: 'Missing options',
-        severity: 'error',
-        message: 'Multiple choice question must have at least 2 options',
-        question: q.content.prompt || 'N/A'
-      })
-    }
-  })
-  
-  return errors
 }
 
 function copyValidationPrompt() {
@@ -7324,8 +7295,8 @@ function generateFooterComponentHTML() {
 
 function generatePrintHTML() {
   const examTitleEnabled = !!pageOptions.value?.examTitle?.enabled
-  const examTitleTextRaw = String(pageOptions.value?.examTitle?.text || 'Math Questions Test')
-  const baseTitle = (examTitleEnabled ? examTitleTextRaw : 'Math Questions Print')
+  const examTitleTextRaw = String(pageOptions.value?.examTitle?.text || 'New Exam')
+  const baseTitle = (examTitleEnabled ? examTitleTextRaw : 'Exam Print')
   const now = new Date()
   const dd = String(now.getDate()).padStart(2, '0')
   const mm = String(now.getMonth() + 1).padStart(2, '0')
@@ -8117,6 +8088,9 @@ onMounted(async () => {
   loadSettingsPresets()
   await loadPageState()
 
+  // Load exam from URL if exam_id parameter is present
+  await loadExamFromUrl()
+
   try {
     const savedExamId = localStorage.getItem(LAST_EXAM_ID_STORAGE_KEY)
     if (savedExamId && !lastSavedExamId.value) {
@@ -8136,9 +8110,26 @@ watch(lastSavedExamId, (v) => {
 <style scoped>
 .exam-test-page {
   min-height: 100vh;
-  background: #fafafa;
+  background: #f5f5f5;
   padding: 20px;
   padding-top: 80px;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.title-input {
+  min-width: 200px;
+}
+
+.prompt-dialog {
+  max-width: 900px;
+}
+
+.prompt-textarea {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
 }
 
 .exam-toolbar {

@@ -44,15 +44,21 @@
           :index="questionNumber"
           :options="numberingOptions"
         />
-        <span class="question-text-inline" v-html="renderedContent"></span>
+        <span class="question-text-inline">
+          <TextRenderer :content="question.content?.prompt" />
+        </span>
       </div>
 
-      <div v-else class="question-content" :style="questionTextStyle" v-html="renderedContent"></div>
+      <div v-else class="question-content" :style="questionTextStyle">
+        <TextRenderer :content="question.content?.prompt" />
+      </div>
 
       <div class="question-options" v-if="effectiveHasOptions">
-        <div class="option" v-for="(opt, idx) in renderedOptions" :key="idx">
+        <div class="option" v-for="(opt, idx) in question.content.options" :key="idx">
           <span class="option-label">{{ optionLabel(idx) }}</span>
-          <span class="option-text" :style="optionsTextStyle" v-html="opt"></span>
+          <span class="option-text" :style="optionsTextStyle">
+            <TextRenderer :content="opt" />
+          </span>
         </div>
       </div>
     </template>
@@ -67,7 +73,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { renderToString } from 'katex'
+import TextRenderer from './TextRenderer.vue'
 import QuestionMCQ from './QuestionMCQ.vue'
 import QuestionNumber from './QuestionNumber.vue'
 
@@ -121,9 +127,16 @@ function stripCitations(text) {
 function renderMath(text) {
   let content = stripCitations(text)
 
+  const katexConfig = {
+    throwOnError: false,
+    macros: {
+      "\\text": "\\text"
+    }
+  }
+
   content = content.replace(/\$\$([^$]+)\$\$/g, (match, math) => {
     try {
-      return renderToString(math, { throwOnError: false })
+      return renderToString(math, { ...katexConfig, displayMode: true })
     } catch (e) {
       return match
     }
@@ -131,7 +144,7 @@ function renderMath(text) {
 
   content = content.replace(/\$([^$]+)\$/g, (match, math) => {
     try {
-      return renderToString(math, { throwOnError: false })
+      return renderToString(math, katexConfig)
     } catch (e) {
       return match
     }
@@ -219,25 +232,21 @@ const optionsTextStyle = computed(() => {
   const o = props.format?.options || {}
   return {
     fontSize: o.fontSize ? String(o.fontSize) : undefined,
-    lineHeight: o.lineHeight ? String(o.lineHeight) : undefined,
-    fontWeight: o.bold ? '700' : undefined
+    lineHeight: o.lineHeight ? String(o.lineHeight) : undefined
   }
 })
 
 function optionLabel(idx) {
-  const charCode = 'A'.charCodeAt(0) + idx
-  return String.fromCharCode(charCode) + ') '
+  const style = props.mcqOptions?.labelStyle || 'letter'
+  if (style === 'number') return idx + 1 + '.'
+  if (style === 'roman') return ['I', 'II', 'III', 'IV', 'V'][idx] || (idx + 1) + '.'
+  return ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'][idx] || (idx + 1) + '.'
 }
 
 // Calculate answer lines based on question type and marks
 const answerLines = computed(() => {
-  if (!props.question) return 3
-
-  if (typeof props.answerLinesOverride === 'number' && Number.isFinite(props.answerLinesOverride)) {
-    return Math.max(0, Math.floor(props.answerLinesOverride))
-  }
-  
-  // More lines for higher mark questions
+  const lines = props.format?.answerLines || 3
+  return Math.max(1, Number(lines) || 3)
   const baseLines = 3
   const extraLines = Math.floor(props.question.marks / 2)
   return baseLines + extraLines

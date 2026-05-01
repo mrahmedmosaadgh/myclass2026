@@ -13,11 +13,15 @@
         <tr v-for="(question, index) in questions" :key="question.id">
           <td class="text-center">{{ index + 1 }}</td>
           <td>
-            <div class="question-content" v-html="getQuestionText(question)"></div>
+            <div class="question-content">
+              <TextRenderer :content="getQuestionText(question)" />
+            </div>
           </td>
           <td class="text-center">{{ question.marks }}</td>
           <td class="text-center">
-            <span class="answer-text" v-html="getAnswerText(question)"></span>
+            <span class="answer-text">
+              <TextRenderer :content="getAnswerText(question)" />
+            </span>
           </td>
         </tr>
       </tbody>
@@ -34,7 +38,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { renderMathContent } from '../utils/mathRenderer'
+import TextRenderer from './TextRenderer.vue'
 
 const props = defineProps({
   questions: {
@@ -49,36 +53,32 @@ const totalMarks = computed(() => {
 
 function getQuestionText(question) {
   const prompt = question.content?.prompt || question.content || ''
-  if (prompt) {
-    // Render math content (HTML and LaTeX)
-    return renderMathContent(prompt)
-  }
-  return 'N/A'
+  return prompt || 'N/A'
 }
 
 function getAnswerText(question) {
-  let answer = '-'
-  
-  // correct_option_index is canonical (ver 3); fall back to correct_answer for legacy data
-  const correctAnswer = question.content?.correct_option_index ?? question.content?.correct_answer ?? question.correct_answer
-  
+  let answer = 'N/A'
+
   if (question.type === 'multiple_choice') {
-    const v = correctAnswer
-    if (typeof v === 'number' && Number.isFinite(v)) {
-      answer = String.fromCharCode('A'.charCodeAt(0) + v)
-    } else if (typeof v === 'string' && v.trim() !== '' && !Number.isNaN(Number(v))) {
-      answer = String.fromCharCode('A'.charCodeAt(0) + Number(v))
-    } else if (typeof v === 'string' && v.trim() !== '') {
-      answer = v
+    const correctIndex = question.content?.correct_option_index
+    const options = question.content?.options
+    if (options && Array.isArray(options) && correctIndex !== undefined && correctIndex !== null) {
+      answer = options[correctIndex] || 'N/A'
     }
-  } else if (question.type === 'true_false' && correctAnswer !== undefined) {
-    answer = correctAnswer ? 'True' : 'False'
-  } else if (correctAnswer) {
-    answer = correctAnswer
+  } else if (question.type === 'true_false') {
+    const correctIndex = question.content?.correct_option_index
+    const options = question.content?.options
+    if (options && Array.isArray(options) && correctIndex !== undefined && correctIndex !== null) {
+      answer = options[correctIndex] || 'N/A'
+    }
+  } else {
+    const correctAnswer = question.content?.correct_option_index ?? question.content?.correct_answer ?? question.correct_answer
+    if (correctAnswer) {
+      answer = correctAnswer
+    }
   }
-  
-  // Render math content for LaTeX support
-  return renderMathContent(answer)
+
+  return answer
 }
 </script>
 

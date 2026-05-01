@@ -4,7 +4,7 @@ import { renderToString } from 'katex'
  * Render math content with LaTeX support
  * Converts $...$ and $$...$$ math expressions to rendered HTML
  * Also handles basic HTML content
- * 
+ *
  * @param {string} content - The content to render
  * @returns {string} - Rendered HTML string
  */
@@ -16,10 +16,20 @@ export function renderMathContent(content) {
     .replace(/\s{2,}/g, ' ')
     .trim()
 
+  // KaTeX configuration with extensions
+  const katexConfig = {
+    throwOnError: false,
+    displayMode: false,
+    // Enable \text command and other text-mode features
+    macros: {
+      "\\text": "\\text"
+    }
+  }
+
   // Render display math ($$...$$)
   text = text.replace(/\$\$([^$]+)\$\$/g, (match, math) => {
     try {
-      return renderToString(math, { throwOnError: false, displayMode: true })
+      return renderToString(math, { ...katexConfig, displayMode: true })
     } catch (e) {
       return match
     }
@@ -28,7 +38,7 @@ export function renderMathContent(content) {
   // Render inline math ($...$)
   text = text.replace(/\$([^$]+)\$/g, (match, math) => {
     try {
-      return renderToString(math, { throwOnError: false })
+      return renderToString(math, katexConfig)
     } catch (e) {
       return match
     }
