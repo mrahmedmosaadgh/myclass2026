@@ -15,6 +15,16 @@
 
   <q-separator />
 
+  <q-item clickable v-close-popup @click="triggerImportFile">
+    <q-item-section avatar><q-icon name="folder_open" /></q-item-section>
+    <q-item-section>
+      <q-item-label>Open JSON File</q-item-label>
+      <q-item-label caption>Import from file</q-item-label>
+    </q-item-section>
+  </q-item>
+
+  <q-separator />
+
   <q-item clickable v-close-popup @click="copyFullExamFormat">
     <q-item-section avatar><q-icon name="content_copy" /></q-item-section>
     <q-item-section>
@@ -68,10 +78,6 @@ const props = defineProps({
   questionSectionMap: {
     type: Object,
     required: true
-  },
-  savePageState: {
-    type: Function,
-    required: true
   }
 })
 
@@ -106,10 +112,15 @@ function generateExportFileName(suffix) {
 
 function exportToJson() {
   try {
+    const normalizedQuestions = (props.sampleQuestions || []).map(q => ({
+      ...q,
+      ver: q.ver ?? 3
+    }))
+
     const payload = {
       version: 1,
       exportedAt: new Date().toISOString(),
-      sampleQuestions: props.sampleQuestions,
+      sampleQuestions: normalizedQuestions,
       pageOptions: props.pageOptions,
       sections: props.sections,
       questionSectionMap: props.questionSectionMap
@@ -150,8 +161,12 @@ function normalizeImportedExamData(parsed) {
   const warnings = []
 
   if (Array.isArray(parsed)) {
+    const normalizedQuestions = parsed.map(q => ({
+      ...q,
+      ver: q.ver ?? 3
+    }))
     return {
-      questions: parsed,
+      questions: normalizedQuestions,
       pageOptions: null,
       sections: null,
       questionSectionMap: null,
@@ -168,9 +183,15 @@ function normalizeImportedExamData(parsed) {
 
   let questions = null
   if (Array.isArray(parsed.questions)) {
-    questions = parsed.questions
+    questions = parsed.questions.map(q => ({
+      ...q,
+      ver: q.ver ?? 3
+    }))
   } else if (Array.isArray(parsed.sampleQuestions)) {
-    questions = parsed.sampleQuestions
+    questions = parsed.sampleQuestions.map(q => ({
+      ...q,
+      ver: q.ver ?? 3
+    }))
     warnings.push('Detected legacy/full export key `sampleQuestions`; imported it as questions.')
   }
 
@@ -344,8 +365,6 @@ async function handleImportFile(event) {
 
     imported.push(`Questions: ${nextQuestions.length}`)
     imported.push(`Question-section mappings: ${Object.keys(mapResult.normalizedMap).length}`)
-
-    await props.savePageState()
 
     showImportSummaryDialog({
       fileName: file.name,

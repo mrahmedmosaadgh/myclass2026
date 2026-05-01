@@ -101,6 +101,14 @@
             </q-item-section>
           </q-item>
           <q-separator />
+          <q-item clickable v-close-popup @click="settingsPanelOpen = true">
+            <q-item-section avatar><q-icon name="tune" /></q-item-section>
+            <q-item-section>
+              <q-item-label>Settings</q-item-label>
+              <q-item-label caption>Reusable settings panel</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-separator />
           <q-item clickable v-close-popup @click="isEditMode = !isEditMode">
             <q-item-section avatar><q-icon :name="isEditMode ? 'edit_off' : 'edit'" /></q-item-section>
             <q-item-section>
@@ -139,7 +147,6 @@
             v-model:page-options="pageOptions"
             v-model:sections="sections"
             v-model:question-section-map="questionSectionMap"
-            :save-page-state="savePageState"
           />
 
           <q-separator />
@@ -234,6 +241,14 @@
       accept="image/*"
       style="display: none"
       @change="handleFooterImageFile"
+    />
+
+    <!-- Settings Panel -->
+    <SettingsPanel
+      v-model="settingsPanelOpen"
+      :page-options="pageOptions"
+      @update:page-options="pageOptions = $event"
+      @save="savePageState"
     />
 
     <!-- Hidden ExamFileManager for dialog functionality -->
@@ -448,6 +463,7 @@
                 outlined
                 v-model="pageOptions.examTitle.text"
                 label="Exam title"
+                @dblclick="editExamTitleInline"
                 @blur="savePageState"
               />
 
@@ -3459,6 +3475,7 @@ import LastPageSettings from './components/LastPageSettings.vue'
 import ExamFileManager from './components/ExamFileManager.vue'
 import AnswerKey from './components/AnswerKey.vue'
 import JsonImportExportActions from './components/JsonImportExportActions.vue'
+import SettingsPanel from './components/SettingsPanel.vue'
 import { renderSectionTotalHTML } from './utils/sectionTotalTemplates'
 import { formatQuestionLabel } from './utils/questionNumbering'
 import { renderMathContent } from './utils/mathRenderer'
@@ -3644,6 +3661,7 @@ const selectedSettingsPreset = ref('default')
 const settingsPresets = ref([
   { label: 'Default', value: 'default' }
 ])
+const settingsPanelOpen = ref(false)
 
 // File manager reference
 const fileManagerRef = ref(null)
@@ -3997,10 +4015,28 @@ function openSaveAsDialog() {
     },
     cancel: true,
     persistent: true
-  }).onOk((val) => {
-    const name = String(val || '').trim()
-    if (!name) return
-    handleSaveAs(name)
+  }).onOk(async (fileName) => {
+    if (!fileName || !fileName.trim()) {
+      $q.notify({ type: 'warning', message: 'Please enter a valid name.', position: 'top' })
+      return
+    }
+    await handleSaveAs(fileName.trim())
+  })
+}
+
+function editExamTitleInline() {
+  $q.dialog({
+    title: 'Edit Exam Title',
+    message: 'Enter the exam title:',
+    prompt: {
+      model: pageOptions.value.examTitle.text,
+      type: 'text'
+    },
+    cancel: true,
+    persistent: true
+  }).onOk(data => {
+    pageOptions.value.examTitle.text = data
+    savePageState()
   })
 }
 
@@ -5241,23 +5277,8 @@ async function savePageState() {
   try {
     const data = {
       questions: sampleQuestions.value,
-      settings: {
-        // Include ALL pageOptions to ensure nothing is lost
-        examTitle: pageOptions.value.examTitle,
-        showMarksPerQuestion: pageOptions.value.showMarksPerQuestion,
-        showExplanationUnderQuestion: pageOptions.value.showExplanationUnderQuestion,
-        showCorrectAnswerUnderQuestion: pageOptions.value.showCorrectAnswerUnderQuestion,
-        printHeader: pageOptions.value.printHeader,
-        printFooter: pageOptions.value.printFooter,
-        firstPage: pageOptions.value.firstPage,
-        lastPage: pageOptions.value.lastPage,
-        answerKey: pageOptions.value.answerKey,
-        questionNumbering: pageOptions.value.questionNumbering,
-        sectionTotal: pageOptions.value.sectionTotal,
-        questionSeparator: pageOptions.value.questionSeparator,
-        mcqOptions: pageOptions.value.mcqOptions,
-        pageLayout: pageOptions.value.pageLayout
-      },
+      // Save entire pageOptions to ensure no settings are lost
+      settings: JSON.parse(JSON.stringify(pageOptions.value)),
       // Also save page breaks separately for easy access
       pageBreaks: pageOptions.value.questionNumbering?.pageBreaksBefore || {},
       // Save sections and question-section mapping
@@ -5377,22 +5398,8 @@ async function handleSaveExam() {
       name: examTitle,
       questions: sampleQuestions.value,
       component_version: COMPONENT_VERSION,
-      settings: {
-        examTitle: pageOptions.value.examTitle,
-        showMarksPerQuestion: pageOptions.value.showMarksPerQuestion,
-        showExplanationUnderQuestion: pageOptions.value.showExplanationUnderQuestion,
-        showCorrectAnswerUnderQuestion: pageOptions.value.showCorrectAnswerUnderQuestion,
-        printHeader: pageOptions.value.printHeader,
-        printFooter: pageOptions.value.printFooter,
-        firstPage: pageOptions.value.firstPage,
-        lastPage: pageOptions.value.lastPage,
-        answerKey: pageOptions.value.answerKey,
-        questionNumbering: pageOptions.value.questionNumbering,
-        sectionTotal: pageOptions.value.sectionTotal,
-        questionSeparator: pageOptions.value.questionSeparator,
-        mcqOptions: pageOptions.value.mcqOptions,
-        pageLayout: pageOptions.value.pageLayout
-      },
+      // Save entire pageOptions to ensure no settings are lost
+      settings: JSON.parse(JSON.stringify(pageOptions.value)),
       // Optional - AI can ask about these before creating JSON
       sections: sections.value || [],
       questionSectionMap: questionSectionMap.value || {},
