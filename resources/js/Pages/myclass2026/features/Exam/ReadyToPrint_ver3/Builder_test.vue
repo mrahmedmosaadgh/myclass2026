@@ -6023,7 +6023,7 @@ async function loadExamFromUrl() {
 
   if (examId) {
     try {
-      const response = await fetch(`/exam/ready-to-print/load-saved-exam/${examId}`, {
+      const response = await fetch(`/api/exam/ready-to-print/load-saved-exam/${examId}`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',

@@ -387,10 +387,7 @@ function renderMathContent(content) {
   text = text.replace(/\s{2,}/g, ' ').trim()
 
   const katexConfig = {
-    throwOnError: false,
-    macros: {
-      "\\text": "\\text"
-    }
+    throwOnError: false
   }
 
   // Replace LaTeX math expressions with rendered math

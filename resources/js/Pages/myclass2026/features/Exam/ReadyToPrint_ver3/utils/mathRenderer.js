@@ -16,14 +16,10 @@ export function renderMathContent(content) {
     .replace(/\s{2,}/g, ' ')
     .trim()
 
-  // KaTeX configuration with extensions
+  // KaTeX configuration
   const katexConfig = {
     throwOnError: false,
-    displayMode: false,
-    // Enable \text command and other text-mode features
-    macros: {
-      "\\text": "\\text"
-    }
+    displayMode: false
   }
 
   // Render display math ($$...$$)

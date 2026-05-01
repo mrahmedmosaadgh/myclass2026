@@ -128,10 +128,7 @@ function renderMath(text) {
   let content = stripCitations(text)
 
   const katexConfig = {
-    throwOnError: false,
-    macros: {
-      "\\text": "\\text"
-    }
+    throwOnError: false
   }
 
   content = content.replace(/\$\$([^$]+)\$\$/g, (match, math) => {

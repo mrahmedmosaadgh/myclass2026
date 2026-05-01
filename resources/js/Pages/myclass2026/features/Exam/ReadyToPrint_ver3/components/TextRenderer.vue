@@ -30,10 +30,7 @@ const props = defineProps({
 })
 
 const katexConfig = {
-  throwOnError: false,
-  macros: {
-    "\\text": "\\text"
-  }
+  throwOnError: false
 }
 
 const renderedContent = computed(() => {
