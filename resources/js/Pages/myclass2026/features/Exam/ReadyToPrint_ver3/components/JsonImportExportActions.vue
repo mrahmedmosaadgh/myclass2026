@@ -6,6 +6,23 @@
     </q-item-section>
   </q-item>
 
+  <q-item clickable v-close-popup @click="exportToWord">
+    <q-item-section avatar><q-icon name="description" /></q-item-section>
+    <q-item-section>
+      <q-item-label>Export to Word (.docx)</q-item-label>
+    </q-item-section>
+  </q-item>
+
+  <q-item clickable v-close-popup @click="exportToQTI">
+    <q-item-section avatar><q-icon name="code" /></q-item-section>
+    <q-item-section>
+      <q-item-label>Export to QTI (XML)</q-item-label>
+      <q-item-label caption>IMS Question & Test Interoperability</q-item-label>
+    </q-item-section>
+  </q-item>
+
+  <q-separator />
+
   <q-item clickable v-close-popup @click="triggerImportFile">
     <q-item-section avatar><q-icon name="upload_file" /></q-item-section>
     <q-item-section>
@@ -61,6 +78,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useQuasar } from 'quasar'
+import { exportToWord as exportToWordUtil, exportToQTI as exportToQTIUtil, generateExportFileName } from '../utils/exportFormats'
 
 const props = defineProps({
   sampleQuestions: {
@@ -91,25 +109,6 @@ const emit = defineEmits([
 const $q = useQuasar()
 const importFileInput = ref(null)
 
-function generateExportFileName(suffix) {
-  const examTitle = props.pageOptions?.examTitle?.enabled ? props.pageOptions.examTitle.text : ''
-  const subject = props.pageOptions?.printHeader?.template1?.subject || ''
-  const grade = props.pageOptions?.printHeader?.template1?.grade || ''
-  const date = new Date().toISOString().split('T')[0]
-
-  const parts = []
-  if (examTitle) parts.push(examTitle)
-  if (subject) parts.push(subject)
-  if (grade) parts.push(grade)
-  parts.push(date)
-  parts.push(suffix)
-
-  return parts
-    .join(' - ')
-    .replace(/[<>:"/\\|?*]/g, '')
-    .substring(0, 200) + '.json'
-}
-
 function exportToJson() {
   try {
     const normalizedQuestions = (props.sampleQuestions || []).map(q => ({
@@ -120,8 +119,8 @@ function exportToJson() {
     const payload = {
       version: 1,
       exportedAt: new Date().toISOString(),
-      sampleQuestions: normalizedQuestions,
-      pageOptions: props.pageOptions,
+      questions: normalizedQuestions,
+      settings: props.pageOptions,
       sections: props.sections,
       questionSectionMap: props.questionSectionMap
     }
@@ -130,7 +129,7 @@ function exportToJson() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = generateExportFileName('Full Export')
+    a.download = generateExportFileName('Full Export', props.pageOptions) + '.json'
     document.body.appendChild(a)
     a.click()
     a.remove()
@@ -138,6 +137,74 @@ function exportToJson() {
   } catch (e) {
     console.error('Export failed', e)
     $q.notify({ type: 'negative', message: 'Export failed: ' + (e?.message || e), position: 'top' })
+  }
+}
+
+async function exportToWord() {
+  try {
+    const data = {
+      questions: props.sampleQuestions || [],
+      settings: props.pageOptions,
+      sections: props.sections,
+      questionSectionMap: props.questionSectionMap
+    }
+
+    const blob = await exportToWordUtil(data)
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = generateExportFileName('Exam', props.pageOptions) + '.docx'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+
+    $q.notify({
+      type: 'positive',
+      message: 'Word export completed successfully',
+      position: 'top'
+    })
+  } catch (e) {
+    console.error('Word export failed', e)
+    $q.notify({
+      type: 'negative',
+      message: 'Word export failed: ' + (e?.message || e),
+      position: 'top'
+    })
+  }
+}
+
+async function exportToQTI() {
+  try {
+    const data = {
+      questions: props.sampleQuestions || [],
+      settings: props.pageOptions,
+      sections: props.sections,
+      questionSectionMap: props.questionSectionMap
+    }
+
+    const blob = exportToQTIUtil(data)
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = generateExportFileName('Exam QTI', props.pageOptions) + '.xml'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+
+    $q.notify({
+      type: 'positive',
+      message: 'QTI export completed successfully',
+      position: 'top'
+    })
+  } catch (e) {
+    console.error('QTI export failed', e)
+    $q.notify({
+      type: 'negative',
+      message: 'QTI export failed: ' + (e?.message || e),
+      position: 'top'
+    })
   }
 }
 
