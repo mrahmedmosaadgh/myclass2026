@@ -62,14 +62,35 @@
         class="q-mr-xs"
       />
 
-      <q-btn
-        flat
-        dense
-        icon="content_copy"
-        label="Duplicate"
-        @click="duplicateCurrentExam"
-        class="q-mr-xs"
-      />
+      <!-- Exam Info Display -->
+      <div class="exam-info-display q-mr-xs">
+        <q-chip
+          icon="description"
+          :label="`${sampleQuestions.length} questions`"
+          size="sm"
+          color="grey-3"
+          text-color="grey-9"
+          dense
+        />
+        <q-chip
+          icon="folder"
+          :label="`${sections.length} sections`"
+          size="sm"
+          color="grey-3"
+          text-color="grey-9"
+          dense
+          v-if="sections.length > 0"
+        />
+        <q-chip
+          icon="stars"
+          :label="`${totalMarks} marks`"
+          size="sm"
+          color="grey-3"
+          text-color="grey-9"
+          dense
+          v-if="totalMarks > 0"
+        />
+      </div>
 
       <q-btn-dropdown flat dense icon="settings" label="Settings" class="q-mr-xs">
         <q-list dense style="min-width: 240px">
@@ -139,15 +160,21 @@
         </q-list>
       </q-btn-dropdown>
 
+      <!-- Google Drive-style auto-save indicator -->
+      <div class="auto-save-indicator q-mr-xs">
+        <q-icon
+          :name="isSaving ? 'cloud_sync' : 'cloud_done'"
+          :color="isSaving ? 'primary' : 'positive'"
+          size="20px"
+        >
+          <q-tooltip>{{ isSaving ? 'Saving...' : 'All changes saved' }}</q-tooltip>
+        </q-icon>
+        <span class="auto-save-text">{{ isSaving ? 'Saving...' : 'Saved' }}</span>
+      </div>
+
       <!-- Single dropdown for remaining actions -->
       <q-btn-dropdown flat dense icon="menu" label="Actions" class="q-mr-xs">
         <q-list dense style="min-width: 260px">
-          <q-item clickable v-close-popup @click="handleSaveExam">
-            <q-item-section avatar><q-icon name="save" /></q-item-section>
-            <q-item-section>
-              <q-item-label>Save</q-item-label>
-            </q-item-section>
-          </q-item>
           <q-item clickable v-close-popup @click="openSaveAsDialog">
             <q-item-section avatar><q-icon name="save_as" /></q-item-section>
             <q-item-section>
@@ -157,7 +184,8 @@
           <q-item clickable v-close-popup @click="duplicateCurrentExam">
             <q-item-section avatar><q-icon name="content_copy" /></q-item-section>
             <q-item-section>
-              <q-item-label>Duplicate (Create Copy)</q-item-label>
+              <q-item-label>Duplicate</q-item-label>
+              <q-item-label caption>Create a copy</q-item-label>
             </q-item-section>
           </q-item>
 
@@ -3704,6 +3732,7 @@ const fileManagerRef = ref(null)
 const lastSavedExamId = ref(null)
 const openingPrintHtml = ref(false)
 const pdfGenerating = ref(false)
+const isSaving = ref(false)
 
 const LAST_EXAM_ID_STORAGE_KEY = 'rtp_v3_lastSavedExamId'
 
@@ -3719,6 +3748,12 @@ const questionToDelete = ref(null)
 const editQuestionOpen = ref(false)
 const questionToEdit = ref(null)
 const editQuestionPrompt = ref('')
+
+// Computed total marks
+const totalMarks = computed(() => {
+  return sampleQuestions.value.reduce((sum, q) => sum + (q.marks || 0), 0)
+})
+
 // Computed page title for Head component
 const pageTitle = computed(() => {
   return pageOptions.value.examTitle?.enabled && pageOptions.value.examTitle?.text
@@ -5355,36 +5390,32 @@ async function savePageState() {
 }
 
 async function handleSaveAs(fileName) {
+  if (isSaving.value) return
+
   try {
     if (typeof fileName !== 'string' || fileName.trim() === '') {
       throw new Error('Missing file name')
     }
+
+    isSaving.value = true
+
+    // Ensure exam title is synchronized with file name
+    if (pageOptions.value.examTitle) {
+      pageOptions.value.examTitle.text = fileName
+      pageOptions.value.examTitle.enabled = true
+    }
+
     const data = {
       name: fileName,
       questions: sampleQuestions.value,
       component_version: COMPONENT_VERSION,
-      settings: {
-        examTitle: pageOptions.value.examTitle,
-        showMarksPerQuestion: pageOptions.value.showMarksPerQuestion,
-        showExplanationUnderQuestion: pageOptions.value.showExplanationUnderQuestion,
-        showCorrectAnswerUnderQuestion: pageOptions.value.showCorrectAnswerUnderQuestion,
-        printHeader: pageOptions.value.printHeader,
-        printFooter: pageOptions.value.printFooter,
-        firstPage: pageOptions.value.firstPage,
-        lastPage: pageOptions.value.lastPage,
-        answerKey: pageOptions.value.answerKey,
-        questionNumbering: pageOptions.value.questionNumbering,
-        sectionTotal: pageOptions.value.sectionTotal,
-        questionSeparator: pageOptions.value.questionSeparator,
-        mcqOptions: pageOptions.value.mcqOptions,
-        pageLayout: pageOptions.value.pageLayout
-      },
+      settings: JSON.parse(JSON.stringify(pageOptions.value)),
       sections: sections.value || [],
       questionSectionMap: questionSectionMap.value || {},
       pageBreaks: pageOptions.value.questionNumbering?.pageBreaksBefore || {}
     }
 
-    console.log('Saving exam as:', fileName, 'with data:', {
+    console.log('Saving exam as with data:', {
       questions_count: data.questions.length,
       sections_count: data.sections.length,
       questionSectionMap_count: Object.keys(data.questionSectionMap).length,
@@ -5405,11 +5436,9 @@ async function handleSaveAs(fileName) {
 
     if (response.ok) {
       lastSavedExamId.value = result.exam_id
-      $q.notify({
-        type: 'positive',
-        message: `Exam saved as "${fileName}" successfully!`,
-        position: 'top'
-      })
+      hasUnsavedChanges.value = false
+      lastSavedState.value = getCurrentState()
+      updateUrlWithExamId(result.exam_id)
     } else {
       $q.notify({
         type: 'negative',
@@ -5424,11 +5453,17 @@ async function handleSaveAs(fileName) {
       message: 'Failed to save exam: ' + e.message,
       position: 'top'
     })
+  } finally {
+    isSaving.value = false
   }
 }
 
 async function handleSaveExam() {
+  if (isSaving.value) return
+
   try {
+    isSaving.value = true
+
     const examTitle = pageOptions.value.examTitle?.enabled ? pageOptions.value.examTitle.text : 'Untitled Exam'
     const data = {
       name: examTitle,
@@ -5472,11 +5507,7 @@ async function handleSaveExam() {
       lastSavedExamId.value = result.exam_id
       hasUnsavedChanges.value = false
       lastSavedState.value = getCurrentState()
-      $q.notify({
-        type: 'positive',
-        message: data.exam_id ? 'Exam updated successfully!' : 'New exam created successfully!',
-        position: 'top'
-      })
+      updateUrlWithExamId(result.exam_id)
     } else {
       $q.notify({
         type: 'negative',
@@ -5491,6 +5522,8 @@ async function handleSaveExam() {
       message: 'Failed to save exam: ' + e.message,
       position: 'top'
     })
+  } finally {
+    isSaving.value = false
   }
 }
 
@@ -5557,8 +5590,6 @@ function markAsChanged() {
 }
 
 function triggerAutoSave() {
-  if (!autoSaveEnabled.value || !lastSavedExamId.value) return
-
   // Clear existing timer
   if (autoSaveDebounceTimer.value) {
     clearTimeout(autoSaveDebounceTimer.value)
@@ -8138,6 +8169,28 @@ watch(lastSavedExamId, (v) => {
   left: 0;
   right: 0;
   z-index: 1000;
+}
+
+.auto-save-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #4caf50;
+}
+
+.auto-save-indicator .auto-save-text {
+  font-size: 12px;
+}
+
+.exam-info-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .test-header {
