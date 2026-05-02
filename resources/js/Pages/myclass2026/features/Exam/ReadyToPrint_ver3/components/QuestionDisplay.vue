@@ -1,5 +1,42 @@
 <template>
-  <div class="question-display">
+  <div class="question-display" @mouseenter="showMenu = true" @mouseleave="showMenu = false">
+    <!-- Hover Menu -->
+    <div v-if="showMenu" class="question-hover-menu">
+      <q-btn
+        flat
+        dense
+        size="sm"
+        icon="edit"
+        label="Edit Inline"
+        @click="$emit('editInline', question)"
+      />
+      <q-btn
+        flat
+        dense
+        size="sm"
+        icon="content_copy"
+        label="Copy JSON"
+        @click="copyQuestionJson"
+      />
+      <q-btn
+        flat
+        dense
+        size="sm"
+        icon="content_paste"
+        label="Paste"
+        @click="$emit('paste', question)"
+      />
+      <q-btn
+        flat
+        dense
+        size="sm"
+        :icon="hasPageBreakAfter ? 'vertical_align_bottom' : 'format_pagebreak'"
+        :color="hasPageBreakAfter ? 'primary' : 'grey-7'"
+        :label="hasPageBreakAfter ? 'Remove Page Break' : 'Add Page Break'"
+        @click="$emit('togglePageBreak', question)"
+      />
+    </div>
+
     <img
       v-if="imageUrl"
       class="question-fly-image"
@@ -62,7 +99,7 @@
         </div>
       </div>
     </template>
-    
+
     <div class="answer-area" v-if="showAnswerArea">
       <div class="answer-lines">
         <div class="answer-line" v-for="n in answerLines" :key="n"></div>
@@ -72,10 +109,17 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
+import { useQuasar } from 'quasar'
 import TextRenderer from './TextRenderer.vue'
 import QuestionMCQ from './QuestionMCQ.vue'
 import QuestionNumber from './QuestionNumber.vue'
+
+const $q = useQuasar()
+
+const showMenu = ref(false)
+
+const emit = defineEmits(['editInline', 'paste', 'togglePageBreak'])
 
 const props = defineProps({
   question: {
@@ -111,6 +155,10 @@ const props = defineProps({
     default: null
   },
   forceEssay: {
+    type: Boolean,
+    default: false
+  },
+  hasPageBreakAfter: {
     type: Boolean,
     default: false
   }
@@ -240,6 +288,25 @@ function optionLabel(idx) {
   return ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'][idx] || (idx + 1) + '.'
 }
 
+function copyQuestionJson() {
+  const questionJson = JSON.stringify(props.question, null, 2)
+  navigator.clipboard.writeText(questionJson).then(() => {
+    $q.notify({
+      type: 'positive',
+      message: 'Question JSON copied to clipboard',
+      position: 'top',
+      timeout: 1000
+    })
+  }).catch(() => {
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to copy question JSON',
+      position: 'top',
+      timeout: 2000
+    })
+  })
+}
+
 // Calculate answer lines based on question type and marks
 const answerLines = computed(() => {
   const lines = props.format?.answerLines || 3
@@ -255,6 +322,19 @@ const answerLines = computed(() => {
   position: relative;
   margin-bottom: 24pt;
   page-break-inside: avoid;
+}
+
+.question-hover-menu {
+  position: absolute;
+  top: -40px;
+  right: 0;
+  display: flex;
+  gap: 4px;
+  padding: 4px 8px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 100;
 }
 
 .question-fly-image {

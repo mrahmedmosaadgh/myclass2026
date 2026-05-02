@@ -424,6 +424,10 @@
           :answer-lines="getPrintAnswerLines(question)"
           :answer-line-style="pageOptions.answerLines"
           :math-render="renderMathContent"
+          :has-page-break-after="isPageBreakAfter(question)"
+          @edit-inline="handleEditInlineQuestion"
+          @paste="handlePasteQuestion"
+          @toggle-page-break="togglePageBreakAfter"
         />
 
         <div v-if="isPageBreakAfter(question)" class="page-break-marker">
@@ -4242,6 +4246,47 @@ function togglePageBreakAfter(question) {
   const nextQuestion = idx >= 0 ? printSequence.value[idx + 1] : null
   if (!nextQuestion) return
   togglePageBreakBefore(nextQuestion)
+}
+
+function handleEditInlineQuestion(question) {
+  questionToEdit.value = question
+  editQuestionPrompt.value = question.content?.prompt || ''
+  editQuestionOpen.value = true
+}
+
+function handlePasteQuestion(question) {
+  navigator.clipboard.readText().then((text) => {
+    try {
+      const pastedData = JSON.parse(text)
+      if (pastedData && typeof pastedData === 'object') {
+        const idx = sampleQuestions.value.findIndex(q => String(q?.id) === String(question?.id))
+        if (idx >= 0) {
+          sampleQuestions.value[idx] = { ...pastedData, id: question.id }
+          markAsChanged()
+          $q.notify({
+            type: 'positive',
+            message: 'Question pasted successfully',
+            position: 'top',
+            timeout: 1000
+          })
+        }
+      }
+    } catch (e) {
+      $q.notify({
+        type: 'negative',
+        message: 'Invalid JSON in clipboard',
+        position: 'top',
+        timeout: 2000
+      })
+    }
+  }).catch(() => {
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to read clipboard',
+      position: 'top',
+      timeout: 2000
+    })
+  })
 }
 
 const questionNumberingStyles = [
