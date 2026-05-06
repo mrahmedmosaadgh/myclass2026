@@ -18,7 +18,7 @@ class PermissionsController extends Controller
         // Get enhanced user data with relationships
         $enhancedData = $this->getEnhancedUserData();
 
-        return Inertia::render('my_class/super_admin/Admin/user_management', [
+        return Inertia::render('myclass2026/roles/school-admin/system/super_admin/Admin/user_management', [
             'roles' => Role::with('permissions')
                 ->where('name', '!=', 'super_admin')
                 ->get(),
