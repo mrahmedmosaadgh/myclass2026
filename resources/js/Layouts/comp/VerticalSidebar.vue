@@ -763,6 +763,49 @@ const handleToggleDarkMode = () => {
             </q-item-section>
         </q-item>
 
+        <!-- Role Display & Switcher -->
+        <q-item class="q-py-sm">
+           <q-item-section avatar>
+              <q-icon name="badge" :color="isPreviewMode ? 'orange' : 'grey-7'" />
+            </q-item-section>
+            <q-item-section>
+               <q-btn-dropdown
+                  v-if="availableRoles.length > 1"
+                  flat
+                  dense
+                  :label="capitalizeFirst(selectedRole)"
+                  :color="isPreviewMode ? 'orange' : 'primary'"
+                  class="full-width"
+                  size="sm"
+                  no-caps
+               >
+                  <q-list>
+                     <q-item
+                        v-for="role in availableRoles"
+                        :key="role"
+                        clickable
+                        v-close-popup
+                        @click="selectedRole = role"
+                        :active="selectedRole === role"
+                        active-class="text-primary bg-blue-50"
+                     >
+                        <q-item-section>
+                           <q-item-label>{{ capitalizeFirst(role) }}</q-item-label>
+                        </q-item-section>
+                     </q-item>
+                  </q-list>
+               </q-btn-dropdown>
+               <q-item-label v-else class="menu-label text-grey-7">
+                  {{ capitalizeFirst(selectedRole) }}
+               </q-item-label>
+            </q-item-section>
+            <q-item-section v-if="isPreviewMode" side>
+               <q-icon name="visibility" color="orange" size="xs">
+                  <q-tooltip>Preview Mode</q-tooltip>
+               </q-icon>
+            </q-item-section>
+        </q-item>
+
         <!-- Logout -->
         <q-item clickable v-ripple @click="logout">
           <q-item-section avatar>

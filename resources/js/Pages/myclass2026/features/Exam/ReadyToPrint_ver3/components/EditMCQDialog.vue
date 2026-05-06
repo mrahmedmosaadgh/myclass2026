@@ -149,7 +149,7 @@ function removeOption(idx) {
 function onSave() {
   emit('save', {
     prompt: form.prompt,
-    options: form.options.map((t) => ({ text: String(t ?? '') })),
+    options: form.options.map((t) => String(t ?? '')),
     correct_option_index: form.correctIndex,
     explanation: form.explanation,
   })

@@ -161,15 +161,16 @@
       </q-btn-dropdown>
 
       <!-- Google Drive-style auto-save indicator -->
-      <div class="auto-save-indicator q-mr-xs">
+      <div class="auto-save-indicator q-mr-xs" @click="forceSave">
         <q-icon
-          :name="isSaving ? 'cloud_sync' : 'cloud_done'"
-          :color="isSaving ? 'primary' : 'positive'"
+          :name="saveStatus.icon"
+          :color="saveStatus.color"
           size="20px"
+          class="cursor-pointer"
         >
-          <q-tooltip>{{ isSaving ? 'Saving...' : 'All changes saved' }}</q-tooltip>
+          <q-tooltip>{{ saveStatus.tooltip }}</q-tooltip>
         </q-icon>
-        <span class="auto-save-text">{{ isSaving ? 'Saving...' : 'Saved' }}</span>
+        <span class="auto-save-text cursor-pointer">{{ saveStatus.text }}</span>
       </div>
 
       <!-- Single dropdown for remaining actions -->
@@ -3737,6 +3738,7 @@ const lastSavedExamId = ref(null)
 const openingPrintHtml = ref(false)
 const pdfGenerating = ref(false)
 const isSaving = ref(false)
+const saveError = ref(false)
 
 const LAST_EXAM_ID_STORAGE_KEY = 'rtp_v3_lastSavedExamId'
 
@@ -3758,12 +3760,43 @@ const totalMarks = computed(() => {
   return sampleQuestions.value.reduce((sum, q) => sum + (q.marks || 0), 0)
 })
 
+// Computed save status for auto-save indicator
+const saveStatus = computed(() => {
+  if (isSaving.value) {
+    return {
+      icon: 'cloud_sync',
+      color: 'primary',
+      text: 'Saving...',
+      tooltip: 'Saving...'
+    }
+  }
+  if (saveError.value) {
+    return {
+      icon: 'cloud_off',
+      color: 'negative',
+      text: 'Save failed',
+      tooltip: 'Click to retry'
+    }
+  }
+  return {
+    icon: 'cloud_done',
+    color: 'positive',
+    text: 'Saved',
+    tooltip: 'All changes saved - Click to force save'
+  }
+})
+
 // Computed page title for Head component
 const pageTitle = computed(() => {
   return pageOptions.value.examTitle?.enabled && pageOptions.value.examTitle?.text
     ? pageOptions.value.examTitle.text
     : 'Exam Builder - Ready to Print'
 })
+
+function forceSave() {
+  saveError.value = false
+  handleSaveExam()
+}
 
 function applyRecommendedFooterOneLineTopAlign() {
   if (!pageOptions.value?.printFooter) return
@@ -5553,7 +5586,9 @@ async function handleSaveExam() {
       hasUnsavedChanges.value = false
       lastSavedState.value = getCurrentState()
       updateUrlWithExamId(result.exam_id)
+      saveError.value = false
     } else {
+      saveError.value = true
       $q.notify({
         type: 'negative',
         message: 'Failed to save exam: ' + (result.message || 'Unknown error'),
@@ -5562,6 +5597,7 @@ async function handleSaveExam() {
     }
   } catch (e) {
     console.error('Failed to save exam', e)
+    saveError.value = true
     $q.notify({
       type: 'negative',
       message: 'Failed to save exam: ' + e.message,
@@ -8226,6 +8262,18 @@ watch(lastSavedExamId, (v) => {
   font-size: 13px;
   font-weight: 500;
   color: #4caf50;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  user-select: none;
+}
+
+.auto-save-indicator:hover {
+  background: rgba(255, 255, 255, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.auto-save-indicator:active {
+  transform: scale(0.98);
 }
 
 .auto-save-indicator .auto-save-text {

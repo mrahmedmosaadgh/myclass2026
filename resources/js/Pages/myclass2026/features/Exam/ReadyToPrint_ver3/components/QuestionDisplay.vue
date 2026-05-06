@@ -1,13 +1,13 @@
 <template>
-  <div class="question-display" @mouseenter="showMenu = true" @mouseleave="showMenu = false">
-    <!-- Hover Menu -->
-    <div v-if="showMenu" class="question-hover-menu">
+  <div class="question-display">
+    <!-- Question Menu -->
+    <div class="question-hover-menu">
       <q-btn
         flat
         dense
         size="sm"
         icon="edit"
-        label="Edit Inline"
+        label="Edit"
         @click="$emit('editInline', question)"
       />
       <q-btn
@@ -15,7 +15,7 @@
         dense
         size="sm"
         icon="content_copy"
-        label="Copy JSON"
+        label="Copy"
         @click="copyQuestionJson"
       />
       <q-btn
@@ -32,7 +32,7 @@
         size="sm"
         :icon="hasPageBreakAfter ? 'vertical_align_bottom' : 'format_pagebreak'"
         :color="hasPageBreakAfter ? 'primary' : 'grey-7'"
-        :label="hasPageBreakAfter ? 'Remove Page Break' : 'Add Page Break'"
+        :label="hasPageBreakAfter ? 'No Break' : 'Break'"
         @click="$emit('togglePageBreak', question)"
       />
     </div>
@@ -109,15 +109,13 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useQuasar } from 'quasar'
 import TextRenderer from './TextRenderer.vue'
 import QuestionMCQ from './QuestionMCQ.vue'
 import QuestionNumber from './QuestionNumber.vue'
 
 const $q = useQuasar()
-
-const showMenu = ref(false)
 
 const emit = defineEmits(['editInline', 'paste', 'togglePageBreak'])
 
@@ -322,19 +320,21 @@ const answerLines = computed(() => {
   position: relative;
   margin-bottom: 24pt;
   page-break-inside: avoid;
+  padding-top: 50px;
 }
 
 .question-hover-menu {
   position: absolute;
-  top: -40px;
+  top: 0;
   right: 0;
   display: flex;
   gap: 4px;
-  padding: 4px 8px;
+  padding: 6px 10px;
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   z-index: 100;
+  border: 1px solid #e0e0e0;
 }
 
 .question-fly-image {
