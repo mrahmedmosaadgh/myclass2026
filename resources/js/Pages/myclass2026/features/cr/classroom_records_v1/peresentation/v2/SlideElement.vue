@@ -1016,12 +1016,12 @@ export default {
   outline: 1px dashed #4a90e2;
 }
 
-.element-html ::v-deep img {
+.element-html :deep(img) {
   max-width: 100%;
   height: auto;
 }
 
-.element-html ::v-deep * {
+.element-html :deep(*) {
   margin: revert;
   padding: revert;
 }

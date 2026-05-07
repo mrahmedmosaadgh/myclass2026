@@ -217,6 +217,15 @@ Route::middleware(['auth:sanctum', 'web'])->group(function () {
         Route::patch('/{classroomRecord}', [ClassroomRecordController::class, 'update']);
     });
 
+    // Classroom Records v2 API
+    Route::prefix('cr')->group(function () {
+        // Category mappings (scoring categories)
+        Route::get('/category-mappings', [App\Http\Controllers\Api\Cr\CrCategoryMappingsController::class, 'index']);
+        Route::post('/category-mappings', [App\Http\Controllers\Api\Cr\CrCategoryMappingsController::class, 'store']);
+        Route::patch('/category-mappings/{mapping}', [App\Http\Controllers\Api\Cr\CrCategoryMappingsController::class, 'update']);
+        Route::delete('/category-mappings/{mapping}', [App\Http\Controllers\Api\Cr\CrCategoryMappingsController::class, 'destroy']);
+    });
+
     // AI Assistant API
     Route::post('/ai/complete', [App\Http\Controllers\AIController::class, 'complete']);
 

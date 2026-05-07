@@ -14,6 +14,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import axios from 'axios';
 import { useClassroomRecordsStore } from '@/stores/classroomRecords';
+import { useAttendanceService } from './composables/useAttendanceService';
 import SessionContextBar from './components/SessionContextBar.vue';
 import StudentCard from './components/StudentCard.vue';
 import StudentCardV2 from './components/StudentCardV2.vue';
@@ -165,6 +166,34 @@ const closeDialog = () => {
   dialogOpen.value = false;
 };
 
+// Save current session to localStorage
+const saveSessionToStorage = () => {
+  const sessionData = {
+    context: store.sessionContext,
+    students: store.students,
+    lastSaved: new Date().toISOString(),
+    classroomId: store.sessionContext.classroom_id,
+    subjectId: store.sessionContext.subject_id,
+    date: store.sessionContext.date
+  };
+  
+  localStorage.setItem('cr_last_session', JSON.stringify(sessionData));
+};
+
+// Load last session from localStorage
+const loadLastSession = () => {
+  const savedSession = localStorage.getItem('cr_last_session');
+  if (!savedSession) return null;
+  
+  try {
+    return JSON.parse(savedSession);
+  } catch (error) {
+    console.warn('Failed to parse saved session:', error);
+    localStorage.removeItem('cr_last_session');
+    return null;
+  }
+};
+
 // Initialize store from props on mount
 onMounted(() => {
   console.log('🔍 CR Page Props:', {
@@ -182,12 +211,56 @@ onMounted(() => {
   if (props.teacherId) {
     store.updateContextField('teacher_id', props.teacherId);
   }
+  
+  // Try to restore last session
+  const lastSession = loadLastSession();
+  if (lastSession && !props.initialContext) {
+    // Only restore if not coming from deep link
+    console.log('🔄 Restoring last session:', lastSession);
+    
+    // Restore context
+    if (lastSession.context) {
+      Object.keys(lastSession.context).forEach(key => {
+        store.updateContextField(key, lastSession.context[key]);
+      });
+    }
+    
+    // Restore student data if available
+    if (lastSession.students && Array.isArray(lastSession.students)) {
+      lastSession.students.forEach(savedStudent => {
+        const existingStudent = store.students.find(s => s.student_period_id === savedStudent.student_period_id);
+        if (existingStudent && savedStudent.period) {
+          // Restore attendance and scores
+          Object.assign(existingStudent.period, savedStudent.period);
+          
+          // Restore scores if available
+          if (savedStudent.scores && Array.isArray(savedStudent.scores)) {
+            savedStudent.scores.forEach(savedScore => {
+              const existingScore = existingStudent.scores.find(s => s.mapping_id === savedScore.mapping_id);
+              if (existingScore) {
+                Object.assign(existingScore, savedScore);
+              }
+            });
+          }
+        }
+      });
+    }
+  }
 });
 
 // Watch for context changes and trigger auto-save
 watch(() => store.sessionContext, () => {
   if (contextReady.value && hasUnsavedChanges.value) {
     forceSave();
+  }
+  // Also save to localStorage for session persistence
+  saveSessionToStorage();
+}, { deep: true });
+
+// Watch for student data changes and save session
+watch(() => store.students, () => {
+  if (store.students.length > 0) {
+    saveSessionToStorage();
   }
 }, { deep: true });
 
@@ -199,6 +272,43 @@ watch([useRandomAvatar, showBadgeOnCard, scoreLabelFormat, cardSize, nameFormat]
 /**
  * Manually load session (button click)
  */
+const loadSessionManually = () => {
+  const lastSession = loadLastSession();
+  if (lastSession) {
+    // Restore context
+    if (lastSession.context) {
+      Object.keys(lastSession.context).forEach(key => {
+        store.updateContextField(key, lastSession.context[key]);
+      });
+    }
+    
+    // Restore student data
+    if (lastSession.students && Array.isArray(lastSession.students)) {
+      lastSession.students.forEach(savedStudent => {
+        const existingStudent = store.students.find(s => s.student_period_id === savedStudent.student_period_id);
+        if (existingStudent && savedStudent.period) {
+          Object.assign(existingStudent.period, savedStudent.period);
+          
+          if (savedStudent.scores && Array.isArray(savedStudent.scores)) {
+            savedStudent.scores.forEach(savedScore => {
+              const existingScore = existingStudent.scores.find(s => s.mapping_id === savedScore.mapping_id);
+              if (existingScore) {
+                Object.assign(existingScore, savedScore);
+              }
+            });
+          }
+        }
+      });
+    }
+  }
+};
+
+/**
+ * Clear saved session
+ */
+const clearSavedSession = () => {
+  localStorage.removeItem('cr_last_session');
+};
 const loadSession = () => {
   console.log(' Load Session button clicked');
   if (!store.sessionContext.classroom_id || !store.sessionContext.subject_id) {
@@ -233,7 +343,9 @@ const isStandalone = computed(() => !props.initialContext);
 // Admin is readonly ONLY when viewing from schedule (not in standalone mode)
 const isReadonly = computed(() => props.isAdmin && !isStandalone.value);
 
-// Use dirty batch composable
+const attendanceService = useAttendanceService();
+
+// Dirty batch composable for autosave
 const {
   markDirty,
   hasUnsavedChanges,

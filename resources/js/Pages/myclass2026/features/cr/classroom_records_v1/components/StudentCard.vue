@@ -4,6 +4,8 @@
  */
 
 import { ref, computed } from 'vue'
+import AttendanceToggle from './AttendanceToggle.vue'
+import { useAttendanceService } from '../composables/useAttendanceService'
 
 /* -----------------------
  Props
@@ -30,9 +32,15 @@ const props = defineProps({
     default: () => []
   },
 
-  readOnly: Boolean,
-  editMode: Boolean,
-  disabled: Boolean
+  disabled: {
+    type: Boolean,
+    default: false
+  },
+
+  editMode: {
+    type: Boolean,
+    default: false
+  }
 })
 
 const emit = defineEmits([
@@ -40,6 +48,8 @@ const emit = defineEmits([
   'update:attendance',
   'mark-absent'
 ])
+
+const attendanceService = useAttendanceService()
 
 /* -----------------------
  Local State
@@ -105,12 +115,23 @@ const scoreColors = {
  Score Emit Helper
 ----------------------- */
 
-const emitScore = (mappingId, value) => {
-  emit('update:scores', {
-    student_period_id: props.student.student_period_id,
-    mapping_id: mappingId,
-    numeric_value: value
-  })
+const emitScore = async (mappingId, value) => {
+  if (!props.editMode || isDisabled.value) return
+  
+  const success = await attendanceService.updateScore(
+    props.student.student_period_id,
+    mappingId,
+    value
+  )
+  
+  if (success) {
+    // Still emit for backward compatibility and dirty tracking
+    emit('update:scores', {
+      student_period_id: props.student.student_period_id,
+      mapping_id: mappingId,
+      numeric_value: value
+    })
+  }
 }
 
 /* -----------------------
@@ -121,18 +142,14 @@ const cycleScore = async (categoryKey) => {
   if (!props.editMode || isDisabled.value || isLocked.value || isAbsent.value)
     return
 
-  const scoreRecord = scoreMap.value[categoryKey]
+  const scoreRecord = scoreMapFor(props.scores)[categoryKey]
   if (!scoreRecord) return
 
-  const max = scoreRecord.max_value ?? 5
-  const mid = Math.round(max * 0.6)
-
-  const steps = [max, mid, 0]
-
+  const steps = scoreStepsFor(scoreRecord)
   const current = scoreRecord.numeric_value ?? 0
   const next = steps[(steps.indexOf(current) + 1) % steps.length]
 
-  emitScore(scoreRecord.mapping_id, next)
+  await emitScore(scoreRecord.mapping_id, next)
 
   isAnimating.value = true
   setTimeout(() => (isAnimating.value = false), 180)
@@ -148,7 +165,7 @@ const openScoreInput = (key) => {
   showScoreInput.value = key
 }
 
-const updateScoreValue = (key, value, commit = false) => {
+const updateScoreValue = async (key, value, commit = false) => {
   if (!props.editMode || isDisabled.value || isLocked.value || isAbsent.value)
     return
 
@@ -160,7 +177,7 @@ const updateScoreValue = (key, value, commit = false) => {
 
   const clamped = Math.max(0, Math.min(max, num))
 
-  emitScore(scoreRecord.mapping_id, clamped)
+  await emitScore(scoreRecord.mapping_id, clamped)
 
   if (commit) {
     showScoreInput.value = null
@@ -171,25 +188,42 @@ const updateScoreValue = (key, value, commit = false) => {
  Attendance
 ----------------------- */
 
-const toggleAttendance = () => {
+const toggleAttendance = async () => {
   if (!props.editMode || isDisabled.value) return
 
   const newStatus = isAbsent.value ? 'present' : 'absent'
-
-  emit('update:attendance', {
-    student_period_id: props.student.student_period_id,
-    attendance_status: newStatus
-  })
+  
+  const success = await attendanceService.updateAttendance(
+    props.student.student_period_id,
+    newStatus
+  )
+  
+  if (success) {
+    // Still emit for backward compatibility and dirty tracking
+    emit('update:attendance', {
+      student_period_id: props.student.student_period_id,
+      attendance_status: newStatus
+    })
+  }
 }
 
-const setAttendanceScore = (value) => {
+const setAttendanceScore = async (value) => {
   if (!props.editMode || isDisabled.value || isAbsent.value) return
 
-  emit('update:attendance', {
-    student_period_id: props.student.student_period_id,
-    attendance_status: props.period.attendance_status,
-    attendance_score: value
-  })
+  const success = await attendanceService.updateAttendance(
+    props.student.student_period_id,
+    props.period.attendance_status,
+    value
+  )
+  
+  if (success) {
+    // Still emit for backward compatibility and dirty tracking
+    emit('update:attendance', {
+      student_period_id: props.student.student_period_id,
+      attendance_status: props.period.attendance_status,
+      attendance_score: value
+    })
+  }
 }
 
 const markAbsent = () => {
