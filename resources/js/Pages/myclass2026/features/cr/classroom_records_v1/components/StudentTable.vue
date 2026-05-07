@@ -1,5 +1,6 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import AttendanceToggle from './AttendanceToggle.vue'
 
 const props = defineProps({
   students: {
@@ -22,6 +23,9 @@ const emit = defineEmits([
 ])
 
 const isDisabled = computed(() => props.disabled || props.readOnly)
+
+// Track focused student for keyboard navigation
+const focusedStudentId = ref(null)
 
 const scoreMapFor = (scores = []) => {
   const map = {}
@@ -110,6 +114,101 @@ const setCombinedAttendance = (student, value) => {
   }
 }
 
+// Handle attendance toggle changes from AttendanceToggle component
+const handleAttendanceToggle = (data) => {
+  if (!props.editMode || isDisabled.value) return
+  
+  const { student_period_id, state } = data
+  
+  // Convert state to attendance data
+  const attendanceData = {
+    student_period_id,
+    attendance_status: state,
+    attendance_score: state === 'absent' ? 0 : (state === 'late' ? 3 : 5)
+  }
+  
+  emit('update:attendance', attendanceData)
+}
+
+// Handle focus events from AttendanceToggle
+const handleAttendanceFocus = (studentPeriodId) => {
+  focusedStudentId.value = studentPeriodId
+}
+
+// Bulk action functions
+const markAllPresent = () => {
+  if (!props.editMode || isDisabled.value) return
+  
+  props.students.forEach(student => {
+    emit('update:attendance', {
+      student_period_id: student.student_period_id,
+      attendance_status: 'present',
+      attendance_score: 5
+    })
+  })
+}
+
+const markAllAbsent = () => {
+  if (!props.editMode || isDisabled.value) return
+  
+  props.students.forEach(student => {
+    emit('update:attendance', {
+      student_period_id: student.student_period_id,
+      attendance_status: 'absent',
+      attendance_score: 0
+    })
+  })
+}
+
+// Keyboard navigation for attendance column
+const handleTableKeydown = (event) => {
+  if (!props.editMode || isDisabled.value) return
+  
+  const currentIndex = props.students.findIndex(s => s.student_period_id === focusedStudentId.value)
+  
+  switch (event.key) {
+    case 'ArrowDown':
+      event.preventDefault()
+      if (currentIndex < props.students.length - 1) {
+        focusedStudentId.value = props.students[currentIndex + 1].student_period_id
+        // Focus the next attendance toggle
+        setTimeout(() => {
+          const nextToggle = document.querySelector(`[data-attendance-id="${focusedStudentId.value}"]`)
+          nextToggle?.focus()
+        }, 0)
+      }
+      break
+      
+    case 'ArrowUp':
+      event.preventDefault()
+      if (currentIndex > 0) {
+        focusedStudentId.value = props.students[currentIndex - 1].student_period_id
+        // Focus the previous attendance toggle
+        setTimeout(() => {
+          const prevToggle = document.querySelector(`[data-attendance-id="${focusedStudentId.value}"]`)
+          prevToggle?.focus()
+        }, 0)
+      }
+      break
+      
+    case 'a':
+    case 'A':
+      if (event.ctrlKey || event.metaKey) {
+        event.preventDefault()
+        markAllAbsent()
+      }
+      break
+      
+    case 'p':
+    case 'P':
+      if (event.ctrlKey || event.metaKey) {
+        event.preventDefault()
+        markAllPresent()
+      }
+      break
+  }
+}
+
 // Get current attendance value for the dropdown
 const getAttendanceValue = (student) => {
   const status = student.period?.attendance_status
@@ -131,7 +230,7 @@ const quickAbsent = (student) => {
 
 <template>
   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
-    <div class="overflow-x-auto">
+    <div class="overflow-x-auto" @keydown="handleTableKeydown">
       <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
         <thead class="bg-gray-50 dark:bg-gray-900/40">
           <tr>
@@ -149,7 +248,25 @@ const quickAbsent = (student) => {
               {{ category.label }}
             </th>
             <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-              Attendance
+              <div class="flex flex-col gap-2">
+                <span>Attendance</span>
+                <div v-if="editMode && !isDisabled" class="flex gap-1">
+                  <button
+                    @click="markAllPresent"
+                    class="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
+                    title="Mark all students present (Ctrl+P)"
+                  >
+                    All P
+                  </button>
+                  <button
+                    @click="markAllAbsent"
+                    class="px-2 py-1 text-xs font-medium bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                    title="Mark all students absent (Ctrl+A)"
+                  >
+                    All A
+                  </button>
+                </div>
+              </div>
             </th>
           </tr>
         </thead>
@@ -232,16 +349,30 @@ const quickAbsent = (student) => {
             </td>
 
             <td class="px-4 py-3">
-              <select
-                :disabled="!editMode || isDisabled"
-                :value="getAttendanceValue(student)"
-                @change="setCombinedAttendance(student, $event.target.value)"
-                class="h-9 w-44 rounded border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm font-semibold"
-              >
-                <option value="5">✅ On time (5)</option>
-                <option value="3">⚠️ Late / Left early (3)</option>
-                <option value="absent">❌ Absent (0)</option>
-              </select>
+              <template v-if="editMode">
+                <AttendanceToggle
+                  :student="student"
+                  :disabled="isDisabled"
+                  @change="handleAttendanceToggle"
+                  @focus="handleAttendanceFocus"
+                  :data-attendance-id="student.student_period_id"
+                />
+              </template>
+              <template v-else>
+                <div class="flex items-center justify-center">
+                  <span 
+                    class="px-3 py-2 rounded-lg text-sm font-semibold"
+                    :class="{
+                      'bg-green-100 text-green-700': student.period?.attendance_status === 'present',
+                      'bg-yellow-100 text-yellow-700': student.period?.attendance_status === 'present' && student.period?.attendance_score === 3,
+                      'bg-red-100 text-red-700': student.period?.attendance_status === 'absent'
+                    }"
+                  >
+                    {{ student.period?.attendance_status === 'absent' ? 'Absent (0)' : 
+                       student.period?.attendance_score === 3 ? 'Late (3)' : 'Present (5)' }}
+                  </span>
+                </div>
+              </template>
             </td>
           </tr>
         </tbody>
