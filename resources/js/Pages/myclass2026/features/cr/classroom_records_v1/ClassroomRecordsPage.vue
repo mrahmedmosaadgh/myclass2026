@@ -170,14 +170,13 @@ const closeDialog = () => {
 const saveSessionToStorage = () => {
   const sessionData = {
     context: store.sessionContext,
-    students: store.students,
+    sessionData: store.sessionData,
     lastSaved: new Date().toISOString(),
-    classroomId: store.sessionContext.classroom_id,
-    subjectId: store.sessionContext.subject_id,
-    date: store.sessionContext.date
+    timestamp: Date.now()
   };
   
   localStorage.setItem('cr_last_session', JSON.stringify(sessionData));
+  console.log('💾 Session saved to localStorage:', sessionData.context);
 };
 
 // Load last session from localStorage
@@ -223,28 +222,23 @@ onMounted(() => {
       Object.keys(lastSession.context).forEach(key => {
         store.updateContextField(key, lastSession.context[key]);
       });
+      
+      // After restoring context, check if it's complete and initialize session
+      if (store.isContextComplete()) {
+        console.log('🚀 Auto-initializing session from restored context');
+        initSession();
+      }
     }
     
-    // Restore student data if available
-    if (lastSession.students && Array.isArray(lastSession.students)) {
-      lastSession.students.forEach(savedStudent => {
-        const existingStudent = store.students.find(s => s.student_period_id === savedStudent.student_period_id);
-        if (existingStudent && savedStudent.period) {
-          // Restore attendance and scores
-          Object.assign(existingStudent.period, savedStudent.period);
-          
-          // Restore scores if available
-          if (savedStudent.scores && Array.isArray(savedStudent.scores)) {
-            savedStudent.scores.forEach(savedScore => {
-              const existingScore = existingStudent.scores.find(s => s.mapping_id === savedScore.mapping_id);
-              if (existingScore) {
-                Object.assign(existingScore, savedScore);
-              }
-            });
-          }
-        }
-      });
+    // Restore session data if available
+    if (lastSession.sessionData) {
+      console.log('📚 Restoring session data from localStorage');
+      store.setSessionData(lastSession.sessionData);
     }
+  } else if (props.initialContext) {
+    // If we have initial context from props, initialize session immediately
+    console.log('🚀 Initializing session from initial context');
+    initSession();
   }
 });
 
@@ -299,6 +293,35 @@ const loadSessionManually = () => {
           }
         }
       });
+    }
+  }
+};
+
+/**
+ * Handle load last session from SessionContextBar
+ */
+const handleLoadLastSession = () => {
+  const lastSession = loadLastSession();
+  if (lastSession) {
+    console.log('🔄 Manually loading last session:', lastSession);
+    
+    // Restore context
+    if (lastSession.context) {
+      Object.keys(lastSession.context).forEach(key => {
+        store.updateContextField(key, lastSession.context[key]);
+      });
+      
+      // After restoring context, check if it's complete and initialize session
+      if (store.isContextComplete()) {
+        console.log('🚀 Auto-initializing session from manually loaded context');
+        initSession();
+      }
+    }
+    
+    // Restore session data if available
+    if (lastSession.sessionData) {
+      console.log('📚 Restoring session data from localStorage');
+      store.setSessionData(lastSession.sessionData);
     }
   }
 };
@@ -1045,10 +1068,11 @@ const retryLoad = () => {
         <StudentTable
           v-else
           :students="filteredStudents"
-          :categories="sessionData.mappings"
+          :academic-context="{ year_id: 1, semester: 1 }"
           :read-only="isReadonly"
-          :edit-mode="editMode"
-          @update:scores="handleScoreUpdate"
+          @update:modelValue="handleContextChange"
+          @context-ready="handleContextReady"
+          @load-last-session="handleLoadLastSession"
           @update:attendance="handleAttendanceUpdate"
           @mark-absent="handleMarkAbsent"
         />

@@ -54,10 +54,21 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['update:modelValue', 'context-ready']);
+const emit = defineEmits(['update:modelValue', 'context-ready', 'load-last-session']);
 
 // Local state
 const localValue = ref({ ...props.modelValue });
+
+// Check if last session exists
+const hasLastSession = computed(() => {
+  const savedSession = localStorage.getItem('cr_last_session');
+  return !!savedSession;
+});
+
+// Load last session
+const loadLastSession = () => {
+  emit('load-last-session');
+};
 
 // DEBUG: Log options on mount
 import { onMounted } from 'vue';
@@ -152,77 +163,96 @@ const onFieldChange = (field, value) => {
     </div>
 
     <!-- Interactive Mode: Show Dropdowns -->
-    <div v-if="isInteractive" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      <!-- Classroom Selection -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Classroom
-        </label>
-        <select
-          v-model="localValue.classroom_id"
-          class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-          @change="onFieldChange('classroom_id', $event.target.value)"
+    <div v-if="isInteractive" class="space-y-4">
+      <!-- Load Last Session Button -->
+      <div v-if="hasLastSession" class="flex items-center gap-4">
+        <button
+          @click="loadLastSession"
+          class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm transition-colors duration-200 flex items-center gap-2"
         >
-          <option value="">Select Classroom</option>
-          <option
-            v-for="classroom in options.classrooms"
-            :key="classroom.id"
-            :value="classroom.id"
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          Load Last Session
+        </button>
+        <span class="text-sm text-gray-600 dark:text-gray-400">
+          Quickly restore your previous classroom and settings
+        </span>
+      </div>
+
+      <!-- Selection Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Classroom Selection -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Classroom
+          </label>
+          <select
+            v-model="localValue.classroom_id"
+            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            @change="onFieldChange('classroom_id', $event.target.value)"
           >
-            {{ classroom.name }}
-          </option>
-        </select>
-      </div>
+            <option value="">Select Classroom</option>
+            <option
+              v-for="classroom in options.classrooms"
+              :key="classroom.id"
+              :value="classroom.id"
+            >
+              {{ classroom.name }}
+            </option>
+          </select>
+        </div>
 
-      <!-- Subject Selection -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Subject
-        </label>
-        <select
-          v-model="localValue.subject_id"
-          class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-          @change="onFieldChange('subject_id', $event.target.value)"
-        >
-          <option value="">Select Subject</option>
-          <option
-            v-for="subject in options.subjects"
-            :key="subject.id"
-            :value="subject.id"
+        <!-- Subject Selection -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Subject
+          </label>
+          <select
+            v-model="localValue.subject_id"
+            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            @change="onFieldChange('subject_id', $event.target.value)"
           >
-            {{ subject.name }}
-          </option>
-        </select>
-      </div>
+            <option value="">Select Subject</option>
+            <option
+              v-for="subject in options.subjects"
+              :key="subject.id"
+              :value="subject.id"
+            >
+              {{ subject.name }}
+            </option>
+          </select>
+        </div>
 
-      <!-- Date Selection -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Date
-        </label>
-        <input
-          type="date"
-          v-model="localValue.date"
-          class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-          @change="onFieldChange('date', $event.target.value)"
-        />
-      </div>
+        <!-- Date Selection -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Date
+          </label>
+          <input
+            type="date"
+            v-model="localValue.date"
+            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            @change="onFieldChange('date', $event.target.value)"
+          />
+        </div>
 
-      <!-- Period Number -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Period
-        </label>
-        <select
-          v-model="localValue.period_number"
-          class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-          @change="onFieldChange('period_number', $event.target.value)"
-        >
-          <option value="">Select Period</option>
-          <option v-for="n in 8" :key="n" :value="n">
-            Period {{ n }}
-          </option>
-        </select>
+        <!-- Period Number -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Period
+          </label>
+          <select
+            v-model="localValue.period_number"
+            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            @change="onFieldChange('period_number', $event.target.value)"
+          >
+            <option value="">Select Period</option>
+            <option v-for="n in 8" :key="n" :value="n">
+              Period {{ n }}
+            </option>
+          </select>
+        </div>
       </div>
     </div>
 

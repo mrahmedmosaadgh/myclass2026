@@ -91,6 +91,16 @@ Route::middleware([
             );
         })->name('builder-v7.group-qr-print');
 
+        // V8 Presentation Builder
+        Route::get('/builder-v8', function () {
+            return Inertia::render(
+                'myclass2026/features/cr/classroom_records_v1/peresentation/v8/Index',
+                [
+                    'title' => 'Presentation Builder V8 - MyClass2026'
+                ]
+            );
+        })->name('builder-v8');
+
         // Presentation Management Page
         Route::get('/manage', function () {
             return Inertia::render(

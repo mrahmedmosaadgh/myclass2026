@@ -131,10 +131,34 @@ const toggleOptions = computed(() => [
 const handleFocus = (event) => {
   emit('focus', props.student.student_period_id)
 }
+
+// Mark student as not absent (present)
+const markNotAbsent = () => {
+  if (props.disabled) return
+  
+  emit('change', {
+    student_period_id: props.student.student_period_id,
+    state: 'present'
+  })
+}
 </script>
 
 <template>
   <div class="attendance-toggle-container" @focus="handleFocus">
+    <!-- Not Absent Button - Shows when student is absent -->
+    <div v-if="currentState === 'absent' && !disabled" class="mb-2">
+      <button
+        @click="markNotAbsent"
+        class="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg shadow-sm transition-colors duration-200 flex items-center justify-center gap-2"
+        title="Mark student as Present (can be changed to Late if needed)"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        Not Absent - Mark Present
+      </button>
+    </div>
+
     <q-btn-toggle
       v-model="model"
       :disable="disabled"

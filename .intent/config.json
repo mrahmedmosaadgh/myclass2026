@@ -1,0 +1,46 @@
+{
+  "scripts": [
+    {
+      "name": "prebuild",
+      "command": "npm run prebuild",
+      "mode": "command",
+      "category": "build"
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "mode": "command",
+      "category": "build"
+    },
+    {
+      "name": "build:clean",
+      "command": "npm run build:clean",
+      "mode": "command",
+      "category": "build"
+    },
+    {
+      "name": "dev",
+      "command": "npm run dev",
+      "mode": "service",
+      "category": "dev"
+    },
+    {
+      "name": "test",
+      "command": "npm run test",
+      "mode": "command",
+      "category": "test"
+    },
+    {
+      "name": "test:run",
+      "command": "npm run test:run",
+      "mode": "command",
+      "category": "test"
+    },
+    {
+      "name": "test:ui",
+      "command": "npm run test:ui",
+      "mode": "command",
+      "category": "test"
+    }
+  ]
+}

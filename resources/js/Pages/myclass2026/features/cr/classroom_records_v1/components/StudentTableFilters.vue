@@ -35,7 +35,7 @@ const getFilteredStudents = () => {
     return props.students
   }
   
-  if (['present', 'absent'].includes(props.modelValue)) {
+  if (['present', 'late', 'absent'].includes(props.modelValue)) {
     return props.students.filter(s => s.period?.attendance_status === props.modelValue)
   }
   
@@ -51,7 +51,8 @@ const getFilteredStudents = () => {
 
 // Attendance counts based on ALL students (not filtered)
 const totalCount = computed(() => props.students.length)
-const presentCount = computed(() => props.students.filter(s => s.period?.attendance_status !== 'absent').length)
+const presentCount = computed(() => props.students.filter(s => s.period?.attendance_status === 'present').length)
+const lateCount = computed(() => props.students.filter(s => s.period?.attendance_status === 'late').length)
 const absentCount = computed(() => props.students.filter(s => s.period?.attendance_status === 'absent').length)
 
 // Current filtered count
@@ -61,6 +62,7 @@ const filteredCount = computed(() => getFilteredStudents().length)
 const attendanceFilters = computed(() => [
   { value: 'all', label: `All (${totalCount.value})`, color: 'bg-gray-500 hover:bg-gray-600' },
   { value: 'present', label: `Present (${presentCount.value})`, color: 'bg-green-500 hover:bg-green-600' },
+  { value: 'late', label: `Late (${lateCount.value})`, color: 'bg-orange-500 hover:bg-orange-600' },
   { value: 'absent', label: `Absent (${absentCount.value})`, color: 'bg-red-500 hover:bg-red-600' }
 ])
 

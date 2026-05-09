@@ -67,11 +67,11 @@ onUnmounted(() => {
 
 <style scoped>
 /* Override default html5-qrcode styling which lacks constraints */
-:deep(#qr-reader-elem-*) {
+:deep([id^="qr-reader-elem-"]) {
   width: 100% !important;
   border: none !important;
 }
-:deep(#qr-reader-elem-* video) {
+:deep([id^="qr-reader-elem-"] video) {
   object-fit: cover !important;
   width: 100% !important;
   height: 100% !important;
