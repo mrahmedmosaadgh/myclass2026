@@ -152,6 +152,90 @@ export const usePresentationStore = defineStore('presentation-v8', () => {
     element.zIndex = minZ - 1
   }
 
+  // Quiz-specific actions
+  function addQuiz(quizData) {
+    const quiz = {
+      id: 'quiz-' + Date.now(),
+      type: 'quiz',
+      x: 100,
+      y: 100,
+      width: 600,
+      height: 400,
+      backgroundColor: '#6366f1',
+      borderRadius: '8px',
+      title: quizData.title || 'New Quiz',
+      questions: quizData.questions || [],
+      currentQuestionIndex: 0,
+      showResults: false,
+      userAnswers: {},
+      isInteractive: false,
+      zIndex: Math.max(...currentSlide.value.elements.map(el => el.zIndex || 0), 0) + 1
+    }
+    
+    addElement(quiz)
+    return quiz
+  }
+
+  function updateQuizAnswer(quizId, questionIndex, answerIndex) {
+    const quiz = currentSlide.value.elements.find(el => el.id === quizId)
+    if (quiz) {
+      if (!quiz.userAnswers) {
+        quiz.userAnswers = {}
+      }
+      quiz.userAnswers[questionIndex] = answerIndex
+    }
+  }
+
+  function updateQuizProperty(quizId, property, value) {
+    const quiz = currentSlide.value.elements.find(el => el.id === quizId)
+    if (quiz) {
+      quiz[property] = value
+    }
+  }
+
+  function addQuizQuestion(quizId) {
+    const quiz = currentSlide.value.elements.find(el => el.id === quizId)
+    if (quiz) {
+      const newQuestion = {
+        id: 'q' + Date.now(),
+        question: 'New Question',
+        options: ['Option A', 'Option B', 'Option C', 'Option D'],
+        correctAnswer: 0,
+        explanation: ''
+      }
+      quiz.questions.push(newQuestion)
+    }
+  }
+
+  function removeQuizQuestion(quizId, questionIndex) {
+    const quiz = currentSlide.value.elements.find(el => el.id === quizId)
+    if (quiz && quiz.questions.length > 1) {
+      quiz.questions.splice(questionIndex, 1)
+    }
+  }
+
+  function toggleQuizInteractive(quizId) {
+    const quiz = currentSlide.value.elements.find(el => el.id === quizId)
+    if (quiz) {
+      quiz.isInteractive = !quiz.isInteractive
+      if (!quiz.isInteractive) {
+        // Reset interactive state when turned off
+        quiz.currentQuestionIndex = 0
+        quiz.showResults = false
+      }
+    }
+  }
+
+  function resetQuiz(quizId) {
+    const quiz = currentSlide.value.elements.find(el => el.id === quizId)
+    if (quiz) {
+      quiz.currentQuestionIndex = 0
+      quiz.showResults = false
+      quiz.userAnswers = {}
+      quiz.isInteractive = false
+    }
+  }
+
   function setDescription(value) {
     description.value = value
     saveToStorage()
@@ -255,6 +339,14 @@ export const usePresentationStore = defineStore('presentation-v8', () => {
     toggleDescriptionInPresentMode,
     clearDescription,
     exportPresentation,
-    importPresentation
+    importPresentation,
+    // Quiz actions
+    addQuiz,
+    updateQuizAnswer,
+    updateQuizProperty,
+    addQuizQuestion,
+    removeQuizQuestion,
+    toggleQuizInteractive,
+    resetQuiz
   }
 })

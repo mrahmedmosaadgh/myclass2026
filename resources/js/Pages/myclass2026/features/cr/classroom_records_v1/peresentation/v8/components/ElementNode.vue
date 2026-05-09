@@ -4,6 +4,7 @@ import { usePresentationStore } from '../stores/presentationStore.js'
 import { useUIStore } from '../stores/uiStore.js'
 import { useDrag } from '../composables/useDrag.js'
 import { useResize } from '../composables/useResize.js'
+import QuizElement from './quiz-v1/QuizElement.vue'
 
 const props = defineProps({
   element: Object,
@@ -195,6 +196,13 @@ const badgeColor = computed(() => {
       v-else-if="element.type === 'html'"
       class="element-content html-element"
       v-html="element.content"
+    />
+    
+    <!-- QUIZ Element -->
+    <QuizElement
+      v-else-if="element.type === 'quiz'"
+      :element="element"
+      :is-present-mode="isPresentMode"
     />
     
     <!-- Resize handles (only in edit mode when selected) -->

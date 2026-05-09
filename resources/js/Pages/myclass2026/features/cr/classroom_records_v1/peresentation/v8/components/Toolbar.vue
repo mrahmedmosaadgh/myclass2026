@@ -2,11 +2,13 @@
 import { ref } from 'vue'
 import { usePresentationStore } from '../stores/presentationStore.js'
 import { useUIStore } from '../stores/uiStore.js'
+import QuizCreationDialog from './quiz-v1/QuizCreationDialog.vue'
 
 const presentation = usePresentationStore()
 const ui = useUIStore()
 
 const fileInputRef = ref(null)
+const showQuizCreationDialog = ref(false)
 
 // Element creation methods
 function addText() {
@@ -75,6 +77,19 @@ function addRectangle() {
     height: 150,
     borderRadius: '8px'
   })
+}
+
+function addQuiz() {
+  showQuizCreationDialog.value = true
+}
+
+function createQuiz(quizData) {
+  presentation.addQuiz(quizData)
+  showQuizCreationDialog.value = false
+}
+
+function cancelQuizCreation() {
+  showQuizCreationDialog.value = false
 }
 
 // Slide management
@@ -163,6 +178,13 @@ function handleImportUpload(e) {
           </svg>
           <span>Rectangle</span>
         </button>
+        
+        <button @click="addQuiz" class="toolbar-btn" title="Add Quiz">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 11H3v2h6v-2zm0-4H3v2h6V7zm0 8H3v2h6v-2zm12-8h-6v2h6V7zm0 4h-6v2h6v-2zm0 4h-6v2h6v-2z"/>
+          </svg>
+          <span>Quiz</span>
+        </button>
       </div>
     </div>
 
@@ -231,6 +253,13 @@ function handleImportUpload(e) {
       accept=".json"
       style="display: none"
       @change="handleImportUpload"
+    />
+    
+    <!-- Quiz Creation Dialog -->
+    <QuizCreationDialog
+      v-if="showQuizCreationDialog"
+      @close="cancelQuizCreation"
+      @create="createQuiz"
     />
   </div>
 </template>
