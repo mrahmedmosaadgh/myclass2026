@@ -173,12 +173,165 @@ function handleAfterPrint() {
   prevPrintState = null
 }
 
+// PWA Service Worker Registration
+function registerServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js')
+      .then((registration) => {
+        console.log('[SW] Service worker registered:', registration.scope)
+        
+        // Check for updates
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing
+          console.log('[SW] New service worker found')
+          
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // New version available
+              showUpdateNotification()
+            }
+          })
+        })
+      })
+      .catch((error) => {
+        console.error('[SW] Service worker registration failed:', error)
+      })
+  }
+}
+
+// PWA Install Prompt
+let deferredPrompt = null
+
+function handleBeforeInstallPrompt(e) {
+  e.preventDefault()
+  deferredPrompt = e
+  showInstallButton()
+}
+
+function showInstallButton() {
+  const installBtn = document.createElement('button')
+  installBtn.textContent = 'Install App'
+  installBtn.className = 'pwa-install-btn'
+  installBtn.style.cssText = `
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    background: #6366f1;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    z-index: 10001;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  `
+  
+  installBtn.onclick = () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt()
+      deferredPrompt.userChoice.then((choiceResult) => {
+        if (choiceResult.outcome === 'accepted') {
+          console.log('[PWA] User accepted the install prompt')
+        }
+        deferredPrompt = null
+        installBtn.remove()
+      })
+    }
+  }
+  
+  document.body.appendChild(installBtn)
+}
+
+function showUpdateNotification() {
+  const notification = document.createElement('div')
+  notification.textContent = 'New version available! Click to refresh.'
+  notification.className = 'pwa-update-notification'
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #10b981;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    z-index: 10002;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  `
+  
+  notification.onclick = () => {
+    window.location.reload()
+  }
+  
+  document.body.appendChild(notification)
+  
+  // Auto-hide after 10 seconds
+  setTimeout(() => {
+    if (notification.parentNode) {
+      notification.remove()
+    }
+  }, 10000)
+}
+
+// Online/Offline Status
+function updateOnlineStatus() {
+  const isOnline = navigator.onLine
+  const statusIndicator = document.querySelector('.online-status') || createOnlineStatusIndicator()
+  
+  statusIndicator.textContent = isOnline ? '🟢 Online' : '🔴 Offline'
+  statusIndicator.className = `online-status ${isOnline ? 'online' : 'offline'}`
+  
+  if (isOnline) {
+    // Trigger sync when back online
+    if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
+      navigator.serviceWorker.ready.then((registration) => {
+        return registration.sync.register('presentation-sync')
+      })
+    }
+  }
+}
+
+function createOnlineStatusIndicator() {
+  const indicator = document.createElement('div')
+  indicator.className = 'online-status'
+  indicator.style.cssText = `
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    z-index: 10003;
+  `
+  document.body.appendChild(indicator)
+  return indicator
+}
+
 // Lifecycle
 onMounted(() => {
   const timestamp = new Date().toISOString()
   console.log(`[${timestamp}] V8 Builder - onMounted started`)
-  console.log(`[${timestamp}] Build version: 2026-05-09-v8`)
+  console.log(`[${timestamp}] Build version: 2026-05-09-v8-mobile-offline`)
   
+  // Register service worker
+  registerServiceWorker()
+  
+  // PWA install prompt
+  window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+  
+  // Online/offline status
+  updateOnlineStatus()
+  window.addEventListener('online', updateOnlineStatus)
+  window.addEventListener('offline', updateOnlineStatus)
+  
+  // Event listeners
   document.addEventListener('paste', handlePaste)
   document.addEventListener('keydown', handleKeydown)
   document.addEventListener('click', closeSlideContextMenu)
