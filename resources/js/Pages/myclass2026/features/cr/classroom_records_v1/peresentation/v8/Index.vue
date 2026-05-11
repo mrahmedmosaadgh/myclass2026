@@ -1,15 +1,18 @@
 <script setup>
 import { onMounted, onUnmounted, ref } from 'vue'
+import { useQuasar } from 'quasar'
 import { usePresentationStore } from './stores/presentationStore.js'
 import { useUIStore } from './stores/uiStore.js'
 import { useClipboardStore } from './stores/clipboardStore.js'
 import { usePaste } from './composables/usePaste.js'
 import EditorCanvas from './components/EditorCanvas.vue'
 import SlideCanvasReadonly from './components/SlideCanvasReadonly.vue'
+import PresentModeController from './components/PresentModeController.vue'
 import Toolbar from './components/Toolbar.vue'
 import SlideNavigationBar from './components/SlideNavigationBar.vue'
 import ElementContextMenu from './components/ElementContextMenu.vue'
 
+const $q = useQuasar()
 const presentation = usePresentationStore()
 const ui = useUIStore()
 const clipboard = useClipboardStore()
@@ -42,12 +45,33 @@ function closeSlideContextMenu() {
   slideContextMenu.value.show = false
 }
 
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {})
+  } else {
+    document.exitFullscreen().catch(() => {})
+  }
+}
+
 function promptCustomZoom() {
-  const raw = window.prompt('Zoom % (25 - 200)', String(ui.zoomLevel))
-  if (raw === null) return
-  const val = Number(String(raw).trim())
-  if (!Number.isFinite(val)) return
-  ui.setZoom(val)
+  $q.dialog({
+    title: 'Set Zoom Level',
+    message: 'Enter zoom percentage (25 - 200)',
+    prompt: {
+      model: String(ui.zoomLevel),
+      type: 'number',
+      isValid: (val) => {
+        const n = Number(val)
+        return Number.isFinite(n) && n >= 25 && n <= 200
+      }
+    },
+    cancel: true,
+    persistent: false,
+    style: 'border-radius: 12px'
+  }).onOk((val) => {
+    const n = Number(val)
+    if (Number.isFinite(n)) ui.setZoom(n)
+  })
 }
 
 // Keyboard shortcuts
@@ -121,32 +145,33 @@ function handleKeydown(e) {
     }
   }
 
-  // Slide navigation
-  if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown') {
-    presentation.selectSlide(presentation.currentSlideIndex + 1)
-  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {
-    presentation.selectSlide(presentation.currentSlideIndex - 1)
+  // Slide navigation (edit mode only — present mode handled by PresentModeController)
+  if (ui.isEditMode) {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown') {
+      presentation.selectSlide(presentation.currentSlideIndex + 1)
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {
+      presentation.selectSlide(presentation.currentSlideIndex - 1)
+    }
   }
 
   // Mode toggles
   if (key === 'e') {
     ui.toggleEditMode()
   }
-  
-  if (key === 'f') {
-    ui.toggleFocusMode()
-  }
-  
-  if (key === 's') {
-    ui.toggleSlideNav()
-  }
-  
-  if (key === 't') {
-    ui.toggleEditTools()
-  }
-  
-  if (key === 'p') {
-    ui.togglePagesView()
+
+  if (ui.isEditMode) {
+    if (key === 'f') {
+      ui.toggleFocusMode()
+    }
+    if (key === 's') {
+      ui.toggleSlideNav()
+    }
+    if (key === 't') {
+      ui.toggleEditTools()
+    }
+    if (key === 'p') {
+      ui.togglePagesView()
+    }
   }
 }
 
@@ -403,7 +428,29 @@ onUnmounted(() => {
           <path d="M3 3v5h5"></path>
         </svg>
       </button>
+      <div class="zoom-divider" />
+      <button @click="toggleFullscreen" class="zoom-btn" title="Full Screen">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
+        </svg>
+      </button>
+      <button @click="ui.toggleEditMode" class="zoom-btn" title="Exit Present Mode (E)">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
     </div>
+
+    <!-- Present Mode Controller Overlay -->
+    <PresentModeController
+      v-if="!ui.isEditMode"
+      :current-index="presentation.currentSlideIndex"
+      :total-slides="presentation.totalSlides"
+      @prev="presentation.selectSlide(presentation.currentSlideIndex - 1)"
+      @next="presentation.selectSlide(presentation.currentSlideIndex + 1)"
+      @go-to-slide="presentation.selectSlide($event)"
+      @exit="ui.toggleEditMode()"
+    />
 
     <div class="editor-layout" :class="{ 'slide-nav-hidden': !ui.isSlideNavVisible }">
       <!-- Sidebar Navigation -->
@@ -421,7 +468,7 @@ onUnmounted(() => {
       </button>
 
       <!-- Canvas Area -->
-      <div class="canvas-area">
+      <div class="canvas-area" :class="{ 'present-mode': !ui.isEditMode }">
         <div v-if="ui.isEditMode && ui.isPagesView" class="pages-view">
           <div
             v-for="(slide, idx) in presentation.slides"
@@ -513,6 +560,16 @@ onUnmounted(() => {
   padding-top: 140px;
 }
 
+/* Present mode: dark background for projection */
+.v8-container:has(> .present-mode-zoom-toolbar) {
+  background-color: #111827;
+  padding: 0;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .v8-container.is-focus-mode {
   padding-left: 1rem;
   padding-right: 1rem;
@@ -533,6 +590,23 @@ onUnmounted(() => {
 .canvas-area {
   flex: 1;
   max-width: 1200px;
+}
+
+.canvas-area.present-mode {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  max-width: none;
+}
+
+.canvas-area.present-mode :deep(.editor-canvas) {
+  background: transparent;
+  padding: 0;
+}
+
+.canvas-area.present-mode :deep(.canvas) {
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 
 .pages-view {
@@ -724,6 +798,12 @@ onUnmounted(() => {
   background: white;
   border-color: rgba(99, 102, 241, 0.4);
   color: #4f46e5;
+}
+
+.zoom-divider {
+  width: 1px;
+  height: 20px;
+  background: #d1d5db;
 }
 
 /* Mobile-first responsive design */

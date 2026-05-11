@@ -1,24 +1,44 @@
 <script setup>
 import { ref } from 'vue'
+import { useQuasar } from 'quasar'
+
 import { usePresentationStore } from '../stores/presentationStore.js'
 import { useUIStore } from '../stores/uiStore.js'
+
 import QuizCreationDialog from './quiz-v1/QuizCreationDialog.vue'
+import QuizGeneratorDialog from './quiz-v2/QuizGeneratorDialog.vue'
+import GroupSetupDialog from './group-quiz/GroupSetupDialog.vue'
+import GroupQuizGenerator from './group-quiz/GroupQuizGenerator.vue'
+
+const $q = useQuasar()
 
 const presentation = usePresentationStore()
 const ui = useUIStore()
 
-const fileInputRef = ref(null)
-const showQuizCreationDialog = ref(false)
+/* -------------------------------- */
+/* refs */
+/* -------------------------------- */
 
-// Element creation methods
+const imageInputRef = ref(null)
+const importInputRef = ref(null)
+
+const showQuizCreationDialog = ref(false)
+const showQuizGeneratorDialog = ref(false)
+const showGroupSetupDialog = ref(false)
+const showGroupQuizGenerator = ref(false)
+
+/* -------------------------------- */
+/* ELEMENTS */
+/* -------------------------------- */
+
 function addText() {
   presentation.addElement({
     type: 'text',
     content: 'New Text',
     fontSize: 24,
-    color: '#000000',
-    width: 200,
-    height: 40
+    color: '#111827',
+    width: 220,
+    height: 50
   })
 }
 
@@ -29,7 +49,7 @@ function addHeading() {
     fontSize: 48,
     color: '#111827',
     fontWeight: 'bold',
-    width: 400,
+    width: 420,
     height: 80
   })
 }
@@ -38,16 +58,16 @@ function addSubheading() {
   presentation.addElement({
     type: 'text',
     content: 'Subheading',
-    fontSize: 32,
-    color: '#374151',
+    fontSize: 30,
+    color: '#4b5563',
     fontWeight: '600',
-    width: 350,
+    width: 360,
     height: 60
   })
 }
 
 function addImage() {
-  fileInputRef.value?.click()
+  imageInputRef.value?.click()
 }
 
 function handleImageUpload(e) {
@@ -55,17 +75,18 @@ function handleImageUpload(e) {
   if (!file) return
 
   const reader = new FileReader()
+
   reader.onload = (event) => {
     presentation.addElement({
       type: 'image',
       src: event.target.result,
-      width: 400,
+      width: 420,
       height: 300
     })
   }
+
   reader.readAsDataURL(file)
-  
-  // Reset input
+
   e.target.value = ''
 }
 
@@ -73,11 +94,15 @@ function addRectangle() {
   presentation.addElement({
     type: 'rectangle',
     backgroundColor: '#6366f1',
-    width: 200,
-    height: 150,
-    borderRadius: '8px'
+    width: 240,
+    height: 160,
+    borderRadius: '18px'
   })
 }
+
+/* -------------------------------- */
+/* QUIZ */
+/* -------------------------------- */
 
 function addQuiz() {
   showQuizCreationDialog.value = true
@@ -92,24 +117,66 @@ function cancelQuizCreation() {
   showQuizCreationDialog.value = false
 }
 
-// Slide management
+function openQuizGenerator() {
+  showQuizGeneratorDialog.value = true
+}
+
+function closeQuizGenerator() {
+  showQuizGeneratorDialog.value = false
+}
+
+function openGroupSetup() {
+  showGroupSetupDialog.value = true
+}
+
+function closeGroupSetup() {
+  showGroupSetupDialog.value = false
+}
+
+function openGroupQuizGenerator() {
+  showGroupQuizGenerator.value = true
+}
+
+function closeGroupQuizGenerator() {
+  showGroupQuizGenerator.value = false
+}
+
+/* -------------------------------- */
+/* SLIDES */
+/* -------------------------------- */
+
 function addNewSlide() {
   presentation.addSlide()
+
+  $q.notify({
+    type: 'positive',
+    message: 'New slide added',
+    position: 'top-right'
+  })
 }
 
 function deleteCurrentSlide() {
-  if (presentation.totalSlides > 1) {
-    presentation.deleteSlide(presentation.currentSlideIndex)
-  }
+  if (presentation.totalSlides <= 1) return
+
+  presentation.deleteSlide(presentation.currentSlideIndex)
+
+  $q.notify({
+    type: 'warning',
+    message: 'Slide deleted',
+    position: 'top-right'
+  })
 }
 
-// Export/Import
+/* -------------------------------- */
+/* FILE */
+/* -------------------------------- */
+
 function exportPresentation() {
   presentation.exportPresentation()
 }
 
 function importPresentation() {
-  fileInputRef.value?.click()
+  importInputRef.value?.click()
 }
 
 function handleImportUpload(e) {
@@ -117,311 +184,540 @@ function handleImportUpload(e) {
   if (!file) return
 
   const reader = new FileReader()
+
   reader.onload = (event) => {
     const success = presentation.importPresentation(event.target.result)
+
     if (!success) {
-      alert('Failed to import presentation. Please check the file format.')
+      $q.notify({
+        type: 'negative',
+        message: 'Failed to import presentation',
+        position: 'top',
+        timeout: 4000
+      })
+    } else {
+      $q.notify({
+        type: 'positive',
+        message: 'Presentation imported',
+        position: 'top-right'
+      })
     }
   }
+
   reader.readAsText(file)
-  
-  // Reset input
+
   e.target.value = ''
 }
 </script>
 
 <template>
-  <div class="toolbar">
-    <!-- Element Creation Section -->
-    <div class="toolbar-section">
-      <div class="section-title">Add Elements</div>
-      <div class="button-group">
-        <button @click="addText" class="toolbar-btn" title="Add Text">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="4 7 4 4 7 4"></polyline>
-            <line x1="9" y1="20" x2="15" y2="20"></line>
-            <line x1="12" y1="4" x2="12" y2="20"></line>
-          </svg>
-          <span>Text</span>
-        </button>
-        
-        <button @click="addHeading" class="toolbar-btn" title="Add Heading">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M4 12h16"></path>
-            <path d="M4 6h16"></path>
-            <path d="M4 18h7"></path>
-          </svg>
-          <span>Heading</span>
-        </button>
-        
-        <button @click="addSubheading" class="toolbar-btn" title="Add Subheading">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M4 12h16"></path>
-            <path d="M4 6h10"></path>
-            <path d="M4 18h14"></path>
-          </svg>
-          <span>Subheading</span>
-        </button>
-        
-        <button @click="addImage" class="toolbar-btn" title="Add Image">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-            <circle cx="8.5" cy="8.5" r="1.5"></circle>
-            <polyline points="21 15 16 10 5 21"></polyline>
-          </svg>
-          <span>Image</span>
-        </button>
-        
-        <button @click="addRectangle" class="toolbar-btn" title="Add Rectangle">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-          </svg>
-          <span>Rectangle</span>
-        </button>
-        
-        <button @click="addQuiz" class="toolbar-btn" title="Add Quiz">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M9 11H3v2h6v-2zm0-4H3v2h6V7zm0 8H3v2h6v-2zm12-8h-6v2h6V7zm0 4h-6v2h6v-2zm0 4h-6v2h6v-2z"/>
-          </svg>
-          <span>Quiz</span>
-        </button>
-      </div>
-    </div>
+  <div class="toolbar-wrapper">
 
-    <!-- Slide Management Section -->
-    <div class="toolbar-section">
-      <div class="section-title">Slides</div>
-      <div class="button-group">
-        <button @click="addNewSlide" class="toolbar-btn" title="Add Slide">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
-          <span>Add Slide</span>
-        </button>
-        
-        <button 
-          @click="deleteCurrentSlide" 
-          class="toolbar-btn danger" 
-          :disabled="presentation.totalSlides <= 1"
-          title="Delete Current Slide"
+    <q-toolbar class="modern-toolbar">
+
+      <!-- BRAND -->
+      <div class="toolbar-brand">
+        <div class="brand-icon">
+          <q-icon
+            name="dashboard_customize"
+            size="20px"
+          />
+        </div>
+
+        <div class="brand-text">
+          Slides Studio
+        </div>
+      </div>
+
+      <q-space />
+
+      <!-- SEARCH -->
+      <q-input
+        dense
+        rounded
+        standout
+        dark
+        placeholder="Quick actions..."
+        class="toolbar-search"
+      >
+        <template #prepend>
+          <q-icon name="search" />
+        </template>
+
+        <template #append>
+          <span class="shortcut-key">⌘K</span>
+        </template>
+      </q-input>
+
+      <!-- INSERT -->
+      <q-btn-dropdown
+        flat
+        rounded
+        no-caps
+        class="toolbar-dropdown"
+        icon="add_circle"
+        label="Insert"
+        dropdown-icon="expand_more"
+      >
+        <q-list style="min-width: 240px">
+
+          <q-item
+            clickable
+            v-close-popup
+            @click="addText"
+          >
+            <q-item-section avatar>
+              <q-icon name="text_fields" />
+            </q-item-section>
+
+            <q-item-section>
+              Text
+            </q-item-section>
+          </q-item>
+
+          <q-item
+            clickable
+            v-close-popup
+            @click="addHeading"
+          >
+            <q-item-section avatar>
+              <q-icon name="title" />
+            </q-item-section>
+
+            <q-item-section>
+              Heading
+            </q-item-section>
+          </q-item>
+
+          <q-item
+            clickable
+            v-close-popup
+            @click="addSubheading"
+          >
+            <q-item-section avatar>
+              <q-icon name="short_text" />
+            </q-item-section>
+
+            <q-item-section>
+              Subheading
+            </q-item-section>
+          </q-item>
+
+          <q-separator />
+
+          <q-item
+            clickable
+            v-close-popup
+            @click="addImage"
+          >
+            <q-item-section avatar>
+              <q-icon name="image" />
+            </q-item-section>
+
+            <q-item-section>
+              Image
+            </q-item-section>
+          </q-item>
+
+          <q-item
+            clickable
+            v-close-popup
+            @click="addRectangle"
+          >
+            <q-item-section avatar>
+              <q-icon name="crop_square" />
+            </q-item-section>
+
+            <q-item-section>
+              Shape
+            </q-item-section>
+          </q-item>
+
+        </q-list>
+      </q-btn-dropdown>
+
+      <!-- QUIZ -->
+      <q-btn-dropdown
+        flat
+        rounded
+        no-caps
+        class="toolbar-dropdown"
+        icon="quiz"
+        label="Quiz"
+      >
+        <q-list style="min-width: 240px">
+
+          <q-item
+            clickable
+            v-close-popup
+            @click="addQuiz"
+          >
+            <q-item-section avatar>
+              <q-icon name="fact_check" />
+            </q-item-section>
+
+            <q-item-section>
+              Create Quiz
+            </q-item-section>
+          </q-item>
+
+          <q-item
+            clickable
+            v-close-popup
+            @click="openQuizGenerator"
+          >
+            <q-item-section avatar>
+              <q-icon name="auto_awesome" />
+            </q-item-section>
+
+            <q-item-section>
+              AI Quiz Generator
+            </q-item-section>
+          </q-item>
+
+          <q-separator />
+
+          <q-item
+            clickable
+            v-close-popup
+            @click="openGroupSetup"
+          >
+            <q-item-section avatar>
+              <q-icon name="groups" />
+            </q-item-section>
+
+            <q-item-section>
+              Group Setup
+            </q-item-section>
+          </q-item>
+
+          <q-item
+            clickable
+            v-close-popup
+            @click="openGroupQuizGenerator"
+          >
+            <q-item-section avatar>
+              <q-icon name="hub" />
+            </q-item-section>
+
+            <q-item-section>
+              Group Quiz Generator
+            </q-item-section>
+          </q-item>
+
+        </q-list>
+      </q-btn-dropdown>
+
+      <!-- SLIDES -->
+      <q-btn-group
+        flat
+        rounded
+        class="toolbar-group"
+      >
+        <q-btn
+          flat
+          rounded
+          icon="add"
+          label="Slide"
+          no-caps
+          @click="addNewSlide"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="3 6 5 6 21 6"></polyline>
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-          </svg>
-          <span>Delete</span>
-        </button>
-      </div>
-    </div>
+          <q-tooltip>Add Slide</q-tooltip>
+        </q-btn>
 
-    <!-- File Operations Section -->
-    <div class="toolbar-section">
-      <div class="section-title">File</div>
-      <div class="button-group">
-        <button @click="exportPresentation" class="toolbar-btn" title="Export Presentation">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg>
-          <span>Export</span>
-        </button>
-        
-        <button @click="importPresentation" class="toolbar-btn" title="Import Presentation">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="17 8 12 3 7 8"></polyline>
-            <line x1="12" y1="3" x2="12" y2="15"></line>
-          </svg>
-          <span>Import</span>
-        </button>
-      </div>
-    </div>
+        <q-btn
+          flat
+          rounded
+          color="negative"
+          icon="delete"
+          :disable="presentation.totalSlides <= 1"
+          @click="deleteCurrentSlide"
+        >
+          <q-tooltip>Delete Slide</q-tooltip>
+        </q-btn>
+      </q-btn-group>
 
-    <!-- Hidden file inputs -->
+      <!-- CURRENT SLIDE -->
+      <q-chip
+        color="primary"
+        text-color="white"
+        icon="slideshow"
+        class="slide-chip"
+      >
+        Slide {{ presentation.currentSlideIndex + 1 }}
+      </q-chip>
+
+      <!-- MODE -->
+      <q-btn
+        unelevated
+        rounded
+        no-caps
+        class="mode-btn"
+        :color="ui.isEditMode ? 'dark' : 'primary'"
+        :icon="ui.isEditMode ? 'slideshow' : 'edit'"
+        :label="ui.isEditMode ? 'Present' : 'Edit'"
+        @click="ui.toggleEditMode"
+      />
+
+      <!-- FILE -->
+      <q-btn-dropdown
+        flat
+        rounded
+        no-caps
+        class="toolbar-dropdown"
+        icon="folder"
+        label="File"
+      >
+        <q-list style="min-width: 220px">
+
+          <q-item
+            clickable
+            v-close-popup
+            @click="exportPresentation"
+          >
+            <q-item-section avatar>
+              <q-icon name="download" />
+            </q-item-section>
+
+            <q-item-section>
+              Export
+            </q-item-section>
+          </q-item>
+
+          <q-item
+            clickable
+            v-close-popup
+            @click="importPresentation"
+          >
+            <q-item-section avatar>
+              <q-icon name="upload" />
+            </q-item-section>
+
+            <q-item-section>
+              Import
+            </q-item-section>
+          </q-item>
+
+        </q-list>
+      </q-btn-dropdown>
+
+    </q-toolbar>
+
+    <!-- IMAGE INPUT -->
     <input
-      ref="fileInputRef"
+      ref="imageInputRef"
       type="file"
       accept="image/*"
-      style="display: none"
+      class="hidden-input"
       @change="handleImageUpload"
     />
+
+    <!-- IMPORT INPUT -->
     <input
-      ref="fileInputRef"
+      ref="importInputRef"
       type="file"
       accept=".json"
-      style="display: none"
+      class="hidden-input"
       @change="handleImportUpload"
     />
-    
-    <!-- Quiz Creation Dialog -->
+
+    <!-- DIALOGS -->
+
     <QuizCreationDialog
       v-if="showQuizCreationDialog"
       @close="cancelQuizCreation"
       @create="createQuiz"
     />
+
+    <QuizGeneratorDialog
+      v-if="showQuizGeneratorDialog"
+      @close="closeQuizGenerator"
+    />
+
+    <GroupSetupDialog
+      v-if="showGroupSetupDialog"
+      @close="closeGroupSetup"
+    />
+
+    <GroupQuizGenerator
+      v-if="showGroupQuizGenerator"
+      @close="closeGroupQuizGenerator"
+    />
+
   </div>
 </template>
 
 <style scoped>
-.toolbar {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+.toolbar-wrapper {
   position: sticky;
-  top: 0;
-  z-index: 100;
+  top: 12px;
+  z-index: 1000;
+  padding-bottom: 12px;
 }
 
-.toolbar-section {
-  margin-bottom: 16px;
-}
-
-.toolbar-section:last-child {
-  margin-bottom: 0;
-}
-
-.section-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 8px;
-}
-
-.button-group {
+.modern-toolbar {
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.toolbar-btn {
-  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 10px 12px;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  background: white;
-  color: #374151;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  touch-action: manipulation; /* Improve touch responsiveness */
-  min-height: 44px; /* iOS touch target minimum */
-  position: relative;
+  gap: 10px;
+
+  padding: 14px 18px;
+
+  border-radius: 24px;
+
+  background: rgba(255, 255, 255, 0.75);
+
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+
+  border: 1px solid rgba(255,255,255,0.4);
+
+  box-shadow:
+    0 10px 40px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255,255,255,0.6);
 }
 
-.toolbar-btn:hover:not(:disabled) {
-  background: #f9fafb;
-  border-color: #d1d5db;
+/* BRAND */
+
+.toolbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-icon {
+  width: 38px;
+  height: 38px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 14px;
+
+  background: linear-gradient(
+    135deg,
+    #6366f1,
+    #8b5cf6
+  );
+
+  color: white;
+
+  box-shadow:
+    0 8px 20px rgba(99,102,241,0.35);
+}
+
+.brand-text {
+  font-size: 16px;
+  font-weight: 700;
   color: #111827;
 }
 
-.toolbar-btn:active:not(:disabled) {
-  background: #f3f4f6;
+/* SEARCH */
+
+.toolbar-search {
+  width: 220px;
 }
 
-.toolbar-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.shortcut-key {
+  font-size: 11px;
+  opacity: 0.7;
 }
 
-.toolbar-btn.danger {
-  border-color: #fecaca;
-  color: #dc2626;
+/* BUTTONS */
+
+.toolbar-dropdown {
+  border-radius: 14px;
 }
 
-.toolbar-btn.danger:hover:not(:disabled) {
-  background: #fef2f2;
-  border-color: #fca5a5;
+.toolbar-group {
+  padding: 3px;
+  border-radius: 16px;
+
+  background: rgba(0,0,0,0.04);
 }
 
-.toolbar-btn svg {
-  flex-shrink: 0;
+.mode-btn {
+  padding-inline: 18px;
+
+  box-shadow:
+    0 8px 20px rgba(0,0,0,0.08);
 }
 
-.toolbar-btn span {
-  white-space: nowrap;
+.slide-chip {
+  font-weight: 600;
 }
 
-/* Mobile-first responsive design */
-@media (max-width: 767px) {
-  .toolbar {
-    padding: 8px;
-    margin-bottom: 8px;
-    border-radius: 0;
-    border-left: none;
-    border-right: none;
-    position: fixed;
+/* GLOBAL BUTTON STYLE */
+
+:deep(.q-btn) {
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+:deep(.q-btn:hover) {
+  transform: translateY(-1px);
+}
+
+/* DROPDOWN MENU */
+
+:deep(.q-menu .q-list) {
+  padding: 8px;
+  border-radius: 18px;
+}
+
+:deep(.q-item) {
+  border-radius: 12px;
+}
+
+:deep(.q-item:hover) {
+  background: rgba(99,102,241,0.08);
+}
+
+/* HIDDEN INPUT */
+
+.hidden-input {
+  display: none;
+}
+
+/* MOBILE */
+
+@media (max-width: 768px) {
+
+  .toolbar-wrapper {
     top: 0;
-    left: 0;
-    right: 0;
-    z-index: 1000;
+    padding-bottom: 0;
   }
-  
-  .toolbar-section {
-    margin-bottom: 12px;
-  }
-  
-  .toolbar-section:last-child {
-    margin-bottom: 0;
-  }
-  
-  .button-group {
-    gap: 6px;
-    justify-content: space-between;
-  }
-  
-  .toolbar-btn {
-    flex: 1;
-    min-width: 0;
-    padding: 8px 6px;
-    font-size: 12px;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-  }
-  
-  .toolbar-btn span {
-    font-size: 10px;
-    line-height: 1;
-  }
-  
-  .toolbar-btn svg {
-    width: 20px;
-    height: 20px;
-  }
-}
 
-@media (min-width: 768px) {
-  .toolbar {
-    position: static;
-    border-radius: 8px;
-    border: 1px solid #e5e7eb;
-    padding: 16px;
-    margin-bottom: 16px;
+  .modern-toolbar {
+    overflow-x: auto;
+
+    white-space: nowrap;
+
+    border-radius: 0;
+
+    padding: 10px;
   }
-  
-  .toolbar-btn {
-    flex-direction: row;
-    padding: 8px 12px;
-    font-size: 14px;
+
+  .modern-toolbar::-webkit-scrollbar {
+    display: none;
   }
-  
-  .toolbar-btn span {
-    font-size: 14px;
+
+  .brand-text {
+    display: none;
   }
-  
-  .toolbar-btn svg {
-    width: 16px;
-    height: 16px;
+
+  .toolbar-search {
+    display: none;
+  }
+
+  :deep(.q-btn .block) {
+    display: none;
+  }
+
+  .slide-chip {
+    display: none;
   }
 }
 </style>

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
+import { normalize } from '../domains/questions/index.js'
 
 // Local storage keys
 const STORAGE_KEYS = {
@@ -16,12 +17,15 @@ export const usePresentationStore = defineStore('presentation-v8', () => {
       const savedData = localStorage.getItem(STORAGE_KEYS.PRESENTATION)
       if (savedData) {
         const parsed = JSON.parse(savedData)
-        return parsed.slides || []
+        const slides = parsed.slides || []
+        // Auto-normalize old-format quiz questions to v8
+        migrateQuizQuestions(slides)
+        return slides
       }
     } catch (error) {
       console.warn('Failed to load presentation from localStorage:', error)
     }
-    
+
     // Default data if nothing in storage
     return [
       {
@@ -45,6 +49,56 @@ export const usePresentationStore = defineStore('presentation-v8', () => {
         ]
       }
     ]
+  }
+
+  /**
+   * Auto-migrate quiz questions from legacy format to v8 canonical format.
+   * Scans all slides and elements, normalizing any quiz/group-mcq questions.
+   */
+  function migrateQuizQuestions(slides) {
+    let migratedCount = 0
+
+    slides.forEach(slide => {
+      if (!slide.elements) return
+      slide.elements.forEach(el => {
+        // Migrate quiz-v2 elements with legacy questions
+        if (el.type === 'quiz-v2' && Array.isArray(el.questions)) {
+          el.questions = el.questions.map(q => {
+            if (q.schema_version === 1) return q // Already v8
+            try {
+              const normalized = normalize(q)
+              if (normalized) {
+                migratedCount++
+                return normalized
+              }
+            } catch (e) {
+              console.warn('Failed to normalize quiz question:', e, q)
+            }
+            return q // Keep original if normalization fails
+          })
+        }
+
+        // Migrate group-mcq elements with legacy questionData
+        if (el.type === 'group-mcq' && el.questionData) {
+          const q = el.questionData
+          if (q.schema_version !== 1) {
+            try {
+              const normalized = normalize(q)
+              if (normalized) {
+                el.questionData = normalized
+                migratedCount++
+              }
+            } catch (e) {
+              console.warn('Failed to normalize group-mcq questionData:', e, q)
+            }
+          }
+        }
+      })
+    })
+
+    if (migratedCount > 0) {
+      console.log(`[migrateQuizQuestions] Migrated ${migratedCount} question(s) to v8 format`)
+    }
   }
 
   // State
@@ -197,11 +251,30 @@ export const usePresentationStore = defineStore('presentation-v8', () => {
     const quiz = currentSlide.value.elements.find(el => el.id === quizId)
     if (quiz) {
       const newQuestion = {
-        id: 'q' + Date.now(),
-        question: 'New Question',
-        options: ['Option A', 'Option B', 'Option C', 'Option D'],
-        correctAnswer: 0,
-        explanation: ''
+        schema_version: 1,
+        id: 'q_' + Date.now(),
+        type: 'multiple_choice',
+        marks: 1,
+        content: {
+          prompt: 'New Question',
+          options: [
+            { id: 'a', text: 'Option A', is_correct: true },
+            { id: 'b', text: 'Option B', is_correct: false },
+            { id: 'c', text: 'Option C', is_correct: false },
+            { id: 'd', text: 'Option D', is_correct: false },
+          ],
+          explanation: '',
+        },
+        meta: {
+          difficulty: 2,
+          bloom_level: 1,
+          estimated_time_sec: 60,
+          source: 'teacher',
+          tags: [],
+          cognitive_demand: 'recall',
+          assessment_mode: 'traditional',
+        },
+        evaluation: { mode: 'auto' },
       }
       quiz.questions.push(newQuestion)
     }

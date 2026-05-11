@@ -102,10 +102,6 @@ resetQuestionState()
       'is-present-mode': isPresentMode 
     }"
     :style="{
-      left: element.x + 'px',
-      top: element.y + 'px',
-      width: element.width + 'px',
-      height: element.height + 'px',
       backgroundColor: element.backgroundColor || '#6366f1',
       borderRadius: (element.borderRadius || '8px')
     }"
@@ -155,18 +151,17 @@ resetQuestionState()
 
 <style scoped>
 .quiz-element {
-  position: absolute;
   display: flex;
   flex-direction: column;
+  width: 100%;
+  height: 100%;
   background: #6366f1;
   color: white;
   overflow: hidden;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: box-shadow 0.2s ease;
 }
 
 .quiz-element:hover {
-  transform: translateY(-1px);
   box-shadow: 0 8px 12px -1px rgba(0, 0, 0, 0.15);
 }
 

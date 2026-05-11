@@ -96,8 +96,8 @@ function handleKeyDown(e) {
     }
   }
 
-  // Arrow keys for nudging
-  if (ui.selectedElementId && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+  // Arrow keys for nudging (edit mode only)
+  if (ui.isEditMode && ui.selectedElementId && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
     e.preventDefault()
     
     const element = currentSlide.value.elements.find(el => el.id === ui.selectedElementId)
@@ -160,15 +160,16 @@ onUnmounted(() => {
 
 <template>
   <div class="editor-canvas">
-    <div 
+    <div
       ref="canvasRef"
       class="canvas"
+      :class="{ 'present-mode': !ui.isEditMode }"
       :style="canvasStyle"
       @click="handleCanvasClick"
       @contextmenu="handleCanvasContextMenu"
     >
       <!-- Grid background (visual guide) -->
-      <div class="grid-background" />
+      <div v-if="ui.isEditMode" class="grid-background" />
       
       <!-- Elements -->
       <ElementNode
@@ -251,6 +252,12 @@ onUnmounted(() => {
 }
 
 /* Zoom transition */
+.canvas.present-mode {
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+}
+
 .canvas {
   transition: transform 0.2s ease;
 }

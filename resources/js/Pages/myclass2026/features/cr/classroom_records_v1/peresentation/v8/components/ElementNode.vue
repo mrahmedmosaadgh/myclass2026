@@ -5,6 +5,9 @@ import { useUIStore } from '../stores/uiStore.js'
 import { useDrag } from '../composables/useDrag.js'
 import { useResize } from '../composables/useResize.js'
 import QuizElement from './quiz-v1/QuizElement.vue'
+import QuizElementV2 from './quiz-v2/QuizElementV2.vue'
+import InteractiveGroupMCQ from './group-quiz/InteractiveGroupMCQ.vue'
+import GroupLeaderboard from './group-quiz/GroupLeaderboard.vue'
 
 const props = defineProps({
   element: Object,
@@ -64,21 +67,26 @@ function update(changes) {
   })
 }
 
+const interactiveTypes = new Set(['quiz', 'quiz-v2', 'group-mcq', 'group-leaderboard'])
+
 function handleClick(e) {
   if (props.isPresentMode) {
     const el = props.element
-    
+
+    // Interactive elements handle their own clicks — do not toggle visibility
+    if (interactiveTypes.has(el.type)) return
+
     if (el.visibilityOption === 'hidden-clickable') {
       update({ isVisible: !el.isVisible })
     }
-    
+
     if (el.visibilityOption === 'shown-clickable') {
       update({ isVisible: !el.isVisible })
     }
-    
+
     return
   }
-  
+
   // Edit mode - select element
   ui.selectElement(props.element.id)
 }
@@ -204,7 +212,28 @@ const badgeColor = computed(() => {
       :element="element"
       :is-present-mode="isPresentMode"
     />
-    
+
+    <!-- QUIZ V2 Element -->
+    <QuizElementV2
+      v-else-if="element.type === 'quiz-v2'"
+      :element="element"
+      :is-present-mode="isPresentMode"
+    />
+
+    <!-- GROUP MCQ Element -->
+    <InteractiveGroupMCQ
+      v-else-if="element.type === 'group-mcq'"
+      :element="element"
+      :is-present-mode="isPresentMode"
+    />
+
+    <!-- GROUP LEADERBOARD Element -->
+    <GroupLeaderboard
+      v-else-if="element.type === 'group-leaderboard'"
+      :element="element"
+      :is-present-mode="isPresentMode"
+    />
+
     <!-- Resize handles (only in edit mode when selected) -->
     <div v-if="isSelected && !isPresentMode" class="resize-handles">
       <div 
