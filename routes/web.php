@@ -819,6 +819,16 @@ Route::get('/builder-v7-test', function () {
     );
 })->name('builder-v7.test.public');
 
+// Temporary public test route for V7.1 builder
+Route::get('/builder-v7-1-test', function () {
+    return Inertia::render(
+        'myclass2026/features/cr/classroom_records_v1/peresentation/v7.1/Index',
+        [
+            'title' => 'Presentation Builder V7.1 - Test (Public)'
+        ]
+    );
+})->name('builder-v7-1.test.public');
+
 // Drawing tools test page
 Route::get('/builder-v7-test-drawing', function () {
     return Inertia::render(

@@ -11,6 +11,7 @@ export const useUIStore = defineStore('ui-v8', () => {
   const isPagesView = ref(false)
   const zoomLevel = ref(100)
   const presentModeLayout = ref('continuous') // 'continuous' | 'single'
+  const showAnnotations = ref(true)
   
   // Context menu state
   const contextMenu = ref({
@@ -86,6 +87,10 @@ export const useUIStore = defineStore('ui-v8', () => {
     presentModeLayout.value = presentModeLayout.value === 'continuous' ? 'single' : 'continuous'
   }
 
+  function toggleAnnotations() {
+    showAnnotations.value = !showAnnotations.value
+  }
+
   function showContextMenu(x, y, elementId) {
     contextMenu.value = {
       show: true,
@@ -146,6 +151,7 @@ export const useUIStore = defineStore('ui-v8', () => {
     isPagesView,
     zoomLevel,
     presentModeLayout,
+    showAnnotations,
     contextMenu,
     slideContextMenu,
     
@@ -165,6 +171,7 @@ export const useUIStore = defineStore('ui-v8', () => {
     zoomOut,
     resetZoom,
     togglePresentModeLayout,
+    toggleAnnotations,
     showContextMenu,
     hideContextMenu,
     showSlideContextMenu,

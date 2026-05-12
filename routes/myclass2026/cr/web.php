@@ -91,6 +91,25 @@ Route::middleware([
             );
         })->name('builder-v7.group-qr-print');
 
+        // V7.1 Presentation Builder (Group Quiz V2 + Modern UI)
+        Route::get('/builder-v7-1', function () {
+            return Inertia::render(
+                'myclass2026/features/cr/classroom_records_v1/peresentation/v7.1/Index',
+                [
+                    'title' => 'Presentation Builder V7.1 - MyClass2026'
+                ]
+            );
+        })->name('builder-v7-1');
+
+        Route::get('/builder-v7-1/group-qr-print', function () {
+            return Inertia::render(
+                'myclass2026/features/cr/classroom_records_v1/peresentation/v7.1/PrintGroupQrCodes',
+                [
+                    'title' => 'Group QR Codes - Print V7.1'
+                ]
+            );
+        })->name('builder-v7-1.group-qr-print');
+
         // V8 Presentation Builder
         Route::get('/builder-v8', function () {
             return Inertia::render(

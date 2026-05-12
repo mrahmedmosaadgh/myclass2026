@@ -1,0 +1,32 @@
+# V5 Remote — Task List
+
+## Phase 1: Shared Foundation
+- [ ] Create `stores/sessionStore.js` — session ID, participants, quiz state, scores
+- [ ] Create `composables/useFirebaseSession.js` — Firebase read/write/listen helpers
+
+## Phase 2: Teacher Presenter (`remote/TeacherPresenter.vue`)
+- [ ] Create `remote/TeacherPresenter.vue` — root layout
+- [ ] Create `remote/components/teacher/SessionHeader.vue` — session code, class name, participant count
+- [ ] Create `remote/components/teacher/SlideRemoteControl.vue` — writes `currentSlide` to Firebase
+- [ ] Create `remote/components/teacher/QuizLauncher.vue` — question form, timer, launch/stop quiz
+- [ ] Create `remote/components/teacher/LiveResultsPanel.vue` — real-time correct/wrong counts, name toggle
+- [ ] Create `remote/components/teacher/ParticipantRoster.vue` — who joined, group, score
+
+## Phase 3: Student Interact (`remote/StudentInteract.vue`)
+- [ ] Create `remote/StudentInteract.vue` — root layout (mobile-first)
+- [ ] Create `remote/components/student/JoinForm.vue` — session code + name → Firebase join
+- [ ] Create `remote/components/student/StudentSlideView.vue` — read-only slide synced from Firebase
+- [ ] Create `remote/components/student/QuizCard.vue` — MCQ buttons, one-answer guard, disabled on time up
+- [ ] Create `remote/components/student/TimerBar.vue` — countdown bar using `endTime`
+- [ ] Create `remote/components/student/StudentScoreHUD.vue` — own score, group badge, rank
+
+## Phase 4: Routes
+- [ ] Add `remote` prefix group to [routes/myclass2026/cr/web.php](file:///Users/ahmedmosaad/Herd/myclass2026-main/routes/myclass2026/cr/web.php)
+- [ ] Add `/remote/teacher` → `remote/TeacherPresenter`
+- [ ] Add `/remote/student` → `remote/StudentInteract`
+- [ ] Run `php artisan route:clear` and verify
+
+## Phase 5: QR & Polish
+- [ ] Add QR code on teacher page linking to student URL with pre-filled session code
+- [ ] Score sync: extend [gameStore.js](file:///Users/ahmedmosaad/Herd/myclass2026-main/resources/js/Pages/myclass2026/features/cr/classroom_records_v1/peresentation/v5/stores/gameStore.js) to push scores to Firebase
+- [ ] Offline fallback: show friendly error if Firebase unavailable

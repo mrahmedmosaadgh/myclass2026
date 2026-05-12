@@ -1,12 +1,16 @@
 <script setup>
 import { computed, ref, onMounted, onUnmounted } from 'vue'
+import PresentModeAnnotationOverlay from './PresentModeAnnotationOverlay.vue'
 
 const props = defineProps({
   currentIndex: { type: Number, required: true },
-  totalSlides: { type: Number, required: true }
+  totalSlides: { type: Number, required: true },
+  slideTitle: { type: String, default: '' },
+  slideDescription: { type: String, default: '' },
+  annotationsVisible: { type: Boolean, default: true }
 })
 
-const emit = defineEmits(['prev', 'next', 'goToSlide', 'exit'])
+const emit = defineEmits(['prev', 'next', 'goToSlide', 'exit', 'toggleAnnotations'])
 
 const showHints = ref(true)
 const hintTimer = ref(null)
@@ -66,6 +70,13 @@ function handleKeydown(e) {
     case 'Escape':
       e.preventDefault()
       emit('exit')
+      break
+
+    case 'n':
+      if (!e.ctrlKey && !e.metaKey) {
+        e.preventDefault()
+        emit('toggleAnnotations')
+      }
       break
 
     case 'f':
@@ -166,6 +177,14 @@ onUnmounted(() => {
     </div>
   </div>
 
+  <!-- Annotation Overlay -->
+  <PresentModeAnnotationOverlay
+    :title="slideTitle"
+    :description="slideDescription"
+    :visible="annotationsVisible"
+    @toggle="emit('toggleAnnotations')"
+  />
+
   <!-- Keyboard hints (auto-dismiss) -->
   <Transition name="pm-fade">
     <div v-if="showHints" class="pm-hints" @click="dismissHints">
@@ -177,6 +196,9 @@ onUnmounted(() => {
       </div>
       <div class="pm-hint">
         <kbd>Esc</kbd> Exit
+      </div>
+      <div class="pm-hint">
+        <kbd>N</kbd> Annotations
       </div>
       <div class="pm-hint">
         <kbd>Click sides</kbd> Navigate

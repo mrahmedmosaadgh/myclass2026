@@ -320,7 +320,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="v5-container" :class="{ 'has-fixed-description': !ui.isEditMode && presentation.description && presentation.showDescriptionInPresentMode !== false, 'is-focus-mode': ui.isFocusMode, 'has-fixed-toolbar': ui.isEditMode && ui.areEditToolsVisible }" @contextmenu="handleSlideContextMenu">
+  <div class="v5-container" :class="{ 'has-fixed-description': !ui.isEditMode && presentation.description && presentation.showDescriptionInPresentMode !== false, 'is-focus-mode': ui.isFocusMode }" @contextmenu="handleSlideContextMenu">
     <!-- Fixed Top Navigation Bar (Always Visible) -->
     <PresentationNavBar />
     
@@ -482,22 +482,6 @@ onUnmounted(() => {
 
     <DrawingToolbar />
 
-    <!-- Drawing FAB - Only show in Edit Mode -->
-    <button
-      v-if="ui.isEditMode"
-      class="drawing-fab"
-      :class="{ active: drawingStore.isDrawingMode }"
-      @click="() => { drawingStore.toggleDrawingMode(true); drawingStore.toggleToolbar(true); }"
-      title="Toggle Drawing Toolbar (Shift + D)"
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 19c1.5-1.5 3-3 5-3s3 1.5 5 3c-1.5 1.5-3 3-5 3s-3-1.5-5-3Z" />
-        <path d="M12 5c1.5 1.5 3 3 5 3s3-1.5 5-3c-1.5-1.5-3-3-5-3s-3 1.5-5 3Z" />
-        <path d="M2 12c1.5 1.5 3 3 5 3s3-1.5 5-3c-1.5-1.5-3-3-5-3S3.5 10.5 2 12Z" />
-      </svg>
-      <span>{{ drawingStore.isDrawingMode ? 'Drawing On' : 'Annotate' }}</span>
-    </button>
-
     <!-- Presentation Mode Floating HUD -->
     <div v-if="!ui.isEditMode" class="presentation-hud">
       <FloatingAnalytics />
@@ -524,10 +508,6 @@ onUnmounted(() => {
   min-height: 100vh;
   background-color: #f3f4f6;
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-}
-
-.v5-container.has-fixed-toolbar {
-  padding-top: 152px;
 }
 
 .v5-container.is-focus-mode {
@@ -653,7 +633,7 @@ onUnmounted(() => {
 
 /* Add space for fixed description in present mode */
 .v5-container.has-fixed-description {
-  padding-top: 200px; /* Space for nav + description */
+  padding-top: 140px;
 }
 
 
@@ -690,19 +670,6 @@ onUnmounted(() => {
 .slide-nav-toggle:hover {
   background: #f9fafb;
   border-color: #d1d5db;
-}
-
-/* Editor Layout */
-.editor-layout {
-  display: flex;
-  gap: 10px;
-  margin: 0 auto;
-  align-items: flex-start;
-  justify-content: center;
-}
-
-.editor-layout.slide-nav-hidden {
-  justify-content: center;
 }
 
 /* Focus FAB */
@@ -776,7 +743,7 @@ onUnmounted(() => {
   }
 
   .v5-container.has-fixed-description {
-    padding-top: 220px; /* More space on smaller screens */
+    padding-top: 160px;
   }
 
   .editor-layout {
@@ -789,13 +756,13 @@ onUnmounted(() => {
 /* Floating HUD (Present Mode) */
 .presentation-hud {
   position: fixed;
-  bottom: 25px;
-  left: 25px;
+  bottom: 24px;
+  left: 24px;
   z-index: 10000;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 12px;
+  gap: 10px;
 }
 
 .fab-leaderboard {
@@ -852,7 +819,8 @@ onUnmounted(() => {
 .present-mode-zoom-toolbar {
   position: fixed;
   bottom: 20px;
-  right: 20px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -892,47 +860,4 @@ onUnmounted(() => {
   text-align: center;
 }
 
-/* Drawing FAB styles */
-.drawing-fab {
-  position: fixed;
-  bottom: 120px;
-  right: 24px;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 18px;
-  border-radius: 999px;
-  border: none;
-  font-weight: 600;
-  background: linear-gradient(120deg, #6366f1, #8b5cf6);
-  color: white;
-  box-shadow: 0 20px 35px rgba(99, 102, 241, 0.35);
-  cursor: pointer;
-  z-index: 4100;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.drawing-fab span {
-  font-size: 0.9rem;
-}
-
-.drawing-fab.active {
-  background: linear-gradient(120deg, #10b981, #14b8a6);
-  box-shadow: 0 24px 40px rgba(20, 184, 166, 0.35);
-}
-
-.drawing-fab:hover {
-  transform: translateY(-3px);
-}
-
-@media (max-width: 768px) {
-  .drawing-fab {
-    bottom: 100px;
-    right: 16px;
-    padding: 10px 14px;
-  }
-  .drawing-fab span {
-    display: none;
-  }
-}
 </style>

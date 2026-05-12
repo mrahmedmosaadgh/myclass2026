@@ -446,10 +446,14 @@ onUnmounted(() => {
       v-if="!ui.isEditMode"
       :current-index="presentation.currentSlideIndex"
       :total-slides="presentation.totalSlides"
+      :slide-title="presentation.currentSlide.elements.find(e => e.type === 'text')?.content || 'Slide ' + (presentation.currentSlideIndex + 1)"
+      :slide-description="presentation.description"
+      :annotations-visible="ui.showAnnotations"
       @prev="presentation.selectSlide(presentation.currentSlideIndex - 1)"
       @next="presentation.selectSlide(presentation.currentSlideIndex + 1)"
       @go-to-slide="presentation.selectSlide($event)"
       @exit="ui.toggleEditMode()"
+      @toggle-annotations="ui.toggleAnnotations()"
     />
 
     <div class="editor-layout" :class="{ 'slide-nav-hidden': !ui.isSlideNavVisible }">

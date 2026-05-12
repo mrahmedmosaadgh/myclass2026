@@ -492,7 +492,7 @@ async function copyShareLink() {
 
 <style scoped>
 .toolbar-fixed {
-  position: fixed;
+  position: sticky;
   top: 80px;
   left: 0;
   right: 0;
