@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useQuasar } from 'quasar'
 
 import { usePresentationStore } from '../stores/presentationStore.js'
@@ -9,6 +9,7 @@ import QuizCreationDialog from './quiz-v1/QuizCreationDialog.vue'
 import QuizGeneratorDialog from './quiz-v2/QuizGeneratorDialog.vue'
 import GroupSetupDialog from './group-quiz/GroupSetupDialog.vue'
 import GroupQuizGenerator from './group-quiz/GroupQuizGenerator.vue'
+import QuestionsExportImportDialog from './QuestionsExportImportDialog.vue'
 
 const $q = useQuasar()
 
@@ -26,6 +27,27 @@ const showQuizCreationDialog = ref(false)
 const showQuizGeneratorDialog = ref(false)
 const showGroupSetupDialog = ref(false)
 const showGroupQuizGenerator = ref(false)
+const showQuestionsExportImportDialog = ref(false)
+
+const presentationQuestions = computed(() => {
+  const questions = []
+
+  presentation.slides.forEach(slide => {
+    if (!Array.isArray(slide.elements)) return
+
+    slide.elements.forEach(element => {
+      if (element.type === 'quiz-v2' && Array.isArray(element.questions)) {
+        questions.push(...element.questions)
+      }
+
+      if (element.type === 'group-mcq' && element.questionData) {
+        questions.push(element.questionData)
+      }
+    })
+  })
+
+  return questions
+})
 
 /* -------------------------------- */
 /* ELEMENTS */
@@ -96,7 +118,7 @@ function addRectangle() {
     backgroundColor: '#6366f1',
     width: 240,
     height: 160,
-    borderRadius: '18px'
+    borderRadius: '4px'
   })
 }
 
@@ -207,6 +229,46 @@ function handleImportUpload(e) {
   reader.readAsText(file)
 
   e.target.value = ''
+}
+
+function openQuestionsExportImport() {
+  showQuestionsExportImportDialog.value = true
+}
+
+function closeQuestionsExportImport() {
+  showQuestionsExportImportDialog.value = false
+}
+
+function handleQuestionsImported(importedQuestions) {
+  if (!Array.isArray(importedQuestions) || importedQuestions.length === 0) return
+
+  presentation.addElement({
+    id: 'quiz-v2-' + Date.now(),
+    type: 'quiz-v2',
+    title: 'Imported Questions',
+    questions: importedQuestions,
+    settings: {
+      pointsPerCorrect: 10,
+      penaltyPerWrong: 0,
+      showExplanation: true,
+      timerEnabled: false,
+      timerSeconds: 30,
+      autoAdvance: true,
+      autoAdvanceDelay: 1200
+    },
+    currentQuestionIndex: 0,
+    userAnswers: {},
+    showResults: false,
+    x: 60,
+    y: 40,
+    width: 680,
+    height: 520,
+    zIndex: 1,
+    visibilityOption: 'always-visible',
+    isVisible: true
+  })
+
+  showQuestionsExportImportDialog.value = false
 }
 </script>
 
@@ -498,6 +560,22 @@ function handleImportUpload(e) {
             </q-item-section>
           </q-item>
 
+          <q-separator />
+
+          <q-item
+            clickable
+            v-close-popup
+            @click="openQuestionsExportImport"
+          >
+            <q-item-section avatar>
+              <q-icon name="quiz" />
+            </q-item-section>
+
+            <q-item-section>
+              Questions JSON
+            </q-item-section>
+          </q-item>
+
         </q-list>
       </q-btn-dropdown>
 
@@ -544,6 +622,13 @@ function handleImportUpload(e) {
       @close="closeGroupQuizGenerator"
     />
 
+    <QuestionsExportImportDialog
+      v-if="showQuestionsExportImportDialog"
+      :questions="presentationQuestions"
+      @close="closeQuestionsExportImport"
+      @imported="handleQuestionsImported"
+    />
+
   </div>
 </template>
 
@@ -562,7 +647,7 @@ function handleImportUpload(e) {
 
   padding: 14px 18px;
 
-  border-radius: 24px;
+  border-radius: 4px;
 
   background: rgba(255, 255, 255, 0.75);
 
@@ -592,7 +677,7 @@ function handleImportUpload(e) {
   align-items: center;
   justify-content: center;
 
-  border-radius: 14px;
+  border-radius: 4px;
 
   background: linear-gradient(
     135deg,
@@ -626,12 +711,12 @@ function handleImportUpload(e) {
 /* BUTTONS */
 
 .toolbar-dropdown {
-  border-radius: 14px;
+  border-radius: 4px;
 }
 
 .toolbar-group {
   padding: 3px;
-  border-radius: 16px;
+  border-radius: 4px;
 
   background: rgba(0,0,0,0.04);
 }
@@ -664,11 +749,11 @@ function handleImportUpload(e) {
 
 :deep(.q-menu .q-list) {
   padding: 8px;
-  border-radius: 18px;
+  border-radius: 4px;
 }
 
 :deep(.q-item) {
-  border-radius: 12px;
+  border-radius: 4px;
 }
 
 :deep(.q-item:hover) {

@@ -1,5 +1,13 @@
 # V8 Question Format Upgrade - Progress Tracker
 
+## Current Status
+
+- [x] **Current phase** — Phase 2 is mostly complete; Phase 3 is partially started.
+- [x] **Completed now** — Domain layer, schema, normalizers, serializers, validators, factories, utilities, store migration, QuizElementV2, QuizGeneratorDialog, and GroupQuizGenerator.
+- [ ] **Current blocker** — `QuestionsExportImportDialog.vue` was created, but `Toolbar.vue` was redesigned afterward and the dialog is not wired into the current toolbar UI.
+- [ ] **Next step** — Reconnect question import/export UI into the current Quasar Toolbar without disturbing the new toolbar design.
+- [ ] **Verification needed** — Run/build the app and test: legacy quiz render, AI quiz generation, group quiz generation, import/export, and migration on load.
+
 ## Phase 1: Foundation (Domain Layer)
 
 ### Core Infrastructure
@@ -49,38 +57,39 @@
 - [x] **Update GroupQuizGenerator.vue** — Use v8 format
 
 ### New Components
-- [x] **Create MediaRenderer.vue** — Render images/audio/video/links/embeds (template in plan, component can be built when needed)
+- [ ] **Create MediaRenderer.vue** — Render images/audio/video/links/embeds (planned but not created as a real component yet)
 
 ## Phase 3: Import/Export & Migration
 
 ### Import/Export UI
-- [ ] **Update Toolbar.vue import** — Support v8 + legacy formats
-- [ ] **Add JSON export dialog** — Export questions in v8 format
-- [ ] **Add format selector** — Choose export format (v8, legacy, AI-minimal)
+- [ ] **Update Toolbar.vue question import/export action** — Wire question import/export into the current Quasar toolbar
+- [x] **Create JSON export/import dialog** — `QuestionsExportImportDialog.vue` created
+- [x] **Add format selector** — Supports v8, v8-minimal, ReadyToPrint, QuizEngine
+- [ ] **Connect imported questions to selected quiz / presentation flow** — Define where imported questions should be inserted
 
 ### Migration Utilities
-- [ ] **Auto-migration on load** — Detect old storage → migrate to v8
-- [ ] **Migration validation** — Report issues during migration
+- [x] **Auto-migration on load** — Detect old quiz/group-mcq questions → migrate to v8
+- [ ] **Migration validation** — Report issues during migration in UI, not only console
 - [ ] **Backup before migration** — Save old format before converting
 
 ## Phase 4: Testing & Documentation
 
 ### Tests
 - [x] **Round-trip tests** — All formats → v8 → back (in `tests/roundtrip.test.js`)
-- [ ] **Unit tests for serializers** — Verify output correctness
-- [ ] **Unit tests for validators** — Test validation rules
-- [ ] **Unit tests for factories** — Test default question creation
+- [x] **Unit tests for serializers** — Covered in `roundtrip.test.js`
+- [x] **Unit tests for validators** — Covered in `roundtrip.test.js`
+- [x] **Unit tests for factories** — Covered in `roundtrip.test.js`
 - [ ] **Integration tests** — Import/export flows
 
 ### Documentation
-- [ ] **Update AI prompt** — New v8-compatible AI generation prompt
+- [x] **Update AI prompt** — QuizGeneratorDialog and GroupQuizGenerator now request AI-minimal v8-compatible schema
 - [ ] **API documentation** — Document domain layer public API
 
 ## Success Criteria
 
-- [ ] All existing questions load without data loss
-- [ ] New questions created in v8 format
-- [ ] AI-generated questions normalized to v8
-- [ ] Export produces valid v8 JSON
-- [ ] Import supports all legacy formats
-- [ ] No `alert()`/`confirm()`/`prompt()` calls remain
+- [ ] All existing questions load without data loss — implemented, needs manual verification
+- [x] New questions created in v8 format
+- [x] AI-generated questions normalized to v8
+- [ ] Export produces valid v8 JSON — dialog created, toolbar connection pending
+- [ ] Import supports all legacy formats — domain support exists, UI connection pending
+- [ ] No `alert()`/`confirm()`/`prompt()` calls remain — needs final scan
