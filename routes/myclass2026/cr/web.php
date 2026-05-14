@@ -91,6 +91,15 @@ Route::middleware([
             );
         })->name('builder-v7.group-qr-print');
 
+        Route::get('/builder-v7/group-quiz-player', function () {
+            return Inertia::render(
+                'myclass2026/features/cr/classroom_records_v1/peresentation/v7/quizgroupv1/index',
+                [
+                    'title' => 'Group Quiz Player V1 - MyClass2026'
+                ]
+            );
+        })->name('builder-v7.group-quiz-player');
+
         // V7.1 Presentation Builder (Group Quiz V2 + Modern UI)
         Route::get('/builder-v7-1', function () {
             return Inertia::render(
