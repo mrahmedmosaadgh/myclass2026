@@ -61,6 +61,7 @@
 - [x] Render `v7/quizgroupv1/index`
 - [x] Run production build and verify route/page imports compile
 - [ ] Open route in browser and verify page loads
+- [x] Run production build after multi-question navigation update
 
 ## Phase 7: Optional Main Presentation Integration
 
@@ -76,14 +77,24 @@
 - [ ] Confirm `Version 1` is visible in dropdown
 - [ ] Select `Version 1`
 - [ ] Reload and confirm `Version 1` remains selected
-- [ ] Open Groups flow
-- [ ] Open Group Quiz generator flow
-- [ ] Generate a group MCQ slide
 - [x] Render sample group MCQ player
 - [x] Select group answer in sample player
 - [x] Grade answer in sample player
-- [x] Confirm sample score update logic exists
+- [x] Preserve answer state per question
+- [x] Confirm multi-question player compiles successfully
 - [ ] Confirm leaderboard still displays scores
+
+## Phase 9: Ver7 Generator Export to Player
+
+- [x] Add saveGroupQuizSession and clearGroupQuizSession functions
+- [x] Update adapter to handle legacy answer field format
+- [x] Add gameStore import to GroupQuizGenerator
+- [x] Add exportToReusablePlayer function in GroupQuizGenerator
+- [x] Add "Export to Reusable Player" button in generator UI
+- [x] Build verification passed
+- [ ] Generate quiz in Ver7 and export to player
+- [ ] Open player route and confirm exported quiz loads
+- [ ] Confirm groups from gameStore are preserved
 
 ## Pending Decisions
 
@@ -102,6 +113,6 @@
 
 ## Status
 
-- **Current Status**: Ver1 reusable shell, sample player, localStorage version setting, project map, and route are created. Full current Group Quiz behavior port and Ver2 are pending.
-- **Build Verification**: `npm run build` passed on 2026-05-14.
+- **Current Status**: Ver1 reusable shell, multi-question sample player, localStorage version setting, per-question navigation, Ver7 generator export bridge, project map, and route are implemented. Full current Group Quiz behavior port and Ver2 are pending.
+- **Build Verification**: `npm run build` passed after Ver7 bridge export implementation on 2026-05-14.
 - **Last Updated**: 2026-05-14

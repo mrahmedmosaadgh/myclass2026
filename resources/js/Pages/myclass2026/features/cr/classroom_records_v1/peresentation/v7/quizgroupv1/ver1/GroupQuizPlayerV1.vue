@@ -1,67 +1,80 @@
 <script setup>
-import { computed, ref } from 'vue'
 import QuestionDisplay from './components/QuestionDisplay.vue'
 import GroupSelector from './components/GroupSelector.vue'
 import AnswerOptions from './components/AnswerOptions.vue'
 import QuizControls from './components/QuizControls.vue'
 import ScorePanel from './components/ScorePanel.vue'
-import { sampleGroups, sampleQuestion } from './data/sampleQuiz'
+import QuestionNavigator from './components/QuestionNavigator.vue'
+import QuestionOverview from './components/QuestionOverview.vue'
+import QuestionProgressBar from './components/QuestionProgressBar.vue'
+import { useGroupQuizPlayerSession } from './composables/useGroupQuizPlayerSession'
 
-const groups = ref(sampleGroups.map((group) => ({ ...group })))
-const question = ref({ ...sampleQuestion })
-const selectedGroupId = ref(groups.value[0]?.id || null)
-const answersByGroup = ref({})
-const isGraded = ref(false)
-
-const canGrade = computed(() => Object.keys(answersByGroup.value).length > 0)
-
-function selectGroup(groupId) {
-  selectedGroupId.value = groupId
-}
-
-function answerQuestion(optionId) {
-  if (!selectedGroupId.value || isGraded.value) return
-  answersByGroup.value = {
-    ...answersByGroup.value,
-    [selectedGroupId.value]: optionId
-  }
-}
-
-function gradeAnswers() {
-  if (!canGrade.value) return
-
-  groups.value = groups.value.map((group) => ({
-    ...group,
-    score: answersByGroup.value[group.id] === question.value.correctOptionId ? group.score + 1 : group.score
-  }))
-  isGraded.value = true
-}
-
-function resetQuiz() {
-  groups.value = sampleGroups.map((group) => ({ ...group }))
-  answersByGroup.value = {}
-  selectedGroupId.value = groups.value[0]?.id || null
-  isGraded.value = false
-}
+const {
+  groups,
+  questions,
+  selectedGroupId,
+  currentQuestionIndex,
+  currentQuestion,
+  currentAnswersByGroup,
+  isCurrentQuestionGraded,
+  canGradeCurrentQuestion,
+  answeredQuestionCount,
+  gradedQuestionCount,
+  selectGroup,
+  selectQuestion,
+  goToPreviousQuestion,
+  goToNextQuestion,
+  answerQuestion,
+  gradeCurrentQuestion,
+  getQuestionStatus,
+  resetSession
+} = useGroupQuizPlayerSession()
 </script>
 
 <template>
   <div class="player-grid">
     <div class="main-column">
-      <QuestionDisplay :question="question" />
+      <QuestionProgressBar
+        :total="questions.length"
+        :answered="answeredQuestionCount"
+        :graded="gradedQuestionCount"
+      />
+
+      <QuestionNavigator
+        :current-index="currentQuestionIndex"
+        :total="questions.length"
+        @previous="goToPreviousQuestion"
+        @next="goToNextQuestion"
+      />
+
+      <QuestionDisplay v-if="currentQuestion" :question="currentQuestion" />
       <GroupSelector :groups="groups" :selected-group-id="selectedGroupId" @select="selectGroup" />
       <AnswerOptions
-        :options="question.options"
-        :answers-by-group="answersByGroup"
+        v-if="currentQuestion"
+        :options="currentQuestion.options"
+        :answers-by-group="currentAnswersByGroup"
         :selected-group-id="selectedGroupId"
-        :is-graded="isGraded"
-        :correct-option-id="question.correctOptionId"
+        :is-graded="isCurrentQuestionGraded"
+        :correct-option-id="currentQuestion.correctOptionId"
         @answer="answerQuestion"
       />
-      <QuizControls :can-grade="canGrade" :is-graded="isGraded" @grade="gradeAnswers" @reset="resetQuiz" />
+      <QuizControls
+        :can-grade="canGradeCurrentQuestion"
+        :is-graded="isCurrentQuestionGraded"
+        @grade="gradeCurrentQuestion"
+        @reset="resetSession"
+      />
     </div>
 
-    <ScorePanel :groups="groups" />
+    <div class="side-column">
+      <ScorePanel :groups="groups" />
+      <QuestionOverview
+        :questions="questions"
+        :current-index="currentQuestionIndex"
+        :get-status="getQuestionStatus"
+        @select="selectQuestion"
+      />
+    </div>
   </div>
 </template>
 
@@ -74,6 +87,12 @@ function resetQuiz() {
 
 .main-column {
   display: grid;
+  gap: 16px;
+}
+
+.side-column {
+  display: grid;
+  align-content: start;
   gap: 16px;
 }
 

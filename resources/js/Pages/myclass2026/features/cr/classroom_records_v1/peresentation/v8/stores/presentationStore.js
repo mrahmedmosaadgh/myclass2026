@@ -7,7 +7,8 @@ const STORAGE_KEYS = {
   PRESENTATION: 'presentation-v8-data',
   CURRENT_SLIDE: 'presentation-v8-current-slide',
   DESCRIPTION: 'presentation-v8-description',
-  SETTINGS: 'presentation-v8-settings'
+  SETTINGS: 'presentation-v8-settings',
+  QUIZ_ATTEMPTS: 'presentation-v8-quiz-attempts'
 }
 
 export const usePresentationStore = defineStore('presentation-v8', () => {
@@ -101,11 +102,34 @@ export const usePresentationStore = defineStore('presentation-v8', () => {
     }
   }
 
+  // Load quiz attempts from localStorage
+  function loadQuizAttempts() {
+    try {
+      const savedData = localStorage.getItem(STORAGE_KEYS.QUIZ_ATTEMPTS)
+      if (savedData) {
+        return JSON.parse(savedData)
+      }
+    } catch (error) {
+      console.warn('Failed to load quiz attempts from localStorage:', error)
+    }
+    return []
+  }
+
+  // Save quiz attempts to localStorage
+  function saveQuizAttempts() {
+    try {
+      localStorage.setItem(STORAGE_KEYS.QUIZ_ATTEMPTS, JSON.stringify(quizAttempts.value))
+    } catch (error) {
+      console.warn('Failed to save quiz attempts to localStorage:', error)
+    }
+  }
+
   // State
   const slides = ref(loadFromStorage())
   const currentSlideIndex = ref(parseInt(localStorage.getItem(STORAGE_KEYS.CURRENT_SLIDE) || '0'))
   const description = ref(localStorage.getItem(STORAGE_KEYS.DESCRIPTION) || '')
   const showDescriptionInPresentMode = ref(true)
+  const quizAttempts = ref(loadQuizAttempts())
 
   // Getters
   const currentSlide = computed(() => {
@@ -309,6 +333,61 @@ export const usePresentationStore = defineStore('presentation-v8', () => {
     }
   }
 
+  // Quiz attempt tracking actions
+  function saveQuizAttempt(attemptData) {
+    const attempt = {
+      id: 'attempt-' + Date.now(),
+      timestamp: new Date().toISOString(),
+      ...attemptData
+    }
+    quizAttempts.value.push(attempt)
+    saveQuizAttempts()
+    return attempt
+  }
+
+  function getQuizAttempts(quizId) {
+    return quizAttempts.value.filter(attempt => attempt.quizId === quizId)
+  }
+
+  function getQuizStatistics(quizId) {
+    const attempts = getQuizAttempts(quizId)
+    if (attempts.length === 0) {
+      return {
+        totalAttempts: 0,
+        averageScore: 0,
+        highestScore: 0,
+        lowestScore: 0,
+        scores: []
+      }
+    }
+
+    const scores = attempts.map(a => a.score)
+    const averageScore = scores.reduce((sum, score) => sum + score, 0) / scores.length
+    const highestScore = Math.max(...scores)
+    const lowestScore = Math.min(...scores)
+
+    return {
+      totalAttempts: attempts.length,
+      averageScore: Math.round(averageScore * 10) / 10,
+      highestScore,
+      lowestScore,
+      scores
+    }
+  }
+
+  function deleteQuizAttempt(attemptId) {
+    const index = quizAttempts.value.findIndex(a => a.id === attemptId)
+    if (index > -1) {
+      quizAttempts.value.splice(index, 1)
+      saveQuizAttempts()
+    }
+  }
+
+  function clearQuizAttempts(quizId) {
+    quizAttempts.value = quizAttempts.value.filter(attempt => attempt.quizId !== quizId)
+    saveQuizAttempts()
+  }
+
   function setDescription(value) {
     description.value = value
     saveToStorage()
@@ -393,11 +472,12 @@ export const usePresentationStore = defineStore('presentation-v8', () => {
     currentSlideIndex,
     description,
     showDescriptionInPresentMode,
-    
+    quizAttempts,
+
     // Getters
     currentSlide,
     totalSlides,
-    
+
     // Actions
     addSlide,
     deleteSlide,
@@ -420,6 +500,12 @@ export const usePresentationStore = defineStore('presentation-v8', () => {
     addQuizQuestion,
     removeQuizQuestion,
     toggleQuizInteractive,
-    resetQuiz
+    resetQuiz,
+    // Quiz attempt tracking actions
+    saveQuizAttempt,
+    getQuizAttempts,
+    getQuizStatistics,
+    deleteQuizAttempt,
+    clearQuizAttempts
   }
 })

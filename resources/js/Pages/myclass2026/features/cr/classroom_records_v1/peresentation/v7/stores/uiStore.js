@@ -17,6 +17,8 @@ export const useUIStore = defineStore('ui', () => {
   const presentModeLayout = ref('single'); // 'single' | 'continuous'
   const isPagesView = ref(false); // Edit-mode continuous pages view (PDF-like)
   const isDrawRectangleMode = ref(false); // Click-and-drag rectangle drawing mode
+  const questionViewMode = ref('list'); // 'list' | 'single' - for question display
+  const currentQuestionIndex = ref(0); // Current question index in single question view
 
   const focusPrevState = ref({
     isSlideNavVisible: true,
@@ -109,6 +111,26 @@ export const useUIStore = defineStore('ui', () => {
     isDrawRectangleMode.value = value;
   }
 
+  function toggleQuestionViewMode() {
+    questionViewMode.value = questionViewMode.value === 'list' ? 'single' : 'list';
+    currentQuestionIndex.value = 0; // Reset to first question when toggling
+  }
+
+  function setQuestionViewMode(mode) {
+    questionViewMode.value = mode;
+    currentQuestionIndex.value = 0;
+  }
+
+  function nextQuestion() {
+    currentQuestionIndex.value++;
+  }
+
+  function previousQuestion() {
+    if (currentQuestionIndex.value > 0) {
+      currentQuestionIndex.value--;
+    }
+  }
+
   return {
     selectedElementId,
     isEditMode,
@@ -125,6 +147,8 @@ export const useUIStore = defineStore('ui', () => {
     presentModeLayout,
     isPagesView,
     isDrawRectangleMode,
+    questionViewMode,
+    currentQuestionIndex,
     selectElement,
     clearSelection,
     toggleMode,
@@ -140,6 +164,10 @@ export const useUIStore = defineStore('ui', () => {
     resetZoom,
     setZoom,
     toggleDrawRectangleMode,
-    setDrawRectangleMode
+    setDrawRectangleMode,
+    toggleQuestionViewMode,
+    setQuestionViewMode,
+    nextQuestion,
+    previousQuestion
   };
 });

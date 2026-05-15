@@ -19,6 +19,37 @@ const drawStartPos = ref({ x: 0, y: 0 });
 const drawCurrentPos = ref({ x: 0, y: 0 });
 const tempRect = ref(null);
 
+// Computed properties for question view mode
+const groupMcqElements = computed(() => {
+  return presentation.currentSlide?.elements?.filter(el => el.type === 'group-mcq') || [];
+});
+
+const visibleElements = computed(() => {
+  if (ui.isEditMode) {
+    // In edit mode, show all elements
+    return presentation.currentSlide?.elements || [];
+  }
+  
+  if (ui.questionViewMode === 'list') {
+    // In list view, show all elements
+    return presentation.currentSlide?.elements || [];
+  }
+  
+  // In single question view, only show the current question
+  const mcqElements = groupMcqElements.value;
+  if (mcqElements.length === 0) {
+    return presentation.currentSlide?.elements || [];
+  }
+  
+  const currentIndex = ui.currentQuestionIndex;
+  const targetElement = mcqElements[currentIndex] || mcqElements[0];
+  
+  // Return only non-group-mcq elements plus the current group-mcq element
+  return presentation.currentSlide?.elements?.filter(el => 
+    el.type !== 'group-mcq' || el.id === targetElement.id
+  ) || [];
+});
+
 const fitScale = computed(() => {
   return 1;
 });
@@ -166,10 +197,33 @@ onUnmounted(() => {
       @mouseleave.self="handleCanvasMouseup"
     >
       <ElementNode
-        v-for="el in presentation.currentSlide.elements"
+        v-for="el in visibleElements"
         :key="el.id"
         :element="el"
       />
+
+      <!-- Question Navigation for Single Question View -->
+      <div v-if="!ui.isEditMode && ui.questionViewMode === 'single' && groupMcqElements.length > 1" class="question-nav-overlay">
+        <button 
+          class="q-nav-btn q-nav-prev" 
+          @click="ui.previousQuestion()"
+          :disabled="ui.currentQuestionIndex === 0"
+          title="Previous Question"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <div class="q-nav-counter">
+          {{ ui.currentQuestionIndex + 1 }} / {{ groupMcqElements.length }}
+        </div>
+        <button 
+          class="q-nav-btn q-nav-next" 
+          @click="ui.nextQuestion()"
+          :disabled="ui.currentQuestionIndex >= groupMcqElements.length - 1"
+          title="Next Question"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+      </div>
 
       <!-- Temporary drawing rectangle -->
       <div v-if="isDrawingRect && tempRectStyle" :style="tempRectStyle"></div>
@@ -251,5 +305,56 @@ onUnmounted(() => {
 /* Drawing mode cursor indicator */
 .draw-rect-mode .canvas {
   cursor: crosshair;
+}
+
+/* Question Navigation Overlay */
+.question-nav-overlay {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 10px 16px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(229, 231, 235, 0.8);
+  z-index: 1000;
+}
+
+.q-nav-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  color: #374151;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.q-nav-btn:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  transform: scale(1.05);
+}
+
+.q-nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.q-nav-counter {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1f2937;
+  min-width: 60px;
+  text-align: center;
 }
 </style>

@@ -1,7 +1,10 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { usePresentationStore } from '../../stores/presentationStore.js'
 import { useMathRenderer } from '../../composables/useMathRenderer.js'
+import { useQuizSounds } from '../../composables/useQuizSounds.js'
+import QuizAttemptHistory from './QuizAttemptHistory.vue'
+import QuizStatisticsSummary from './QuizStatisticsSummary.vue'
 
 const props = defineProps({
   element: { type: Object, required: true },
@@ -10,6 +13,7 @@ const props = defineProps({
 
 const presentation = usePresentationStore()
 const { renderMath } = useMathRenderer()
+const { isMuted, toggleMute, playClick, playCorrect, playWrong, playTimerTick, playComplete } = useQuizSounds()
 
 // ── Reactive element data ──────────────────────────────
 const quiz = computed(() => props.element)
@@ -30,6 +34,15 @@ const selectedOption = ref(null)
 const showExplanation = ref(false)
 const timerRemaining = ref(0)
 const timerInterval = ref(null)
+const isFullscreen = ref(false)
+const quizContainer = ref(null)
+const timerStarted = ref(false)
+const quizStartTime = ref(null)
+const showAttemptHistory = ref(false)
+const showStatistics = ref(false)
+const showNextButton = ref(false)
+const confettiParticles = ref([])
+const focusedOptionIndex = ref(-1)
 
 // ── Computed ────────────────────────────────────────────
 const currentQuestion = computed(() => questions.value[currentIndex.value] || null)
@@ -119,6 +132,17 @@ const allAnswered = computed(() => {
 
 const isInteractive = computed(() => props.isPresentMode)
 
+// Auto-submit setting
+const autoSubmitOnAnswer = computed(() => settings.value.autoSubmitOnAnswer !== false)
+
+// Timer color based on remaining time
+const timerColor = computed(() => {
+  if (timerRemaining.value <= 5) return '#f56565' // Red
+  if (timerRemaining.value <= 10) return '#f97316' // Orange
+  if (timerRemaining.value <= settings.value.timerSeconds * 0.5) return '#fbbf24' // Yellow
+  return '#48bb78' // Green
+})
+
 // ── Watchers ────────────────────────────────────────────
 watch(currentIndex, () => {
   selectedOption.value = null
@@ -130,6 +154,20 @@ watch(currentIndex, () => {
 watch(() => currentAnswer.value, (ans) => {
   if (ans) selectedOption.value = ans
 }, { immediate: true })
+
+// Save quiz attempt when results are shown
+watch(() => showResults.value, (isShowing) => {
+  if (isShowing && isInteractive.value && quizStartTime.value) {
+    saveQuizAttempt()
+  }
+})
+
+// Track quiz start time when first question is answered
+watch(() => Object.keys(userAnswers.value).length, (count) => {
+  if (count === 1 && !quizStartTime.value) {
+    quizStartTime.value = Date.now()
+  }
+})
 
 // ── Methods ─────────────────────────────────────────────
 function updateQuiz(changes) {
@@ -143,6 +181,7 @@ function selectOption(optId) {
   if (!isInteractive.value) return
   if (!currentQuestion.value) return
 
+  playClick()
   selectedOption.value = optId
   showExplanation.value = true
 
@@ -150,15 +189,28 @@ function selectOption(optId) {
     userAnswers: { ...userAnswers.value, [currentQuestion.value.id]: optId }
   })
 
-  // Auto-advance after delay (configurable)
-  if (settings.value.autoAdvance !== false) {
+  const correctId = currentQuestionData.value.correctId
+  const isCorrect = optId === correctId
+
+  if (isCorrect) {
+    playCorrect()
+    spawnConfetti()
+  } else {
+    playWrong()
+  }
+
+  // Handle auto-submit vs manual next
+  if (autoSubmitOnAnswer.value && settings.value.autoAdvance) {
     setTimeout(() => {
       if (!isLastQuestion.value) {
         nextQuestion()
       } else {
         showResults.value = true
+        playComplete()
       }
     }, settings.value.autoAdvanceDelay || 1200)
+  } else {
+    showNextButton.value = true
   }
 }
 
@@ -186,22 +238,151 @@ function restartQuiz() {
   })
   selectedOption.value = null
   showExplanation.value = false
+  timerStarted.value = false
+  quizStartTime.value = null
+  showNextButton.value = false
+  confettiParticles.value = []
+  if (timerInterval.value) {
+    clearInterval(timerInterval.value)
+    timerInterval.value = null
+  }
+}
+
+function saveQuizAttempt() {
+  const duration = quizStartTime.value ? Math.floor((Date.now() - quizStartTime.value) / 1000) : 0
+  const scorePercent = totalQuestions.value > 0 ? Math.round((correctCount.value / totalQuestions.value) * 100) : 0
+
+  presentation.saveQuizAttempt({
+    quizId: quiz.value.id,
+    quizTitle: quiz.value.title || 'Quiz',
+    score: scorePercent,
+    totalQuestions: totalQuestions.value,
+    correctCount: correctCount.value,
+    wrongCount: wrongCount.value,
+    answers: { ...userAnswers.value },
+    duration: duration,
+    timeRemaining: timerRemaining.value
+  })
 }
 
 function startTimerIfNeeded() {
   if (!settings.value.timerEnabled || !settings.value.timerSeconds) return
-  timerRemaining.value = settings.value.timerSeconds
-  timerInterval.value = setInterval(() => {
-    timerRemaining.value--
-    if (timerRemaining.value <= 0) {
-      clearInterval(timerInterval.value)
-      if (!currentAnswer.value) {
-        // Time up: mark as unanswered
-        selectOption('__timeout__')
+
+  // Total-quiz mode: only start once and don't reset
+  if (settings.value.timerMode === 'total-quiz') {
+    if (timerStarted.value) return // Already started
+    timerStarted.value = true
+    timerRemaining.value = settings.value.timerSeconds
+    timerInterval.value = setInterval(() => {
+      timerRemaining.value--
+      if (timerRemaining.value <= 0) {
+        clearInterval(timerInterval.value)
+        // Time up: show results
+        showResults.value = true
       }
-    }
+    }, 1000)
+  } else {
+    // Per-question mode: reset for each question
+    if (timerInterval.value) clearInterval(timerInterval.value)
+    timerRemaining.value = settings.value.timerSeconds
+    timerInterval.value = setInterval(() => {
+      timerRemaining.value--
+      // Play tick sound when timer ≤ 10s
+      if (timerRemaining.value <= 10 && timerRemaining.value > 0) {
+        playTimerTick()
+      }
+      if (timerRemaining.value <= 0) {
+        clearInterval(timerInterval.value)
+        if (!currentAnswer.value) {
+          // Time up: mark as unanswered
+          selectOption('__timeout__')
+        }
+      }
+    }, 1000)
+  }
+}
+
+function spawnConfetti() {
+  const colors = ['#48bb78', '#fbbf24', '#63b3ed', '#f56565', '#9f7aea']
+  const particles = []
+  for (let i = 0; i < 8; i++) {
+    particles.push({
+      id: i,
+      x: 50 + (Math.random() - 0.5) * 30,
+      y: 50,
+      vx: (Math.random() - 0.5) * 10,
+      vy: -5 - Math.random() * 5,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      rotation: Math.random() * 360
+    })
+  }
+  confettiParticles.value = particles
+  setTimeout(() => {
+    confettiParticles.value = []
   }, 1000)
 }
+
+function handleManualNext() {
+  showNextButton.value = false
+  if (!isLastQuestion.value) {
+    nextQuestion()
+  } else {
+    showResults.value = true
+    playComplete()
+  }
+}
+
+// Keyboard navigation for quiz
+function handleQuizKeydown(e) {
+  if (!isInteractive.value) return
+  if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return
+
+  const options = currentQuestionData.value?.options || []
+  if (options.length === 0) return
+
+  const key = e.key
+
+  // Arrow keys to navigate options (only if not yet answered)
+  if (!currentAnswer.value) {
+    if (key === 'ArrowDown') {
+      e.preventDefault()
+      focusedOptionIndex.value = (focusedOptionIndex.value + 1) % options.length
+    } else if (key === 'ArrowUp') {
+      e.preventDefault()
+      focusedOptionIndex.value = focusedOptionIndex.value <= 0 ? options.length - 1 : focusedOptionIndex.value - 1
+    } else if (key === 'Enter' && focusedOptionIndex.value >= 0) {
+      e.preventDefault()
+      selectOption(options[focusedOptionIndex.value].id)
+    }
+  }
+
+  // After answering, Space or Enter to go next (when manual next is shown)
+  if (showNextButton.value) {
+    if (key === ' ' || key === 'Enter') {
+      e.preventDefault()
+      handleManualNext()
+    }
+  }
+
+  // Escape to deselect
+  if (key === 'Escape' && !currentAnswer.value) {
+    focusedOptionIndex.value = -1
+  }
+}
+
+// Reset focused option when question changes
+watch(currentIndex, () => {
+  focusedOptionIndex.value = -1
+})
+
+// Add keyboard listener on mount
+onMounted(() => {
+  document.addEventListener('keydown', handleQuizKeydown)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleQuizKeydown)
+})
 
 function getOptionClass(optId) {
   if (!isInteractive.value) return ''
@@ -235,6 +416,38 @@ function formatTime(seconds) {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
+function toggleFullscreen() {
+  if (!quizContainer.value) return
+
+  if (!document.fullscreenElement) {
+    quizContainer.value.requestFullscreen().then(() => {
+      isFullscreen.value = true
+    }).catch(err => {
+      console.error('Fullscreen error:', err)
+    })
+  } else {
+    document.exitFullscreen().then(() => {
+      isFullscreen.value = false
+    }).catch(err => {
+      console.error('Exit fullscreen error:', err)
+    })
+  }
+}
+
+// Listen for fullscreen changes
+function handleFullscreenChange() {
+  isFullscreen.value = !!document.fullscreenElement
+}
+
+// Add fullscreen event listener on mount
+onMounted(() => {
+  document.addEventListener('fullscreenchange', handleFullscreenChange)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('fullscreenchange', handleFullscreenChange)
+})
+
 function getResultClass(q) {
   const ans = userAnswers.value[q.id]
   const correctId = getQuestionCorrectId(q)
@@ -244,7 +457,7 @@ function getResultClass(q) {
 </script>
 
 <template>
-  <div class="quiz-v2" :class="{ 'present-mode': isPresentMode }">
+  <div ref="quizContainer" class="quiz-v2" :class="{ 'present-mode': isPresentMode, 'is-fullscreen': isFullscreen }">
     <!-- HEADER: Title + Score Badges -->
     <div class="qv2-header">
       <div class="qv2-header-left">
@@ -252,6 +465,12 @@ function getResultClass(q) {
         <span class="qv2-title">{{ quiz.title || 'Untitled Quiz' }}</span>
       </div>
       <div v-if="isPresentMode" class="qv2-header-right">
+        <button class="qv2-mute-btn" @click="toggleMute" :title="isMuted ? 'Unmute' : 'Mute'">
+          {{ isMuted ? '🔇' : '🔊' }}
+        </button>
+        <button class="qv2-fullscreen-btn" @click="toggleFullscreen" :title="isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'">
+          {{ isFullscreen ? '⛶' : '⛶' }}
+        </button>
         <span class="qv2-badge qv2-badge-wrong">
           <span class="qv2-badge-icon">✗</span>
           {{ wrongCount }}
@@ -277,8 +496,23 @@ function getResultClass(q) {
     </div>
 
     <!-- TIMER (if enabled) -->
-    <div v-if="settings.timerEnabled && isPresentMode" class="qv2-timer">
+    <div v-if="settings.timerEnabled && isPresentMode" class="qv2-timer" :style="{ color: timerColor }">
       ⏱️ {{ formatTime(timerRemaining) }}
+    </div>
+
+    <!-- CONFETTI PARTICLES -->
+    <div v-if="confettiParticles.length > 0" class="qv2-confetti">
+      <div
+        v-for="particle in confettiParticles"
+        :key="particle.id"
+        class="confetti-particle"
+        :style="{
+          left: particle.x + '%',
+          top: particle.y + '%',
+          transform: `rotate(${particle.rotation}deg)`,
+          backgroundColor: particle.color
+        }"
+      />
     </div>
 
     <!-- RESULTS VIEW -->
@@ -308,9 +542,17 @@ function getResultClass(q) {
         </div>
       </div>
 
-      <button class="qv2-restart-btn" @click="restartQuiz">
-        ↻ Restart Quiz
-      </button>
+      <div class="qv2-result-actions">
+        <button class="qv2-action-btn" @click="showStatistics = true" title="View Statistics">
+          📊 Statistics
+        </button>
+        <button class="qv2-action-btn" @click="showAttemptHistory = true" title="View Attempt History">
+          📝 History
+        </button>
+        <button class="qv2-restart-btn" @click="restartQuiz">
+          ↻ Restart Quiz
+        </button>
+      </div>
     </div>
 
     <!-- QUESTION VIEW -->
@@ -340,12 +582,13 @@ function getResultClass(q) {
       <!-- Options -->
       <div class="qv2-options">
         <button
-          v-for="opt in currentQuestionData?.options || []"
+          v-for="(opt, idx) in currentQuestionData?.options || []"
           :key="opt.id"
           class="qv2-option"
-          :class="getOptionClass(opt.id)"
+          :class="[getOptionClass(opt.id), focusedOptionIndex === idx && !currentAnswer ? 'opt-focused' : '']"
           :disabled="!isInteractive || !!currentAnswer"
           @click="selectOption(opt.id)"
+          @mouseenter="focusedOptionIndex = idx"
         >
           <span class="qv2-opt-label">{{ String(opt.id).toUpperCase() }}</span>
           <span class="qv2-opt-text" v-html="renderMath(opt.text)" />
@@ -370,21 +613,52 @@ function getResultClass(q) {
         >
           ← Prev
         </button>
+        
+        <!-- Manual Next button when auto-submit is disabled -->
         <button
-          v-if="isLastQuestion && hasAnsweredCurrent"
+          v-if="showNextButton && !isLastQuestion"
+          class="qv2-nav-btn qv2-nav-next qv2-nav-manual"
+          @click="handleManualNext"
+        >
+          Next →
+        </button>
+        
+        <button
+          v-if="isLastQuestion && hasAnsweredCurrent && !showNextButton"
           class="qv2-nav-btn qv2-nav-next qv2-nav-finish"
           @click="showResults = true"
         >
           Finish →
         </button>
         <button
-          v-else-if="!isLastQuestion && hasAnsweredCurrent"
+          v-else-if="!isLastQuestion && hasAnsweredCurrent && autoSubmitOnAnswer && !showNextButton"
           class="qv2-nav-btn qv2-nav-next"
           @click="nextQuestion"
         >
           Next →
         </button>
         <span v-else class="qv2-nav-placeholder" />
+      </div>
+    </div>
+
+    <!-- Attempt History Modal -->
+    <QuizAttemptHistory
+      v-if="showAttemptHistory"
+      :quiz-id="quiz.id"
+      :quiz-title="quiz.title"
+      @close="showAttemptHistory = false"
+    />
+
+    <!-- Statistics Modal -->
+    <div v-if="showStatistics" class="qv2-modal-overlay" @click.self="showStatistics = false">
+      <div class="qv2-modal-content">
+        <div class="qv2-modal-header">
+          <h3 class="qv2-modal-title">📊 Quiz Statistics</h3>
+          <button class="qv2-modal-close" @click="showStatistics = false">✕</button>
+        </div>
+        <div class="qv2-modal-body">
+          <QuizStatisticsSummary :quiz-id="quiz.id" />
+        </div>
       </div>
     </div>
   </div>
@@ -430,6 +704,51 @@ function getResultClass(q) {
 .qv2-header-right {
   display: flex;
   gap: 8px;
+  align-items: center;
+}
+
+.qv2-mute-btn {
+  background: transparent;
+  border: 1px solid #404040;
+  color: #888;
+  font-size: 16px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 28px;
+}
+
+.qv2-mute-btn:hover {
+  background: #333;
+  border-color: #505050;
+  color: #e0e0e0;
+}
+
+.qv2-fullscreen-btn {
+  background: transparent;
+  border: 1px solid #404040;
+  color: #888;
+  font-size: 16px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 28px;
+}
+
+.qv2-fullscreen-btn:hover {
+  background: #333;
+  border-color: #505050;
+  color: #e0e0e0;
 }
 
 .qv2-badge {
@@ -622,14 +941,22 @@ function getResultClass(q) {
   background: rgba(99, 179, 237, 0.1);
 }
 
-.qv2-option.opt-correct {
-  border-color: #48bb78;
-  background: rgba(72, 187, 120, 0.15);
+.qv2-option.opt-focused {
+  border-color: #63b3ed;
+  box-shadow: 0 0 0 3px rgba(99, 179, 237, 0.3);
+  transform: scale(1.02);
 }
 
 .qv2-option.opt-wrong {
   border-color: #f56565;
   background: rgba(245, 101, 101, 0.15);
+  animation: shake 0.5s ease-in-out;
+}
+
+.qv2-option.opt-correct {
+  border-color: #48bb78;
+  background: rgba(72, 187, 120, 0.15);
+  animation: correctFlash 0.5s ease-out;
 }
 
 .qv2-option.opt-dimmed {
@@ -734,7 +1061,16 @@ function getResultClass(q) {
 }
 
 .qv2-nav-finish:hover {
-  background: #38a169;
+  background: #3ab768;
+}
+
+.qv2-nav-manual {
+  background: #fbbf24;
+  color: #1a1a1a;
+}
+
+.qv2-nav-manual:hover {
+  background: #f59e0b;
 }
 
 .qv2-nav-placeholder {
@@ -858,6 +1194,101 @@ function getResultClass(q) {
   background: #4fa3e0;
 }
 
+.qv2-result-actions {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.qv2-action-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid #444;
+  background: #2a2a2a;
+  color: #ccc;
+  transition: all 0.2s;
+}
+
+.qv2-action-btn:hover {
+  background: #333;
+  border-color: #505050;
+  color: #e0e0e0;
+}
+
+/* Modal overlay */
+.qv2-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 20px;
+}
+
+.qv2-modal-content {
+  background: #1e1e1e;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #333;
+}
+
+.qv2-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #333;
+  flex-shrink: 0;
+}
+
+.qv2-modal-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #f0f0f0;
+}
+
+.qv2-modal-close {
+  background: transparent;
+  border: none;
+  color: #888;
+  font-size: 18px;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.qv2-modal-close:hover {
+  background: #333;
+  color: #f0f0f0;
+}
+
+.qv2-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
 /* Edit mode preview */
 .quiz-v2:not(.present-mode) .qv2-option {
   cursor: default;
@@ -891,5 +1322,72 @@ function getResultClass(q) {
 .qv2-result-text :deep(sup),
 .qv2-result-text :deep(sub) {
   font-size: 0.7em;
+}
+
+/* Fullscreen mode */
+.quiz-v2.is-fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  border-radius: 0;
+}
+
+.quiz-v2.is-fullscreen .qv2-body {
+  padding: 20px 32px 24px;
+}
+
+.quiz-v2.is-fullscreen .qv2-question-text {
+  font-size: 20px;
+}
+
+.quiz-v2.is-fullscreen .qv2-option {
+  padding: 16px 20px;
+  font-size: 16px;
+}
+
+/* Confetti particles */
+.qv2-confetti {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.confetti-particle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  animation: confettiFall 1s ease-out forwards;
+}
+
+/* Keyframe animations */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+@keyframes correctFlash {
+  0% { background: rgba(72, 187, 120, 0.15); }
+  50% { background: rgba(72, 187, 120, 0.5); }
+  100% { background: rgba(72, 187, 120, 0.15); }
+}
+
+@keyframes confettiFall {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
 }
 </style>

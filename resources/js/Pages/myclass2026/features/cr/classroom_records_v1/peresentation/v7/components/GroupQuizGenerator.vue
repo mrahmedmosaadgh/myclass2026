@@ -2,11 +2,14 @@
 import { ref } from 'vue';
 import { useQuasar } from 'quasar';
 import { useUIStore } from '../stores/uiStore';
+import { useGameStore } from '../stores/gameStore';
 import { useAIPaste } from '../composables/useAIPaste';
 import { usePresentationStore } from '../stores/presentationStore';
+import { saveGroupQuizSession } from '../quizgroupv1/ver1/composables/useGroupQuizPlayerSession';
 import EditableMath from './EditableMath.vue';
 
 const ui = useUIStore();
+const gameStore = useGameStore();
 const $q = useQuasar();
 const presentation = usePresentationStore();
 const { generateQuestionElements } = useAIPaste();
@@ -18,6 +21,7 @@ const extraInfo = ref('');
 const jsonInput = ref('');
 const parsedQuestions = ref([]);
 const errorMessage = ref('');
+const selectedTab = ref('setup');
 
 // Closes the modal and resets
 function close() {
@@ -152,14 +156,44 @@ function appendLeaderboard() {
   presentation.addElement(lbBlock);
 }
 
-function submitToPresentation() {
+function submitToPresentation(layoutMode = 'individual') {
   if (parsedQuestions.value.length === 0) return;
-  
+
   // Format v3 signals the generator to build GroupMCQ.vue blocks
-  generateQuestionElements(parsedQuestions.value, 'new', 'v3');
-  
+  generateQuestionElements(parsedQuestions.value, 'new', 'v3', layoutMode);
+
   appendLeaderboard();
   close();
+}
+
+function exportToReusablePlayer() {
+  if (parsedQuestions.value.length === 0) return;
+
+  const saved = saveGroupQuizSession(gameStore.groups, parsedQuestions.value);
+
+  if (saved) {
+    $q.notify({
+      type: 'positive',
+      message: 'Quiz exported to Reusable Player',
+      caption: 'Open the Group Quiz Player test page to play.',
+      position: 'top',
+      actions: [
+        {
+          label: 'Open Player',
+          color: 'white',
+          handler: () => {
+            window.open('/classroom-records/presentation/builder-v7/group-quiz-player', '_blank');
+          }
+        }
+      ]
+    });
+  } else {
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to export quiz to player',
+      position: 'top'
+    });
+  }
 }
 </script>
 
@@ -174,11 +208,31 @@ function submitToPresentation() {
       </div>
 
       <div class="modal-body">
-        <!-- Split View: Prompt Builder (Left) VS JSON Input & Preview (Right) -->
-        <div class="generator-split">
+        <!-- Tab Navigation -->
+        <div class="tab-nav">
+          <button 
+            class="tab-btn" 
+            :class="{ active: selectedTab === 'setup' }"
+            @click="selectedTab = 'setup'"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+            Setup AI Prompt
+          </button>
+          <button 
+            class="tab-btn" 
+            :class="{ active: selectedTab === 'preview' }"
+            @click="selectedTab = 'preview'"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            Paste & Preview
+          </button>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="tab-content">
           
-          <!-- LEFT: Prompt Builder -->
-          <div class="generator-col prompt-col">
+          <!-- TAB 1: Setup AI Prompt -->
+          <div v-if="selectedTab === 'setup'" class="tab-panel setup-panel">
             <h3>1. Setup AI Prompt</h3>
             
             <label class="input-block">
@@ -223,8 +277,8 @@ function submitToPresentation() {
             </div>
           </div>
 
-          <!-- RIGHT: JSON Input & Preview -->
-          <div class="generator-col action-col">
+          <!-- TAB 2: Paste AI Output & Preview -->
+          <div v-if="selectedTab === 'preview'" class="tab-panel preview-panel">
             <h3>2. Paste AI Output</h3>
             <textarea
               v-model="jsonInput" 
@@ -248,11 +302,15 @@ function submitToPresentation() {
               <h4>Visual Preview ({{ parsedQuestions.length }} Questions)</h4>
               <div class="preview-cards">
                 <div v-for="(q, index) in parsedQuestions" :key="index" class="q-card">
-                  <div class="q-title">
-                     <EditableMath :content="q.question" :isEditMode="false" />
+                  <div class="q-header">
+                    <span class="q-number">{{ index + 1 }}</span>
+                    <div class="q-title">
+                       <EditableMath :content="q.question" :isEditMode="false" />
+                    </div>
                   </div>
                   <div v-if="q.options" class="q-options">
                     <div v-for="(opt, oIndex) in q.options" :key="oIndex" class="q-opt" :class="{'opt-correct': q.answer && (q.answer.includes(opt) || opt.includes(q.answer))}">
+                      <span class="opt-label">{{ String.fromCharCode(65 + oIndex) }}</span>
                       <EditableMath :content="opt" :isEditMode="false" />
                     </div>
                   </div>
@@ -260,9 +318,19 @@ function submitToPresentation() {
               </div>
 
               <!-- Final Submission -->
-              <button class="btn-submit" @click="submitToPresentation">
+              <button class="btn-submit" @click="submitToPresentation('extended')">
                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
-                 Confirm & Add to Presentation
+                 Add All in Extended Slide
+              </button>
+
+              <button class="btn-submit" style="margin-top:8px; background:#3b82f6;" @click="submitToPresentation('individual')">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                 Add as Individual Slides
+              </button>
+
+              <button class="btn-submit" style="margin-top:8px; background:#2563eb;" @click="exportToReusablePlayer">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                 Export to Reusable Player
               </button>
             </div>
           </div>
@@ -326,32 +394,72 @@ function submitToPresentation() {
   display: flex;
   flex-direction: column;
   flex: 1;
-  overflow: hidden; /* Child elements handle scrolling */
+  overflow: hidden;
 }
 
-.generator-split {
+/* Tab Navigation */
+.tab-nav {
   display: flex;
-  gap: 20px;
-  height: 100%;
-}
-
-.generator-col {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background: #f8fafc;
-  padding: 16px;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  overflow-y: auto;
-}
-
-.generator-col h3 {
-  margin: 0 0 16px 0;
-  font-size: 1.1rem;
-  color: #334155;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
   border-bottom: 2px solid #e2e8f0;
-  padding-bottom: 8px;
+}
+
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.tab-btn.active {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: white;
+  box-shadow: 0 2px 4px rgba(99, 102, 241, 0.3);
+}
+
+.tab-btn svg {
+  flex-shrink: 0;
+}
+
+/* Tab Content */
+.tab-content {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.tab-panel {
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.setup-panel {
+  background: #f8fafc;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.preview-panel {
+  background: #f8fafc;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
 }
 
 /* Form Styles */
@@ -456,7 +564,7 @@ function submitToPresentation() {
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-height: 200px;
+  min-height: 300px;
 }
 
 .preview-area h4 {
@@ -470,44 +578,123 @@ function submitToPresentation() {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
   padding-right: 8px;
   margin-bottom: 12px;
 }
 
+/* Custom scrollbar */
+.preview-cards::-webkit-scrollbar {
+  width: 6px;
+}
+.preview-cards::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+.preview-cards::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+.preview-cards::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
 .q-card {
   background: white;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  padding: 12px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  transition: all 0.2s ease;
+}
+
+.q-card:hover {
+  box-shadow: 0 4px 6px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.06);
+  border-color: #cbd5e1;
+}
+
+.q-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.q-number {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: white;
+  font-size: 14px;
+  font-weight: 800;
+  box-shadow: 0 2px 4px rgba(99, 102, 241, 0.3);
 }
 
 .q-title {
-  font-weight: bold;
-  font-size: 1rem;
-  margin-bottom: 8px;
+  flex: 1;
+  font-weight: 700;
+  font-size: 1.15rem;
+  line-height: 1.5;
   color: #0f172a;
 }
 
 .q-options {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 4px;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
 }
 
 .q-opt {
-  padding: 6px 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: #334155;
+  transition: all 0.2s ease;
+}
+
+.q-opt:hover {
   background: #f1f5f9;
-  border: 1px dashed #cbd5e1;
-  border-radius: 4px;
-  font-size: 0.9rem;
+  border-color: #cbd5e1;
+}
+
+.opt-label {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .opt-correct {
-  background: #dcfce3;
+  background: #f0fdf4;
   border-color: #22c55e;
-  border-style: solid;
+  border-width: 1.5px;
+}
+
+.opt-correct .opt-label {
+  background: #22c55e;
+  color: white;
+}
+
+.opt-correct {
+  color: #166534;
 }
 
 .btn-submit {

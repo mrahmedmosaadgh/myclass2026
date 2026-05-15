@@ -20,18 +20,25 @@ quizgroupv1/
 ├── index.vue
 ├── GROUP_QUIZ_REUSABLE_PLAYER_PLAN.md
 ├── GROUP_QUIZ_REUSABLE_PLAYER_TASK_LIST.md
+├── GROUP_QUIZ_ALL_QUESTIONS_NAVIGATION_PLAN.md
 ├── PROJECT_MAP.md
 └── ver1/
+    ├── adapters/
+    │   └── groupQuizSlideAdapter.js
     ├── GroupQuizPlayerShell.vue
     ├── GroupQuizPlayerV1.vue
     ├── components/
     │   ├── AnswerOptions.vue
     │   ├── GroupQuizVersionSelector.vue
     │   ├── GroupSelector.vue
+    │   ├── QuestionNavigator.vue
+    │   ├── QuestionOverview.vue
+    │   ├── QuestionProgressBar.vue
     │   ├── QuestionDisplay.vue
     │   ├── QuizControls.vue
     │   └── ScorePanel.vue
     ├── composables/
+    │   ├── useGroupQuizPlayerSession.js
     │   └── useGroupQuizVersion.js
     └── data/
         └── sampleQuiz.js
@@ -43,16 +50,21 @@ quizgroupv1/
 2. `index.vue` renders `GroupQuizPlayerShell`.
 3. `GroupQuizPlayerShell` renders the version selector and selected player.
 4. `useGroupQuizVersion` restores the selected version from `localStorage`.
-5. Version 1 currently renders a reusable sample Group Quiz player.
+5. Version 1 renders a multi-question reusable Group Quiz player.
+6. `useGroupQuizPlayerSession` loads a stored player session or falls back to sample questions.
+7. `QuestionNavigator`, `QuestionOverview`, and `QuestionProgressBar` provide all-question navigation.
+8. Ver7 `GroupQuizGenerator` can export quiz and groups to the reusable player session via `saveGroupQuizSession`.
 
 ## LocalStorage
 
 - Key: `myclass2026.groupQuizPlayer.selectedVersion`
 - Default value: `ver1`
+- Session key: `myclass2026.groupQuizPlayer.session.v1`
+- Selected question key: `myclass2026.groupQuizPlayer.selectedQuestionIndex.v1`
 
 ## Orphans and Pending
 
-- `[P1]` Port full current `InteractiveGroupMCQ.vue` behavior into smaller Ver1 components.
-- `[P2]` Add setup/generator wrappers when player shell is stable.
-- `[P3]` Create Ver2 after Ver1 behavior parity is complete.
-- `[P4]` Browser verification pending for the new route.
+- `[P2]` Port full current `InteractiveGroupMCQ.vue` behavior into smaller Ver1 components.
+- `[P3]` Add setup/generator wrappers when player shell is stable.
+- `[P4]` Create Ver2 after Ver1 behavior parity is complete.
+- `[P5]` Browser verification pending for the new route and Ver7 export flow.

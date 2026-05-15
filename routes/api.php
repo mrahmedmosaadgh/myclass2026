@@ -226,6 +226,20 @@ Route::middleware(['auth:sanctum', 'web'])->group(function () {
         Route::delete('/category-mappings/{mapping}', [App\Http\Controllers\Api\Cr\CrCategoryMappingsController::class, 'destroy']);
     });
 
+    // V8 Presentation Save/Load/Share API
+    Route::prefix('v8-presentations')->group(function () {
+        Route::post('/save', [App\Http\Controllers\Api\PresentationController::class, 'saveV8Presentation']);
+        Route::get('/', [App\Http\Controllers\Api\PresentationController::class, 'listV8Presentations']);
+        Route::get('/{id}', [App\Http\Controllers\Api\PresentationController::class, 'loadV8Presentation']);
+        Route::delete('/{id}', [App\Http\Controllers\Api\PresentationController::class, 'deleteV8Presentation']);
+        Route::get('/{id}/statistics', [App\Http\Controllers\Api\PresentationController::class, 'getV8Statistics']);
+        Route::get('/{id}/attempts', [App\Http\Controllers\Api\PresentationController::class, 'getV8AttemptHistory']);
+    });
+
+    // Student presentation (no auth required - share token only)
+    Route::get('/v8-presentations/shared/{shareToken}', [App\Http\Controllers\Api\PresentationController::class, 'loadSharedPresentation']);
+    Route::post('/v8-presentations/shared/{shareToken}/attempt', [App\Http\Controllers\Api\PresentationController::class, 'submitStudentAttempt']);
+
     // AI Assistant API
     Route::post('/ai/complete', [App\Http\Controllers\AIController::class, 'complete']);
 

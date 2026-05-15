@@ -234,7 +234,7 @@ Create all three new components
 
 ---
 
-## 📊 Question Data Structure (Short Answer Only)
+## 📊 Question Data Structure (Extended with Grading Criteria)
 
 ```javascript
 {
@@ -248,13 +248,43 @@ Create all three new components
     maxLength: 500
   },
   timeLimit: 120, // seconds (optional)
-  createdAt: timestamp
+  createdAt: timestamp,
+  
+  // NEW: Grading criteria with multiple points
+  grading: {
+    criteria: [
+      {
+        id: "criterion-1",
+        label: "Identifies main topic",
+        description: "Mentions the core subject discussed",
+        points: 3,
+        keywords: ["topic", "subject", "main", "core"]
+      },
+      {
+        id: "criterion-2",
+        label: "Explains significance",
+        description: "Explains why this topic matters",
+        points: 4,
+        keywords: ["important", "significance", "why", "because"]
+      },
+      {
+        id: "criterion-3",
+        label: "Provides example",
+        description: "Includes a relevant example or evidence",
+        points: 3,
+        keywords: ["example", "evidence", "such as", "for instance"]
+      }
+    ],
+    maxPoints: 10,
+    gradingMode: "manual" | "auto" | "hybrid", // manual: teacher grades, auto: keyword-based, hybrid: both
+    showCriteriaToStudents: false // whether students see the grading rubric
+  }
 }
 ```
 
 ---
 
-## 📊 Response Data Structure
+## 📊 Response Data Structure (With Grading)
 
 ```javascript
 {
@@ -262,10 +292,44 @@ Create all three new components
   studentName: "John Doe",
   isAuthenticated: true/false,
   answer: {
-    text: "The main idea is..."
+    text: "The main idea is... This is important because... For instance..."
   },
   timestamp: 1234567890,
-  submittedAt: "2024-03-28T10:30:00Z"
+  submittedAt: "2024-03-28T10:30:00Z",
+  
+  // NEW: Grading results
+  grading: {
+    status: "pending" | "graded" | "auto-graded",
+    autoScore: 7, // calculated from keyword matching
+    teacherScore: null, // set by teacher
+    finalScore: 7, // autoScore if not graded, otherwise teacherScore
+    criterionResults: [
+      {
+        criterionId: "criterion-1",
+        matched: true,
+        matchedKeywords: ["topic", "main"],
+        pointsEarned: 3,
+        teacherOverride: null
+      },
+      {
+        criterionId: "criterion-2",
+        matched: true,
+        matchedKeywords: ["important", "why"],
+        pointsEarned: 4,
+        teacherOverride: null
+      },
+      {
+        criterionId: "criterion-3",
+        matched: false,
+        matchedKeywords: [],
+        pointsEarned: 0,
+        teacherOverride: 3 // teacher manually awarded partial points
+      }
+    ],
+    teacherNotes: "Good explanation but could include more detail on examples",
+    gradedAt: "2024-03-28T10:35:00Z",
+    gradedBy: "teacher-uuid"
+  }
 }
 ```
 
@@ -310,7 +374,69 @@ Create all three new components
 
 ---
 
-## 🚀 Implementation Phases
+## � Grading System Overview
+
+### Manual Grading (Teacher-only)
+Teacher reviews each response and assigns points per criterion:
+- View response and original criteria
+- Toggle `matched` for each criterion
+- Adjust `pointsEarned` if needed
+- Add teacher notes
+- Final score = sum of all criterion points
+
+### Auto Grading (Keyword-based)
+System analyzes answer text for keyword matches:
+- Search for keywords in each criterion
+- Calculate `autoScore` automatically
+- Display `autoScore` to teacher for review
+- Teacher can override individual criteria
+
+### Hybrid Grading (Recommended)
+- Auto-grade first for efficiency
+- Teacher reviews auto-results
+- Teacher can adjust individual criteria
+- Final score reflects teacher's final decision
+
+---
+
+## 🎯 Implementation Notes
+
+### Store State Enhancement
+```javascript
+// liveQuestionStore.js
+{
+  // ... existing state
+  currentQuestion: {
+    // ... existing question data
+    grading: {
+      criteria: [...],
+      maxPoints: 10,
+      gradingMode: "hybrid"
+    }
+  },
+  responses: [
+    {
+      // ... existing response data
+      grading: {
+        status: "pending",
+        autoScore: 7,
+        teacherScore: null,
+        finalScore: 7,
+        criterionResults: [...]
+      }
+    }
+  ]
+}
+```
+
+### Grading UI Components
+- **GradingPanel.vue**: Teacher interface for grading responses
+- **CriterionRow.vue**: Individual criterion with toggle and points
+- **ScoreSummary.vue**: Display total score and breakdown
+
+---
+
+## �🚀 Implementation Phases
 
 ### Phase 1: Core Integration (Priority)
 - [ ] Create liveQuestionStore.js
@@ -323,7 +449,14 @@ Create all three new components
 - [ ] Create LiveQuestionResults.vue
 - [ ] Integrate with FloatingAnalytics.vue
 
-### Phase 3: Polish & Export
+### Phase 3: Grading System
+- [ ] Add grading criteria to question structure
+- [ ] Create GradingPanel.vue component
+- [ ] Implement auto-grading logic (keyword matching)
+- [ ] Add teacher grading interface
+- [ ] Implement score calculation
+
+### Phase 4: Polish & Export
 - [ ] Add export functionality (JSON/CSV)
 - [ ] Add animations/transitions
 - [ ] Add error handling

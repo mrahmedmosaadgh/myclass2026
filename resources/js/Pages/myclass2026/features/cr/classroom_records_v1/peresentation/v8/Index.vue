@@ -5,18 +5,22 @@ import { usePresentationStore } from './stores/presentationStore.js'
 import { useUIStore } from './stores/uiStore.js'
 import { useClipboardStore } from './stores/clipboardStore.js'
 import { usePaste } from './composables/usePaste.js'
+import { usePresentationAPI } from './composables/usePresentationAPI.js'
 import EditorCanvas from './components/EditorCanvas.vue'
 import SlideCanvasReadonly from './components/SlideCanvasReadonly.vue'
 import PresentModeController from './components/PresentModeController.vue'
 import Toolbar from './components/Toolbar.vue'
 import SlideNavigationBar from './components/SlideNavigationBar.vue'
 import ElementContextMenu from './components/ElementContextMenu.vue'
+import SavePresentationDialog from './components/SavePresentationDialog.vue'
+import PresentationManager from './components/PresentationManager.vue'
 
 const $q = useQuasar()
 const presentation = usePresentationStore()
 const ui = useUIStore()
 const clipboard = useClipboardStore()
 const { handlePaste } = usePaste()
+const { loadPresentation } = usePresentationAPI()
 
 // Slide context menu state
 const slideContextMenu = ref({
@@ -24,6 +28,38 @@ const slideContextMenu = ref({
   x: 0,
   y: 0
 })
+
+// Presentation save/load state
+const showSaveDialog = ref(false)
+const showPresentationManager = ref(false)
+
+function handleSavePresentation() {
+  showSaveDialog.value = true
+}
+
+function handleOpenPresentationManager() {
+  showPresentationManager.value = true
+}
+
+async function handleLoadPresentation(presentationData) {
+  try {
+    await loadPresentation(presentationData.id)
+    presentation.loadPresentationData(presentationData.presentation_data)
+    $q.notify({
+      type: 'positive',
+      message: 'Presentation loaded successfully',
+      position: 'top',
+      timeout: 3000
+    })
+  } catch (err) {
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to load presentation',
+      position: 'top',
+      timeout: 3000
+    })
+  }
+}
 
 function handlePageSelect(idx) {
   presentation.selectSlide(idx)
@@ -530,6 +566,19 @@ onUnmounted(() => {
           <path d="M12 17v4"/>
         </svg>
       </button>
+      <button class="mini-btn" @click="handleSavePresentation()" title="Save Presentation">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+          <polyline points="7 3 7 8 15 8"/>
+        </svg>
+      </button>
+      <button class="mini-btn" @click="handleOpenPresentationManager()" title="My Presentations">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+        </svg>
+      </button>
       <button class="mini-btn danger" @click="ui.toggleFocusMode()" title="Exit Focus Mode">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="18" y1="6" x2="6" y2="18"/>
@@ -544,6 +593,19 @@ onUnmounted(() => {
       :x="ui.contextMenu.x"
       :y="ui.contextMenu.y"
       :element-id="ui.contextMenu.elementId"
+    />
+
+    <!-- Save Presentation Dialog -->
+    <SavePresentationDialog
+      v-model="showSaveDialog"
+      :presentation-data="presentation.$state"
+      @saved="() => $q.notify({ type: 'positive', message: 'Presentation saved!', position: 'top', timeout: 3000 })"
+    />
+
+    <!-- Presentation Manager -->
+    <PresentationManager
+      v-model="showPresentationManager"
+      @load="handleLoadPresentation"
     />
   </div>
 </template>

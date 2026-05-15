@@ -129,6 +129,17 @@ Route::middleware([
             );
         })->name('builder-v8');
 
+        // V8 Student Presentation (Read-only)
+        Route::get('/student-v8', function () {
+            return Inertia::render(
+                'myclass2026/features/cr/classroom_records_v1/peresentation/v8/StudentPresentation',
+                [
+                    'title' => 'Student Presentation - MyClass2026',
+                    'mode' => 'student'
+                ]
+            );
+        })->name('student-v8');
+
         // Presentation Management Page
         Route::get('/manage', function () {
             return Inertia::render(

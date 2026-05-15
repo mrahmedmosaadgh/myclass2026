@@ -22,7 +22,16 @@ const errorMessage = ref('')
 const showPreview = ref(false)
 const editingIndex = ref(-1)
 
+// Timer settings
+const timerEnabled = ref(false)
+const timerMode = ref('per-question')
+const timerSeconds = ref(30)
+
+// Auto-submit setting
+const autoSubmitOnAnswer = ref(true)
+
 const difficultyOptions = ['Easy', 'Medium', 'Hard', 'Mixed']
+const timerModeOptions = ['per-question', 'total-quiz']
 
 // ── Computed ────────────────────────────────────────────
 const canInject = computed(() => parsedQuestions.value.length > 0)
@@ -290,10 +299,12 @@ function injectQuiz() {
       pointsPerCorrect: 10,
       penaltyPerWrong: 0,
       showExplanation: true,
-      timerEnabled: false,
-      timerSeconds: 30,
+      timerEnabled: timerEnabled.value,
+      timerSeconds: timerSeconds.value,
+      timerMode: timerMode.value,
       autoAdvance: true,
-      autoAdvanceDelay: 1200
+      autoAdvanceDelay: 1200,
+      autoSubmitOnAnswer: autoSubmitOnAnswer.value
     },
     currentQuestionIndex: 0,
     userAnswers: {},
@@ -392,6 +403,45 @@ function cancel() {
             rows="2"
             placeholder="e.g., Focus on fractions, avoid negative numbers..."
           />
+        </div>
+
+        <!-- Timer Settings -->
+        <div class="form-row">
+          <label class="form-label">⏱️ Timer Settings</label>
+          <div class="timer-settings">
+            <label class="checkbox-label">
+              <input type="checkbox" v-model="timerEnabled" />
+              <span>Enable Timer</span>
+            </label>
+            <div v-if="timerEnabled" class="timer-options">
+              <div class="timer-option">
+                <label class="timer-option-label">Mode:</label>
+                <select v-model="timerMode" class="form-select">
+                  <option v-for="mode in timerModeOptions" :key="mode" :value="mode">
+                    {{ mode === 'per-question' ? 'Per Question' : 'Total Quiz' }}
+                  </option>
+                </select>
+              </div>
+              <div class="timer-option">
+                <label class="timer-option-label">Duration (seconds):</label>
+                <input v-model.number="timerSeconds" type="number" min="5" max="600" class="form-input" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Auto-Submit Settings -->
+        <div class="form-row">
+          <label class="form-label">⚡ Quiz Behavior</label>
+          <div class="timer-settings">
+            <label class="checkbox-label">
+              <input type="checkbox" v-model="autoSubmitOnAnswer" />
+              <span>Auto-advance to next question after answering</span>
+            </label>
+            <p class="setting-hint">
+              When disabled, students see feedback and must click "Next →" to advance manually.
+            </p>
+          </div>
         </div>
 
         <!-- Action Buttons -->
@@ -644,6 +694,54 @@ function cancel() {
   color: #f56565;
   font-size: 13px;
   margin-bottom: 14px;
+}
+
+/* Timer Settings */
+.timer-settings {
+  background: #252525;
+  border: 1px solid #383838;
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #e0e0e0;
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.timer-options {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.timer-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.timer-option-label {
+  font-size: 13px;
+  color: #aaa;
+  white-space: nowrap;
+  min-width: 120px;
+}
+
+.timer-option .form-select,
+.timer-option .form-input {
+  flex: 1;
 }
 
 /* Buttons */

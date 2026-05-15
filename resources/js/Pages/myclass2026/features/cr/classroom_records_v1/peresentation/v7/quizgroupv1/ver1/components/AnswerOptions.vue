@@ -1,5 +1,5 @@
 <script setup>
-defineProps({
+const props = defineProps({
   options: {
     type: Array,
     required: true
@@ -25,7 +25,7 @@ defineProps({
 const emit = defineEmits(['answer'])
 
 function getGroupCount(optionId) {
-  return Object.values(answersByGroup).filter((answer) => answer === optionId).length
+  return Object.values(props.answersByGroup).filter((answer) => answer === optionId).length
 }
 </script>
 

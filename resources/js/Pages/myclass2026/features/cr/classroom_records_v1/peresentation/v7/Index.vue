@@ -363,6 +363,16 @@ onUnmounted(() => {
         </svg>
         <span class="zoom-btn-text">{{ ui.presentModeLayout === 'continuous' ? 'Pages' : 'Slide' }}</span>
       </button>
+      <button @click="ui.toggleQuestionViewMode()" class="zoom-btn" :title="ui.questionViewMode === 'list' ? 'Single Question View' : 'List View'">
+        <svg v-if="ui.questionViewMode === 'list'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="9" y1="3" x2="9" y2="21"></line>
+        </svg>
+        <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+        </svg>
+        <span class="zoom-btn-text">{{ ui.questionViewMode === 'list' ? 'List' : 'Single' }}</span>
+      </button>
       <button @click="ui.zoomIn()" class="zoom-btn" title="Zoom In (Ctrl +)">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="11" cy="11" r="8"></circle>
