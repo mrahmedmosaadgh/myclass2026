@@ -641,7 +641,7 @@ onUnmounted(() => {
     <!-- Save Presentation Dialog -->
     <SavePresentationDialog
       v-model="showSaveDialog"
-      :presentation-data="presentation.$state"
+      :presentation-data="{ slides: presentation.slides, description: presentation.description }"
       :presentation-id="presentation.currentPresentationId"
       :presentation-title="currentPresentationTitle"
       :presentation-description="currentPresentationDescription"
