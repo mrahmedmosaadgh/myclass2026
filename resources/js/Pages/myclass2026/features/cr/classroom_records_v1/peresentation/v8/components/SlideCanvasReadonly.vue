@@ -43,7 +43,9 @@ function updateScale() {
   const scaleX = containerWidth / CANVAS_WIDTH
   const scaleY = containerHeight / CANVAS_HEIGHT
 
-  scale.value = Math.min(scaleX, scaleY, 1.2) // Cap at 1.2x to avoid over-scaling
+  // For mobile, prioritize width-only scaling to avoid unnecessary shrinkage
+  // Cap at 1.0 to prevent over-scaling
+  scale.value = Math.min(scaleX, 1.0)
 }
 
 let resizeObserver = null
@@ -69,8 +71,8 @@ onUnmounted(() => {
 <template>
   <div ref="canvasWrapper" class="canvas-wrapper">
     <div class="slide-canvas-readonly" :style="canvasStyle">
-      <!-- Grid background -->
-      <div class="grid-background" />
+      <!-- Grid background (hidden in present mode for cleaner student view) -->
+      <div v-if="!isPresentMode" class="grid-background" />
 
       <!-- Elements -->
       <ElementNode

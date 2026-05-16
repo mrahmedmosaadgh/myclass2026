@@ -5,6 +5,7 @@ import { usePresentationStore } from './stores/presentationStore.js'
 import { useUIStore } from './stores/uiStore.js'
 import { usePresentationAPI } from './composables/usePresentationAPI.js'
 import SlideCanvasReadonly from './components/SlideCanvasReadonly.vue'
+import StudentQuizView from './components/StudentQuizView.vue'
 
 const props = defineProps({
   shareToken: String // Inertia prop from web route
@@ -22,12 +23,28 @@ const totalSlides = computed(() => presentation.totalSlides)
 const studentIdentifier = ref('')
 const showIdentifierDialog = ref(false)
 const hasPromptedIdentifier = ref(false)
+const showMenu = ref(false)
 
 // Check if current slide has a quiz element (to disable arrow key navigation)
 const hasQuizOnCurrentSlide = computed(() => {
   const currentSlide = presentation.currentSlide
   if (!currentSlide || !currentSlide.elements) return false
   return currentSlide.elements.some(el => el.type === 'quiz-v2')
+})
+
+// Smart mode: detect if current slide has quiz-v2 element
+const quizElement = computed(() => {
+  const currentSlide = presentation.currentSlide
+  if (!currentSlide || !currentSlide.elements) return null
+  return currentSlide.elements.find(el => el.type === 'quiz-v2') || null
+})
+
+const slideHasQuiz = computed(() => quizElement.value !== null)
+
+// Progress percentage
+const progressPercentage = computed(() => {
+  if (totalSlides.value === 0) return 0
+  return Math.round(((currentIndex.value + 1) / totalSlides.value) * 100)
 })
 
 // Track quiz attempts for submission
@@ -246,64 +263,100 @@ onUnmounted(() => {
   <div class="student-presentation">
     <!-- Header -->
     <div class="sp-header">
-      <div class="sp-header-left">
-        <h1 class="sp-title">Student Presentation</h1>
-        <span class="sp-slide-count">
-          Slide {{ currentIndex + 1 }} of {{ totalSlides }}
-        </span>
+      <div class="sp-header-top">
+        <div class="sp-header-left">
+          <h1 class="sp-title">Student Presentation</h1>
+          <span class="sp-slide-count">
+            Slide {{ currentIndex + 1 }} of {{ totalSlides }}
+          </span>
+        </div>
+        <div class="sp-header-right">
+          <button class="sp-menu-btn" @click="showMenu = !showMenu" title="Menu">
+            <span v-if="!showMenu">⋮</span>
+            <span v-else>✕</span>
+          </button>
+        </div>
       </div>
-      <div class="sp-header-right">
-        <button class="sp-btn" @click="submitAttempts" title="Submit results">
-          ✓ Submit Results
-        </button>
-        <button class="sp-btn" @click="sharePresentation" title="Share presentation">
-          🔗 Share
-        </button>
-        <button class="sp-btn" @click="toggleFullscreen" title="Toggle fullscreen">
-          ⛶ Fullscreen
-        </button>
+      <!-- Progress Bar -->
+      <div class="sp-progress-bar">
+        <div class="sp-progress-fill" :style="{ width: progressPercentage + '%' }" />
+        <span class="sp-progress-text">{{ progressPercentage }}%</span>
       </div>
     </div>
+
+    <!-- Overflow Menu -->
+    <q-menu v-model="showMenu" anchor="top right" self="top right">
+      <q-list style="min-width: 200px">
+        <q-item clickable @click="submitAttempts" v-close-popup>
+          <q-item-section avatar>
+            <q-icon name="check" />
+          </q-item-section>
+          <q-item-section>Submit Results</q-item-section>
+        </q-item>
+        <q-item clickable @click="sharePresentation" v-close-popup>
+          <q-item-section avatar>
+            <q-icon name="share" />
+          </q-item-section>
+          <q-item-section>Share</q-item-section>
+        </q-item>
+        <q-item clickable @click="toggleFullscreen" v-close-popup>
+          <q-item-section avatar>
+            <q-icon name="fullscreen" />
+          </q-item-section>
+          <q-item-section>Fullscreen</q-item-section>
+        </q-item>
+      </q-list>
+    </q-menu>
 
     <!-- Student Identifier Dialog -->
     <q-dialog
       v-model="showIdentifierDialog"
       persistent
+      maximized
+      transition-show="slide-up"
+      transition-hide="slide-down"
     >
-      <q-card style="min-width: 350px;">
-        <q-card-section>
-          <div class="text-h6">Enter Your Name</div>
-          <div class="text-caption text-grey-7">
-            Please enter your name or email so your teacher can track your progress
-          </div>
-        </q-card-section>
+      <q-card class="identifier-dialog">
+        <q-card-section class="dialog-content">
+          <div class="dialog-icon">🎓</div>
+          <h2 class="dialog-title">Welcome!</h2>
+          <p class="dialog-subtitle">What's your name so your teacher can track your progress?</p>
 
-        <q-card-section class="q-pt-none">
           <q-input
             v-model="studentIdentifier"
-            label="Name or Email"
+            label="Your name"
             outlined
-            dense
+            size="lg"
+            class="dialog-input"
             autofocus
             @keyup.enter="handleIdentifierSubmit"
-          />
-        </q-card-section>
+          >
+            <template v-slot:prepend>
+              <q-icon name="person" />
+            </template>
+          </q-input>
 
-        <q-card-actions align="right">
           <q-btn
-            flat
-            label="Start"
+            unelevated
+            label="Let's Start →"
             color="primary"
+            size="lg"
+            class="dialog-button"
             @click="handleIdentifierSubmit"
           />
-        </q-card-actions>
+        </q-card-section>
       </q-card>
     </q-dialog>
 
     <!-- Main Content -->
     <div class="sp-main">
-      <!-- Slide Canvas -->
-      <div class="sp-canvas-container">
+      <!-- Quiz Mode: Render quiz natively at full width -->
+      <div v-if="slideHasQuiz" class="sp-quiz-container">
+        <StudentQuizView :element="quizElement" />
+      </div>
+
+      <!-- Canvas Mode: Render slide canvas (for non-quiz slides) -->
+      <div v-else class="sp-canvas-container">
         <SlideCanvasReadonly
           :slide="presentation.currentSlide"
           :is-present-mode="true"
@@ -346,37 +399,40 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #1a1a1a;
-  color: #f0f0f0;
+  background: #f8fafc;
+  color: #1e293b;
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 .sp-header {
+  flex-shrink: 0;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.sp-header-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 20px;
-  background: #252525;
-  border-bottom: 1px solid #333;
-  flex-shrink: 0;
+  padding: 12px 16px;
 }
 
 .sp-header-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .sp-title {
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
-  color: #f0f0f0;
+  color: #1e293b;
 }
 
 .sp-slide-count {
-  font-size: 14px;
-  color: #888;
+  font-size: 13px;
+  color: #64748b;
 }
 
 .sp-header-right {
@@ -384,22 +440,47 @@ onUnmounted(() => {
   gap: 8px;
 }
 
-.sp-btn {
-  background: #2a2a2a;
-  border: 1px solid #444;
-  color: #ccc;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 14px;
+.sp-menu-btn {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 20px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.sp-btn:hover {
-  background: #333;
-  border-color: #505050;
-  color: #e0e0e0;
+.sp-menu-btn:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.sp-progress-bar {
+  position: relative;
+  height: 4px;
+  background: #e2e8f0;
+}
+
+.sp-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
+  transition: width 0.3s ease;
+}
+
+.sp-progress-text {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  font-weight: 600;
+  color: #6366f1;
+  background: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
 }
 
 .sp-main {
@@ -414,7 +495,15 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #1a1a1a;
+  background: #f8fafc;
+}
+
+.sp-quiz-container {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  background: #f8fafc;
 }
 
 .sp-bottom-nav {
@@ -422,28 +511,30 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 24px;
-  background: #252525;
-  border-top: 1px solid #333;
+  padding: 12px 16px;
+  background: white;
+  border-top: 1px solid #e2e8f0;
+  min-height: 64px;
 }
 
 .sp-nav-btn {
-  background: #2a2a2a;
-  border: 1px solid #444;
-  color: #ccc;
-  padding: 12px 24px;
+  background: white;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  padding: 12px 20px;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  min-width: 120px;
+  min-width: 100px;
+  min-height: 48px;
 }
 
 .sp-nav-btn:hover:not(:disabled) {
-  background: #333;
-  border-color: #505050;
-  color: #e0e0e0;
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #1e293b;
 }
 
 .sp-nav-btn:disabled {
@@ -457,23 +548,41 @@ onUnmounted(() => {
   gap: 8px;
   font-size: 16px;
   font-weight: 700;
-  color: #f0f0f0;
-  background: #1a1a1a;
-  padding: 12px 24px;
+  color: #1e293b;
+  background: #f1f5f9;
+  padding: 10px 20px;
   border-radius: 8px;
-  border: 1px solid #383838;
+  border: 1px solid #e2e8f0;
 }
 
 .sp-current {
-  color: #63b3ed;
+  color: #6366f1;
 }
 
 .sp-divider {
-  color: #666;
+  color: #94a3b8;
 }
 
-.sp-total {
-  color: #888;
+/* Mobile responsive adjustments */
+@media (max-width: 640px) {
+  .sp-title {
+    font-size: 14px;
+  }
+
+  .sp-slide-count {
+    font-size: 12px;
+  }
+
+  .sp-nav-btn {
+    padding: 10px 16px;
+    font-size: 13px;
+    min-width: 80px;
+  }
+
+  .sp-slide-indicator {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
 }
 
 @media (max-width: 768px) {
@@ -502,5 +611,66 @@ onUnmounted(() => {
     padding: 10px 16px;
     font-size: 14px;
   }
+}
+
+/* Identifier Dialog Styles */
+.identifier-dialog {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.dialog-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  padding: 24px;
+  text-align: center;
+}
+
+.dialog-icon {
+  font-size: 64px;
+  margin-bottom: 24px;
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.dialog-title {
+  margin: 0 0 12px 0;
+  font-size: 32px;
+  font-weight: 700;
+  color: white;
+}
+
+.dialog-subtitle {
+  margin: 0 0 32px 0;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.9);
+  max-width: 400px;
+  line-height: 1.5;
+}
+
+.dialog-input {
+  width: 100%;
+  max-width: 400px;
+  margin-bottom: 24px;
+}
+
+.dialog-input :deep(.q-field__control) {
+  background: white;
+  border-radius: 12px;
+}
+
+.dialog-button {
+  width: 100%;
+  max-width: 400px;
+  height: 56px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 12px;
 }
 </style>
