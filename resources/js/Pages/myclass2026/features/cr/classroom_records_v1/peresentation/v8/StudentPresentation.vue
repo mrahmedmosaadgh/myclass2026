@@ -99,8 +99,7 @@ function collectQuizAttempts() {
 
 // Submit all attempts to API
 async function submitAttempts() {
-  const pathParts = window.location.pathname.split('/')
-  const shareToken = pathParts[pathParts.length - 1]
+  const shareToken = props.shareToken
 
   const attempts = collectQuizAttempts()
   

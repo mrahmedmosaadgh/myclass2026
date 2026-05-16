@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useQuasar } from 'quasar'
 import { usePresentationAPI } from '../composables/usePresentationAPI.js'
 import PresentationStatistics from './PresentationStatistics.vue'
@@ -30,6 +30,13 @@ async function loadPresentations() {
     })
   }
 }
+
+// Refresh list when dialog opens
+watch(() => props.modelValue, (isOpen) => {
+  if (isOpen) {
+    loadPresentations()
+  }
+})
 
 async function handleDelete(id) {
   $q.dialog({
@@ -131,7 +138,7 @@ onMounted(() => {
             :class="{ 'bg-blue-1': selectedPresentationId === presentation.id }"
           >
             <q-item-section avatar>
-              <q-icon name="presentation" color="primary" />
+              <q-icon name="slideshow" color="primary" />
             </q-item-section>
 
             <q-item-section>

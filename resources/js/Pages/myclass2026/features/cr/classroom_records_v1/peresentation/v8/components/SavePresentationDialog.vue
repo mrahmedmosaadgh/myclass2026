@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useQuasar } from 'quasar'
 import { usePresentationAPI } from '../composables/usePresentationAPI.js'
 
@@ -7,6 +7,8 @@ const props = defineProps({
   modelValue: Boolean,
   presentationData: Object,
   presentationId: Number, // If set, this is an update, not a new save
+  presentationTitle: String, // Pre-fill title when updating
+  presentationDescription: String, // Pre-fill description when updating
 })
 
 const emit = defineEmits(['update:modelValue', 'saved'])
@@ -20,6 +22,18 @@ const saveAsNew = ref(false)
 
 const isUpdate = computed(() => !!props.presentationId)
 const actionLabel = computed(() => isUpdate.value && !saveAsNew.value ? 'Update' : 'Save')
+
+// Pre-fill form when dialog opens and we have title/description props
+watch(() => props.modelValue, (isOpen) => {
+  if (isOpen) {
+    if (props.presentationTitle) {
+      title.value = props.presentationTitle
+    }
+    if (props.presentationDescription) {
+      description.value = props.presentationDescription
+    }
+  }
+})
 
 async function handleSave() {
   if (!title.value.trim()) {

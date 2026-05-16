@@ -32,6 +32,8 @@ const slideContextMenu = ref({
 // Presentation save/load state
 const showSaveDialog = ref(false)
 const showPresentationManager = ref(false)
+const currentPresentationTitle = ref('')
+const currentPresentationDescription = ref('')
 
 function handleSavePresentation() {
   showSaveDialog.value = true
@@ -41,11 +43,28 @@ function handleOpenPresentationManager() {
   showPresentationManager.value = true
 }
 
+function handleNewPresentation() {
+  presentation.slides = [{ id: `slide-${Date.now()}`, elements: [] }]
+  presentation.currentSlideIndex = 0
+  presentation.description = ''
+  presentation.setCurrentPresentationId(null)
+  currentPresentationTitle.value = ''
+  currentPresentationDescription.value = ''
+  $q.notify({
+    type: 'positive',
+    message: 'New presentation created',
+    position: 'top',
+    timeout: 3000
+  })
+}
+
 async function handleLoadPresentation(presentationData) {
   try {
-    await loadPresentation(presentationData.id)
-    presentation.loadPresentationData(presentationData.presentation_data)
+    const fullData = await loadPresentation(presentationData.id)
+    presentation.loadPresentationData(fullData.presentation_data)
     presentation.setCurrentPresentationId(presentationData.id)
+    currentPresentationTitle.value = fullData.title
+    currentPresentationDescription.value = fullData.description
     $q.notify({
       type: 'positive',
       message: 'Presentation loaded successfully',
@@ -438,8 +457,10 @@ onUnmounted(() => {
     <!-- Toolbar (Edit Mode) -->
     <Toolbar 
       v-if="ui.isEditMode && ui.areEditToolsVisible" 
+      :current-presentation-name="currentPresentationTitle"
       @save-to-cloud="handleSavePresentation"
       @open-presentation-manager="handleOpenPresentationManager"
+      @new-presentation="handleNewPresentation"
     />
 
     <!-- Zoom Toolbar for Present Mode -->
@@ -622,6 +643,8 @@ onUnmounted(() => {
       v-model="showSaveDialog"
       :presentation-data="presentation.$state"
       :presentation-id="presentation.currentPresentationId"
+      :presentation-title="currentPresentationTitle"
+      :presentation-description="currentPresentationDescription"
       @saved="handleSaved"
     />
 

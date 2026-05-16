@@ -16,6 +16,10 @@ const $q = useQuasar()
 const presentation = usePresentationStore()
 const ui = useUIStore()
 
+const props = defineProps({
+  currentPresentationName: String,
+})
+
 /* -------------------------------- */
 /* refs */
 /* -------------------------------- */
@@ -289,6 +293,10 @@ function handleQuestionsImported(importedQuestions) {
         <div class="brand-text">
           Slides Studio
         </div>
+
+        <div v-if="currentPresentationName" class="presentation-name-badge">
+          {{ currentPresentationName }}
+        </div>
       </div>
 
       <q-space />
@@ -535,6 +543,22 @@ function handleQuestionsImported(importedQuestions) {
           <q-item
             clickable
             v-close-popup
+            @click="$emit('new-presentation')"
+          >
+            <q-item-section avatar>
+              <q-icon name="add" />
+            </q-item-section>
+
+            <q-item-section>
+              New Presentation
+            </q-item-section>
+          </q-item>
+
+          <q-separator />
+
+          <q-item
+            clickable
+            v-close-popup
             @click="$emit('save-to-cloud')"
           >
             <q-item-section avatar>
@@ -725,6 +749,20 @@ function handleQuestionsImported(importedQuestions) {
   font-size: 16px;
   font-weight: 700;
   color: #111827;
+}
+
+.presentation-name-badge {
+  margin-left: 12px;
+  padding: 4px 10px;
+  background: rgba(99, 102, 241, 0.1);
+  color: #6366f1;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 12px;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* SEARCH */
