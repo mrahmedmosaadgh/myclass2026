@@ -2,6 +2,11 @@ import { ref } from 'vue'
 
 const API_BASE = '/api/v8-presentations'
 
+function getCsrfToken() {
+  const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/)
+  return match ? decodeURIComponent(match[1]) : ''
+}
+
 export function usePresentationAPI() {
   const loading = ref(false)
   const error = ref(null)
@@ -16,6 +21,7 @@ export function usePresentationAPI() {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'X-XSRF-TOKEN': getCsrfToken(),
         },
         body: JSON.stringify({
           title,
@@ -99,11 +105,45 @@ export function usePresentationAPI() {
         method: 'DELETE',
         headers: {
           'Accept': 'application/json',
+          'X-XSRF-TOKEN': getCsrfToken(),
         },
       })
 
       if (!response.ok) {
         throw new Error('Failed to delete presentation')
+      }
+
+      const data = await response.json()
+      return data
+    } catch (err) {
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function updatePresentation(id, title, description, presentationData) {
+    loading.value = true
+    error.value = null
+
+    try {
+      const response = await fetch(`${API_BASE}/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-XSRF-TOKEN': getCsrfToken(),
+        },
+        body: JSON.stringify({
+          title,
+          description,
+          presentation_data: presentationData,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update presentation')
       }
 
       const data = await response.json()
@@ -152,6 +192,7 @@ export function usePresentationAPI() {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'X-XSRF-TOKEN': getCsrfToken(),
         },
         body: JSON.stringify({
           student_identifier: studentIdentifier,
@@ -231,6 +272,7 @@ export function usePresentationAPI() {
     loading,
     error,
     savePresentation,
+    updatePresentation,
     listPresentations,
     loadPresentation,
     deletePresentation,

@@ -445,7 +445,7 @@ class PresentationController extends Controller
 
             DB::commit();
 
-            $shareUrl = url('/student-presentation/' . $presentation->share_token);
+            $shareUrl = url('/classroom-records/presentation/s/' . $presentation->share_token);
 
             return response()->json([
                 'success' => true,
@@ -485,7 +485,7 @@ class PresentationController extends Controller
                     'title' => $presentation->title,
                     'description' => $presentation->description,
                     'share_token' => $presentation->share_token,
-                    'share_url' => url('/student-presentation/' . $presentation->share_token),
+                    'share_url' => url('/classroom-records/presentation/s/' . $presentation->share_token),
                     'created_at' => $presentation->created_at->toISOString(),
                     'attempt_count' => $presentation->student_attempts_count,
                 ];
@@ -516,10 +516,56 @@ class PresentationController extends Controller
                 'description' => $presentation->description,
                 'presentation_data' => $presentation->presentation_data,
                 'share_token' => $presentation->share_token,
-                'share_url' => url('/student-presentation/' . $presentation->share_token),
+                'share_url' => url('/classroom-records/presentation/s/' . $presentation->share_token),
                 'created_at' => $presentation->created_at->toISOString(),
             ]
         ]);
+    }
+
+    /**
+     * Update a v8 presentation
+     */
+    public function updateV8Presentation(Request $request, $id): JsonResponse
+    {
+        $user = Auth::user();
+
+        $presentation = UserPresentation::where('id', $id)
+            ->where('user_id', $user->id)
+            ->firstOrFail();
+
+        try {
+            DB::beginTransaction();
+
+            $presentation->update([
+                'title' => $request->input('title'),
+                'description' => $request->input('description'),
+                'presentation_data' => $request->input('presentation_data'),
+                'is_public' => $request->input('is_public', $presentation->is_public),
+            ]);
+
+            DB::commit();
+
+            $shareUrl = url('/classroom-records/presentation/s/' . $presentation->share_token);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Presentation updated successfully',
+                'data' => [
+                    'id' => $presentation->id,
+                    'share_token' => $presentation->share_token,
+                    'share_url' => $shareUrl
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update presentation',
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+            ], 500);
+        }
     }
 
     /**

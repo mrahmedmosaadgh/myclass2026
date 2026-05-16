@@ -535,6 +535,36 @@ function handleQuestionsImported(importedQuestions) {
           <q-item
             clickable
             v-close-popup
+            @click="$emit('save-to-cloud')"
+          >
+            <q-item-section avatar>
+              <q-icon name="cloud_upload" />
+            </q-item-section>
+
+            <q-item-section>
+              Cloud Save
+            </q-item-section>
+          </q-item>
+
+          <q-item
+            clickable
+            v-close-popup
+            @click="$emit('open-presentation-manager')"
+          >
+            <q-item-section avatar>
+              <q-icon name="library_books" />
+            </q-item-section>
+
+            <q-item-section>
+              My Presentations
+            </q-item-section>
+          </q-item>
+
+          <q-separator />
+
+          <q-item
+            clickable
+            v-close-popup
             @click="exportPresentation"
           >
             <q-item-section avatar>

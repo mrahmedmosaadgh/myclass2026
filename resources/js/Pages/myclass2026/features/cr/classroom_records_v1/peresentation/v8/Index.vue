@@ -45,6 +45,7 @@ async function handleLoadPresentation(presentationData) {
   try {
     await loadPresentation(presentationData.id)
     presentation.loadPresentationData(presentationData.presentation_data)
+    presentation.setCurrentPresentationId(presentationData.id)
     $q.notify({
       type: 'positive',
       message: 'Presentation loaded successfully',
@@ -59,6 +60,23 @@ async function handleLoadPresentation(presentationData) {
       timeout: 3000
     })
   }
+}
+
+function handleSaved(result) {
+  // If it was a new save (not update), set the current presentation ID
+  if (result && result.id && !presentation.currentPresentationId) {
+    presentation.setCurrentPresentationId(result.id)
+  }
+  // If it was an update or save-as-new, update the ID accordingly
+  if (result && result.id) {
+    presentation.setCurrentPresentationId(result.id)
+  }
+  $q.notify({
+    type: 'positive',
+    message: 'Presentation saved successfully',
+    position: 'top',
+    timeout: 3000
+  })
 }
 
 function handlePageSelect(idx) {
@@ -418,7 +436,11 @@ onUnmounted(() => {
   }" @contextmenu="handleSlideContextMenu">
     
     <!-- Toolbar (Edit Mode) -->
-    <Toolbar v-if="ui.isEditMode && ui.areEditToolsVisible" />
+    <Toolbar 
+      v-if="ui.isEditMode && ui.areEditToolsVisible" 
+      @save-to-cloud="handleSavePresentation"
+      @open-presentation-manager="handleOpenPresentationManager"
+    />
 
     <!-- Zoom Toolbar for Present Mode -->
     <div v-if="!ui.isEditMode" class="present-mode-zoom-toolbar">
@@ -599,7 +621,8 @@ onUnmounted(() => {
     <SavePresentationDialog
       v-model="showSaveDialog"
       :presentation-data="presentation.$state"
-      @saved="() => $q.notify({ type: 'positive', message: 'Presentation saved!', position: 'top', timeout: 3000 })"
+      :presentation-id="presentation.currentPresentationId"
+      @saved="handleSaved"
     />
 
     <!-- Presentation Manager -->

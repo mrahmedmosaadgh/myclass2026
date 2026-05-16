@@ -1,20 +1,25 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useQuasar } from 'quasar'
 import { usePresentationAPI } from '../composables/usePresentationAPI.js'
 
 const props = defineProps({
   modelValue: Boolean,
   presentationData: Object,
+  presentationId: Number, // If set, this is an update, not a new save
 })
 
 const emit = defineEmits(['update:modelValue', 'saved'])
 
 const $q = useQuasar()
-const { savePresentation, loading, error } = usePresentationAPI()
+const { savePresentation, updatePresentation, loading, error } = usePresentationAPI()
 
 const title = ref('')
 const description = ref('')
+const saveAsNew = ref(false)
+
+const isUpdate = computed(() => !!props.presentationId)
+const actionLabel = computed(() => isUpdate.value && !saveAsNew.value ? 'Update' : 'Save')
 
 async function handleSave() {
   if (!title.value.trim()) {
@@ -28,15 +33,25 @@ async function handleSave() {
   }
 
   try {
-    const result = await savePresentation(
-      title.value,
-      description.value,
-      props.presentationData
-    )
+    let result
+    if (isUpdate.value && !saveAsNew.value) {
+      result = await updatePresentation(
+        props.presentationId,
+        title.value,
+        description.value,
+        props.presentationData
+      )
+    } else {
+      result = await savePresentation(
+        title.value,
+        description.value,
+        props.presentationData
+      )
+    }
 
     $q.notify({
       type: 'positive',
-      message: 'Presentation saved successfully!',
+      message: `Presentation ${isUpdate.value && !saveAsNew.value ? 'updated' : 'saved'} successfully!`,
       position: 'top',
       timeout: 3000
     })
@@ -47,10 +62,11 @@ async function handleSave() {
     // Reset form
     title.value = ''
     description.value = ''
+    saveAsNew.value = false
   } catch (err) {
     $q.notify({
       type: 'negative',
-      message: error.value || 'Failed to save presentation',
+      message: error.value || `Failed to ${isUpdate.value && !saveAsNew.value ? 'update' : 'save'} presentation`,
       position: 'top',
       timeout: 3000
     })
@@ -59,6 +75,9 @@ async function handleSave() {
 
 function cancel() {
   emit('update:modelValue', false)
+  title.value = ''
+  description.value = ''
+  saveAsNew.value = false
 }
 </script>
 
@@ -70,7 +89,7 @@ function cancel() {
   >
     <q-card style="min-width: 400px; max-width: 500px;">
       <q-card-section>
-        <div class="text-h6">Save Presentation</div>
+        <div class="text-h6">{{ isUpdate ? 'Update Presentation' : 'Save Presentation' }}</div>
       </q-card-section>
 
       <q-card-section class="q-pt-none">
@@ -93,6 +112,15 @@ function cancel() {
           :disable="loading"
           class="q-mt-md"
         />
+
+        <q-checkbox
+          v-if="isUpdate"
+          v-model="saveAsNew"
+          label="Save as new copy"
+          color="primary"
+          :disable="loading"
+          class="q-mt-md"
+        />
       </q-card-section>
 
       <q-card-actions align="right">
@@ -105,7 +133,7 @@ function cancel() {
         />
         <q-btn
           flat
-          label="Save"
+          :label="actionLabel"
           color="primary"
           :loading="loading"
           @click="handleSave"

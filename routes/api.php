@@ -143,13 +143,16 @@ Route::middleware(['auth:sanctum','web'])->get('/subjects/{subject}/curricula', 
 // Route::middleware(['auth:sanctum','web'])->post('/worksheets', [App\Http\Controllers\WorksheetController::class, 'store']);
 
 
-
 Route::apiResource('behaviors', BehaviorController::class);
 Route::apiResource('student-behaviors', StudentBehaviorController::class);
 
 Route::prefix('behavior')->group(function () {
     Route::post('/cancel-action/{action}', [StudentBehaviorController::class, 'cancelPointAction']);
 });
+
+// Student presentation (no auth required - share token only)
+Route::get('/v8-presentations/shared/{shareToken}', [App\Http\Controllers\Api\PresentationController::class, 'loadSharedPresentation']);
+Route::post('/v8-presentations/shared/{shareToken}/attempt', [App\Http\Controllers\Api\PresentationController::class, 'submitStudentAttempt']);
 
 // Main Authenticated Web API Group
 Route::middleware(['auth:sanctum', 'web'])->group(function () {
@@ -231,14 +234,11 @@ Route::middleware(['auth:sanctum', 'web'])->group(function () {
         Route::post('/save', [App\Http\Controllers\Api\PresentationController::class, 'saveV8Presentation']);
         Route::get('/', [App\Http\Controllers\Api\PresentationController::class, 'listV8Presentations']);
         Route::get('/{id}', [App\Http\Controllers\Api\PresentationController::class, 'loadV8Presentation']);
+        Route::put('/{id}', [App\Http\Controllers\Api\PresentationController::class, 'updateV8Presentation']);
         Route::delete('/{id}', [App\Http\Controllers\Api\PresentationController::class, 'deleteV8Presentation']);
         Route::get('/{id}/statistics', [App\Http\Controllers\Api\PresentationController::class, 'getV8Statistics']);
         Route::get('/{id}/attempts', [App\Http\Controllers\Api\PresentationController::class, 'getV8AttemptHistory']);
     });
-
-    // Student presentation (no auth required - share token only)
-    Route::get('/v8-presentations/shared/{shareToken}', [App\Http\Controllers\Api\PresentationController::class, 'loadSharedPresentation']);
-    Route::post('/v8-presentations/shared/{shareToken}/attempt', [App\Http\Controllers\Api\PresentationController::class, 'submitStudentAttempt']);
 
     // AI Assistant API
     Route::post('/ai/complete', [App\Http\Controllers\AIController::class, 'complete']);

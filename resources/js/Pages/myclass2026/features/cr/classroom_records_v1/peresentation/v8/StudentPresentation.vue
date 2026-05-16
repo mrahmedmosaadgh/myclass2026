@@ -6,6 +6,10 @@ import { useUIStore } from './stores/uiStore.js'
 import { usePresentationAPI } from './composables/usePresentationAPI.js'
 import SlideCanvasReadonly from './components/SlideCanvasReadonly.vue'
 
+const props = defineProps({
+  shareToken: String // Inertia prop from web route
+})
+
 const $q = useQuasar()
 const presentation = usePresentationStore()
 const ui = useUIStore()
@@ -33,8 +37,7 @@ const totalQuestions = ref(0)
 
 // Load presentation from API using share token
 async function loadPresentationFromToken() {
-  const pathParts = window.location.pathname.split('/')
-  const shareToken = pathParts[pathParts.length - 1]
+  const shareToken = props.shareToken
 
   if (!shareToken) {
     $q.notify({

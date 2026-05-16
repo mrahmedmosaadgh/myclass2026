@@ -130,6 +130,7 @@ export const usePresentationStore = defineStore('presentation-v8', () => {
   const description = ref(localStorage.getItem(STORAGE_KEYS.DESCRIPTION) || '')
   const showDescriptionInPresentMode = ref(true)
   const quizAttempts = ref(loadQuizAttempts())
+  const currentPresentationId = ref(null) // Track loaded presentation ID for update/save
 
   // Getters
   const currentSlide = computed(() => {
@@ -466,6 +467,19 @@ export const usePresentationStore = defineStore('presentation-v8', () => {
     }
   }
 
+  function loadPresentationData(presentationData) {
+    // Alias for importPresentation - loads data from API response
+    return importPresentation(presentationData)
+  }
+
+  function setCurrentPresentationId(id) {
+    currentPresentationId.value = id
+  }
+
+  function clearCurrentPresentationId() {
+    currentPresentationId.value = null
+  }
+
   return {
     // State
     slides,
@@ -473,6 +487,7 @@ export const usePresentationStore = defineStore('presentation-v8', () => {
     description,
     showDescriptionInPresentMode,
     quizAttempts,
+    currentPresentationId,
 
     // Getters
     currentSlide,
@@ -493,6 +508,9 @@ export const usePresentationStore = defineStore('presentation-v8', () => {
     clearDescription,
     exportPresentation,
     importPresentation,
+    loadPresentationData,
+    setCurrentPresentationId,
+    clearCurrentPresentationId,
     // Quiz actions
     addQuiz,
     updateQuizAnswer,

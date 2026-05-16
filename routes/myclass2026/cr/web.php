@@ -140,6 +140,18 @@ Route::middleware([
             );
         })->name('student-v8');
 
+        // V8 Student Presentation with Share Token (Public, no auth)
+        Route::get('/s/{shareToken}', function ($shareToken) {
+            return Inertia::render(
+                'myclass2026/features/cr/classroom_records_v1/peresentation/v8/StudentPresentation',
+                [
+                    'title' => 'Student Presentation - MyClass2026',
+                    'mode' => 'student',
+                    'shareToken' => $shareToken
+                ]
+            );
+        })->name('student-v8-shared');
+
         // Presentation Management Page
         Route::get('/manage', function () {
             return Inertia::render(
